@@ -21,11 +21,15 @@ class CodeEditorState(
     language: CodeLanguage = CodeLanguage.Plain,
     val uri: String = "reaktor://scratch",
     readOnly: Boolean = false,
+    private val onChange: ((String) -> Unit)? = null,
 ) {
     var document by mutableStateOf(CodeDocument.of(text))
         private set
 
     var language by mutableStateOf(language)
+
+    var presentation by mutableStateOf(CodePresentation.Source)
+    internal val markdown = MarkdownProjection()
 
     var readOnly by mutableStateOf(readOnly)
 
@@ -48,7 +52,7 @@ class CodeEditorState(
     var findIndex by mutableIntStateOf(0)
 
     private var desiredColumn: Int? = null
-    private var syntaxStates = IntArray(64)
+    private var syntaxStates = Array<CodeLexState>(64) { CodeLanguage.Code }
     private var validStates = 1
     private val undoStack = ArrayDeque<UndoStep>()
     private val redoStack = ArrayDeque<UndoStep>()
@@ -74,10 +78,10 @@ class CodeEditorState(
     // ---- syntax -------------------------------------------------------------------------------
 
     /** The lexer state entering [line], validated lazily and only as far up as the viewport needs. */
-    fun entryState(line: Int): Int {
+    fun entryState(line: Int): CodeLexState {
         if (language !== languageKey) { languageKey = language; validStates = 1 }
         if (line <= 0) return CodeLanguage.Code
-        if (syntaxStates.size <= line) syntaxStates = syntaxStates.copyOf(maxOf(line + 1, syntaxStates.size * 2))
+        if (syntaxStates.size <= line) syntaxStates = Array(maxOf(line + 1, syntaxStates.size * 2)) { syntaxStates.getOrElse(it) { CodeLanguage.Code } }
         validStates = validStates.coerceAtMost(document.lineCount)
         while (validStates <= line && validStates < document.lineCount) {
             syntaxStates[validStates] = language.state(document.line(validStates - 1), syntaxStates[validStates - 1])
@@ -86,9 +90,26 @@ class CodeEditorState(
         return if (line < validStates) syntaxStates[line] else CodeLanguage.Code
     }
 
-    fun spans(line: Int): List<CodeTokenSpan> = language.spans(document.line(line), entryState(line))
+    private data class SyntaxLine(val text: String, val entry: CodeLexState, val language: CodeLanguage, val spans: List<CodeTokenSpan>)
+    private val syntaxLines = linkedMapOf<Int, SyntaxLine>()
+
+    fun spans(line: Int): List<CodeTokenSpan> {
+        val text = document.line(line)
+        val entry = entryState(line)
+        val cached = syntaxLines[line]
+        if (cached != null && cached.text === text && cached.entry == entry && cached.language === language) return cached.spans
+        val spans = language.spans(text, entry)
+        syntaxLines[line] = SyntaxLine(text, entry, language, spans)
+        if (syntaxLines.size > 128) syntaxLines.remove(syntaxLines.keys.first())
+        return spans
+    }
+
+    internal val editingLanguage: CodeLanguage
+        get() = (entryState(caret.line) as? MarkdownFence)?.language ?: language
 
     private fun invalidateSyntaxFrom(line: Int) {
+        markdown.invalidate(line)
+        syntaxLines.keys.removeAll { it >= line }
         validStates = validStates.coerceAtMost(maxOf(1, line + 1))
     }
 
@@ -101,14 +122,16 @@ class CodeEditorState(
     fun edit(span: CodeSpan, replacement: String, caretAfter: CodePosition? = null, coalesce: Boolean = false): Boolean {
         if (readOnly) return false
         val target = document.clamp(span).ordered
+        val inserted = replacement.replace("\r\n", "\n").replace('\r', '\n')
         val replaced = document.slice(target)
-        push(UndoStep(target, replacement, replaced, caret, anchor), coalesce)
-        document = document.replace(target, replacement)
+        push(UndoStep(target, inserted, replaced, caret, anchor), coalesce)
+        document = document.replace(target, inserted)
         invalidateSyntaxFrom(target.start.line)
-        caret = document.clamp(caretAfter ?: document.positionAfter(target.start, replacement))
+        caret = document.clamp(caretAfter ?: document.positionAfter(target.start, inserted))
         anchor = null
         desiredColumn = null
         version++
+        onChange?.invoke(text)
         return true
     }
 
@@ -122,12 +145,27 @@ class CodeEditorState(
         language = newLanguage
         languageKey = newLanguage
         validStates = 1
+        markdown.invalidate(0)
+        syntaxLines.clear()
         undoStack.clear()
         redoStack.clear()
         caret = CodePosition.Start
         anchor = null
         desiredColumn = null
         diagnostics = emptyList()
+        version++
+    }
+
+    fun update(newText: String, newLanguage: CodeLanguage = language) {
+        check(readOnly) { "Producer updates require a read-only document" }
+        if (newLanguage !== language) { load(newText, newLanguage); return }
+        val old = text
+        if (newText == old) return
+        if (newText.startsWith(old)) { append(newText.substring(old.length)); return }
+        document = CodeDocument.of(newText)
+        invalidateSyntaxFrom(0)
+        caret = document.clamp(caret)
+        anchor = anchor?.let(document::clamp)
         version++
     }
 
@@ -145,14 +183,14 @@ class CodeEditorState(
         val active = selection
         if (input.length == 1) {
             val char = input[0]
-            val closer = Pairs[char]
+            val closer = Pairs[char]?.takeUnless { char in QuoteChars && char !in editingLanguage.quotes }
             val text = document.line(caret.line)
             if (active != null && closer != null && active.singleLine) {
                 val body = document.slice(active)
                 return edit(active, "$char$body$closer", caretAfter = CodePosition(active.start.line, active.end.column + 1))
                     .also { anchor = CodePosition(active.start.line, active.start.column + 1) }
             }
-            if (active == null && char in Closers && text.getOrNull(caret.column) == char) {
+            if (active == null && char in Closers && (char !in QuoteChars || char in editingLanguage.quotes) && text.getOrNull(caret.column) == char) {
                 caret = caret.copy(column = caret.column + 1)
                 return true
             }
@@ -166,11 +204,13 @@ class CodeEditorState(
     fun newline(): Boolean {
         if (readOnly) return false
         val target = (selection ?: CodeSpan.at(caret)).ordered
+        val activeLanguage = (entryState(target.start.line) as? MarkdownFence)?.language ?: language
+        if (activeLanguage === CodeLanguage.Markdown) return MarkdownSyntax.newline(this)
         val indent = document.indentOf(target.start.line)
         val before = document.line(target.start.line).take(target.start.column).trimEnd()
         val after = document.line(target.end.line).drop(target.end.column).trimStart()
         val opens = before.lastOrNull() in setOf('{', '(', '[')
-        val inner = if (opens) indent + language.indent else indent
+        val inner = if (opens) indent + activeLanguage.indent else indent
         if (opens && after.firstOrNull() in setOf('}', ')', ']')) {
             return edit(target, "\n$inner\n$indent", caretAfter = CodePosition(target.start.line + 1, inner.length))
         }
@@ -192,7 +232,7 @@ class CodeEditorState(
         if (previous != null && Pairs[previous] != null && Pairs[previous] == text.getOrNull(caret.column)) {
             return edit(CodeSpan.of(caret.line, caret.column - 1, caret.column + 1), "")
         }
-        val from = if (caret.column > 0) caret.copy(column = caret.column - 1) else document.lineEnd(caret.line - 1)
+        val from = document.adjacent(caret, forward = false)
         return edit(CodeSpan(from, caret), "", caretAfter = from)
     }
 
@@ -200,8 +240,7 @@ class CodeEditorState(
         if (readOnly) return false
         selection?.let { return edit(it, "") }
         if (caret == document.end) return true
-        val to = if (caret.column < document.line(caret.line).length) caret.copy(column = caret.column + 1)
-        else CodePosition(caret.line + 1, 0)
+        val to = document.adjacent(caret, forward = true)
         return edit(CodeSpan(caret, to), "", caretAfter = caret)
     }
 
@@ -215,22 +254,23 @@ class CodeEditorState(
 
     fun indent(add: Boolean): Boolean {
         if (readOnly) return false
+        val indent = editingLanguage.indent
         val active = selection
-        if (active == null && add) return type(language.indent)
+        if (active == null && add) return type(indent)
         val range = active?.ordered ?: CodeSpan.at(caret)
         val first = range.start.line
         val last = if (range.end.column == 0 && range.end.line > first) range.end.line - 1 else range.end.line
         val updated = (first..last).joinToString("\n") { index ->
             val line = document.line(index)
-            if (add) language.indent + line
+            if (add) indent + line
             else {
                 var strip = 0
-                while (strip < language.indent.length && strip < line.length && (line[strip] == ' ' || line[strip] == '\t')) strip++
+                while (strip < indent.length && strip < line.length && (line[strip] == ' ' || line[strip] == '\t')) strip++
                 line.drop(strip)
             }
         }
         val span = CodeSpan(CodePosition(first, 0), document.lineEnd(last))
-        val shift = if (add) language.indent.length else -language.indent.length
+        val shift = if (add) indent.length else -indent.length
         val applied = edit(span, updated, caretAfter = CodePosition(last, maxOf(0, caret.column + shift)))
         if (applied && active != null) selectLines(first, last)
         return applied
@@ -238,7 +278,7 @@ class CodeEditorState(
 
     fun toggleComment(): Boolean {
         if (readOnly) return false
-        val prefix = language.lineComment ?: return false
+        val prefix = editingLanguage.lineComment ?: return false
         val range = (selection ?: CodeSpan.at(caret)).ordered
         val first = range.start.line
         val last = if (range.end.column == 0 && range.end.line > first) range.end.line - 1 else range.end.line
@@ -307,6 +347,7 @@ class CodeEditorState(
     }
 
     fun undo(): Boolean {
+        if (readOnly) return false
         val step = undoStack.removeLastOrNull() ?: return false
         val inserted = CodeSpan(step.span.start, document.positionAfter(step.span.start, step.inserted))
         document = document.replace(inserted, step.replaced)
@@ -315,10 +356,12 @@ class CodeEditorState(
         anchor = step.anchorBefore?.let { document.clamp(it) }
         redoStack.addLast(step)
         version++
+        onChange?.invoke(text)
         return true
     }
 
     fun redo(): Boolean {
+        if (readOnly) return false
         val step = redoStack.removeLastOrNull() ?: return false
         document = document.replace(step.span, step.inserted)
         invalidateSyntaxFrom(step.span.start.line)
@@ -326,6 +369,7 @@ class CodeEditorState(
         anchor = null
         undoStack.addLast(step)
         version++
+        onChange?.invoke(text)
         return true
     }
 
@@ -351,13 +395,7 @@ class CodeEditorState(
             desiredColumn = null
             return
         }
-        val next = when {
-            forward && caret.column < document.line(caret.line).length -> caret.copy(column = caret.column + 1)
-            forward && caret.line < document.lastLine -> CodePosition(caret.line + 1, 0)
-            !forward && caret.column > 0 -> caret.copy(column = caret.column - 1)
-            !forward && caret.line > 0 -> document.lineEnd(caret.line - 1)
-            else -> caret
-        }
+        val next = document.adjacent(caret, forward)
         moveTo(next, extend)
     }
 
@@ -365,6 +403,16 @@ class CodeEditorState(
         val column = desiredColumn ?: caret.column
         anchor = if (extend) anchor ?: caret else null
         caret = document.clamp(CodePosition((caret.line + delta).coerceIn(0, document.lastLine), column))
+        desiredColumn = column
+    }
+
+    internal fun moveVertical(delta: Int, extend: Boolean, rows: CodeRows) {
+        val index = rows.indexOf(caret)
+        val column = desiredColumn ?: (caret.column - rows[index].start)
+        anchor = if (extend) anchor ?: caret else null
+        val target = (index + delta).coerceIn(0, rows.size - 1)
+        val next = rows.positionAt(target, column)
+        caret = if (rows.indexOf(next) > target) document.adjacent(next, forward = false) else next
         desiredColumn = column
     }
 
@@ -496,6 +544,7 @@ class CodeEditorState(
         private const val UndoLimit = 400
         private const val WholeBufferScanLines = 4_000
         private const val CompletionScanRadius = 500
+        private val QuoteChars = setOf('"', '\'', '`')
         private val Pairs = mapOf('(' to ')', '[' to ']', '{' to '}', '"' to '"', '\'' to '\'', '`' to '`')
         private val Closers = setOf(')', ']', '}', '"', '\'', '`')
     }

@@ -60,6 +60,23 @@ class SuperadminGateTest {
         assertTrue(approvals.pending().isEmpty())
     }
 
+    @Test fun aCallThatNeedsAPersonAsksEvenASuperadminSeat() = fixture(policy) { kernel, approvals, calls, _ ->
+        fun apply(environment: String) = Invocation(OperationId("auth.apply"), buildJsonObject { put("plan", "reviewed"); put("environment", environment) }, CallCaller("codex"))
+        assertIs<Outcome.Completed>(kernel.invoke(apply("dev")))
+        assertTrue(calls.single().superadmin)
+        val waiting = assertIs<Outcome.ApprovalRequired>(kernel.invoke(apply("prod")))
+        assertEquals(SafetyClass.DataMigration, waiting.effect)
+        assertEquals(1, calls.size)
+        approvals.decide(waiting.approval, approve = true, by = "owner")
+        assertIs<Outcome.Completed>(kernel.invoke(apply("prod")))
+        assertEquals("owner", calls.last().approval?.decidedBy)
+        assertFalse(calls.last().superadmin)
+        assertIs<Outcome.ApprovalRequired>(kernel.invoke(apply("prod")))
+        assertEquals(2, calls.size)
+        assertEquals(Access.Ask, kernel.access(listOf("codex")).single { it.id.value == "auth.apply" }.seats["codex"])
+        assertEquals(Access.Allowed, kernel.access(listOf("codex")).single { it.id.value == "ship.apply" }.seats["codex"])
+    }
+
     @Test fun workspacePolicyCannotGrantMachineSuperadminAndCanNarrowIt() {
         val root = Files.createTempDirectory("superadmin-policy").toFile()
         try {
@@ -95,7 +112,10 @@ class SuperadminGateTest {
             effectFor = { arguments, _ ->
                 require(arguments["plan"] == JsonPrimitive("reviewed") && arguments["environment"] == JsonPrimitive("dev"))
                 SafetyClass.ProductionReversibleWrite
-            }, confirmationPhraseFor = { "ship fixture" }) { arguments -> calls += this; arguments })))
+            }, confirmationPhraseFor = { "ship fixture" }) { arguments -> calls += this; arguments },
+            Operation(OperationId("auth.apply"), "Apply fixture", SafetyClass.DataMigration, JsonObject.serializer(), JsonObject.serializer(),
+                effectFor = { arguments, _ -> if (arguments["environment"] == JsonPrimitive("dev")) SafetyClass.NonProductionWrite else SafetyClass.DataMigration },
+                personFor = { arguments -> arguments["environment"] != JsonPrimitive("dev") }) { arguments -> calls += this; arguments })))
         val approvals = DoorApprovals(directory.resolve("approvals"))
         val log = directory.resolve("calls.jsonl").toFile()
         try {

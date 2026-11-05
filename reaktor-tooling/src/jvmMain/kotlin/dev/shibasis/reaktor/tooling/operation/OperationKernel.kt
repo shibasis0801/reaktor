@@ -100,7 +100,8 @@ class OperationKernel(
         val declared = entries().associateBy { it.catalog.id }
         return catalog().map { catalog ->
             OperationAccess(catalog.id, catalog.summary, catalog.effect, catalog.provider, seats.associateWith { seat ->
-                when (declared.getValue(catalog.id).decide(catalog.effect, authority.policy.seat(seat))) {
+                val entry = declared.getValue(catalog.id)
+                when (entry.decide(catalog.effect, authority.policy.seat(seat), person = runCatching { entry.person(JsonObject(emptyMap())) }.getOrDefault(true))) {
                     DoorDecision.Allowed -> Access.Allowed
                     is DoorDecision.Ask -> if (authority.approvals == null) Access.Refused else Access.Ask
                     is DoorDecision.Refused -> Access.Refused
@@ -178,7 +179,7 @@ class OperationKernel(
     }
 
     private fun Operation<*, *>.entry(provider: String, scope: CoroutineScope) =
-        Entry(CatalogEntry(id, summary, effect, provider, subject), { describe(provider) }, effectFor, appliesOwnPlan, confirmationPhraseFor) { call, arguments ->
+        Entry(CatalogEntry(id, summary, effect, provider, subject), { describe(provider) }, effectFor, appliesOwnPlan, confirmationPhraseFor, personFor) { call, arguments ->
             currentCoroutineContext().ensureActive()
             val invocation = scope.async(currentCoroutineContext().minusKey(Job)) { execute(call, arguments, json) }
             try { invocation.await() } finally { invocation.cancel() }

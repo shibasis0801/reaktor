@@ -274,24 +274,6 @@ data class SigningKeyRecord(
 ): AuditableDto
 
 @Serializable
-enum class AuthAuditEventType {
-    TOKEN_MINT,
-    TOKEN_EXCHANGE,
-    TOKEN_REFRESH,
-    TOKEN_REVOKE,
-    AUTH_FAILURE,
-    ROLE_GRANT,
-    ROLE_REVOKE,
-    ROLE_CHANGE
-}
-
-@Serializable
-enum class AuthAuditOutcome {
-    SUCCESS,
-    FAILURE
-}
-
-@Serializable
 data class AuthAuditEvent(
     val id: String,
     val eventType: AuthAuditEventType,

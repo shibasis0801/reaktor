@@ -43,10 +43,8 @@ fun expandedSurfaceGraphPositions(nodes: List<SurfaceGraphNode>, width: Double =
     return out
 }
 
-internal fun surfaceGraphPinTarget(layout: BlueprintLayout<*>, forwarded: Map<PinRef, List<PinRef>>, card: Card, pin: Pin): Pair<Card, Pin>? {
-    val at = PinRef(card.id, pin.key, pin.provides)
-    val refs = forwarded[at] ?: listOf(at)
-    val source = refs.distinct().singleOrNull() ?: return null
+internal fun surfaceGraphPinTarget(layout: BlueprintLayout<*>, card: Card, pin: Pin): Pair<Card, Pin>? {
+    val source = PinRef(card.id, pin.key, pin.provides)
     val original = layout.cards[source.card] ?: return null
     val port = original.pins.firstOrNull { source.matches(original.id, it) } ?: return null
     return original to port
@@ -122,7 +120,6 @@ fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraph
     }.editor
     val laid = active.settled
     val presentation = remember(laid, nodes, links, looks) { SurfaceGraphExplorerPresentation(laid, nodes, links, looks) }
-    val levels = presentation.levels
     val byId = remember(nodes) { nodes.associateBy { it.id } }
     val cards = remember(laid) { laid.cards.values.toList() }
     val sourceLinks = remember(links) { links.associateBy { it.id } }
@@ -151,10 +148,7 @@ fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraph
             if (active.selection != next) active.select(next)
             active.onSelect = { id ->
                 if (id != null) {
-                    val target = id.takeIf { it in owners } ?: levels.at(state.zoom, bundles = areaCorridors).frames.values.firstOrNull { it.summary?.id == id }?.let { group ->
-                        looks.firstOrNull { it.key == group.frame.key }?.owner
-                    }
-                    target?.let(select)
+                    id.takeIf { it in owners }?.let(select)
                 } else active.selection.wires.firstOrNull()?.let { wire ->
                     (sourceByWire[wire] ?: laid.links.firstOrNull { it.id == wire }?.let(::source))?.let { link ->
                         jump(if (chosen == link.to || owner(chosen) == owner(link.to)) link.from else link.to)
@@ -165,10 +159,6 @@ fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraph
     }
     val tone = appearance.selected
     val view: @Composable (Modifier) -> Unit = { shell ->
-        var expanded by remember(levels) { mutableStateOf(emptySet<String>()) }
-        val cut = levels.at(state.zoom, expanded, bundles = areaCorridors)
-        val forwarded = levels.at(state.zoom, bundles = areaCorridors).forwardedPorts + cut.forwardedPorts
-        SideEffect { expanded = cut.expanded }
         BlueprintGraph(active, state,
             cardLook = { shape ->
                 val node = byId[shape.id]
@@ -196,7 +186,7 @@ fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraph
             linkLabel = { link -> source(link)?.label?.takeIf { it.isNotBlank() } },
             modifier = shell,
             onPinClick = if (editor != null) null else { card, pin ->
-                surfaceGraphPinTarget(laid, forwarded, card, pin)?.let { (original, port) ->
+                surfaceGraphPinTarget(laid, card, pin)?.let { (original, port) ->
                     select(port.id.takeUnless { chosen == it } ?: original.id)
                 }
             },
@@ -204,8 +194,6 @@ fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraph
             onPaneClick = if (editor == null) ({ clear() }) else null,
             editable = editor != null,
             bundles = areaCorridors && active.bundles,
-            mapLevels = levels,
-            mapLevel = cut,
             onFrameClick = { frame -> looks.firstOrNull { it.key == frame.key }?.owner?.let(select) },
             onFrameOpen = {})
     }
@@ -221,7 +209,6 @@ internal class SurfaceGraphExplorerPresentation<K>(
     links: List<SurfaceGraphLink>,
     val groups: List<SurfaceGraphGroup>,
 ) {
-    val levels = full.blueprintMapLevels()
     val nodes = sourceNodes.associateBy { it.id }
     private val sources = links.associateBy { it.id }
     private val owners = buildMap {
@@ -285,12 +272,8 @@ private fun <K> SurfaceGraphDeclaredExplorer(
     }
     MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact,
         mode = if (appearance.canvas.luminance() > .5f) MachineSignalMode.Light else MachineSignalMode.Dark) {
-        var expanded by remember(presentation) { mutableStateOf(emptySet<String>()) }
-        val cut = presentation.levels.at(state.zoom, expanded, bundles = areaCorridors)
-        val forwarded = presentation.levels.at(state.zoom, bundles = areaCorridors).forwardedPorts + cut.forwardedPorts
-        SideEffect { expanded = cut.expanded }
         BlueprintGraph(layout, state, highlighted.mapNotNullTo(linkedSetOf(), presentation::owner), presentation.owner(selectedId),
-            cardLook = { card -> presentation.look(card, appearance, selectedId, highlighted, if (onOpen == null) null else { id -> opening?.invoke(id); Unit }) },
+            cardLook = { card -> presentation.look(card, appearance, selectedId, highlighted, if (onOpen == null) null else { id -> opening?.invoke(id) }) },
             frameLook = { frame ->
                 val group = groups.firstOrNull { it.key == frame.key }
                 BlueprintFrameLook(SurfaceGraphSymbol, group?.subtitle?.ifBlank { null } ?: "${frame.nodes.size} sources", lit = group?.color, muted = group?.muted == true)
@@ -304,15 +287,14 @@ private fun <K> SurfaceGraphDeclaredExplorer(
                     dash = if (edge?.proposed == true || link.family == "optional") 6f to 4f else null)
             },
             onCardClick = { id ->
-                val target = presentation.owner(id) ?: cut.frames.values.firstOrNull { it.summary?.id == id }?.let { group -> groups.firstOrNull { it.key == group.frame.key }?.owner }
-                target?.let(select)
+                presentation.owner(id)?.let(select)
             },
             onLinkClick = { link -> presentation.target(link, chosen)?.let(select) },
             onPaneClick = { clear() }, modifier = modifier,
             labels = layout.links.mapNotNull { link -> presentation.source(link)?.label?.takeIf(String::isNotBlank)?.let { link.id to it } }.toMap(),
             fitKey = (key ?: layout.key).hashCode(), fitScene = key ?: layout.key, initialFit = { state.fit() },
-            onPinClick = { card, pin -> surfaceGraphPinTarget(layout, forwarded, card, pin)?.let { (original, port) -> select(port.id.takeUnless { chosen == it } ?: original.id) } },
-            editable = false, mapLevels = presentation.levels, mapLevel = cut,
+            onPinClick = { card, pin -> surfaceGraphPinTarget(layout, card, pin)?.let { (original, port) -> select(port.id.takeUnless { chosen == it } ?: original.id) } },
+            editable = false,
             onFrameClick = { frame -> groups.firstOrNull { it.key == frame.key }?.owner?.let(select) })
     }
 }

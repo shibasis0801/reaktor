@@ -30,7 +30,7 @@ import kotlin.test.assertTrue
 class BlueprintCardActionPaintTest {
     private val actions = listOf("open", "inspect").map { BlueprintCardAction(it, it, SurfaceGraphSymbol) {} }
 
-    @Test fun readableHeadersExposeActionsAndOverviewHidesThemWithoutMovingCards() {
+    @Test fun actionsStayExposedAtEveryZoomWithoutMovingCards() {
         for (mode in listOf(MachineSignalMode.Light, MachineSignalMode.Dark)) for (face in listOf(BlueprintFace.Code, BlueprintFace.Prose)) {
             val card = Card("source", 0.0, 0.0, 420.0, 220.0, emptyList(), 0)
             val layout = BlueprintLayout("actions", mapOf(card.id to card), emptyList(), emptyList(), card.width, card.height)
@@ -51,27 +51,24 @@ class BlueprintCardActionPaintTest {
             }
             try {
                 frames()
-                for ((zoom, tier) in listOf(.04 to BlueprintTier.Overview, .55 to BlueprintTier.Middle, 1.6 to BlueprintTier.Detail)) {
+                for (zoom in listOf(.04, .55, 1.6)) {
                     edt { canvas.restore(40.0, 70.0, zoom) }; frames()
                     edt {
                         val reading = assertNotNull(canvas.reading())
-                        assertEquals(1, reading[tier], "$mode $face $zoom: $reading")
-                        assertEquals(if (tier == BlueprintTier.Overview) 0 else 1, reading[BlueprintTitle.Whole])
-                        if (tier != BlueprintTier.Overview) assertTrue(reading.smallest >= 11 - .001)
+                        assertEquals(1, reading[BlueprintTier.Detail], "$mode $face $zoom: $reading")
+                        assertEquals(1, reading[BlueprintTitle.Whole])
                         val hits = scene.semanticsOwners.flatMap { walk(it.unmergedRootSemanticsNode) }.filter {
                             it.config.getOrNull(SemanticsProperties.TestTag)?.startsWith("blueprint-card-action:") == true
                         }
-                        assertEquals(if (tier == BlueprintTier.Overview) 0 else actions.size, hits.size)
-                        if (hits.isNotEmpty()) {
-                            val ordered = hits.sortedBy { it.boundsInRoot.left }
-                            assertTrue(ordered.first().boundsInRoot.right <= ordered.last().boundsInRoot.left)
-                            assertTrue(ordered.first().boundsInRoot.left >= 40)
-                            assertTrue(ordered.last().boundsInRoot.right <= 40 + card.width * zoom)
-                        }
+                        assertEquals(actions.size, hits.size, "$mode $face $zoom")
+                        val ordered = hits.sortedBy { it.boundsInRoot.left }
+                        assertTrue(ordered.first().boundsInRoot.right <= ordered.last().boundsInRoot.left)
+                        assertTrue(ordered.first().boundsInRoot.left >= 40)
+                        assertTrue(ordered.last().boundsInRoot.right <= 40 + card.width * zoom)
                         assertEquals(card, layout.cards.getValue(card.id))
                         val folder = File("build/reports/blueprint-card-actions").apply { mkdirs() }
                         scene.render(++time * 16_666_667L).use { image -> image.encodeToData()!!.use { data ->
-                            File(folder, "${mode.name.lowercase()}-${face.name.lowercase()}-${tier.name.lowercase()}.png").writeBytes(data.bytes)
+                            File(folder, "${mode.name.lowercase()}-${face.name.lowercase()}-$zoom.png").writeBytes(data.bytes)
                         } }
                     }
                 }

@@ -106,7 +106,7 @@ class BlueprintKanbanTest {
                 assertTrue(p.tag("kanban-agent-task-0-$part").config[SemanticsActions.OnClick].action!!.invoke())
                 assertEquals(agent, p.opened)
             }
-            assertTrue(p.tag("kanban-agent-task-0-state").config[SemanticsProperties.Text].any { it.text == "Claimed · +2" })
+            assertTrue(p.tag("kanban-agent-task-0-state").config[SemanticsProperties.Text].any { it.text == "(codex, xhigh, sol 6.1, designer) · Claimed · +2" })
             assertTrue(p.tag("kanban-reason-task-0").config[SemanticsProperties.Text].any { it.text == node.attributes["resolution"] })
         }
     }

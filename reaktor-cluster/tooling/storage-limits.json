@@ -1,0 +1,8 @@
+{
+  "remote_limit_bytes": 40000000000,
+  "tmp_limit_bytes": 40000000000,
+  "minimum_free_bytes": 15000000000,
+  "cleanup_target_fraction": 0.8,
+  "minimum_idle_seconds": 900,
+  "interval_seconds": 300
+}

@@ -60,6 +60,9 @@ data class MachineSignalColors(
     val source: Color = MachineSignal.Editor.Source,
     val onAccent: Color = Color.White,
     val entities: MachineSignalEntities = MachineSignalEntities(),
+    val ready: Color = MachineSignal.Signal,
+    val ports: MachineSignalPorts = MachineSignalPorts(control = text),
+    val card: Color = surface,
 ) {
     companion object {
         val Board = MachineSignalColors(
@@ -110,12 +113,22 @@ data class MachineSignalColors(
             source = Color(0xFF2F58F8),
             onAccent = Color.White,
             entities = MachineSignalEntities(
-                route = Color(0xFF2F58F8), screen = Color(0xFF075985), container = Color(0xFF5B4CCB),
-                service = Color(0xFF087A4A), cloud = Color(0xFF075985), actor = Color(0xFF8A5B00),
-                auth = Color(0xFF6941C6), infra = Color(0xFF526078), agent = Color(0xFF2F58F8),
-                topic = Color(0xFF8A5B00), repo = Color(0xFF9A3412), interactor = Color(0xFF077571),
-                exec = Color(0xFF9A3412), navigation = Color(0xFF2F58F8), data = Color(0xFF075985),
-                attachment = Color(0xFF526078), containment = Color(0xFF5B4CCB), portOff = Color(0xFF526078),
+                route = Color(0xFF3168B8), screen = Color(0xFF227943), container = Color(0xFF756180),
+                service = Color(0xFFAD4B03), cloud = Color(0xFF01728C), actor = Color(0xFFAD3A39),
+                auth = Color(0xFFA9416D), infra = Color(0xFF646A70), agent = Color(0xFF006158),
+                topic = Color(0xFF5E7005), repo = Color(0xFF876104), interactor = Color(0xFF734FBB),
+                exec = Color(0xFF3B9881), navigation = Color(0xFF0092C1), data = Color(0xFF650078),
+                attachment = Color(0xFF8B8A00), containment = Color(0xFF596359), portOff = Color(0xFF526078),
+            ),
+            ready = Color(0xFF00798A),
+            ports = MachineSignalPorts(
+                call = Color(0xFF3B9881),
+                data = Color(0xFF650078),
+                event = Color(0xFF9D578F),
+                route = Color(0xFF0092C1),
+                resource = Color(0xFF8B8A00),
+                relation = Color(0xFF596359),
+                control = Color(0xFF1F2937),
             ),
         )
 
@@ -140,7 +153,7 @@ data class MachineSignalColors(
             accentLine = Color(0x6664FF8F),
             accentText = Color(0xFF9DFFB9),
             selection = Color(0x4064FF8F),
-            ok = Color(0xFF64FF8F),
+            ok = Color(0xFF96BA00),
             warn = Color(0xFFFFD47A),
             error = Color(0xFFFF8C9A),
             menu = Color(0xFF0B1E14),
@@ -150,50 +163,73 @@ data class MachineSignalColors(
             source = Color(0xFF9DFFE0),
             onAccent = Color(0xFF031208),
             entities = MachineSignalEntities(
-                route = Color(0xFF64FF8F), screen = Color(0xFFA8F5C0), container = Color(0xFF7ADBA5),
-                service = Color(0xFFA3E874), cloud = Color(0xFF8CEBC7), actor = Color(0xFFD2E99B),
-                auth = Color(0xFFB6F4CC), infra = Color(0xFF86B997), agent = Color(0xFF64FF8F),
-                topic = Color(0xFFD2E99B), repo = Color(0xFFC4D98B), interactor = Color(0xFF76DFBA),
-                exec = Color(0xFFD2E99B), navigation = Color(0xFF64FF8F), data = Color(0xFF8CEBC7),
-                attachment = Color(0xFF86B997), containment = Color(0xFF7ADBA5), portOff = Color(0xFF78AA8A),
+                route = Color(0xFF1CFFE0), screen = Color(0xFF009580), container = Color(0xFF00C499),
+                service = Color(0xFF768682), cloud = Color(0xFF30D000), actor = Color(0xFFF1FCF0),
+                auth = Color(0xFF97E78C), infra = Color(0xFF719000), agent = Color(0xFFC8F500),
+                topic = Color(0xFFAAB0A2), repo = Color(0xFF6A8B68), interactor = Color(0xFF77A99E),
+                exec = Color(0xFF00B204), navigation = Color(0xFF00AD98), data = Color(0xFFCEFF47),
+                attachment = Color(0xFF5C7300), containment = Color(0xFF83877A), portOff = Color(0xFF78AA8A),
+            ),
+            ready = MachineSignal.Signal,
+            ports = MachineSignalPorts(
+                call = Color(0xFF00B204),
+                data = Color(0xFFCEFF47),
+                event = Color(0xFF21715A),
+                route = Color(0xFF00AD98),
+                resource = Color(0xFF5C7300),
+                relation = Color(0xFF83877A),
+                control = Color(0xFFBFECCD),
             ),
         )
 
         val Editor = MachineSignalColors(
             canvas = MachineSignal.Editor.Canvas,
             surface = MachineSignal.Editor.Surface,
-            surfaceAlt = MachineSignal.Editor.Raised,
+            surfaceAlt = MachineSignal.Editor.SurfaceAlt,
             raised = MachineSignal.Editor.Raised,
-            raisedAlt = MachineSignal.Editor.Line,
-            lineSubtle = MachineSignal.Editor.Line,
+            raisedAlt = MachineSignal.Editor.RaisedAlt,
+            lineSubtle = MachineSignal.Editor.LineSubtle,
             line = MachineSignal.Editor.Line,
-            lineStrong = MachineSignal.Editor.Line,
+            lineStrong = MachineSignal.Editor.LineStrong,
             textStrong = MachineSignal.Editor.Text,
-            text = MachineSignal.Editor.Text,
+            text = MachineSignal.Editor.Body,
             textMuted = MachineSignal.Editor.Muted,
             textFaint = MachineSignal.Editor.Unknown,
             controlAccent = MachineSignal.Editor.Accent,
             controlAccentSoft = MachineSignal.Editor.AccentSoft,
             accent = MachineSignal.Editor.Accent,
             accentHover = MachineSignal.Editor.Source,
+            accentSoft = MachineSignal.Editor.AccentSoft,
+            accentLine = MachineSignal.Editor.AccentLine,
+            selection = MachineSignal.Editor.Selection,
             menu = MachineSignal.Editor.Raised,
             onMenu = MachineSignal.Editor.Text,
             rowHover = MachineSignal.Editor.Raised,
             rowSelected = MachineSignal.Editor.AccentSoft,
             onAccent = MachineSignal.Editor.Canvas,
+            card = MachineSignal.Editor.Card,
         )
     }
 }
 
 enum class EntityInk : InkRole { Route, Screen, Container, Service, Cloud, Actor, Auth, Infra, Agent, Topic, Repo, Interactor }
 
-enum class EdgeInk : InkRole { Exec, Navigation, Data, Attachment, Containment, PortOff }
-
 data class ProvenanceInk(val truth: TruthClass) : InkRole
 
 enum class BoardInk : InkRole { Text1, Text2, Text3, Text4, AccentText }
 
 enum class SignalInk : InkRole { Soft, Dim, ScreenReadout, ScreenAction, ScreenNote, Code, Gutter, Rule }
+
+@Immutable
+data class MachineSignalPorts(
+    val call: Color = MachineSignal.Port.Call,
+    val data: Color = MachineSignal.Port.Data,
+    val event: Color = MachineSignal.Port.Event,
+    val route: Color = MachineSignal.Port.Route,
+    val resource: Color = MachineSignal.Port.Resource,
+    val control: Color = MachineSignal.Port.Control,
+    val relation: Color = MachineSignal.Port.Relation,
+)
 
 @Immutable
 data class MachineSignalEntities(
@@ -231,14 +267,6 @@ data class MachineSignalEntities(
         EntityInk.Interactor -> interactor
     }
 
-    operator fun get(ink: EdgeInk): Color = when (ink) {
-        EdgeInk.Exec -> exec
-        EdgeInk.Navigation -> navigation
-        EdgeInk.Data -> data
-        EdgeInk.Attachment -> attachment
-        EdgeInk.Containment -> containment
-        EdgeInk.PortOff -> portOff
-    }
 }
 
 @Immutable
@@ -348,7 +376,6 @@ data class MachineSignalSnapshot(
         Ink.Inverse -> colors.canvas
         Ink.OnAccent -> colors.onAccent
         is EntityInk -> colors.entities[ink]
-        is EdgeInk -> colors.entities[ink]
         is ProvenanceInk -> if (mode == MachineSignalMode.Dark) MachineSignal.provenance(ink.truth).base else when (ink.truth) {
             TruthClass.Live -> colors.ok
             TruthClass.Source -> colors.source
@@ -370,7 +397,7 @@ data class MachineSignalSnapshot(
         SignalInk.ScreenNote -> colors.onAccent.copy(alpha = .78f)
         SignalInk.Code -> if (mode == MachineSignalMode.Dark) MachineSignal.Editor.Code.Text else colors.text
         SignalInk.Gutter -> if (mode == MachineSignalMode.Dark) MachineSignal.Editor.Code.Gutter else colors.textFaint
-        SignalInk.Rule -> colors.line
+        SignalInk.Rule -> colors.lineStrong
         else -> throw ThemeMismatch("$ink ink", id)
     }
 

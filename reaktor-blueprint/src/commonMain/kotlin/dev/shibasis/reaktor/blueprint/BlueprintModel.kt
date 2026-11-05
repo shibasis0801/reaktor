@@ -138,7 +138,23 @@ data class BlueprintLayout<K>(
     val layoutFailures: List<Throwable> = emptyList(),
     val cardOf: Map<String, String> = cards.keys.associateWith { it },
     val foldedLinks: Map<String, String> = emptyMap(),
-)
+) {
+    fun targetBounds(id: String): Bounds? = cards[id] ?: frames.firstOrNull { it.key == id }
+        ?: cardOf[id]?.let(cards::get) ?: foldedLinks[id]?.let(cards::get)
+
+    val frameMembers: Map<String, Set<String>> by lazy {
+        val children = frames.groupBy { it.parent }
+        val members = HashMap<String, Set<String>>()
+        val visiting = HashSet<String>()
+        fun visit(frame: Frame): Set<String> = members[frame.key] ?: run {
+            require(visiting.add(frame.key)) { "Cyclic frame ownership" }
+            (frame.nodes.filter(cards::containsKey) + children[frame.key].orEmpty().flatMap(::visit)).toSet()
+                .also { members[frame.key] = it; visiting.remove(frame.key) }
+        }
+        frames.forEach(::visit)
+        members
+    }
+}
 
 data class BlueprintOpening<K>(
     val layout: BlueprintLayout<K>,

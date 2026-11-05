@@ -158,7 +158,7 @@ fun NotWiredYet(what: String, turnsOnWith: String, modifier: Modifier = Modifier
         horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Provenance(TruthClass.Unknown)
+        Provenance(TruthClass.Unknown, "Not built")
         Text(what, role = Type.Body.medium, ink = Ink.Text, lines = 4, appearance = PassiveText)
     }
     Text("Turns on with: $turnsOnWith", role = Type.Body, ink = Ink.Unknown, lines = 3, appearance = PassiveText)
@@ -223,8 +223,8 @@ fun StatusPill(
 }
 
 @Composable
-private fun Provenance(truth: TruthClass) =
-    Badge(Modifier.testTag("provenance-${truth.name.lowercase()}"), provenanceBadge(truth)) { Text(truth.label, appearance = PassiveText) }
+private fun Provenance(truth: TruthClass, label: String = truth.label) =
+    Badge(Modifier.testTag("provenance-${truth.name.lowercase()}"), provenanceBadge(truth)) { Text(label, appearance = PassiveText) }
 
 private val PassiveText: TextAppearance = object : TextAppearance {
     @Composable

@@ -18,6 +18,7 @@ import dev.shibasis.reaktor.graph.core.DormantLifecycle
 import dev.shibasis.reaktor.graph.core.NodeKind
 import dev.shibasis.reaktor.graph.core.NodeShape
 import dev.shibasis.reaktor.graph.core.PortShape
+import dev.shibasis.reaktor.graph.core.ScopeShape
 
 enum class Detail(val label: String) { Islands("Islands"), Compact("Compact"), Standard("Ports in use"), Ports("Every port") }
 
@@ -96,27 +97,34 @@ object AppGraphLayout {
         val hiddenScopes = request.hidden.filter { it in graph.scopes }.flatMapTo(HashSet()) { graph.descendants(it) }
         fun shown(id: String) = cardOf[id]?.takeUnless { it in request.hidden || id in request.hidden || graph[id]?.scope in hiddenScopes }
         val order = request.after?.let { prefix -> AppGraphOrder.of(graph, prefix, ::shown) }
-        val features = if (request.nested) graph.scopes.values.map { scope ->
-            Feature(scope.id, scope.label, graph.members[scope.id].orEmpty(), scoped = true)
-        } else AppGraphFeatures.of(graph)
         val visibleScopes = graph.nodes.values.filter { shown(it.id) == it.id }
             .flatMapTo(HashSet()) { graph.scopePath(it.scope).map { scope -> scope.id } }
         val occupiedScopes = graph.nodes.values.flatMapTo(HashSet()) { graph.scopePath(it.scope).map { scope -> scope.id } }
-        graph.scopes.values.filter { scope ->
+        val vacant = graph.scopes.values.filter { scope ->
             scope.id !in occupiedScopes && scope.id !in hiddenScopes && graph.scopePath(scope.id).none { ancestor ->
                 ancestor.container?.let { graph[it]?.attributes?.containsKey("workflow") == true && it !in request.expandedFlows } == true
             }
-        }.forEach { scope -> visibleScopes += graph.scopePath(scope.id).map { it.id } }
+        }
+        val features = if (request.nested) graph.scopes.values.map { scope ->
+            Feature(scope.id, scope.label, graph.members[scope.id].orEmpty(), scoped = true)
+        } else AppGraphFeatures.of(graph).let { found ->
+            val keys = found.mapTo(HashSet()) { it.key }
+            found + graph.children[graph.root.id].orEmpty().filter { it in vacant && it.id !in keys }
+                .map { Feature(it.id, it.label, emptyList(), scoped = true) }
+        }
+        vacant.forEach { scope -> visibleScopes += graph.scopePath(scope.id).map { it.id } }
+        val framed = if (request.nested) visibleScopes else vacant.mapTo(HashSet()) { it.id }
+        fun blueprint(member: NodeShape): BlueprintNode {
+            val node = node(graph, member, request.detail)
+            return body(node)?.let { node.copy(body = it, rows = if (BlueprintFace.of(member) == BlueprintFace.Prose) null else node.rows) } ?: node
+        }
         val flat = features.mapNotNull { feature ->
             val members = feature.members.filter { shown(it.id) == it.id }.sortedWith(compareBy({ it.label }, { it.type }, { it.id }))
-            if (members.isEmpty() && (!feature.scoped || feature.key !in visibleScopes)) return@mapNotNull null
+            if (members.isEmpty() && (!feature.scoped || feature.key !in framed)) return@mapNotNull null
             BlueprintGroup(
                 key = "feature:${feature.key}",
                 label = if (request.nested && feature.scoped) graph.scopes[feature.key]?.label ?: feature.label else feature.label,
-                nodes = members.map { member ->
-                    val node = node(graph, member, request.detail)
-                    body(node)?.let { node.copy(body = it, rows = if (BlueprintFace.of(member) == BlueprintFace.Prose) null else node.rows) } ?: node
-                },
+                nodes = members.map(::blueprint),
                 detail = if (feature.scoped) emptyList() else members.map { it.scope }.distinct().map(graph::scopeLabel).distinct().sorted(),
                 muted = feature.members.isNotEmpty() && feature.members.all { it.lifecycle == DormantLifecycle },
                 loose = feature.shared,
@@ -142,19 +150,46 @@ object AppGraphLayout {
                 val to = shown(screen) ?: return@mapNotNull null
                 BlueprintEdge("$route>$screen", from, to, RoutePort.takeIf { from == route }).takeIf { from != to }
             }
-        val hops = graph.hops.sortedWith(compareBy({ graph[it.from]?.label }, { graph[it.to]?.label }))
+        val switcherOf = AppGraphFeatures.switchers(graph).flatMap { group -> group.map { it to group } }.toMap()
+        val hops = graph.hops.filter { hop -> switcherOf[hop.from]?.contains(hop.to) != true }.sortedWith(compareBy({ graph[it.from]?.label }, { graph[it.to]?.label }))
             .mapNotNull {
                 val from = shown(it.from) ?: return@mapNotNull null
                 val to = shown(it.to) ?: return@mapNotNull null
                 if (from == to && (from != it.from || to != it.to)) return@mapNotNull null
                 BlueprintEdge(it.id, from, to, kind = LinkKind.Route, family = it.exit)
             }
-        val layout = if (opened == null) organizationalLayout(request, groups, wires + attached + hops, layouter)
-        else BlueprintRegions.layout(request, groups, wires + attached + hops, cardOf.keys.mapNotNull { id -> shown(id)?.let { id to it } }.toMap(), opened, layouter, request.aspect, LayoutOptions(bundles = request.bundles))
+        val edges = wires + attached + hops
+        val layout = when {
+            opened != null -> BlueprintRegions.layout(request, groups, edges, cardOf.keys.mapNotNull { id -> shown(id)?.let { id to it } }.toMap(), opened, layouter, request.aspect, LayoutOptions(bundles = request.bundles))
+            order != null && !request.nested -> AppGraphBlocks(order.digraph, request.aspect)
+                .layout(request, bands(graph, vacant, graph.nodes.values.filter { shown(it.id) == it.id }, ::blueprint), edges, request.bundles)
+            else -> organizationalLayout(request, groups, edges, layouter)
+        }
         val links = layout.links.filterNot { it.from == it.to && it.points.size < 2 }
         return folded(graph, layout.copy(links = links, cardOf = layout.cardOf + cardOf.keys.mapNotNull { id ->
             shown(id)?.let(layout.cardOf::get)?.let { id to it }
         }.toMap()))
+    }
+
+    private fun bands(graph: AppGraph, vacant: List<ScopeShape>, members: List<NodeShape>,
+                      blueprint: (NodeShape) -> BlueprintNode): List<List<AppGraphBlocks.Entry>> {
+        fun place(scope: String): Pair<String, String?> {
+            val path = graph.scopePath(scope)
+            val band = if (path.size > 1 && path[1].container == null) 1 else 0
+            return path[band].id to path.getOrNull(band + 1)?.id
+        }
+        val order = graph.scopes.keys.withIndex().associate { it.value to it.index }
+        val held = LinkedHashMap<String, LinkedHashMap<String?, MutableList<NodeShape>>>()
+        fun slot(band: String, frame: String?) = held.getOrPut(band) { LinkedHashMap() }.getOrPut(frame) { ArrayList() }
+        vacant.forEach { scope -> place(scope.id).let { (band, frame) -> if (frame == scope.id) slot(band, frame) } }
+        members.forEach { member -> place(member.scope).let { (band, frame) -> slot(band, frame) += member } }
+        return held.values.map { frames ->
+            frames.entries.sortedWith(compareBy({ it.key == null }, { it.key?.let(order::get) })).flatMap { (frame, nodes) ->
+                if (frame == null) nodes.map { AppGraphBlocks.Entry(null, it.label, listOf(blueprint(it))) }
+                else listOf(AppGraphBlocks.Entry("feature:$frame", graph.scopes[frame]?.label ?: frame, nodes.map(blueprint),
+                    nodes.isNotEmpty() && nodes.all { it.lifecycle == DormantLifecycle }))
+            }
+        }
     }
 
     private fun folded(graph: AppGraph, layout: GraphLayout): GraphLayout {

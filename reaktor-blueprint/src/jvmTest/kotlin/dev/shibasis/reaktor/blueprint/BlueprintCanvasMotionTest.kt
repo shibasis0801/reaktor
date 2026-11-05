@@ -222,28 +222,19 @@ class BlueprintCanvasMotionTest {
     }
 
     @Test
-    fun fitIncludesMeasuredScreenAdornmentsAndCentresTheirPaintedUnion() {
+    fun fitCentresTheExtentInTheAreaLeftByTheInsets() {
         for (density in listOf(1.0, 2.0)) for (width in listOf(1100, 1512)) {
             val canvas = GraphCanvasState()
             canvas.resize(IntSize((width * density).toInt(), (800 * density).toInt()))
             canvas.density(density)
             canvas.insetTop = 48.0
             canvas.insetStart = 260.0
-            val right = dev.shibasis.reaktor.blueprint.canvas.Area(4000.0, 100.0, 280.0, 2500.0)
-            canvas.paintedBounds = { _, zoom -> listOf(dev.shibasis.reaktor.blueprint.canvas.Area(right.x, right.y - 30.0 / zoom, 360.0 / zoom, right.height + 30.0 / zoom)) }
             canvas.fit(0.0, 0.0, 4280.0, 2600.0)
             val view = canvas.viewport()
-            val edge = view.x + right.x * view.zoom + 360.0
-            assertTrue(edge <= width - (width - 260) * .03 + .001, "Painted right edge $edge at $width")
-            val all = canvas.paintedBounds(right, view.zoom)
-            val left = minOf(0.0, all.minOf { it.x })
-            val top = minOf(0.0, all.minOf { it.y })
-            val far = maxOf(4280.0, all.maxOf { it.x + it.width })
-            val bottom = maxOf(2600.0, all.maxOf { it.y + it.height })
-            assertEquals(260.0 + (width - 260.0) / 2, view.x + (left + far) / 2 * view.zoom, .0001)
-            assertEquals(48.0 + (800 - 48.0) / 2, view.y + (top + bottom) / 2 * view.zoom, .0001)
-            assertTrue(view.y + top * view.zoom >= 48.0)
-            assertTrue(view.y + bottom * view.zoom <= 800.0)
+            assertEquals(260.0 + (width - 260.0) / 2, view.x + 4280.0 / 2 * view.zoom, .0001)
+            assertEquals(48.0 + (800 - 48.0) / 2, view.y + 2600.0 / 2 * view.zoom, .0001)
+            assertTrue(view.x + 4280.0 * view.zoom <= width - (width - 260) * .03 + .001, "Right edge at $width")
+            assertTrue(view.y >= 48.0 && view.y + 2600.0 * view.zoom <= 800.0)
             val before = canvas.viewport()
             canvas.insetEnd = 100.0
             canvas.resize(IntSize(((width + 100) * density).toInt(), (800 * density).toInt()))
@@ -518,235 +509,6 @@ class BlueprintCanvasMotionTest {
     }
 
     @Test
-    fun aDeliveredPreparedGroupFramesItsWholeBoundsBesideMeasuredPanelsAtBothDensities() {
-        val first = Card("first", 1600.0, 1000.0, 304.0, 180.0,
-            listOf(Pin("value", "Int", true, 80.0, PortWiring.Connected)), 0)
-        val last = Card("last", 3900.0, 2600.0, 304.0, 180.0,
-            listOf(Pin("value", "Int", false, 80.0, PortWiring.Connected)), 0)
-        val outside = Card("outside", 9200.0, 5200.0, 304.0, 180.0, emptyList(), 0)
-        val group = Frame("group", "Declared group", 1400.0, 800.0, 3000.0, 2200.0,
-            setOf(first.id, last.id), listOf("2 declared operations"), false)
-        val other = Frame("other", "Other group", 9000.0, 5000.0, 700.0, 600.0,
-            setOf(outside.id), listOf("1 declared operation"), false)
-        val link = Link("wire", first.id, last.id, "value", "value", LinkKind.Wire, listOf("wire"),
-            listOf(first.x + first.width to first.y + 80.0, last.x to last.y + 80.0))
-        val layout = BlueprintLayout("group-centre", listOf(first, last, outside).associateBy { it.id },
-            listOf(group, other), listOf(link), 10000.0, 6000.0)
-        val levels = BlueprintMapLevels.prepare(layout, titleZoom = { .75 })
-        val summary = checkNotNull(levels.at(.01).frames.getValue(group.key).summary)
-        for (density in listOf(1f, 2f)) {
-            val canvas = GraphCanvasState(.002..16.0)
-            var selected by mutableStateOf<String?>(null)
-            val delivered = mutableListOf<String>()
-            lateinit var scene: ImageComposeScene
-            SwingUtilities.invokeAndWait {
-                scene = ImageComposeScene((1100 * density).toInt(), (800 * density).toInt(),
-                    Density(density), coroutineContext = Dispatchers.Unconfined) {
-                    Box(Modifier.fillMaxSize()) {
-                        BlueprintCanvas(layout, canvas, emptySet(), selected,
-                            linkStyle = { LinkStyle(Color.Blue) },
-                            frameLook = { BlueprintFrameLook(BlueprintBench.icon, "${it.nodes.size} declared operations") },
-                            cardLook = { card -> BlueprintCardLook(Color.Blue, BlueprintBench.icon, card.id,
-                                "Declared operation", selected = selected == card.id,
-                                pins = card.pins.map { BlueprintPinLook(Color.Blue, "${it.key}: ${it.type}", Color.Black, true) }) },
-                            onCardClick = { selected = it; delivered += it }, onLinkClick = {}, onPaneClick = {},
-                            startInset = 80.dp, mapLevels = levels, modifier = Modifier.fillMaxSize())
-                        Box(Modifier.align(Alignment.CenterEnd).width(240.dp).fillMaxHeight()
-                            .onSizeChanged { canvas.insetEnd = it.width / density.toDouble() }) {
-                            BasicText("Inspector")
-                        }
-                        Box(Modifier.align(Alignment.BottomStart).height(64.dp).fillMaxWidth()
-                            .onSizeChanged { canvas.insetBottom = it.height / density.toDouble() }) {
-                            BasicText("Details")
-                        }
-                    }
-                }
-            }
-            var time = 0L
-            fun frame() = SwingUtilities.invokeAndWait {
-                Snapshot.sendApplyNotifications()
-                time += 16_666_667L
-                scene.render(time).close()
-            }
-            try {
-                repeat(12) { frame() }
-                val before = canvas.viewport()
-                assertTrue(summary.id in levels.at(before.zoom).layout.cards)
-                SwingUtilities.invokeAndWait {
-                    val point = Offset(((before.x + (summary.x + summary.width / 2) * before.zoom) * density).toFloat(),
-                        ((before.y + (summary.y + summary.height / 2) * before.zoom) * density).toFloat())
-                    scene.sendPointerEvent(PointerEventType.Move, point)
-                    scene.sendPointerEvent(PointerEventType.Press, point,
-                        buttons = PointerButtons(isPrimaryPressed = true), button = PointerButton.Primary)
-                    scene.sendPointerEvent(PointerEventType.Release, point,
-                        buttons = PointerButtons(), button = PointerButton.Primary)
-                }
-                repeat(3) { frame() }
-                assertEquals(listOf(summary.id), delivered)
-                assertEquals(before, canvas.viewport(), "Selecting a group must not navigate into it")
-                val target = checkNotNull(levels.targetBounds(checkNotNull(selected)))
-                assertTrue(target === group)
-                assertTrue(levels.targetBounds(first.id) === first)
-                SwingUtilities.invokeAndWait { canvas.fit(target.x, target.y, target.width, target.height) }
-                repeat(120) { if (canvas.aim != null) frame() }
-                assertEquals(null, canvas.aim)
-                val view = canvas.viewport()
-                val pixel = 1.0 / density
-                assertEquals(80.0, canvas.insetStart)
-                assertTrue(canvas.insetTop > 0)
-                assertEquals(240.0, canvas.insetEnd)
-                assertEquals(64.0, canvas.insetBottom)
-                assertTrue(view.x + group.x * view.zoom >= canvas.insetStart - pixel)
-                assertTrue(view.y + group.y * view.zoom >= canvas.insetTop - pixel)
-                assertTrue(view.x + (group.x + group.width) * view.zoom <= 1100.0 - canvas.insetEnd + pixel)
-                assertTrue(view.y + (group.y + group.height) * view.zoom <= 800.0 - canvas.insetBottom + pixel)
-                assertTrue(view.zoom < .45, "The complete group must not receive a raw member's readable Centre zoom")
-                assertEquals(summary.id, selected)
-                assertEquals(listOf(summary.id), delivered)
-                assertTrue(levels.full === layout)
-                assertEquals(listOf(first, last, outside).associateBy { it.id }, layout.cards)
-                assertEquals(listOf(group, other), layout.frames)
-                assertEquals(listOf(link), layout.links)
-            } finally { SwingUtilities.invokeAndWait { scene.close() } }
-        }
-    }
-
-    @Test
-    fun aFullRawRevealCompletesThroughPreparedLevelsAndSurvivesPanRefreshAndReturn() {
-        val source = Card("source", 1600.0, 1000.0, 304.0, 180.0,
-            listOf(Pin("value", "Int", true, 80.0, PortWiring.Connected)), 0)
-        val target = Card("target", 3900.0, 2600.0, 304.0, 180.0,
-            listOf(Pin("value", "Int", false, 80.0, PortWiring.Connected)), 0)
-        val outside = Card("outside", 9200.0, 5200.0, 304.0, 180.0, emptyList(), 0)
-        val group = Frame("group", "Declared group", 1400.0, 800.0, 3000.0, 2200.0,
-            setOf(source.id, target.id), listOf("2 declared operations"), false)
-        val other = Frame("other", "Other group", 9000.0, 5000.0, 700.0, 600.0,
-            setOf(outside.id), listOf("1 declared operation"), false)
-        val link = Link("wire", source.id, target.id, "value", "value", LinkKind.Wire, listOf("wire"),
-            listOf(source.x + source.width to source.y + 80.0, target.x to target.y + 80.0))
-        val layout = BlueprintLayout("raw-reveal", listOf(source, target, outside).associateBy { it.id },
-            listOf(group, other), listOf(link), 10000.0, 6000.0)
-        assertTrue(layout.blueprintMapLevels().at(.002).layout.cards.keys.containsAll(layout.cards.keys))
-        val levels = layout.blueprintMapLevels { frame -> "summary:${frame.key}" }
-        assertTrue(target.id !in levels.at(.002).layout.cards)
-        val pin = target.pins.single()
-        val expectedPin = target.ref(pin)
-        for (density in listOf(1f, 2f)) {
-            val canvas = GraphCanvasState(.002..16.0)
-            var request by mutableStateOf(0)
-            var revision by mutableStateOf(0)
-            var selected by mutableStateOf<String?>(target.id)
-            var inspected: PinRef? = null
-            var requests = 0
-            var requested: Viewport? = null
-            var rawAtRequest = false
-            var drawnZoom: Double? = null
-            var drawnView: Viewport? = null
-            var drawnRevision = -1
-            var drawnFull: BlueprintLayout<String>? = null
-            lateinit var scene: ImageComposeScene
-            SwingUtilities.invokeAndWait {
-                scene = ImageComposeScene((1100 * density).toInt(), (800 * density).toInt(),
-                    Density(density), coroutineContext = Dispatchers.Unconfined) {
-                    val shownRevision = revision
-                    LaunchedEffect(canvas, request) {
-                        withFrameNanos { }
-                        val fullTarget = checkNotNull(levels.targetBounds(target.id))
-                        assertTrue(fullTarget === target)
-                        rawAtRequest = canvas.extent.filterIsInstance<Card>().any { it.id == target.id }
-                        canvas.centre(fullTarget.x, fullTarget.y, fullTarget.width, fullTarget.height)
-                        canvas.reveal(fullTarget.x, fullTarget.y, fullTarget.width, fullTarget.height, expectedPin)
-                        requested = canvas.aim ?: canvas.viewport()
-                        requests++
-                    }
-                    Box(Modifier.fillMaxSize()) {
-                        BlueprintCanvas(layout, canvas, emptySet(), selected,
-                            linkStyle = { LinkStyle(Color.Blue) },
-                            frameLook = { BlueprintFrameLook(BlueprintBench.icon, "${it.nodes.size} declared operations") },
-                            cardLook = { card -> BlueprintCardLook(Color.Blue, BlueprintBench.icon, card.id,
-                                "Declared operation $shownRevision", selected = selected == card.id,
-                                pins = card.pins.map { BlueprintPinLook(Color.Blue, "${it.key}: ${it.type}", Color.Black, true) }) },
-                            onCardClick = { selected = it }, onLinkClick = {}, onPaneClick = {},
-                            onPinClick = { card, row -> selected = card.id; inspected = card.ref(row) },
-                            onGeometry = { full, zoom, _ -> drawnFull = full; drawnZoom = zoom; drawnView = canvas.viewport(); drawnRevision = shownRevision },
-                            startInset = 80.dp, mapLevels = levels, modifier = Modifier.fillMaxSize())
-                        Box(Modifier.align(Alignment.CenterEnd).width(240.dp).fillMaxHeight()
-                            .onSizeChanged { canvas.insetEnd = it.width / density.toDouble() }) { BasicText("Inspector") }
-                        Box(Modifier.align(Alignment.BottomStart).height(64.dp).fillMaxWidth()
-                            .onSizeChanged { canvas.insetBottom = it.height / density.toDouble() }) { BasicText("Details") }
-                    }
-                }
-            }
-            var time = 0L
-            fun frame() = SwingUtilities.invokeAndWait {
-                Snapshot.sendApplyNotifications()
-                time += 16_666_667L
-                scene.render(time).close()
-            }
-            fun until(message: String, condition: () -> Boolean) {
-                repeat(120) { if (!condition()) frame() }
-                assertTrue(condition(), "$message; density=$density; requests=$requests; rawAtRequest=$rawAtRequest; requested=$requested; actual=${canvas.viewport()}; drawnView=$drawnView; drawnZoom=$drawnZoom; queuedPin=${canvas.pinRequest == expectedPin}; rawPainted=${canvas.extent.filterIsInstance<Card>().count { it.id == target.id }}; readable=${canvas.readableZoom(target.x, target.y, target.width, target.height)}")
-            }
-            fun readable(): Boolean {
-                val view = canvas.viewport()
-                val minimum = canvas.readableZoom(target.x, target.y, target.width, target.height) ?: return false
-                return canvas.aim == null && canvas.pinRequest == null && drawnFull === layout && drawnView == view && drawnZoom == view.zoom &&
-                    canvas.extent.filterIsInstance<Card>().any { it.id == target.id } &&
-                    view.zoom >= minimum - 1e-8 && (canvas.reading()?.smallest ?: 0.0) >= 11.0 - 1e-3
-            }
-            try {
-                until("The initial full-target controller request must survive first-scene Fit") { requests == 1 && readable() }
-                SwingUtilities.invokeAndWait { canvas.fit(layout.frames + layout.cards.values, minZoom = canvas.zoomRange.start) }
-                until("The same mounted map must return to prepared summaries") {
-                    canvas.aim == null && drawnView == canvas.viewport() && drawnZoom == canvas.zoom && canvas.extent.filterIsInstance<Card>().none { it.id == target.id }
-                }
-                SwingUtilities.invokeAndWait { request++ }
-                until("A full raw target must reveal measured rows through the prepared ancestor") { requests == 2 && readable() }
-                val revealed = canvas.viewport()
-                SwingUtilities.invokeAndWait {
-                    assertEquals(80.0, canvas.insetStart)
-                    assertTrue(canvas.insetTop > 0)
-                    assertEquals(240.0, canvas.insetEnd)
-                    assertEquals(64.0, canvas.insetBottom)
-                    val x = revealed.x + (target.x + 24.0) * revealed.zoom
-                    val y = revealed.y + (target.y + pin.y) * revealed.zoom
-                    assertTrue(x in canvas.insetStart..(1100.0 - canvas.insetEnd))
-                    assertTrue(y in canvas.insetTop..(800.0 - canvas.insetBottom))
-                    val point = Offset((x * density).toFloat(), (y * density).toFloat())
-                    scene.sendPointerEvent(PointerEventType.Press, point,
-                        buttons = PointerButtons(isPrimaryPressed = true), button = PointerButton.Primary)
-                    scene.sendPointerEvent(PointerEventType.Release, point, button = PointerButton.Primary)
-                    assertEquals(expectedPin, inspected)
-                    assertEquals(target.id, selected)
-                    assertEquals(revealed, canvas.viewport())
-                    val anchor = Offset(((canvas.insetStart + 1100.0 - canvas.insetEnd) / 2 * density).toFloat(),
-                        ((canvas.insetTop + 800.0 - canvas.insetBottom) / 2 * density).toFloat())
-                    scene.sendPointerEvent(PointerEventType.Scroll, anchor, scrollDelta = Offset(24f, 16f))
-                }
-                until("Plain delivered scroll must pan the revealed map without changing its level") {
-                    canvas.viewport() != revealed && readable()
-                }
-                val panned = canvas.viewport()
-                assertEquals(revealed.zoom, panned.zoom)
-                SwingUtilities.invokeAndWait { revision++ }
-                until("Fact refresh must draw on the same mounted camera") { drawnRevision == 1 && readable() }
-                assertEquals(panned, canvas.viewport())
-                assertEquals(2, requests)
-                assertEquals(expectedPin, inspected)
-                assertEquals(target.id, selected)
-                SwingUtilities.invokeAndWait { canvas.back() }
-                until("Return must retain the exact readable raw-target camera") { readable() && canvas.viewport() == revealed }
-                assertEquals(expectedPin, inspected)
-                assertEquals(target.id, selected)
-                assertTrue(levels.full === layout)
-                assertEquals(listOf(source, target, outside).associateBy { it.id }, layout.cards)
-                assertEquals(listOf(group, other), layout.frames)
-                assertEquals(listOf(link), layout.links)
-            } finally { SwingUtilities.invokeAndWait { scene.close() } }
-        }
-    }
-
-    @Test
     @OptIn(androidx.compose.ui.InternalComposeUiApi::class)
     fun deliveredKeyboardZoomUsesOnlyAPointerInsideTheResizedMountedCanvas() {
         val target = Card("target", 200.0, 120.0, 304.0, 180.0,
@@ -759,7 +521,6 @@ class BlueprintCanvasMotionTest {
             listOf(source.x + source.width to source.y + 80.0, target.x to target.y + 80.0))
         val layout = BlueprintLayout("resized-pointer", listOf(target, source).associateBy { it.id },
             listOf(group), listOf(wire), 1400.0, 900.0)
-        val levels = layout.blueprintMapLevels()
         val mac = System.getProperty("os.name").orEmpty().lowercase().contains("mac")
         for (density in listOf(1f, 2f)) for (retainedY in listOf(210f, 620f)) {
             val canvas = GraphCanvasState(.002..16.0)
@@ -783,8 +544,8 @@ class BlueprintCanvasMotionTest {
                                     "Declared operation", selected = selected == card.id,
                                     pins = card.pins.map { BlueprintPinLook(Color.Blue, "${it.key}: ${it.type}", Color.Black, true) }) },
                                 onCardClick = { selected = it; selections++ }, onLinkClick = {}, onPaneClick = {},
-                                startInset = 80.dp, mapLevels = levels, initialFit = {}, focusable = true,
-                                onGeometry = { full, _, _ -> drawnFull = full; drawnView = canvas.viewport() },
+                                startInset = 80.dp, initialFit = {}, focusable = true,
+                                onGeometry = { full, _ -> drawnFull = full; drawnView = canvas.viewport() },
                                 modifier = Modifier.fillMaxSize())
                             Box(Modifier.align(Alignment.CenterEnd).width(160.dp).fillMaxHeight()
                                 .onSizeChanged { canvas.insetEnd = it.width / density.toDouble() }) { BasicText("Inspector") }
@@ -870,7 +631,6 @@ class BlueprintCanvasMotionTest {
                 assertEquals(currentWorld.second, afterEquals.second, 1e-5)
                 assertEquals(target.id, selected)
                 assertEquals(1, selections)
-                assertTrue(levels.full === layout)
                 assertEquals(listOf(target, source).associateBy { it.id }, layout.cards)
                 assertEquals(listOf(group), layout.frames)
                 assertEquals(listOf(wire), layout.links)
@@ -895,7 +655,6 @@ class BlueprintCanvasMotionTest {
             listOf(source.x + source.width to source.y + 80.0, target.x to target.y + 80.0))
         val layout = BlueprintLayout("full-opening", listOf(source, target, outside).associateBy { it.id },
             listOf(system, other), listOf(wire), 100000.0, 78000.0)
-        val levels = layout.blueprintMapLevels { frame -> "summary:${frame.key}" }
         val expectedPin = source.ref(source.pins.single())
         for (density in listOf(1f, 2f)) for (width in listOf(1100, 1512)) for (restored in listOf(false, true)) {
             val canvas = GraphCanvasState(.002..16.0)
@@ -907,7 +666,6 @@ class BlueprintCanvasMotionTest {
             var bounds = Rect.Zero
             var drawnFull: BlueprintLayout<String>? = null
             var drawnView: Viewport? = null
-            var drawnBanners = emptyList<Bounds>()
             lateinit var scene: ImageComposeScene
             SwingUtilities.invokeAndWait {
                 scene = ImageComposeScene((width * density).toInt(), (800 * density).toInt(),
@@ -922,9 +680,9 @@ class BlueprintCanvasMotionTest {
                                 pins = card.pins.map { BlueprintPinLook(Color.Blue, "${it.key}: ${it.type}", Color.Black, true) }) },
                             onCardClick = { selected = it }, onLinkClick = {}, onPaneClick = {},
                             onPinClick = { card, pin -> selected = card.id; inspected = card.ref(pin); pinClicks++ },
-                            startInset = 80.dp, mapLevels = levels, focusable = true,
-                            onGeometry = { full, _, banners ->
-                                drawnFull = full; drawnView = canvas.viewport(); drawnBanners = banners
+                            startInset = 80.dp, focusable = true,
+                            onGeometry = { full, _ ->
+                                drawnFull = full; drawnView = canvas.viewport()
                             }, modifier = Modifier.fillMaxSize())
                         Box(Modifier.align(Alignment.CenterEnd).width(240.dp).fillMaxHeight()
                             .onSizeChanged { canvas.insetEnd = it.width / density.toDouble() }) { BasicText("Inspector") }
@@ -950,7 +708,7 @@ class BlueprintCanvasMotionTest {
                 val bottom = canvas.flow.canvasSize.height / density - canvas.insetBottom
                 val pixel = 1.0 / density
                 assertTrue(view.zoom < .01, "This complete prepared extent requires a sub-one-percent Fit")
-                for (box in layout.frames + layout.cards.values + drawnBanners) {
+                for (box in layout.frames + layout.cards.values) {
                     assertTrue(view.x + box.x * view.zoom >= canvas.insetStart - pixel, "Left full or painted bound")
                     assertTrue(view.y + box.y * view.zoom >= canvas.insetTop - pixel, "Top full or painted bound")
                     assertTrue(view.x + (box.x + box.width) * view.zoom <= right + pixel, "Right full or painted bound")
@@ -1012,7 +770,6 @@ class BlueprintCanvasMotionTest {
                 assertEquals(source.id, selected)
                 assertEquals(expectedPin, inspected)
                 assertEquals(1, pinClicks)
-                assertTrue(levels.full === layout)
                 assertEquals(listOf(source, target, outside).associateBy { it.id }, layout.cards)
                 assertEquals(listOf(system, other), layout.frames)
                 assertEquals(listOf(wire), layout.links)
@@ -1045,8 +802,6 @@ class BlueprintCanvasMotionTest {
             listOf(source.x + source.width to source.y + 80.0, outside.x to outside.y + 80.0))
         val large = BlueprintLayout(small.key, listOf(source, laterTarget, outside).associateBy { it.id },
             listOf(laterGroup, other), listOf(laterWire, boundary), 100000.0, 78000.0)
-        val smallLevels = small.blueprintMapLevels { frame -> "summary:${frame.key}" }
-        val largeLevels = large.blueprintMapLevels { frame -> "summary:${frame.key}" }
         val expectedPin = source.ref(source.pins.single())
         for (density in listOf(1f, 2f)) for (authority in listOf("untouched", "pan", "saved")) {
             val canvas = GraphCanvasState(.002..16.0)
@@ -1060,13 +815,11 @@ class BlueprintCanvasMotionTest {
             var bounds = Rect.Zero
             var drawnFull: BlueprintLayout<String>? = null
             var drawnView: Viewport? = null
-            var banners = emptyList<Bounds>()
             lateinit var scene: ImageComposeScene
             SwingUtilities.invokeAndWait {
                 scene = ImageComposeScene((1100 * density).toInt(), (800 * density).toInt(),
                     Density(density), coroutineContext = Dispatchers.Unconfined) {
                     val full = current
-                    val prepared = if (full === small) smallLevels else largeLevels
                     Box(Modifier.fillMaxSize().padding(start = 40.dp, top = 32.dp)
                         .onGloballyPositioned { bounds = it.boundsInWindow() }) {
                         BlueprintCanvas(full, canvas, emptySet(), selected,
@@ -1077,9 +830,9 @@ class BlueprintCanvasMotionTest {
                                 pins = card.pins.map { BlueprintPinLook(Color.Blue, "${it.key}: ${it.type}", Color.Black, true) }) },
                             onCardClick = { selected = it }, onLinkClick = {}, onPaneClick = {},
                             onPinClick = { card, pin -> selected = card.id; inspected = card.ref(pin); pinClicks++ },
-                            fitScene = sceneKey, startInset = 80.dp, mapLevels = prepared, focusable = true,
-                            onGeometry = { geometry, _, painted ->
-                                drawnFull = geometry; drawnView = canvas.viewport(); banners = painted
+                            fitScene = sceneKey, startInset = 80.dp, focusable = true,
+                            onGeometry = { geometry, _ ->
+                                drawnFull = geometry; drawnView = canvas.viewport()
                             }, modifier = Modifier.fillMaxSize())
                         Box(Modifier.align(Alignment.CenterEnd).width(240.dp).fillMaxHeight()
                             .onSizeChanged { canvas.insetEnd = it.width / density.toDouble() }) { BasicText("Inspector") }
@@ -1105,7 +858,7 @@ class BlueprintCanvasMotionTest {
                 val right = canvas.flow.canvasSize.width / density - canvas.insetEnd
                 val bottom = canvas.flow.canvasSize.height / density - canvas.insetBottom
                 val pixel = 1.0 / density
-                for (box in full.frames + full.cards.values + banners) {
+                for (box in full.frames + full.cards.values) {
                     assertTrue(view.x + box.x * view.zoom >= canvas.insetStart - pixel, "Current full or painted left bound")
                     assertTrue(view.y + box.y * view.zoom >= canvas.insetTop - pixel, "Current full or painted top bound")
                     assertTrue(view.x + (box.x + box.width) * view.zoom <= right + pixel, "Current full or painted right bound")
@@ -1191,7 +944,6 @@ class BlueprintCanvasMotionTest {
                 assertEquals(source.id, selected)
                 assertEquals(expectedPin, inspected)
                 assertEquals(1, pinClicks)
-                assertTrue(smallLevels.full === small && largeLevels.full === large)
                 assertEquals(listOf(source, firstTarget).associateBy { it.id }, small.cards)
                 assertEquals(listOf(firstGroup), small.frames)
                 assertEquals(listOf(firstWire), small.links)

@@ -1,11 +1,14 @@
 package dev.shibasis.reaktor.cloudflare
 
+import dev.shibasis.reaktor.auth.graph.RouteKind
 import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.core.network.StatusCode
 import dev.shibasis.reaktor.service.contract.Metadata
 
-fun Hono.otherwise(status: StatusCode): Hono =
-    all("/*") { failureResponse(status, status.name.lowercase().replace('_', ' ').replaceFirstChar(Char::uppercase)) }
+fun Hono.otherwise(status: StatusCode): Hono {
+    val respond: (HonoContext) -> dynamic = { failureResponse(status, status.name.lowercase().replace('_', ' ').replaceFirstChar(Char::uppercase)) }
+    return all("/*", respond.marked(RouteKind.Fallback))
+}
 
 data class CorsPolicy(
     val methods: List<String>,
@@ -20,7 +23,8 @@ fun Hono.cors(policy: CorsPolicy): Hono {
     options.allowMethods = policy.methods.toTypedArray()
     options.allowHeaders = (policy.headers + Metadata.Sent).distinctBy { it.lowercase() }.toTypedArray()
     options.maxAge = policy.maxAgeSeconds
-    return use("*", HonoCorsModule.cors(options))
+    val middleware: Any = HonoCorsModule.cors(options)
+    return use("*", middleware.marked(RouteKind.Middleware))
 }
 
 /** A bare `{"error": …}` body, so a failure is still JSON to a client that only parses JSON. */

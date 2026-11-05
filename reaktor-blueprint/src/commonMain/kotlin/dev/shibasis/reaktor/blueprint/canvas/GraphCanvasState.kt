@@ -44,7 +44,7 @@ data class CanvasPulse(val link: String, val born: TimeSource.Monotonic.ValueTim
 data class GraphLevels(val meshIn: Double = .2, val meshOut: Double = .16, val farIn: Double = .42, val farOut: Double = .42)
 
 @Stable
-open class GraphCanvasState(val zoomRange: ClosedFloatingPointRange<Double> = 0.05..16.0, val levels: GraphLevels = GraphLevels()) {
+open class GraphCanvasState(val zoomRange: ClosedFloatingPointRange<Double> = 0.05..16.0, val levels: GraphLevels? = null) {
     internal val flow = ReactFlowState()
     var insetStart = 0.0
     var insetTop = 0.0
@@ -52,7 +52,6 @@ open class GraphCanvasState(val zoomRange: ClosedFloatingPointRange<Double> = 0.
     var insetBottom = 0.0
     var reading: () -> BlueprintReading? = { null }
     internal var readableZoom: (Double, Double, Double, Double) -> Double? = { _, _, _, _ -> null }
-    internal var paintedBounds: (Bounds, Double) -> List<Bounds> = { _, _ -> emptyList() }
     internal var pinRequest by mutableStateOf<PinRef?>(null)
         private set
     internal var density = 1.0
@@ -76,9 +75,6 @@ open class GraphCanvasState(val zoomRange: ClosedFloatingPointRange<Double> = 0.
     internal var minimumZoom by mutableStateOf(zoomRange.start)
         private set
 
-    private var far = false
-    val distant: Boolean by derivedStateOf { zoomState.value.let { z -> (if (far) z < levels.meshIn else z < levels.meshOut).also { far = it } } }
-
     fun viewport(): Viewport = flow.viewport.let { Viewport(it.x / density, it.y / density, it.zoom / density) }
 
     fun seen(): Area? {
@@ -90,27 +86,9 @@ open class GraphCanvasState(val zoomRange: ClosedFloatingPointRange<Double> = 0.
     fun fit(x: Double, y: Double, width: Double, height: Double, padding: Double = 0.03, maxZoom: Double = 1.0, minZoom: Double = 0.05) {
         if (span <= 0 || room <= 0) return
         val box = Area(x, y, width.coerceAtLeast(1.0), height.coerceAtLeast(1.0))
-        val availableWidth = span * (1 - 2 * padding)
-        val availableHeight = room * (1 - 2 * padding)
-        fun bounds(zoom: Double): Area {
-            val all = listOf(box) + paintedBounds(box, zoom).filter { it.x.isFinite() && it.y.isFinite() && it.width.isFinite() && it.height.isFinite() && it.width >= 0 && it.height >= 0 }
-            val left = all.minOf { it.x }; val top = all.minOf { it.y }
-            return Area(left, top, all.maxOf { it.x + it.width } - left, all.maxOf { it.y + it.height } - top)
-        }
-        var fitted = minOf(availableWidth / box.width, availableHeight / box.height, maxZoom)
-        var area = bounds(fitted)
-        if (area.width * fitted > availableWidth || area.height * fitted > availableHeight) {
-            var low = 0.0; var high = fitted
-            repeat(40) {
-                val middle = (low + high) / 2
-                val next = bounds(middle)
-                if (next.width * middle <= availableWidth && next.height * middle <= availableHeight) low = middle else high = middle
-            }
-            fitted = low.takeIf { it > 0 } ?: fitted
-            area = bounds(fitted)
-        }
+        val fitted = minOf(span * (1 - 2 * padding) / box.width, room * (1 - 2 * padding) / box.height, maxZoom)
         minimumZoom = minOf(zoomRange.start, minZoom, fitted)
-        look(area.x + area.width / 2, area.y + area.height / 2, fitted)
+        look(box.x + box.width / 2, box.y + box.height / 2, fitted)
     }
 
     fun fit(boxes: List<Bounds>, padding: Double = 0.03, maxZoom: Double = 1.0, minZoom: Double = 0.05) {
@@ -248,7 +226,7 @@ open class GraphCanvasState(val zoomRange: ClosedFloatingPointRange<Double> = 0.
     internal fun level(zoom: Double) = level(shown, zoom).also { shown = it }
 
     private fun level(from: Int?, zoom: Double): Int {
-        val (meshIn, meshOut, farIn, farOut) = levels
+        val (meshIn, meshOut, farIn, farOut) = levels ?: return 2
         return when (from) {
             0 -> if (zoom >= farIn) 2 else if (zoom >= meshIn) 1 else 0
             1 -> if (zoom < meshOut) 0 else if (zoom >= farIn) 2 else 1

@@ -17,7 +17,14 @@ data class Capacity(
 
 @Serializable
 data class Host(val id: String, val ssh: String? = null, val roles: List<String>, val state: String,
-    val capacity: Capacity? = null, val observedAt: Long, val truth: String, val problem: String? = null)
+    val capacity: Capacity? = null, val observedAt: Long, val truth: String, val problem: String? = null,
+    val processes: HostProcesses? = null)
+
+@Serializable
+data class HostProcess(val pid: Long, val name: String, val cpuPercent: Double?, val memoryBytes: Long?)
+
+@Serializable
+data class HostProcesses(val observedAt: Long, val processes: List<HostProcess>, val truth: String, val problem: String? = null)
 
 @Serializable
 data class Lease(val path: String, val state: String, val pid: Long? = null, val truth: String = "Live")
@@ -51,3 +58,16 @@ data class ClusterStatus(val observedAt: Long, val hosts: List<Host>, val slots:
 
 @Serializable
 data class ClusterJobs(val observedAt: Long, val jobs: List<Job>, val truth: String, val problems: List<String> = emptyList())
+
+@Serializable
+data class ClusterTask(
+    val id: String, val title: String, val provider: String, val state: String,
+    val host: String?, val startedAt: Long, val updatedAt: Long,
+    val workingDirectory: String? = null, val truth: String = "Source",
+)
+
+@Serializable
+data class ClusterTasks(
+    val observedAt: Long, val tasks: List<ClusterTask>, val truth: String,
+    val problems: List<String> = emptyList(),
+)

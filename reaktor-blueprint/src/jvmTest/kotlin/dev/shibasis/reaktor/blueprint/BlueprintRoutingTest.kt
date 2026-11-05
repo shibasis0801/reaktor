@@ -29,7 +29,7 @@ class BlueprintRoutingTest {
         }
     }
 
-    @Test fun navigationOverlaysAvoidCardsAndShareNeighbourDoors() {
+    @Test fun navigationBetweenRegionsDrawsAsCurvesPortToPort() {
         for (layouter in listOf(LayeredFrameLayouter, ElkFrameLayouter)) {
             val peers = (0 until 6).map { "peer-$it" }
             val groups = listOf(BlueprintGroup("shared", "Shared", listOf(BlueprintNode("source", 0)))) + peers.map { id ->
@@ -44,27 +44,9 @@ class BlueprintRoutingTest {
             assertTrue(scene.layoutFailures.isEmpty())
             assertEquals(edges.map { it.id }.sorted(), scene.links.flatMap { it.members }.sorted())
             val navigation = scene.links.filter { it.kind == LinkKind.Route }
-            val blocked = navigation.sumOf { link -> scene.cards.values.count { card ->
-                card.id != link.from && card.id != link.to && link.trace.zipWithNext().any { (a, b) -> crosses(a, b, card) }
-            } }
-            println("navigation-overlay layouter=${layouter::class.simpleName} links=${navigation.size} underCards=$blocked curved=${navigation.count { it.curve }}")
-            assertEquals(0, blocked, "Navigation links avoid every unrelated card")
-            assertTrue(navigation.none { it.curve }, "Navigation shares routed doorway geometry")
-            assertTrue(scene.links.flatMap { it.trace }.all { (x, y) -> x >= 0 && y >= 0 && x <= scene.width && y <= scene.height },
-                "Fit bounds contain backward routes as well as cards")
-            fun ports(links: List<Link>, frame: Frame, departure: Boolean): Set<Double> {
-                val x = if (departure) frame.x + frame.width else frame.x
-                return links.flatMap { it.trace.zipWithNext() }.mapNotNull { (a, b) ->
-                    a.second.takeIf { abs(a.second - b.second) < 1e-6 && it > frame.y && it < frame.y + frame.height &&
-                        minOf(a.first, b.first) <= x + 1e-6 && maxOf(a.first, b.first) >= x - 1e-6 }
-                }.toSet()
-            }
-            for (from in peers) for (to in peers.filter { it != from }) {
-                val links = navigation.filter { it.from.startsWith("$from-") && it.to.startsWith("$to-") }
-                assertEquals(2, links.size)
-                for (key in listOf(from, "$from-inner")) assertEquals(1, ports(links, scene.frames.single { it.key == key }, true).size)
-                for (key in listOf(to, "$to-inner")) assertEquals(1, ports(links, scene.frames.single { it.key == key }, false).size)
-            }
+            val crossing = navigation.filter { link -> scene.frames.none { it.parent == null && link.from in it.nodes && link.to in it.nodes } }
+            assertTrue(crossing.isNotEmpty() && crossing.all { it.curve }, "Navigation between regions draws as curves")
+            assertTrue(crossing.all { link -> link.trace.first() != link.trace.last() })
             val repeated = BlueprintEngine.layout("navigation-overlay", groups, edges, 16.0 / 9.0, layouter)
             val selected = navigation.first().members.first()
             assertEquals(navigation.single { selected in it.members }.id, repeated.links.single { selected in it.members }.id)

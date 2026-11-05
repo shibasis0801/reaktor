@@ -35,7 +35,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.shibasis.reaktor.blueprint.*
-import dev.shibasis.reaktor.blueprint.editor.GraphEditor
 import dev.shibasis.reaktor.blueprint.editor.Selection
 import dev.shibasis.reaktor.graph.core.GraphShape
 import dev.shibasis.reaktor.graph.core.NodeShape
@@ -64,16 +63,16 @@ fun SubgraphEditor(
     modifier: Modifier = Modifier,
     space: Dp = 8.dp,
     sourceGraph: GraphShape? = null,
-    sourceLevels: BlueprintMapLevels<String>? = null,
+    sourceLayout: BlueprintLayout<String>? = null,
     sourceCardLook: (@Composable (NodeShape) -> BlueprintCardLook)? = null,
     sourceFrameLook: (@Composable (Frame) -> BlueprintFrameLook)? = null,
     sourceLinkStyle: ((Link, Selection) -> LinkStyle?)? = null,
     sourceLinkLabel: ((Link) -> String?)? = null,
     canvas: GraphCanvasState? = null,
 ) {
-    require(listOf(sourceGraph, sourceLevels, sourceCardLook, sourceFrameLook, sourceLinkStyle, sourceLinkLabel).let { inputs ->
+    require(listOf(sourceGraph, sourceLayout, sourceCardLook, sourceFrameLook, sourceLinkStyle, sourceLinkLabel).let { inputs ->
         inputs.all { it == null } || inputs.all { it != null }
-    }) { "A supplied map requires its complete typed graph, prepared levels and presentation" }
+    }) { "A supplied map requires its complete typed graph, layout and presentation" }
     var draft by remember(graph.id) { mutableStateOf<Subgraph?>(null) }
     var base by remember(graph.id) { mutableStateOf(0) }
     var notice by remember(graph.id) { mutableStateOf("") }
@@ -163,7 +162,7 @@ fun SubgraphEditor(
     BoxWithConstraints(modifier.testTag("subgraph-editor").background(appearance.canvas)) {
         val narrow = maxWidth < space * 75
         if (nodes.isNotEmpty() && current != null) {
-            if (sourceGraph != null) SuppliedSubgraphBlueprint(sourceGraph, requireNotNull(sourceLevels),
+            if (sourceGraph != null) SuppliedSubgraphBlueprint(sourceGraph, requireNotNull(sourceLayout),
                 requireNotNull(sourceCardLook), requireNotNull(sourceFrameLook), requireNotNull(sourceLinkStyle), requireNotNull(sourceLinkLabel),
                 graph, current, selected, connection, appearance, camera,
                 { selected = it; connection = null; library = false },
@@ -291,12 +290,12 @@ fun SubgraphEditor(
 }
 
 @Composable
-private fun SuppliedSubgraphBlueprint(source: GraphShape, levels: BlueprintMapLevels<String>,
+private fun SuppliedSubgraphBlueprint(source: GraphShape, full: BlueprintLayout<String>,
     cardLook: @Composable (NodeShape) -> BlueprintCardLook, frameLook: @Composable (Frame) -> BlueprintFrameLook,
     linkStyle: (Link, Selection) -> LinkStyle?, linkLabel: (Link) -> String?, graph: SearchGraph, document: Subgraph,
     selected: String?, connection: String?, palette: SurfaceGraphAppearance, state: GraphCanvasState,
     onNode: (String) -> Unit, onEdge: (String) -> Unit, onClear: () -> Unit, modifier: Modifier, space: Dp, top: Dp) {
-    val identities = remember(graph, source, levels) {
+    val identities = remember(graph, source, full) {
         require(source.nodes.map { it.id }.toSet().size == source.nodes.size && graph.nodes.map { it.id }.toSet().size == graph.nodes.size) {
             "Source member identities must be unique"
         }
@@ -320,48 +319,41 @@ private fun SuppliedSubgraphBlueprint(source: GraphShape, levels: BlueprintMapLe
                 view.wires.all { wire -> graph.edges.any { it.kind == "wire" && it.id == wire.id && it.from == wire.provider && it.to == wire.consumer } } &&
                 view.hops.all { hop -> graph.edges.any { it.kind == "route" && it.id == "route:${hop.id}" && it.from == hop.from && it.to == hop.to } }
         }) { "The search members and directed relationships must match one complete supplied source projection" }
-        val members = levels.full.links.flatMap { it.members }.toSet() + levels.full.foldedLinks.keys
+        val members = full.links.flatMap { it.members }.toSet() + full.foldedLinks.keys
         require(mapped.values.all { it in members }) { "The full layout must retain every source relationship identity" }
         mapped
-    }
-    val editor = remember(graph, source, levels) {
-        GraphEditor(source, GraphEditor.placement(levels.full), id = "subgraph-preview:${graph.id}", single = false,
-            pins = { node -> levels.full.cards[node.id]?.pins.orEmpty() })
     }
     val edges = remember(graph, identities) { graph.edges.associateBy { identities.getValue(it.id) } }
     val sourceNodes = remember(source) { source.nodes.associateBy { it.id } }
     val related = remember(selected, graph) { graph.edges.filter { it.from == selected || it.to == selected }
         .flatMap { listOf(it.from, it.to) }.toSet() }
-    val selectNode by rememberUpdatedState(onNode)
-    val selectEdge by rememberUpdatedState(onEdge)
-    val clear by rememberUpdatedState(onClear)
+    val selection = Selection(nodes = selected?.let(::setOf).orEmpty(), wires = connection?.let { setOf(identities.getValue(it)) }.orEmpty())
     SideEffect {
         state.insetTop = top.value.toDouble(); state.insetBottom = (space * 8).value.toDouble()
         state.insetStart = (space * 3).value.toDouble(); state.insetEnd = (space * 3).value.toDouble()
-        val next = Selection(nodes = selected?.let(::setOf).orEmpty(), wires = connection?.let { setOf(identities.getValue(it)) }.orEmpty())
-        editor.onSelect = {}
-        if (next != editor.selection) editor.select(next)
-        editor.onSelect = { id ->
-            val wire = editor.selection.wires.singleOrNull()?.takeIf(edges::containsKey)
-            when { id != null -> selectNode(id); wire != null -> selectEdge(edges.getValue(wire).id); else -> clear() }
-        }
     }
     dev.shibasis.reaktor.ui.machinesignal.MachineSignalSurface(
         dev.shibasis.reaktor.ui.machinesignal.MachineSignalVariant.Editor,
         dev.shibasis.reaktor.ui.machinesignal.MachineSignalDensity.Compact,
         mode = if (palette.canvas.luminance() > .5f) dev.shibasis.reaktor.ui.machinesignal.MachineSignalMode.Light else dev.shibasis.reaktor.ui.machinesignal.MachineSignalMode.Dark) {
-        BlueprintGraph(editor, state,
-            cardLook = { node -> cardLook(sourceNodes.getValue(node.id)).let { look -> look.copy(tag = "subgraph-node:${node.id}", action = look.action ?: node.label,
-                muted = look.muted || node.id !in document.nodes || selected != null && node.id != selected && node.id !in related) } },
-            groupLook = frameLook,
-            linkStyle = { link -> linkStyle(link, editor.selection)?.let { style ->
+        val faint = Blueprint.Faint
+        BlueprintCanvas(full, state, selection.nodes, selected,
+            linkStyle = { link -> linkStyle(link, selection)?.let { style ->
                 val members = link.members.mapNotNull(edges::get)
                 val included = members.all { it.from in document.nodes && it.to in document.nodes && (document.edges == null || it.id in document.edges.orEmpty()) }
                 if (included) style else style.copy(alpha = style.alpha * .1f)
-            } },
-            linkLabel = linkLabel, modifier = modifier, editable = false,
-            mapLevels = levels, mapLevel = levels.at(state.zoom),
-            onPinClick = { card, _ -> selectNode(card.id) })
+            } ?: LinkStyle(faint) },
+            frameLook = frameLook,
+            cardLook = { card -> sourceNodes[card.id]?.let { node -> cardLook(node).let { look -> look.copy(tag = "subgraph-node:${node.id}", action = look.action ?: node.label,
+                selected = node.id == selected, muted = look.muted || node.id !in document.nodes || selected != null && node.id != selected && node.id !in related) } } },
+            onCardClick = onNode,
+            onLinkClick = { link -> val edge = link.members.singleOrNull()?.let(edges::get); if (edge != null) onEdge(edge.id) else onClear() },
+            onPaneClick = onClear,
+            modifier = modifier,
+            labels = full.links.mapNotNull { link -> linkLabel(link)?.let { link.id to it } }.toMap(),
+            onPinClick = { card, _ -> onNode(card.id) },
+            focusable = true,
+            editable = false)
     }
 }
 

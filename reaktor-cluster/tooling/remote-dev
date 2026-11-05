@@ -1,0 +1,1513 @@
+#!/usr/bin/env python3
+import argparse
+import contextlib
+import datetime
+import fcntl
+import hashlib
+import json
+import os
+import plistlib
+import re
+import resource
+from pathlib import Path
+import shlex
+import shutil
+import sqlite3
+import subprocess
+import sys
+import tempfile
+import time
+import uuid
+import signal
+import threading
+from hosts_contract import read_hosts_contract, bundle_directories
+from cluster_locations import state_root, workspace_root
+import remote_retention
+
+ROOT = Path(os.environ.get('REMOTE_DEV_WORKSPACE_ROOT', workspace_root(__file__))).resolve()
+STATE = state_root(workspace_root(__file__))
+CONFIG = json.loads((STATE / 'config.json').read_text())
+HOST = CONFIG['host']
+REMOTE = CONFIG['remote_root']
+BASE_REMOTE = REMOTE
+LOCAL_SLOTS = remote_retention.configured_slot_roots(STATE, CONFIG)[0]
+LOCK_ROOT = None
+LINE = None
+SLOT = None
+PUBLICATION = None
+WORKTREE = None
+PROJECTS = [name for name in CONFIG['projects'] if (ROOT / name).is_dir()]
+QUEUED_AT = time.monotonic()
+LAST_RUN_ID = None
+soft_limit, hard_limit = resource.getrlimit(resource.RLIMIT_NOFILE)
+resource.setrlimit(resource.RLIMIT_NOFILE, (max(soft_limit, 8192 if hard_limit == resource.RLIM_INFINITY else min(8192, hard_limit)), hard_limit))
+EXCLUDED = {'.git', '.gradle', '.kotlin', '.cxx', '.github_modules', 'build', 'node_modules', 'Pods',
+            'DerivedData', '.claude', '.idea', '.DS_Store', 'reports', 'screenshots'}
+DISTRIBUTIONS = (('build', 'agent-dist', 'lib'), ('build', 'compose', 'binaries', 'main', 'app'))
+MAX_WORKER_SLOTS = 3
+
+
+def run(argv, **kwargs):
+    return subprocess.run([str(a) for a in argv], check=True, **kwargs)
+
+
+def ssh(command, **kwargs):
+    if 'input' not in kwargs:
+        kwargs.setdefault('stdin', subprocess.DEVNULL)
+    return run(['ssh', '-o', 'BatchMode=yes', HOST, command], **kwargs)
+
+
+def remote_python(code, *args, **kwargs):
+    if 'input' in kwargs:
+        return ssh(shlex.join(['/opt/homebrew/bin/python3', '-c', code, *args]), **kwargs)
+    program = f'import sys\nsys.argv = {["-", *args]!r}\nexec(compile({code!r}, "<remote-dev>", "exec"))'
+    kwargs['input'] = program if kwargs.get('text') else program.encode()
+    return ssh(shlex.join(['/opt/homebrew/bin/python3', '-']), **kwargs)
+
+
+def remote_contract_python(code, *args, **kwargs):
+    source = Path(__file__).with_name('hosts_contract.py').read_text()
+    return remote_python(source + '\n' + code, *args, **kwargs)
+
+
+def project_at(path, worktrees=True):
+    global ROOT, PROJECTS, WORKTREE
+    path = Path(path).resolve()
+    for name in PROJECTS:
+        base = (ROOT / name).resolve()
+        if path == base or base in path.parents:
+            return name, path.relative_to(base)
+    if worktrees and WORKTREE is None:
+        import workspace_storage
+        for identity, roots in workspace_storage.registered_worktrees(ROOT, STATE):
+            for source, checkout in roots:
+                if path == checkout or checkout in path.parents:
+                    ROOT, PROJECTS, WORKTREE = checkout.parent, [base.name for base, _ in roots], identity
+                    return source.name, path.relative_to(checkout)
+    raise SystemExit(f'Not one of the configured projects: {path}')
+
+
+def local_capacity():
+    try:
+        cpu = subprocess.run(['/usr/bin/top', '-l', '2', '-s', '1', '-n', '0'],
+                             capture_output=True, text=True, check=True, timeout=5).stdout
+        memory = subprocess.run(['/usr/bin/memory_pressure', '-Q'], capture_output=True,
+                                text=True, check=True, timeout=5).stdout
+        statistics = subprocess.run(['/usr/bin/vm_stat'], capture_output=True,
+                                    text=True, check=True, timeout=5).stdout
+        system = subprocess.run(['/usr/sbin/sysctl', 'hw.memsize', 'kern.memorystatus_vm_pressure_level', 'vm.swapusage'],
+                                capture_output=True, text=True, check=True, timeout=5).stdout
+        idle = float(re.findall(r'([\d.]+)% idle', cpu)[-1])
+        free = int(re.search(r'System-wide memory free percentage: (\d+)%', memory)[1])
+        total = int(re.search(r'hw.memsize: (\d+)', system)[1])
+        pressure = int(re.search(r'kern.memorystatus_vm_pressure_level: (\d+)', system)[1])
+        page_size = int(re.search(r'page size of (\d+) bytes', statistics)[1])
+        compressed = int(re.search(r'Pages occupied by compressor:\s+(\d+)', statistics)[1]) * page_size
+        swap = re.search(r'used = ([\d.]+)([MG])', system)
+        swapped = float(swap[1]) * (1024 ** 3 if swap[2] == 'G' else 1024 ** 2)
+        reason = (f'{idle:.0f}% CPU idle, {free}% memory capacity, pressure {pressure}, '
+                  f'{compressed / total:.0%} compressed, {swapped / 1024 ** 3:.1f} GiB swap')
+        return (idle >= CONFIG.get('local_min_idle_percent', 60) and free >= CONFIG.get('local_min_free_percent', 40)
+                and pressure == 1 and compressed <= total * CONFIG.get('local_max_compressed_fraction', 0.15)
+                and swapped <= CONFIG.get('local_max_swap_gib', 1) * 1024 ** 3), reason
+    except (subprocess.SubprocessError, ValueError, IndexError, TypeError, OSError):
+        return False, 'local capacity unavailable'
+
+
+def declared_gradle_runtime(name, relative, args):
+    directory = selected_gradle_directory(name, relative, args)
+    workspace = ROOT.resolve()
+    while directory == workspace or workspace in directory.parents:
+        if directory == (ROOT / name).resolve() or any((directory / file).is_file() for file in ('settings.gradle.kts', 'settings.gradle')):
+            return (directory / 'gradle/gradle-daemon-jvm.properties').is_file()
+        directory = directory.parent
+    return False
+
+
+def local_gradle(name, relative, args, log=None, on_line=None):
+    import workspace_storage
+    workspace_storage.automatic(sys.modules[__name__], held_locks={'local-gradle'})
+    if args[:1] == ['--']:
+        args = args[1:]
+    defaults = ['--console=plain', f'--max-workers={CONFIG.get("local_max_workers", 6)}', '-Dorg.gradle.daemon.idletimeout=300000',
+                *([] if CONFIG.get('local_watch_fs', True) else ['--no-watch-fs'])]
+    supplied_options = {arg.partition('=')[0] for arg in args}
+    if declared_gradle_runtime(name, relative, args):
+        defaults.append('-Dorg.gradle.java.home=' + CONFIG['java_home'])
+    else:
+        defaults.extend(['-Dorg.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=2g', '-Pkotlin.daemon.jvmargs=-Xmx4g'])
+    defaults = [arg for arg in defaults if arg.partition('=')[0] not in supplied_options]
+    directory = ROOT / name / relative
+    wrapper = directory / 'gradlew'
+    if not wrapper.exists(): wrapper = ROOT / name / 'gradlew'
+    run_id = datetime.datetime.now().strftime('%Y%m%d-%H%M%S') + '-' + uuid.uuid4().hex[:8] + '-' + name
+    log = log or STATE / 'logs' / (run_id + '.log')
+    log.parent.mkdir(parents=True, exist_ok=True)
+    command = [str(wrapper), *defaults, '--init-script',
+               str(Path(__file__).resolve().parent / 'physical-devices.gradle'), *args]
+    env = dict(os.environ, REMOTE_DEV_WORKER='1', CMAKE_BUILD_PARALLEL_LEVEL='6')
+    env.update(cache_environment())
+    if env.get('REMOTE_DEV_CACHE_URL'):
+        command += ['--init-script', str(Path(__file__).resolve().parent / 'build-cache.gradle')]
+    receipt = {'run_id': run_id, 'project': name, 'worker': 'local', 'tasks': args, 'workspace_root': str(ROOT),
+               'started': datetime.datetime.now().isoformat(), 'log': str(log),
+               'queue_seconds': time.monotonic() - QUEUED_AT, 'exit_code': None,
+               'owner': workspace_storage.run_owner()}
+    receipt['resourceScope'] = 'time -l covers the wrapper/client process; detached Gradle/Kotlin daemons are excluded'
+    receipt_path = STATE / 'logs' / (run_id + '.json')
+    receipt_path.parent.mkdir(parents=True, exist_ok=True)
+    receipt_path.write_text(json.dumps(receipt, indent=2) + '\n')
+    started = time.monotonic()
+    with log.open('w') as output:
+        process = subprocess.Popen(['/usr/bin/time', '-l', *command], cwd=directory, env=env,
+                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, start_new_session=True)
+        try:
+            for line in process.stdout:
+                line = re.sub(r'\b(?:gh[pousr]_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+)', '[REDACTED]', line)
+                output.write(line); output.flush()
+                print(line, end='', flush=True)
+                if on_line: on_line(line)
+            code = process.wait()
+        finally:
+            if process.poll() is None:
+                os.killpg(process.pid, signal.SIGINT)
+                try: process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    os.killpg(process.pid, signal.SIGKILL)
+                    process.wait()
+            process.stdout.close()
+    receipt.update(exit_code=code, execution_seconds=time.monotonic() - started,
+                   finished=datetime.datetime.now().isoformat())
+    receipt_path.write_text(json.dumps(receipt, indent=2) + '\n')
+    return code
+
+
+def cache_environment():
+    mode = os.environ.get('REMOTE_DEV_CACHE', 'off')
+    if mode == 'off': return {}
+    if mode not in {'read', 'write'}: raise ValueError('REMOTE_DEV_CACHE must be off, read or write')
+    if mode == 'write' and ROOT not in {LOCAL_SLOTS / 'local', LOCAL_SLOTS / 'worker'}:
+        raise ValueError('Cache writes require a verified isolated snapshot build')
+    configuration = json.loads((STATE / 'build-cache/client.json').read_text())
+    account = configuration['writer' if mode == 'write' else 'reader']
+    policy = {'REMOTE_DEV_CACHE_URL': configuration['url'], 'REMOTE_DEV_CACHE_USER': account['username'],
+              'REMOTE_DEV_CACHE_PASSWORD': account['password'], 'REMOTE_DEV_CACHE_PUSH': str(mode == 'write').lower()}
+    if os.environ.get('REMOTE_DEV_CACHE_LOCAL') == 'false': policy['REMOTE_DEV_CACHE_LOCAL'] = 'false'
+    return policy
+
+
+DESKTOP_LAUNCHES = Path.home() / '.reaktor' / 'desktop-runtime' / 'launches'
+
+
+def released_after_launch(lease, tasks):
+    if not tasks or any(task.rpartition(':')[2] != 'run' for task in tasks):
+        return None
+    launches = DESKTOP_LAUNCHES
+    known = set(launches.glob('*.classpath'))
+    started = {'> Task ' + task for task in tasks}
+
+    def release():
+        while not lease.closed:
+            if set(launches.glob('*.classpath')) - known:
+                try:
+                    fcntl.flock(lease, fcntl.LOCK_UN)
+                except (OSError, ValueError):
+                    return
+                print('The app runs from its own copy of its jars, so the local build lease is free for other builds', flush=True)
+                return
+            time.sleep(0.5)
+
+    def watch(line):
+        if line.strip() in started:
+            threading.Thread(target=release, daemon=True).start()
+    return watch
+
+
+def route_gradle(name, relative, args):
+    contract = read_hosts_contract(selected_gradle_directory(name, relative, args))
+    tasks = {':' + task.lstrip(':') for task in gradle_tasks(args, contract.get('taskOptions', {}))}
+    selected = read_gradle_request(name, relative, args)
+    if selected is not None:
+        root, _, request = selected
+        node = request['node']
+        owner = node['build']
+        owner_directory = root / contract.get('builds', {}).get(owner, '.')
+        owner_contract = read_hosts_contract(owner_directory)
+        if owner_contract:
+            contract = owner_contract
+            tasks = {node['project'].rstrip(':') + ':' + node['name']}
+    local_declared = any(contract.get('taskHosts', {}).get(task, {}).get('execution') == 'Local' for task in tasks)
+    if local_declared:
+        import remote_build
+        with remote_build.local_lease(STATE, ticket=LINE) as lease:
+            print('Declared local work owns the local host lease', flush=True)
+            remote_retention.require_admission(STATE)
+            return local_gradle(name, relative, args, on_line=released_after_launch(lease, tasks))
+    available, reason = local_capacity()
+    if LINE is not None:
+        import remote_build
+        remote_build.stand_aside(LINE, not available)
+        if available and not remote_build.first_in_line(LINE):
+            available, reason = False, 'a build that asked earlier is waiting for this Mac'
+    with (STATE / 'local-gradle.lock').open('w') as lock:
+        if available:
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                available, reason = False, 'another local Gradle build is running'
+        if not available:
+            print(f'Routing to {HOST}: {reason}', flush=True)
+            return None
+        print(f'Building {name} on this Mac: {reason}', flush=True)
+        remote_retention.require_admission(STATE)
+        return local_gradle(name, relative, args)
+
+
+def scheduled_gradle(name, relative, args):
+    remote_retention.require_admission(STATE)
+    import mobile_worker
+    if mobile_worker.requested(sys.modules[__name__], name, relative, args):
+        return mobile_worker.gradle(sys.modules[__name__], name, relative, args)
+    return queued_worker_gradle(name, relative, args, lambda: route_gradle(name, relative, args))
+
+
+def worker_unreachable_limit():
+    return int(os.environ.get('REMOTE_DEV_WORKER_UNREACHABLE_SECONDS') or CONFIG.get('worker_unreachable_seconds', 600))
+
+
+def unreachable_worker(reason, since):
+    if 'worker capacity unavailable' not in reason:
+        return None
+    if 'Operation not permitted' in reason:
+        return (f'remote-dev: this process may not connect to {HOST} ({reason}). It is probably running in a sandbox: '
+                'run it outside the sandbox, or run checks with the reaktor MCP check_run.')
+    if time.monotonic() - since > worker_unreachable_limit():
+        return (f'remote-dev: {HOST} has been unreachable for {worker_unreachable_limit() // 60} minutes ({reason}). '
+                f'Check the link to {HOST}, or run checks with the reaktor MCP check_run.')
+    return None
+
+
+def queued_worker_gradle(name, relative, args, local=lambda: None):
+    global LINE
+    import remote_build
+    waiting = None
+    unreachable_since = None
+    with remote_build.place_in_line(STATE) as ticket:
+        LINE = ticket
+        try:
+            while True:
+                result = local()
+                if result is not None:
+                    return result
+                claimed, reason = claim_worker_slot()
+                if claimed is not None:
+                    LINE = None
+                    ticket.unlink(missing_ok=True)
+                    index, lock = claimed
+                    with lock:
+                        return slot_build(name, relative, args, index, lock)
+                if 'worker capacity unavailable' in reason:
+                    if unreachable_since is None:
+                        unreachable_since = time.monotonic()
+                    gave_up = unreachable_worker(reason, unreachable_since)
+                    if gave_up:
+                        raise SystemExit(gave_up)
+                else:
+                    unreachable_since = None
+                if reason.partition(':')[0] != waiting:
+                    print(reason, flush=True)
+                    waiting = reason.partition(':')[0]
+                time.sleep(5)
+        finally:
+            LINE = None
+
+
+def worker_slot_count():
+    count = int(os.environ.get('REMOTE_DEV_WORKER_SLOTS') or CONFIG.get('worker_slots', 2))
+    if not 1 <= count <= MAX_WORKER_SLOTS:
+        raise ValueError(f'worker_slots must be between 1 and {MAX_WORKER_SLOTS}')
+    return count
+
+
+def slot_lock_name(index):
+    return 'worker-gradle' if index == 0 else f'worker-slot-{index}'
+
+
+def slot_remote(index):
+    if WORKTREE is not None:
+        return f'{BASE_REMOTE}/.remote-dev/agent-worktrees/{WORKTREE}/slots/job-{index}'
+    return BASE_REMOTE if index == 0 else f'{BASE_REMOTE}/.remote-dev/slots/job-{index}'
+
+
+def worker_disk_floor():
+    return int(CONFIG.get('worker_slot_min_free_disk_gib', 20)) * 1024 ** 3
+
+
+def claim_worker_slot():
+    remote_retention.require_admission(STATE)
+    reason = 'Both build hosts are occupied; checking again as capacity becomes available'
+    for index in range(worker_slot_count()):
+        lock = (STATE / (slot_lock_name(index) + '.lock')).open('a')
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            lock.close()
+            continue
+        admitted, observed = worker_admission(index)
+        if not admitted:
+            lock.close()
+            reason = f'Worker slot {index} is waiting: {observed}'
+            continue
+        if index:
+            print(f'Running in worker slot {index} beside another worker job: {observed}', flush=True)
+        return (index, lock), None
+    return None, reason
+
+
+def worker_admission(index):
+    memory_floor = int(CONFIG.get('worker_slot_min_free_memory_percent', 40))
+    try:
+        result = remote_python('''import re,shutil,subprocess,sys
+from pathlib import Path
+memory=subprocess.run(['/usr/bin/memory_pressure'],capture_output=True,text=True,check=True,timeout=10).stdout
+print(re.search(r'System-wide memory free percentage: (\\d+)%',memory)[1],shutil.disk_usage(sys.argv[1]).free,int(Path(sys.argv[2]).is_dir()))
+''', BASE_REMOTE, slot_remote(index) + '/.remote-dev/gradle.lock', capture_output=True, text=True, timeout=30)
+        memory, disk, busy = map(int, result.stdout.split())
+    except (subprocess.SubprocessError, OSError, ValueError) as error:
+        said = (getattr(error, 'stderr', None) or '').strip().splitlines()
+        return False, f'worker capacity unavailable ({said[-1] if said else error})'
+    observed = f'{memory}% worker memory free, {disk // 1024 ** 3} GiB worker disk free'
+    if busy:
+        return False, 'an unfinished job still holds this slot; resume it or wait for it'
+    if index == 0:
+        return True, observed
+    if memory < memory_floor:
+        return False, f'{observed}; another job needs {memory_floor}% memory free'
+    if disk < worker_disk_floor():
+        return False, f'{observed}; another job needs {worker_disk_floor() // 1024 ** 3} GiB disk free'
+    return True, observed
+
+
+def prepare_slot(remote):
+    remote_python('''import ctypes,json,os,shutil,subprocess,sys
+from pathlib import Path
+base=Path(sys.argv[1]); slot=Path(sys.argv[2]); excluded=set(json.loads(sys.argv[3]))-{'.git'}; state=slot/'.remote-dev'
+clonefile=ctypes.CDLL(None).clonefile
+(state/'jobs').mkdir(parents=True,exist_ok=True)
+for name in ('run-gradle','physical-devices.gradle'):
+ source=base/'.remote-dev'/name
+ if source.is_file():
+  pending=state/(name+'.pending'); shutil.copy2(source,pending); pending.replace(state/name)
+def skipped(relative):
+ transient=relative.name.endswith('.lock') or relative.name.startswith(('tmp_','incoming-'))
+ return relative.name in excluded or ('.git' in relative.parts and transient)
+def clone(source,target):
+ try:
+  if source.is_symlink(): os.symlink(os.readlink(source),target)
+  elif clonefile(os.fsencode(source),os.fsencode(target),0)!=0: shutil.copy2(source,target)
+ except OSError: pass
+def complete(repository):
+ git=['git','--git-dir',str(repository)]
+ head=subprocess.run(git+['rev-parse','--verify','HEAD'],capture_output=True,text=True)
+ refs=subprocess.run(git+['for-each-ref','--format=%(objectname)'],capture_output=True,text=True)
+ if head.returncode or refs.returncode: return False
+ found=subprocess.run(git+['cat-file','--batch-check'],input=head.stdout+refs.stdout,capture_output=True,text=True)
+ return found.returncode==0 and 'missing' not in found.stdout
+for project in sys.argv[4:]:
+ source=base/project; target=slot/project; pending=slot/(project+'.seeding')
+ if target.exists() or not source.is_dir(): continue
+ if pending.exists(): shutil.rmtree(pending)
+ repositories=[]
+ for directory,dirs,files in os.walk(source):
+  here=Path(directory); relative=here.relative_to(source); there=pending/relative
+  there.mkdir()
+  if here.name=='.git': repositories.append(there)
+  for name in [*dirs]:
+   if skipped(relative/name) or (here/name).is_symlink():
+    dirs.remove(name)
+    if not skipped(relative/name): clone(here/name,there/name)
+  for name in files:
+   if not skipped(relative/name): clone(here/name,there/name)
+ for repository in repositories:
+  if not complete(repository): shutil.rmtree(repository)
+ manifest=base/'.remote-dev'/(project+'.source.json')
+ if manifest.is_file(): shutil.copy2(manifest,state/(project+'.source.json'))
+ pending.rename(target)
+''', BASE_REMOTE, remote, json.dumps(sorted(EXCLUDED)), *PROJECTS)
+
+
+def trim_worker_slot(remote, floor=None):
+    import remote_retention
+    if remote == BASE_REMOTE:
+        raise ValueError('Only worker job slots are trimmed')
+    result = remote_python('''import os,shutil,sys
+from pathlib import Path
+slot=Path(sys.argv[1]); floor=int(sys.argv[2]); generated=set(sys.argv[3:]); removed=0
+if slot.parent.name!='slots' or not slot.name.startswith('job-'): raise SystemExit('Not a worker job slot')
+if slot.is_dir() and not (slot/'.remote-dev/gradle.lock').exists() and (floor<0 or shutil.disk_usage(slot).free<floor):
+ for directory,dirs,files in os.walk(slot):
+  for name in [*dirs]:
+   path=Path(directory)/name
+   if name in {'.git','.remote-dev'} or path.is_symlink(): dirs.remove(name)
+   elif name in generated:
+    dirs.remove(name); shutil.rmtree(path,ignore_errors=True); removed+=1
+print(removed)
+''', remote, str(-1 if floor is None else floor), *sorted(remote_retention.GENERATED), capture_output=True, text=True)
+    return int(result.stdout)
+
+
+def trim_idle_worker_slots():
+    trimmed = {}
+    for index in range(1, MAX_WORKER_SLOTS):
+        with (STATE / (slot_lock_name(index) + '.lock')).open('a') as lock:
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                trimmed[slot_lock_name(index)] = 'busy'
+                continue
+            try:
+                trimmed[slot_lock_name(index)] = trim_worker_slot(slot_remote(index))
+            except (subprocess.SubprocessError, OSError, ValueError) as error:
+                trimmed[slot_lock_name(index)] = str(error)
+    return trimmed
+
+
+@contextlib.contextmanager
+def worker_slot(index, publication=None, prepare=True):
+    global REMOTE, LOCK_ROOT, SLOT, PUBLICATION
+    previous = REMOTE, LOCK_ROOT, SLOT, PUBLICATION
+    remote = slot_remote(index)
+    REMOTE, LOCK_ROOT, SLOT, PUBLICATION = remote, remote + '/.remote-dev' if remote != BASE_REMOTE else None, index, publication
+    try:
+        if (index or WORKTREE is not None) and prepare:
+            prepare_slot(remote)
+        yield
+    finally:
+        REMOTE, LOCK_ROOT, SLOT, PUBLICATION = previous
+
+
+def slot_build(name, relative, args, index, lock):
+    remote_retention.require_admission(STATE)
+    import workspace_storage
+    workspace_storage.automatic(sys.modules[__name__], held_locks={slot_lock_name(index)})
+    publication = 'changed-files' if worker_slot_count() > 1 else None
+    with worker_slot(index, publication):
+        return build(name, relative, args, worker_lock=lock)
+
+
+@contextlib.contextmanager
+def checkout_outputs():
+    if ROOT == LOCAL_SLOTS / 'worker':
+        yield
+    else:
+        import remote_build
+        with remote_build.local_lease(STATE):
+            yield
+
+
+def git_repositories(base, relative=Path('.')):
+    yield relative
+    staged = subprocess.check_output(['git', '-C', str(base / relative), 'ls-files', '--stage', '-z'])
+    for item in staged.split(b'\0'):
+        if item and item.startswith(b'160000 '):
+            path = relative / os.fsdecode(item.split(b'\t', 1)[1])
+            if (base / path / '.git').exists():
+                yield from git_repositories(base, path)
+
+
+def source_excluded(path):
+    parts = Path(path).parts
+    return any(part in EXCLUDED and not (part == 'build' and parts[:index + 1] ==
+               ('tests', 'reaktorDesktop', 'maestro', 'build')) for index, part in enumerate(parts))
+
+
+def source_files(name):
+    base = ROOT / name
+    if (base / '.git').exists():
+        names = set()
+        for relative in git_repositories(base):
+            data = subprocess.check_output(['git', '-C', str(base / relative), 'ls-files', '-z',
+                                            '--cached', '--others', '--exclude-standard'])
+            names.update(str(relative / os.fsdecode(p)) for p in data.split(b'\0') if p)
+    else:
+        names = set()
+        for directory, dirs, files in os.walk(base):
+            dirs[:] = [d for d in dirs if not source_excluded((Path(directory) / d).relative_to(base))]
+            names.update(str((Path(directory) / f).relative_to(base)) for f in files)
+    for special in ['config', 'local.properties', 'ecosystem/.state', '.env',
+                    'tests/reaktorDesktop/maestro/build',
+                    'tmp/dev-auth-fixtures.dev.json', 'tmp/dev-auth-fixtures.json']:
+        path = base / special
+        if path.is_file():
+            names.add(special)
+        elif path.is_dir():
+            names.update(str(p.relative_to(base)) for p in path.rglob('*') if p.is_file())
+    return sorted(p for p in names if p != '.reaktor/atlas-worker.json' and not source_excluded(p)
+                  and ((base / p).is_file() or (base / p).is_symlink()))
+
+
+def sync(names, frozen=False, transfer_files=None, checksum_files=None):
+    # The supervisor's lease is host-wide even when its job directory is isolated.
+    ssh(f'test ! -d {shlex.quote((LOCK_ROOT or CONFIG["remote_root"] + "/.remote-dev") + "/gradle.lock")} || '
+        "{ echo 'A worker build is active; resume or wait for it before syncing sources.' >&2; exit 75; }")
+    manifest_path = ROOT / 'source-manifest.json'
+    frozen_manifest = json.loads(manifest_path.read_text()) if frozen and manifest_path.is_file() else None
+    for name in names:
+        base = ROOT / name
+        target = f'{REMOTE}/{name}'
+        # A materialized checkout has the committed index. Its frozen manifest
+        # also owns staged submodules and files hidden by that older index.
+        repositories = ([Path(repository).relative_to(name) for repository in frozen_manifest['repositories']
+                         if repository == name or repository.startswith(name + '/')]
+                        if frozen_manifest is not None else list(git_repositories(base)) if (base / '.git').exists() else [])
+        for relative in repositories:
+            local_repo = base / relative
+            remote_repo = str(Path(target) / relative)
+            local_head = subprocess.check_output(['git', '-C', str(local_repo), 'rev-parse', 'HEAD'], text=True).strip()
+            ensure_repo = f'test -e {shlex.quote(remote_repo + "/.git")} || ' + shlex.join(['git', 'init', '--quiet', remote_repo])
+            prepare_repo = shlex.join(['mkdir', '-p', target]) + ' && (' + ensure_repo + ')'
+            remote_head = ssh(prepare_repo + ' && { ' +
+                              shlex.join(['git', '-C', remote_repo, 'rev-parse', '--verify', 'HEAD']) + ' 2>/dev/null || true; }',
+                              capture_output=True, text=True).stdout.strip()
+            if local_head != remote_head:
+                run(['git', '-C', local_repo, 'push', '--quiet', f'{HOST}:{remote_repo}',
+                     '+HEAD:refs/remotes/source/current'])
+                ssh(shlex.join(['git', '-C', remote_repo, 'reset', '--mixed', 'refs/remotes/source/current']),
+                    stdout=subprocess.DEVNULL)
+        files = (sorted(relative[len(name) + 1:] for relative in frozen_manifest['files'] if relative.startswith(name + '/'))
+                 if frozen_manifest is not None else source_files(name))
+        if not repositories:
+            ssh(shlex.join(['mkdir', '-p', target]))
+        selected = files if transfer_files is None else sorted(set(files).intersection(transfer_files[name]))
+        print(f'Syncing {name}: {len(files)} source files, {len(selected)} transfer candidates', flush=True)
+        checked = set(selected) if transfer_files is not None else set()
+        if checksum_files is not None:
+            checked.intersection_update(checksum_files[name])
+        for option, candidates in [('-a', sorted(set(selected) - checked)), ('-ac', sorted(checked))]:
+            if not candidates:
+                continue
+            with tempfile.NamedTemporaryFile() as manifest:
+                manifest.write(b''.join(os.fsencode(p) + b'\0' for p in candidates))
+                manifest.flush()
+                run(['rsync', option, '--from0', f'--files-from={manifest.name}',
+                     '--rsync-path=ulimit -n 8192; /usr/bin/rsync',
+                     str(base) + '/', f'{HOST}:{target}/'])
+        remote_python('''import json,sys,subprocess,os
+from pathlib import Path
+root=Path(sys.argv[1]); name=sys.argv[2]; base=root/name
+state=root/'.remote-dev'; incoming=state/(name+'.incoming.json'); previous=state/(name+'.source.json')
+incoming.write_text(sys.argv[6])
+new=set(json.loads(sys.argv[6])); ignored=set(json.loads(sys.argv[4]))
+old=set(json.loads(previous.read_text())) if previous.exists() else set()
+for repository in json.loads(sys.argv[3]):
+ tracked=subprocess.check_output(['git','-C',str(base/repository),'ls-files','-z']).decode().split('\\0')
+ old.update(str(Path(repository)/p) for p in tracked if p and not ignored.intersection(Path(repository,p).parts))
+for item in old-new:
+ if ignored.intersection(Path(item).parts):continue
+ p=base/item
+ if p.is_file() or p.is_symlink(): p.unlink()
+# Git does not retain empty directories. Prune source trees only, without entering
+# links, output directories or dependency caches, so retired packages stay retired.
+source_roots=set()
+for item in old|new:
+ parts=Path(item).parts
+ if 'src' in parts: source_roots.add(base.joinpath(*parts[:parts.index('src')+1]))
+for source in source_roots:
+ if source.is_symlink() or any(p.is_symlink() for p in source.parents if p!=base and base in p.parents):continue
+ directories=[]
+ for directory,dirs,files in os.walk(source,followlinks=False):
+  dirs[:]=[d for d in dirs if d not in ignored and not (Path(directory)/d).is_symlink()]
+  directories.append(Path(directory))
+ for directory in reversed(directories):
+  try: directory.rmdir()
+  except OSError: pass
+incoming.replace(previous)
+if sys.argv[5]!='true':
+ properties=base/'local.properties'
+ original=(properties.read_text() if properties.exists() else '').splitlines()
+ sdk='sdk.dir=/Users/ovd/Library/Android/sdk'
+ lines=[sdk if line.startswith('sdk.dir=') else line for line in original if not line.startswith('kotlin.apple.cocoapods.bin=')]
+ if sdk not in lines: lines.append(sdk)
+ if lines!=original: properties.write_text('\\n'.join(lines)+'\\n')
+''', REMOTE, name, json.dumps([str(p) for p in repositories]), json.dumps(sorted(EXCLUDED)), str(frozen).lower(), json.dumps(files))
+
+
+def prune_artifact_snapshot(snapshot, files):
+    declared = {Path(relative) for relative in files}
+    declared.update(parent for path in tuple(declared) for parent in path.parents)
+    for directory, dirs, names in os.walk(snapshot, topdown=False, followlinks=False):
+        for entry in [Path(directory) / name for name in names + dirs]:
+            if entry.relative_to(snapshot) not in declared:
+                if entry.is_dir() and not entry.is_symlink():
+                    shutil.rmtree(entry)
+                else:
+                    entry.unlink()
+
+
+def reconcile_distributions(snapshot, project, files):
+    declared = {Path(relative) for relative in files}
+    markers = distribution_markers(snapshot)
+    distributions = {path for path in declared if any(path.parts[-len(marker):] == marker for marker in markers)}
+    for relative in sorted(distributions):
+        source = snapshot / relative
+        if source.is_symlink() or not source.is_dir() or not source.resolve().is_relative_to(snapshot.resolve()):
+            raise OSError(f'Expected an owned distribution directory: {relative}')
+        destination = project / relative
+        if destination.is_symlink() or not destination.resolve().is_relative_to(project.resolve()):
+            raise OSError(f'Cannot reconcile a linked distribution directory: {relative}')
+        destination.mkdir(parents=True, exist_ok=True)
+        run(['rsync', '-ac', '--delete', str(source) + '/', str(destination) + '/'])
+
+
+def artifact_reference(name, run_id, family):
+    snapshots = STATE / 'artifacts'
+    for candidate in sorted(snapshots.iterdir(), reverse=True):
+        reference = candidate / name
+        receipt = STATE / 'logs' / (candidate.name + '.json')
+        if candidate.name == run_id or candidate.is_symlink() or not reference.is_dir() or reference.is_symlink() or not receipt.is_file():
+            continue
+        if (candidate / '.payload-pruned.json').exists():
+            continue
+        try:
+            result = json.loads(receipt.read_text())
+        except (OSError, ValueError):
+            continue
+        if not isinstance(result, dict):
+            continue
+        compatible = result.get('artifact_family', artifact_family(result.get('tasks', []))) in {'all', family}
+        if compatible and result.get('exit_code') == 0 and result.get('finished') and not result.get('copy_error'):
+            return reference
+    return None
+
+
+def pull(name, run_id, successful=True, family='all', agent_distribution=False, metadata=False, lockfiles=False, publish=True,
+         since=None, unverified=None, observed_tasks=(), report_since=None):
+    target = f'{REMOTE}/{name}'
+    result = remote_contract_python('''import os,json,sys
+from pathlib import Path
+base=Path(sys.argv[1]).resolve(); success=sys.argv[2]=='True'; family=sys.argv[3]; found=[]
+policy=read_hosts_contract(base)
+def relative(location):
+ if not isinstance(location,str): raise ValueError('Invalid public output location')
+ path=Path(location)
+ if not location or path==Path('.') or path.is_absolute() or '..' in path.parts or not (base/path).resolve().is_relative_to(base):
+  raise ValueError('Public output location escapes the workspace')
+ return path
+roots=policy.get('outputRoots')
+if roots is None:
+ # Unmigrated Gradle roots retain the existing generic artifact policy.
+ roots={'all':['outputs','libs','distributions','reports','test-results','bin','xcode-frameworks','XCFrameworks','compose','processedResources','classes','resources'],
+  'verification':['reports','test-results','hangar-flows','hangar-shards'],
+  'android':['outputs','libs','reports','test-results'], 'jvm':['agent-dist','compose','distributions','reports','test-results'],
+  'apple':['libs','reports','test-results','bin','xcode-frameworks','XCFrameworks','compose','processedResources'],
+  'agent':['agent-dist'],'metadata':[],'web':['reports','test-results']}
+if not isinstance(roots,dict) or any(not isinstance(k,str) or not isinstance(v,list) for k,v in roots.items()):
+ raise ValueError('Invalid public output roots')
+for locations in roots.values():
+ for location in locations:
+  if len(relative(location).parts)!=1: raise ValueError('Invalid public output root')
+output_roots=set(roots.get(family,roots.get('all',[])))
+if not success and family=='agent': output_roots={'reports','test-results'}
+if sys.argv[4]=='True' and family in {'all','jvm'}: output_roots.update(roots.get('agent',[]))
+metadata=family in {'all','metadata'} or sys.argv[5]=='True'
+web=family in {'all','web'}
+exports=policy.get('kotlinExports',[])
+public=policy.get('publicOutputs',{})
+if not isinstance(exports,list) or not isinstance(public,dict) or any(not isinstance(k,str) or not isinstance(v,list) for k,v in public.items()):
+ raise ValueError('Invalid public output declarations')
+exports=[relative(location) for location in exports]
+public={task:[relative(location) for location in locations] for task,locations in public.items()}
+distributions=policy.get('distributionDirectories',[])
+if not isinstance(distributions,list): raise ValueError('Invalid distribution declarations')
+distributions=[relative(location) for location in distributions]
+if any('build' not in path.parts for path in distributions): raise ValueError('Distribution is not a build output')
+bundles=bundle_directories(base,policy)
+markers=[tuple(marker) for marker in json.loads(sys.argv[8])]+[path.parts for path in distributions+bundles]
+observed=set(json.loads(sys.argv[9])) if success else set()
+verified={str(path) for task,paths in public.items() if task in observed for path in paths}
+if success:
+ for task,paths in public.items():
+  if task in observed or metadata and policy.get('taskFamilies',{}).get(task)!='jvm':
+   for path in paths:
+    file=base/path
+    if file.is_file() and not file.is_symlink() and (task in observed or file.stat().st_size<=8*1024*1024):
+     found.append(str(path))
+export_parts={path.parts for path in exports}
+export_parents={path.parent.parts for path in exports}
+if web and success:
+ for pattern in ('build/js/package.json','build/js/packages/*/package.json','build/js/packages_imported/*/*/package.json'):
+  for manifest in base.glob(pattern):
+   if manifest.is_file() and not manifest.is_symlink() and manifest.resolve().is_relative_to(base):
+    found.append(str(manifest.relative_to(base)))
+for directory,dirs,files in os.walk(base):
+ context=Path(directory)/'node_modules'
+ context_target=context.parent.joinpath(os.readlink(context)).resolve() if context.is_symlink() else None
+ managed_context=context_target is not None and not Path(os.readlink(context)).is_absolute() and context_target.name=='node_modules' and context_target.is_relative_to(base/'build/js/packages')
+ dirs[:]=[d for d in dirs if d not in {'.git','.gradle','.kotlin','.github_modules','DerivedData','node_modules','Pods','.cxx','cocoapods','podDebugFramework','podReleaseFramework'}]
+ relative=Path(directory).relative_to(base); parts=relative.parts
+ if family=='agent' and parts and parts[-1]=='build':
+  owned={path.parts[len(parts)] for path in distributions if len(path.parts)>len(parts) and path.parts[:len(parts)]==parts}
+  dirs[:]=[d for d in dirs if d in output_roots or d in owned]
+ artifact=any(parts[i]=='build' and i+1<len(parts) and parts[i+1] in output_roots for i in range(len(parts))) or (web and 'dist' in parts)
+ artifact=artifact or (success and family in {'all','jvm','agent'} and any(parts[:len(path.parts)]==path.parts for path in distributions))
+ artifact=artifact or (web and success and any(parts[:len(path.parts)]==path.parts for path in bundles))
+ generated=web and (any(parts[:i] in export_parts for i in range(len(parts)+1)) or (parts in export_parents and managed_context))
+ if artifact or generated:
+  if success or any(item in parts for item in {'reports','test-results','hangar-flows','hangar-shards'}):
+   found.append(str(relative)+'/')
+   found.extend(str(relative/d) for d in dirs if (Path(directory)/d).is_symlink())
+   found.extend(str(relative/f) for f in files if f!='node_modules')
+   if web and managed_context: found.append(str(relative/'node_modules'))
+if metadata or (distributions or bundles) and success:
+ for filename in ('model.json','remote/hosts.json'):
+  report=base/'build/dependeasy'/filename
+  if report.is_file(): found.append(str(report.relative_to(base)))
+if metadata:
+ report_since=float(sys.argv[10]) if sys.argv[10] else None
+ for category in ('plans','receipts','runs'):
+  folder=base/'build/dependeasy'/category
+  for report in sorted(folder.glob('*.json')):
+   if report.resolve().parent==folder.resolve() and not report.is_symlink() and report.stat().st_size<=8*1024*1024 and (report_since is None or report.stat().st_ctime>=report_since):
+    found.append(str(report.relative_to(base)))
+if success and sys.argv[6]=='True' and (base/'pnpm-lock.yaml').is_file():
+ found.append('pnpm-lock.yaml')
+since=float(sys.argv[7]) if sys.argv[7] else None
+if since is None: print(json.dumps(sorted(found)))
+else:
+ def unit(item):
+  parts=Path(item).parts
+  return next((parts[:i+len(m)] for i in range(len(parts)) for m in markers if parts[i:i+len(m)]==m),None)
+ def fresh(item):
+  try: return item in verified or os.lstat(base/item).st_ctime>=since
+  except FileNotFoundError: return False
+ renewed={path.parts for path in bundles if str(path) in verified and str(path)+'/' in found}
+ renewed.update(unit(item) for item in found if not item.endswith('/') and unit(item) and fresh(item))
+ stale=[item for item in found if (unit(item) not in renewed if unit(item) else not fresh(item))]
+ print(json.dumps({'found':sorted(found),'stale':sorted(stale),'distributions':markers}))
+''', target, str(successful), family, str(agent_distribution), str(metadata), str(lockfiles),
+                           '' if since is None else repr(since), json.dumps(DISTRIBUTIONS), json.dumps(list(observed_tasks)),
+                           '' if report_since is None else repr(report_since), capture_output=True, text=True)
+    listing = json.loads(result.stdout)
+    files, review = (listing, []) if since is None else worker_outputs(name, listing)
+    if unverified is not None and review:
+        unverified[name] = review
+    dest = STATE / 'artifacts' / run_id / name
+    dest.mkdir(parents=True, exist_ok=True)
+    if files:
+        with tempfile.NamedTemporaryFile() as manifest:
+            manifest.write(b''.join(os.fsencode(p) + b'\0' for p in files))
+            manifest.flush()
+            reference = artifact_reference(name, run_id, family)
+            sharing = [f'--link-dest={reference}'] if reference else []
+            run(['rsync', '-ac', *sharing, '--from0', f'--files-from={manifest.name}',
+                 '--rsync-path=ulimit -n 8192; /usr/bin/rsync',
+                 f'{HOST}:{target}/', str(dest) + '/'])
+        missing = [relative for relative in files if not os.path.lexists(dest / relative)]
+        if missing:
+            raise OSError(f'Artifact transfer missed {len(missing)} paths; first: {missing[0]}')
+        # Resume copies only this manifest, never leftovers from a wider earlier pull.
+        prune_artifact_snapshot(dest, files)
+        if publish:
+            with checkout_outputs():
+                publish_artifacts(name, run_id, files, successful)
+    print(f'Copied {len(files)} artifact/report paths from {name} to {dest}', flush=True)
+    return files
+
+
+def distribution_markers(project):
+    policy = read_hosts_contract(project)
+    if not policy:
+        return DISTRIBUTIONS
+    paths = policy.get('distributionDirectories', [])
+    if not isinstance(paths, list):
+        raise ValueError('Invalid distribution declarations')
+    markers = []
+    for location in paths:
+        path = Path(location) if isinstance(location, str) else None
+        if path is None or path.is_absolute() or '..' in path.parts or 'build' not in path.parts or not (project / path).resolve().is_relative_to(project.resolve()):
+            raise ValueError('Distribution is not an owned build output')
+        markers.append(path.parts)
+    return (*DISTRIBUTIONS, *markers, *(path.parts for path in bundle_directories(project, policy)))
+
+
+def distribution_root(relative, markers=DISTRIBUTIONS):
+    parts = Path(relative).parts
+    return next((Path(*parts[:index + len(marker)]) for index in range(len(parts)) for marker in markers
+                 if parts[index:index + len(marker)] == tuple(marker)), None)
+
+
+def worker_outputs(name, listing):
+    local = ROOT / name
+    stale = set(listing['stale'])
+    selected, unverified = [], []
+    for relative in listing['found']:
+        unit = distribution_root(relative, listing.get('distributions', DISTRIBUTIONS))
+        if unit is None and relative.endswith('/'):
+            continue
+        if relative in stale:
+            if os.path.lexists(local / (unit or relative)) or '/build/classes/' in '/' + relative:
+                continue
+            unverified.append(relative)
+        selected.append(relative)
+    return selected, unverified
+
+
+def publication_ledger():
+    ledger = sqlite3.connect(STATE / 'publications.sqlite3', timeout=60)
+    ledger.execute('create table if not exists publications (project text not null, path text not null, '
+                   'source_epoch real not null, run_id text not null, primary key (project, path))')
+    with contextlib.suppress(sqlite3.OperationalError):
+        ledger.execute('alter table publications add column published real')
+    return ledger
+
+
+def withheld_outputs(name, files, synced, unverified, markers=DISTRIBUTIONS):
+    local = ROOT / name
+    with contextlib.closing(publication_ledger()) as ledger:
+        published = {path: (epoch, at) for path, epoch, at in ledger.execute(
+            'select path, source_epoch, published from publications where project = ?', (f'{WORKTREE}:{name}' if WORKTREE else name,))}
+    def newer(relative):
+        epoch, at = published.get(relative, (0.0, None))
+        try:
+            changed = os.lstat(local / relative).st_ctime
+        except FileNotFoundError:
+            return epoch > synced
+        return epoch > synced or changed > synced and (at is None or changed > at)
+    withheld = {relative for relative in files if not relative.endswith('/') and newer(relative)
+                or relative in unverified and os.path.lexists(local / relative)}
+    units = {distribution_root(relative, markers) for relative in withheld} - {None}
+    for unit in {distribution_root(relative, markers) for relative in files} - {None} - units:
+        if newer(str(unit)) or any(newer(str((Path(directory) / entry).relative_to(local)))
+                                  for directory, dirs, names in os.walk(local / unit, followlinks=False)
+                                  for entry in dirs + names):
+            units.add(unit)
+    return [relative for relative in files if relative in withheld or distribution_root(relative, markers) in units]
+
+
+def record_publications(name, run_id, files, synced, unverified):
+    now = time.time()
+    rows = [(f'{WORKTREE}:{name}' if WORKTREE else name, relative, 0.0 if relative in unverified else synced, run_id, now)
+            for relative in files if not relative.endswith('/')]
+    with contextlib.closing(publication_ledger()) as ledger, ledger:
+        ledger.executemany('insert into publications (project, path, source_epoch, run_id, published) values (?, ?, ?, ?, ?) '
+                           'on conflict (project, path) do update set source_epoch = excluded.source_epoch, '
+                           'run_id = excluded.run_id, published = excluded.published', rows)
+
+
+def publish_artifacts(name, run_id, files, successful, synced=None, unverified=()):
+    if not files:
+        return []
+    dest = STATE / 'artifacts' / run_id / name
+    withheld = [] if synced is None else withheld_outputs(name, files, synced, set(unverified), distribution_markers(dest))
+    held = set(withheld)
+    published = [relative for relative in files if relative not in held]
+    for relative in published:
+        artifact = dest / relative
+        local = ROOT / name / relative
+        if artifact.name == 'node_modules' and artifact.is_symlink() and not local.is_symlink():
+            if local.is_dir():
+                shutil.rmtree(local)
+            elif local.exists():
+                local.unlink()
+    if successful:
+        reconcile_distributions(dest, ROOT / name, published)
+    if withheld:
+        import remote_build
+        for relative in published:
+            source, target = dest / relative, ROOT / name / relative
+            if source.is_dir() and not source.is_symlink():
+                target.mkdir(parents=True, exist_ok=True)
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                remote_build.copy_source(source, target)
+    else:
+        run(['/bin/cp', '-cRp', str(dest) + '/.', str(ROOT / name) + '/'])
+    if synced is not None:
+        record_publications(name, run_id, published, synced, set(unverified))
+    return withheld
+
+
+def build(name, relative, args, synchronize=True, frozen=False, verify=None, worker_lock=None):
+    import workspace_storage
+    global LAST_RUN_ID
+    queued_at = time.monotonic()
+    if args[:1] == ['--']:
+        args = args[1:]
+    requested = args[:]
+    args = args[:]
+    selected = selected_gradle_directory(name, relative, args)
+    hosts = read_hosts_contract(selected)
+    if ':exportBuildModel' in hosts.get('taskFamilies', {}) and selected == (ROOT / name).resolve() and gradle_tasks(args, hosts.get('taskOptions', {})) and not any(arg in {
+            '--version', '--help', '-v', '-h', '--dry-run', '-m', 'exportBuildModel', ':exportBuildModel'} for arg in args):
+        args.append(':exportBuildModel')
+    source_epoch = time.time()
+    if synchronize:
+        sync(PROJECTS, frozen=frozen)
+    if verify: verify()
+    bridge_tasks = synchronize_gradle_request(name, relative, args)
+    synchronized_at = time.monotonic()
+    run_id = datetime.datetime.now().strftime('%Y%m%d-%H%M%S') + '-' + uuid.uuid4().hex[:8] + '-' + name
+    LAST_RUN_ID = run_id
+    log = STATE / 'logs' / (run_id + '.log')
+    wrapper = f'{REMOTE}/{name}/{relative}/gradlew'
+    if not (ROOT / name / relative / 'gradlew').exists():
+        wrapper = f'{REMOTE}/{name}/gradlew'
+    translated = [arg.replace(str(ROOT), REMOTE) for arg in args]
+    env = {
+        'REMOTE_DEV_WORKER': '1',
+        'REMOTE_DEV_RUN_ID': run_id,
+        'REMOTE_DEV_JOB_ROOT': REMOTE + '/.remote-dev',
+        'REMOTE_DEV_WORKER_STATE': BASE_REMOTE + '/.remote-dev',
+        'JAVA_HOME': CONFIG.get('java_home', '/Users/ovd/Library/Java/JavaVirtualMachines/temurin-25.0.2/Contents/Home')
+            if declared_gradle_runtime(name, relative, args) else '/Users/ovd/Library/Java/JavaVirtualMachines/corretto-21.0.8/Contents/Home',
+        'ANDROID_HOME': '/Users/ovd/Library/Android/sdk',
+        'ANDROID_SDK_ROOT': '/Users/ovd/Library/Android/sdk',
+        'PATH': '/Users/ovd/Library/Android/sdk/platform-tools:/Users/ovd/.local/bin:/opt/homebrew/opt/node@24/bin:/opt/homebrew/bin:/Applications/Docker.app/Contents/Resources/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin',
+        'CI': 'true',
+    }
+    if LOCK_ROOT:
+        env['REMOTE_DEV_LOCK_ROOT'] = LOCK_ROOT
+    xcode_keys = hosts.get('xcodeEnvironment', [])
+    if not isinstance(xcode_keys, list) or not all(isinstance(key, str) and re.fullmatch(r'[A-Z][A-Z0-9_]*', key) for key in xcode_keys):
+        raise ValueError('Invalid Xcode environment declaration')
+    option_keys = hosts.get('environment', [])
+    if not isinstance(option_keys, list) or not all(isinstance(key, str) and re.fullmatch(r'[A-Za-z_][A-Za-z0-9_.-]*', key) for key in option_keys):
+        raise ValueError('Invalid build option environment declaration')
+    for key in [*CONFIG.get('forward_env', []), *xcode_keys, *option_keys]:
+        if key in os.environ:
+            env[key] = os.environ[key].replace(str(ROOT), REMOTE)
+    for key, value in os.environ.items():
+        if any(key.startswith(prefix) for prefix in CONFIG.get('forward_env_prefixes', [])):
+            env[key] = value.replace(str(ROOT), REMOTE)
+    if 'DEVELOPER_DIR' in env:
+        # Xcode.app may name a different release on the two Macs. Use the worker's
+        # selected installation only when it matches the invoking Xcode release.
+        local_version = subprocess.check_output(
+            ['/usr/bin/xcodebuild', '-version'], text=True).strip()
+        selected = ssh('/usr/bin/xcode-select -p', capture_output=True, text=True).stdout.strip()
+        worker_version = ssh(shlex.join([
+            'env', f'DEVELOPER_DIR={selected}', '/usr/bin/xcodebuild', '-version',
+        ]), capture_output=True, text=True).stdout.strip()
+        if worker_version != local_version:
+            raise SystemExit('Worker selected Xcode does not match the invoking Xcode: '
+                             f'{local_version!r} versus {worker_version!r}')
+        env['DEVELOPER_DIR'] = selected
+    defaults = ['--console=plain', '--no-daemon', '--max-workers=10',
+                '-Dorg.gradle.internal.http.connectionTimeout=15000',
+                '-Dorg.gradle.internal.http.socketTimeout=30000',
+                '-Dorg.gradle.java.installations.paths=/Users/ovd/Library/Java/JavaVirtualMachines/temurin-25.0.2/Contents/Home,/Users/ovd/Library/Java/JavaVirtualMachines/corretto-21.0.8/Contents/Home']
+    if declared_gradle_runtime(name, relative, args):
+        defaults.append('-Dorg.gradle.java.home=' + CONFIG['java_home'])
+    else:
+        defaults.extend(['-Dorg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=2g -Dfile.encoding=UTF-8',
+                         '-Pkotlin.daemon.jvmargs=-Xmx12g'])
+    if SLOT:
+        defaults = [f'--max-workers={CONFIG.get("worker_slot_max_workers", 6)}' if arg.startswith('--max-workers=') else arg
+                    for arg in defaults]
+    supplied_options = {arg.partition('=')[0] for arg in translated}
+    defaults = [arg for arg in defaults if arg.partition('=')[0] not in supplied_options]
+    env.update(cache_environment())
+    if env.get('REMOTE_DEV_CACHE_URL'):
+        run(['scp', '-q', Path(__file__).resolve().parent / 'build-cache.gradle', f'{HOST}:{REMOTE}/.remote-dev/build-cache.gradle'])
+        defaults += ['--init-script', f'{REMOTE}/.remote-dev/build-cache.gradle']
+    remote_command = f'cd {shlex.quote(f"{REMOTE}/{name}/{relative}")} && ' + shlex.join(
+        ['/bin/bash',
+         f'{REMOTE}/.remote-dev/run-gradle', wrapper, *defaults,
+         '--init-script', f'{REMOTE}/.remote-dev/physical-devices.gradle', *translated])
+    print(f'Building {name} on {HOST}; log: {log}', flush=True)
+    started = datetime.datetime.now().isoformat()
+    source_head = None
+    if (ROOT / name / '.git').exists():
+        source_head = ssh(shlex.join(['git', '-C', f'{REMOTE}/{name}', 'rev-parse', 'HEAD']),
+                          capture_output=True, text=True).stdout.strip()
+    receipt = {'project': name, 'worker': HOST, 'remote_path': f'{REMOTE}/{name}', 'source_head': source_head,
+               'tasks': requested, 'remote_tasks': args, 'started': started, 'log': str(log),
+               'run_id': run_id, 'exit_code': None, 'sync_seconds': synchronized_at - queued_at,
+               'queue_seconds': queued_at - QUEUED_AT, 'owner': workspace_storage.run_owner()}
+    receipt['remote_root'] = REMOTE
+    receipt['workspace_root'] = str(ROOT)
+    if SLOT is not None:
+        receipt.update(worker_slot=SLOT, publication=PUBLICATION, source_epoch=source_epoch)
+    if all(key in env for key in ['BUILT_PRODUCTS_DIR', 'UNLOCALIZED_RESOURCES_FOLDER_PATH']):
+        folder = Path(env['UNLOCALIZED_RESOURCES_FOLDER_PATH'])
+        if folder.is_absolute() or '..' in folder.parts:
+            raise SystemExit('Xcode resources must use a relative bundle folder')
+        receipt['xcode_resources'] = {
+            'worker_path': str(Path(env['BUILT_PRODUCTS_DIR']) / folder / 'compose-resources'),
+            'local_path': str(Path(os.environ['BUILT_PRODUCTS_DIR']) / folder / 'compose-resources'),
+        }
+    if bridge_tasks is not None:
+        receipt['artifact_tasks'] = bridge_tasks
+    receipt_path = STATE / 'logs' / (run_id + '.json')
+    receipt_path.write_text(json.dumps(receipt, indent=2) + '\n')
+    remote_python('''import subprocess,sys,json,os
+from pathlib import Path
+job=Path(sys.argv[1])/'.remote-dev/jobs'/sys.argv[2]
+job.mkdir(parents=True,exist_ok=False); job.chmod(0o700)
+environment=dict(os.environ,**json.load(sys.stdin))
+with (job/'output.log').open('wb') as output:
+ process=subprocess.Popen(['/bin/zsh','-c',sys.argv[3]],stdout=output,stderr=subprocess.STDOUT,
+                          stdin=subprocess.DEVNULL,start_new_session=True,env=environment)
+(job/'pid').write_text(str(process.pid))
+''', REMOTE, run_id, remote_command, input=json.dumps(env), text=True)
+    return finish_build(receipt, worker_lock)
+
+
+def read_gradle_request(name, relative, args):
+    prefix = '-Pdependeasy.gradleRequest='
+    options = [argument[len(prefix):] for argument in args if argument.startswith(prefix)]
+    if not options:
+        return None
+    if len(options) != 1:
+        raise ValueError('Exactly one Gradle request is required')
+    root = selected_gradle_directory(name, relative, args)
+    owned = root / 'build/dependeasy/contracts/gradle/requests'
+    file = Path(options[0])
+    if not file.is_absolute(): file = root / file
+    if file.parent != owned or file.resolve() != file or owned.resolve() != owned or not file.is_file():
+        raise ValueError('Gradle request escapes its owner')
+    if file.stat().st_size > 8 * 1024 * 1024:
+        raise ValueError('Gradle request exceeds the contract limit')
+    content = file.read_bytes()
+    if file.name != hashlib.sha256(content).hexdigest() + '.json':
+        raise ValueError('Gradle request content changed')
+    request = json.loads(content)
+    if request.get('schema') != 1: raise ValueError('Unsupported Gradle request')
+    return root, file, request
+
+
+def synchronize_gradle_request(name, relative, args):
+    selected = read_gradle_request(name, relative, args)
+    if selected is None: return None
+    root, file, request = selected
+    destination = str(file).replace(str(ROOT), REMOTE, 1)
+    remote_python('''from pathlib import Path
+import sys
+path=Path(sys.argv[1]); owner=Path(sys.argv[2])
+if not path.is_relative_to(owner) or path.resolve()!=path: raise ValueError('Gradle request escapes its owner')
+path.parent.mkdir(parents=True,exist_ok=True);path.parent.chmod(0o700)
+''', destination, str(root).replace(str(ROOT), REMOTE, 1), capture_output=True, text=True)
+    run(['rsync', '-a', str(file), f'{HOST}:{shlex.quote(destination)}'])
+    remote_python('''from pathlib import Path
+import hashlib,sys
+path=Path(sys.argv[1]); owner=Path(sys.argv[2])
+if not path.is_relative_to(owner) or path.resolve()!=path or not path.is_file(): raise ValueError('Gradle request escapes its owner')
+if path.name != hashlib.sha256(path.read_bytes()).hexdigest()+'.json': raise ValueError('Gradle request content changed')
+path.chmod(0o600)
+''', destination, str(root).replace(str(ROOT), REMOTE, 1), capture_output=True, text=True)
+    if 'planBuildNode' in gradle_tasks(args): return []
+    model_file = root / 'build/dependeasy/model.json'
+    if model_file.stat().st_size > 8 * 1024 * 1024: raise ValueError('Build model exceeds the contract limit')
+    model = json.loads(model_file.read_text())
+    if model.get('schema') != 4: raise ValueError('Unsupported build model; run exportBuildModel to regenerate it')
+    node = next(node for node in model['nodes'] if node['id'] == request['node'])
+    invocation = node['invocation']
+    if invocation.get('type') != 'dev.shibasis.dependeasy.model.Invocation.Gradle': raise ValueError('Build node has no Gradle invocation')
+    own = next(build['name'] for build in model['builds'] if build['directory'] == '.')
+    return [(task if node['id']['build'] == own else ':' + node['id']['build'] + task) for task in invocation['tasks']]
+
+
+def selected_gradle_directory(name, relative, args):
+    directory = ROOT / name / relative
+    for index, arg in enumerate(args):
+        if arg in {'-p', '--project-dir'}:
+            directory = ROOT / name / relative / args[index + 1]
+        elif arg.startswith('--project-dir=') or arg.startswith('-p='):
+            directory = ROOT / name / relative / arg.partition('=')[2]
+    return directory.resolve()
+
+
+def gradle_tasks(args, task_options=None):
+    valued_options = {'--init-script', '-I', '--project-dir', '-p',
+                      '--include-build', '--gradle-user-home', '-g', '--max-workers',
+                      '--console', '--warning-mode', '-x', '--exclude-task', '-P', '--project-prop',
+                      '-D', '--system-prop', '--priority', '--project-cache-dir', '-c', '--settings-file',
+                      '-b', '--build-file', '-F', '--dependency-verification', '-M',
+                      '--write-verification-metadata', '--update-locks', '--configuration-cache-problems'}
+    tasks = []
+    skip_value = False
+    for arg in args:
+        if skip_value:
+            skip_value = False
+        elif arg in valued_options:
+            skip_value = True
+        elif not arg.startswith('-'):
+            tasks.append(arg)
+        elif arg.startswith('--') and tasks:
+            options = (task_options or {}).get(':' + tasks[-1].lstrip(':'), [])
+            skip_value = any(option['name'] == arg[2:] and option['type'] in {'String', 'Integer'} for option in options)
+    return tasks
+
+
+
+def declared_build_owners(directory, layout, workspace):
+    if not layout:
+        return {}
+    if not isinstance(layout, dict) or layout.get('schema') != 2 or not isinstance(layout.get('builds'), dict):
+        raise ValueError('Unsupported composite build layout')
+    owners = {}
+    for identity, location in layout['builds'].items():
+        if not isinstance(identity, str) or not isinstance(location, str) or Path(location).is_absolute():
+            raise ValueError('Invalid composite build location')
+        source = Path(os.path.normpath(str(Path(directory) / location)))
+        for project in PROJECTS:
+            root = Path(workspace) / project
+            if source == root or root in source.parents:
+                owners[identity] = project
+                break
+    return owners
+
+
+def composite_artifacts(receipt):
+    name = receipt['project']
+    owners = {name: name}
+    families = {}
+    declaration = remote_contract_python('''import sys
+print(json.dumps(read_hosts_contract(sys.argv[1])))
+''', receipt['remote_path'], capture_output=True, text=True).stdout
+    layout = json.loads(declaration)
+    owners.update(declared_build_owners(receipt['remote_path'], layout, REMOTE))
+    if layout:
+        declared = layout.get('taskFamilies', {})
+        if not isinstance(declared, dict):
+            raise ValueError('Invalid artifact family declarations')
+        families = {task: family for task, family in declared.items()
+                    if isinstance(task, str) and re.fullmatch(r':(?:[\w-]+:)*[\w-]+', task)
+                    and isinstance(family, str) and family in {'web', 'jvm', 'android', 'apple', 'agent', 'verification', 'metadata'}}
+    # Copy only owners whose tasks participated, including UP-TO-DATE tasks.
+    participated = set(re.findall(r'^> Task :([^:\s]+):', Path(receipt['log']).read_text(), re.MULTILINE))
+    projects = dict.fromkeys([name, *(owners[identity] for identity in sorted(participated) if identity in owners)])
+    return owners, projects, families, layout.get('taskOptions', {})
+
+
+def artifact_family(args, declared=None, task_options=None):
+    tasks = [':' + task.lstrip(':') for task in gradle_tasks(args, task_options)]
+    declared = declared or {}
+    if not tasks or any(task not in declared for task in tasks):
+        return 'all'
+    families = {declared[task] for task in tasks}
+    effective = families - {'metadata'}
+    return effective.pop() if len(effective) == 1 else 'metadata' if not effective else 'all'
+
+
+def pull_xcode_resources(receipt, publish=True):
+    paths = receipt.get('xcode_resources')
+    if not paths:
+        return []
+    present = remote_python('from pathlib import Path; import sys; print(Path(sys.argv[1]).is_dir())',
+                            paths['worker_path'], capture_output=True, text=True).stdout.strip()
+    if present != 'True':
+        return []
+    snapshot = STATE / 'artifacts' / receipt['run_id'] / 'xcode-resources' / receipt['project']
+    snapshot.mkdir(parents=True, exist_ok=True)
+    local = Path(paths['local_path'])
+    # Mirror only the generated Compose bundle, never the app executable or signing files.
+    run(['rsync', '-ac', '--delete', f'{HOST}:{shlex.quote(paths["worker_path"] + "/")}', str(snapshot) + '/'])
+    if publish:
+        with checkout_outputs():
+            local.mkdir(parents=True, exist_ok=True)
+            run(['rsync', '-ac', '--delete', str(snapshot) + '/', str(local) + '/'])
+    print(f'{"Copied" if publish else "Collected"} Compose resources for {receipt["project"]}', flush=True)
+    return [str(local)]
+
+
+def publish_build(receipt, worker_lock=None):
+    run_id = receipt['run_id']
+    path = STATE / 'logs' / (run_id + '.json')
+    if worker_lock is not None:
+        fcntl.flock(worker_lock, fcntl.LOCK_UN)
+    started = time.monotonic()
+    output_lease = checkout_outputs() if any(files for _, files in receipt['pending_publications']) or receipt.get('pending_xcode') else contextlib.nullcontext()
+    try:
+        with output_lease:
+            receipt['publication_queue_seconds'] = time.monotonic() - started
+            for project, files in receipt['pending_publications']:
+                if receipt.get('publication') == 'changed-files':
+                    review = receipt.get('unverified_outputs', {}).get(project, ())
+                    withheld = publish_artifacts(project, run_id, files, receipt['exit_code'] == 0, receipt['source_epoch'], review)
+                    if withheld:
+                        receipt.setdefault('withheld_outputs', {})[project] = len(withheld)
+                    copied = {relative for relative in review if not relative.endswith('/')} - set(withheld)
+                    if copied:
+                        receipt.setdefault('unverified_copies', {})[project] = len(copied)
+                else:
+                    publish_artifacts(project, run_id, files, receipt['exit_code'] == 0)
+            if receipt.get('pending_xcode'):
+                local = Path(receipt['xcode_resources']['local_path'])
+                local.mkdir(parents=True, exist_ok=True)
+                snapshot = STATE / 'artifacts' / run_id / 'xcode-resources' / receipt['project']
+                run(['rsync', '-ac', '--delete', str(snapshot) + '/', str(local) + '/'])
+    except (OSError, ValueError, subprocess.CalledProcessError) as error:
+        receipt.update(copy_error=str(error), exit_code=receipt['exit_code'] or 74)
+        path.write_text(json.dumps(receipt, indent=2) + '\n')
+        return receipt['exit_code']
+    receipt.pop('pending_publications')
+    receipt.pop('pending_xcode', None)
+    receipt.pop('unverified_outputs', None)
+    receipt['finished'] = datetime.datetime.now().isoformat()
+    receipt['publication_seconds'] = time.monotonic() - started
+    path.write_text(json.dumps(receipt, indent=2) + '\n')
+    print(f'{receipt["project"]}: exit {receipt["exit_code"]}; receipt {path}', flush=True)
+    return receipt['exit_code']
+
+
+def finish_build(receipt, worker_lock=None):
+    if 'pending_publications' in receipt:
+        return publish_build(receipt, worker_lock)
+    name = receipt['project']; run_id = receipt['run_id']; args = receipt['remote_tasks']
+    log = Path(receipt['log']); offset = 0
+    execution_started = time.monotonic()
+    with log.open('w') as output:
+        while True:
+            data = remote_python('''import json,sys,os
+from pathlib import Path
+job=Path(sys.argv[1])/'.remote-dev/jobs'/sys.argv[2]; offset=int(sys.argv[3])
+with (job/'output.log').open('rb') as f:
+ f.seek(offset); chunk=f.read(131072); offset=f.tell()
+code=int((job/'exitcode').read_text()) if (job/'exitcode').exists() else None
+if code is None:
+ try:os.kill(int((job/'pid').read_text()),0)
+ except ProcessLookupError:code=255
+print(json.dumps({'text':chunk.decode(errors='replace'),'offset':offset,'code':code,'started':job.stat().st_birthtime}))
+''', REMOTE, run_id, str(offset), capture_output=True, text=True)
+            data = json.loads(data.stdout)
+            content = re.sub(r'\b(?:gh[pousr]_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+)',
+                             '[REDACTED]', data['text'])
+            sys.stdout.write(content); sys.stdout.flush(); output.write(content); output.flush()
+            offset = data['offset']
+            if data['code'] is not None and not data['text']:
+                code = data['code']; break
+            if not data['text']:
+                time.sleep(3)
+    receipt['execution_seconds'] = time.monotonic() - execution_started
+    receipt['worker_started_epoch'] = data.get('started')
+    since = receipt['worker_started_epoch'] if receipt.get('publication') == 'changed-files' else None
+    collection_started = time.monotonic()
+    copied = []
+    copy_error = None
+    publications = []
+    unverified = {}
+    xcode = []
+    families = {}
+    task_options = {}
+    planning = any(arg in {'--dry-run', '-m'} for arg in args)
+    receipt['dry_run'] = planning
+    try:
+        if planning or any(arg in {'--version', '--help', '-v', '-h'} for arg in args):
+            projects_to_pull = []
+        else:
+            receipt['builds'], projects_to_pull, families, task_options = composite_artifacts(receipt)
+        family = artifact_family(receipt.get('artifact_tasks') or args, families, task_options)
+        receipt['artifact_family'] = family
+        agent_distribution = family == 'agent'
+        metadata = any(families.get(':' + task.lstrip(':')) == 'metadata' for task in gradle_tasks(args, task_options))
+        lockfiles = metadata
+        observed = re.findall(r'^> Task (:[^\s]+)(?: (UP-TO-DATE|FROM-CACHE|SKIPPED|NO-SOURCE|FAILED))?$', log.read_text(), re.MULTILINE)
+        for item in projects_to_pull:
+            tasks = [task for task, state in observed if state not in {'SKIPPED', 'NO-SOURCE', 'FAILED'}] if code == 0 else []
+            if item != name:
+                prefixes = [':' + identity + ':' for identity, owner in receipt['builds'].items() if owner == item]
+                tasks = [':' + task[len(prefix):] for task in tasks for prefix in prefixes if task.startswith(prefix)]
+            files = pull(item, run_id, code == 0, family, agent_distribution, metadata, lockfiles and item == name,
+                         publish=False, since=since, unverified=unverified, observed_tasks=tasks,
+                         report_since=receipt['worker_started_epoch'])
+            copied.extend(files)
+            publications.append((item, files))
+        if code == 0 and not planning:
+            xcode = pull_xcode_resources(receipt, publish=False)
+            copied.extend(xcode)
+    except (OSError, ValueError, subprocess.CalledProcessError) as error:
+        copy_error = str(error)
+        if code == 0:
+            code = 74
+    receipt.update({'collected': datetime.datetime.now().isoformat(), 'exit_code': code,
+                    'copied_files': len(copied), 'copy_error': copy_error,
+                    'collection_seconds': time.monotonic() - collection_started,
+                    'pending_publications': publications, 'pending_xcode': bool(xcode)})
+    if unverified:
+        receipt['unverified_outputs'] = unverified
+    if SLOT or WORKTREE is not None:
+        try:
+            receipt['worker_slot_trimmed'] = trim_worker_slot(REMOTE, worker_disk_floor())
+        except (subprocess.SubprocessError, OSError, ValueError) as error:
+            receipt['worker_slot_trim_error'] = str(error)
+    (STATE / 'logs' / (run_id + '.json')).write_text(json.dumps(receipt, indent=2) + '\n')
+    return publish_build(receipt, worker_lock)
+
+
+def ports():
+    ids = subprocess.check_output(['docker', '--context', 'm1-worker', 'ps', '-q'], text=True).split()
+    items = json.loads(subprocess.check_output(['docker', '--context', 'm1-worker', 'inspect', *ids])) if ids else []
+    numbers = sorted({int(binding['HostPort']) for item in items
+                      for target, bindings in (item['HostConfig']['PortBindings'] or {}).items()
+                      if target.endswith('/tcp') for binding in (bindings or []) if binding.get('HostPort')})
+    args = ['/usr/bin/ssh', '-N', '-o', 'BatchMode=yes', '-o', 'ControlMaster=no', '-o', 'ControlPath=none',
+            '-o', 'ExitOnForwardFailure=yes', '-o', 'ServerAliveInterval=15', '-o', 'ServerAliveCountMax=3']
+    for number in numbers:
+        args += ['-L', f'127.0.0.1:{number}:127.0.0.1:{number}']
+    args += [HOST]
+    agent = {'Label': 'dev.ovd.m1-worker-ports', 'ProgramArguments': args,
+             'RunAtLoad': True, 'KeepAlive': True, 'ThrottleInterval': 15,
+             'StandardOutPath': str(STATE / 'logs/port-forward.log'),
+             'StandardErrorPath': str(STATE / 'logs/port-forward-error.log')}
+    path = Path.home() / 'Library/LaunchAgents/dev.ovd.m1-worker-ports.plist'
+    encoded = plistlib.dumps(agent)
+    if path.exists() and path.read_bytes() == encoded:
+        status = subprocess.run(['launchctl', 'print', f'gui/{os.getuid()}/dev.ovd.m1-worker-ports'],
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if status.returncode == 0:
+            return
+    subprocess.run(['launchctl', 'bootout', f'gui/{os.getuid()}', str(path)],
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    path.parent.mkdir(exist_ok=True)
+    path.write_bytes(encoded)
+    (STATE / 'docker-forward-ports.json').write_text(json.dumps(numbers))
+    if numbers:
+        run(['launchctl', 'bootstrap', f'gui/{os.getuid()}', str(path)])
+    print(f'Forwarded worker TCP ports: {numbers}', flush=True)
+
+
+def _main():
+    def terminated(signum, frame):
+        raise KeyboardInterrupt(f'Terminated by signal {signum}')
+    signal.signal(signal.SIGTERM, terminated)
+    parser = argparse.ArgumentParser(description='Route Gradle builds by load and physical mobile work to the device host')
+    commands = parser.add_subparsers(dest='command', required=True)
+    mobile = commands.add_parser('mobile', help='Run flows, adb and iOS tools on the USB device worker')
+    mobile.add_argument('args', nargs=argparse.REMAINDER)
+    commands.add_parser('sync')
+    commands.add_parser('status')
+    commands.add_parser('ports')
+    commands.add_parser('freeze', help='Capture source without executing Gradle')
+    cleanup = commands.add_parser('cleanup', help='Enforce the remote and temporary storage budgets')
+    cleanup.add_argument('--dry-run', action='store_true')
+    cleanup.add_argument('--trim-slots', action='store_true', help='Discard idle isolated build and worker slot caches')
+    cleanup.add_argument('--wait', action='store_true', help='Wait for active builds to finish before cleanup')
+    isolated = commands.add_parser('snapshot-build', help='Run one serial host job against a retained snapshot')
+    isolated.add_argument('--run-id')
+    isolated.add_argument('snapshot')
+    isolated.add_argument('host', choices=['local', 'worker'])
+    isolated.add_argument('project', choices=PROJECTS)
+    isolated.add_argument('tasks', nargs=argparse.REMAINDER)
+    resume = commands.add_parser('resume')
+    resume.add_argument('run_id')
+    suite = commands.add_parser('suite')
+    suite.add_argument('tasks', nargs=argparse.REMAINDER)
+    for verb in ['build', 'pull']:
+        sub = commands.add_parser(verb)
+        sub.add_argument('project', choices=PROJECTS)
+        sub.add_argument('tasks', nargs=argparse.REMAINDER)
+    gradle = commands.add_parser('gradle')
+    gradle.add_argument('--project-dir', required=True)
+    gradle.add_argument('tasks', nargs=argparse.REMAINDER)
+    docker = commands.add_parser('docker')
+    docker.add_argument('args', nargs=argparse.REMAINDER)
+    options = parser.parse_args()
+    if options.command not in {"status", "ports"}:
+        remote_retention.require_admission(STATE)
+    if options.command == 'mobile':
+        import mobile_worker
+        return mobile_worker.main(sys.modules[__name__], options.args)
+    import workspace_storage
+    if options.command == 'cleanup':
+        payloads = remote_retention.cleanup(sys.modules[__name__], options.dry_run,
+                                           options.trim_slots, wait=options.wait)
+        if options.trim_slots and not options.dry_run:
+            payloads['worker_slots'] = trim_idle_worker_slots()
+        budgets = workspace_storage.cleanup(dry_run=options.dry_run, wait=options.wait)
+        print(json.dumps({'payloads': payloads, 'budgets': budgets}, indent=2))
+        return int(any(budgets.get(name, {}).get('within_limit') is False for name in ('remote', 'tmp')))
+    if options.command in {'freeze', 'snapshot-build'}:
+        import remote_build
+        helper = sys.modules[__name__]
+        with workspace_storage.snapshot_pin(STATE, getattr(options, 'snapshot', None)):
+            workspace_storage.automatic(helper)
+            with workspace_storage.graph_activity(STATE):
+                if options.command == 'freeze':
+                    print(remote_build.freeze(helper))
+                    return 0
+                tasks = options.tasks[1:] if options.tasks[:1] == ['--'] else options.tasks
+                receipt = remote_build.isolated_build(helper, options.snapshot, options.host, options.project, tasks, options.run_id)
+                return receipt['exit_code']
+    if options.command == 'status':
+        ssh('hostname; /usr/libexec/java_home -V; df -h /System/Volumes/Data; /opt/homebrew/bin/docker ps')
+        return 0
+    if options.command == 'ports':
+        ports()
+        return 0
+    if options.command == 'gradle':
+        name, relative = project_at(options.project_dir)
+        return scheduled_gradle(name, relative, options.tasks)
+    import remote_build
+    if options.command == 'build':
+        import mobile_worker
+        if mobile_worker.requested(sys.modules[__name__], options.project, Path('.'), options.tasks):
+            return mobile_worker.gradle(sys.modules[__name__], options.project, Path('.'), options.tasks)
+        return queued_worker_gradle(options.project, Path('.'), options.tasks or ['build'])
+    if options.command == 'resume':
+        receipt = json.loads((STATE / 'logs' / (options.run_id + '.json')).read_text())
+        if receipt.get('workspace_root', str(ROOT)) != str(ROOT):
+            project_at(Path(receipt['workspace_root']) / receipt['project'])
+            if WORKTREE is None or receipt['workspace_root'] != str(ROOT):
+                raise SystemExit('Isolated run recovery requires its original registered workspace')
+        index = receipt.get('worker_slot') or 0
+        if not remote_retention.receipt_root_matches(receipt, slot_remote(index)):
+            raise SystemExit('The receipt names a worker folder outside its slot')
+        with remote_build.lease(STATE / (slot_lock_name(index) + '.lock')) as worker_lock:
+            receipt = workspace_storage.claim_run(STATE, options.run_id)
+            workspace_storage.automatic(sys.modules[__name__], held_locks={slot_lock_name(index)})
+            with worker_slot(index, receipt.get('publication'), prepare=False):
+                return finish_build(receipt, worker_lock)
+    with remote_build.lease(STATE / 'worker-gradle.lock') as worker_lock:
+        if options.command in {'suite', 'pull'}:
+            workspace_storage.automatic(sys.modules[__name__], held_locks={'worker-gradle'})
+        if options.command == 'sync':
+            sync(PROJECTS)
+        elif options.command == 'suite':
+            with worker_slot(0, 'changed-files' if worker_slot_count() > 1 else None):
+                sync(PROJECTS)
+                results = {}
+                tasks = options.tasks[1:] if options.tasks[:1] == ['--'] else options.tasks
+                for name in PROJECTS:
+                    results[name] = build(name, Path('.'), tasks or ['build', '--continue'], False)
+            (STATE / 'suite-results.json').write_text(json.dumps(results, indent=2) + '\n')
+            return int(any(results.values()))
+        elif options.command == 'pull':
+            pull(options.project, datetime.datetime.now().strftime('%Y%m%d-%H%M%S') + '-pull')
+        elif options.command == 'docker':
+            name, relative = project_at(Path.cwd(), worktrees=False)
+            with contextlib.redirect_stdout(sys.stderr):
+                layout = read_hosts_contract(ROOT / name)
+                owners = declared_build_owners(ROOT / name, layout, ROOT)
+                sync(dict.fromkeys([name, *owners.values()]))
+            docker_args = options.args[1:] if options.args[:1] == ['--'] else options.args
+            args = [arg.replace(str(ROOT), REMOTE) for arg in docker_args]
+            result = subprocess.run(['ssh', '-o', 'BatchMode=yes', HOST,
+                                     f'cd {shlex.quote(f"{REMOTE}/{name}/{relative}")} && '
+                                     + shlex.join(['/opt/homebrew/bin/docker', *args])])
+            if result.returncode == 0:
+                with contextlib.redirect_stdout(sys.stderr):
+                    ports()
+            return result.returncode
+    return 0
+
+
+def main():
+    try:
+        return _main()
+    finally:
+        mobile_work = sys.argv[1:2] == ['mobile'] and sys.argv[2:3] and sys.argv[2] in {'gradle', 'push'}
+        if mobile_work or (sys.argv[1:2] and sys.argv[1] in {'gradle', 'build', 'suite', 'pull', 'resume',
+                                                          'freeze', 'snapshot-build'}):
+            import workspace_storage
+            workspace_storage.automatic(sys.modules[__name__], strict=False)
+
+
+if __name__ == '__main__':
+    try:
+        sys.exit(main())
+    except subprocess.CalledProcessError as error:
+        sys.exit(error.returncode)
+    except ValueError as error:
+        print(str(error), file=sys.stderr)
+        sys.exit(1)

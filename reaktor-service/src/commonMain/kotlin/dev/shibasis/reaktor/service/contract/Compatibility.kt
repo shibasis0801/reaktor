@@ -8,22 +8,26 @@ enum class Verdict { Exact, Compatible, Incompatible }
 @Serializable
 data class Compatibility(val verdict: Verdict, val issues: List<String> = emptyList()) {
     companion object {
+        private fun operationIssues(wanted: OperationShape, server: ContractShape): List<String> {
+            val issues = mutableListOf<String>()
+            val offered = server.operations.firstOrNull { it.name == wanted.name }
+            if (offered == null) {
+                issues += "${wanted.name}: the server does not offer it"
+                return issues
+            }
+            if (wanted.family != offered.family) issues += "${wanted.name}: the client expects a ${wanted.family}, the server offers a ${offered.family}"
+            if (wanted.method != offered.method || wanted.route != offered.route)
+                issues += "${wanted.name}: the client sends ${wanted.method} ${wanted.route}, the server listens on ${offered.method} ${offered.route}"
+            readable(offered.request, wanted.request, "${wanted.name} request", issues)
+            readable(wanted.response, offered.response, "${wanted.name} response", issues)
+            return issues
+        }
+
         fun between(client: ContractShape, server: ContractShape): Compatibility {
             if (client.fingerprint == server.fingerprint) return Compatibility(Verdict.Exact)
             val issues = mutableListOf<String>()
             if (client.id != server.id) issues += "The client speaks ${client.id} and the server ${server.id}"
-            client.operations.forEach { wanted ->
-                val offered = server.operations.firstOrNull { it.name == wanted.name }
-                if (offered == null) {
-                    issues += "${wanted.name}: the server does not offer it"
-                    return@forEach
-                }
-                if (wanted.family != offered.family) issues += "${wanted.name}: the client expects a ${wanted.family}, the server offers a ${offered.family}"
-                if (wanted.method != offered.method || wanted.route != offered.route)
-                    issues += "${wanted.name}: the client sends ${wanted.method} ${wanted.route}, the server listens on ${offered.method} ${offered.route}"
-                readable(offered.request, wanted.request, "${wanted.name} request", issues)
-                readable(wanted.response, offered.response, "${wanted.name} response", issues)
-            }
+            client.operations.forEach { wanted -> issues += operationIssues(wanted, server) }
             client.channels.forEach { wanted ->
                 val offered = server.channels.firstOrNull { it.id == wanted.id } ?: return@forEach
                 if (wanted.family != offered.family) issues += "${wanted.id}: a ${wanted.family} on the client and a ${offered.family} on the server"
@@ -31,6 +35,12 @@ data class Compatibility(val verdict: Verdict, val issues: List<String> = emptyL
                 readable(offered.message, wanted.message, "${wanted.id} message", issues)
             }
             return Compatibility(if (issues.isEmpty()) Verdict.Compatible else Verdict.Incompatible, issues.distinct())
+        }
+
+        fun operations(client: ContractShape, server: ContractShape): Map<String, List<String>> = buildMap {
+            client.operations.forEach { wanted ->
+                put(wanted.name, get(wanted.name).orEmpty() + operationIssues(wanted, server))
+            }
         }
 
         fun readable(reader: SchemaShape, writer: SchemaShape, at: String, issues: MutableList<String>) {

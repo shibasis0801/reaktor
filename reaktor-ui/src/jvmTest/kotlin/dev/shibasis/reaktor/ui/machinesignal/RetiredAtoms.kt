@@ -140,7 +140,7 @@ fun SignalPill(
 }
 
 @Composable
-fun ProvenanceBadge(truth: TruthClass, modifier: Modifier = Modifier, detail: String? = null) {
+fun ProvenanceBadge(truth: TruthClass, modifier: Modifier = Modifier, detail: String? = null, label: String = truth.label) {
     val colors = MachineSignal.provenance(truth)
     val signal = LocalThemeSnapshot.current as? MachineSignalSnapshot
     val ink = signal?.ink(ProvenanceInk(truth)) ?: colors.base
@@ -153,7 +153,7 @@ fun ProvenanceBadge(truth: TruthClass, modifier: Modifier = Modifier, detail: St
         horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(truth.label, color = if (truth == TruthClass.Unknown) retiredColors().textFaint else ink,
+        Text(label, color = if (truth == TruthClass.Unknown) retiredColors().textFaint else ink,
             fontFamily = retiredFonts().ui, fontSize = MachineSignal.Type.micro, fontWeight = FontWeight.SemiBold,
             maxLines = 1, overflow = TextOverflow.Ellipsis)
         if (detail != null) SignalText(detail, color = MachineSignal.Text4, size = MachineSignal.Type.micro)
@@ -242,7 +242,7 @@ fun RetiredNotWiredYet(what: String, turnsOnWith: String, modifier: Modifier = M
     verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2), verticalAlignment = Alignment.CenterVertically) {
-        ProvenanceBadge(TruthClass.Unknown)
+        ProvenanceBadge(TruthClass.Unknown, label = "Not built")
         SignalText(what, color = MachineSignal.Text2, weight = FontWeight.Medium, maxLines = 4)
     }
     SignalText("Turns on with: $turnsOnWith", color = MachineSignal.Text4, size = MachineSignal.Type.caption, maxLines = 3)

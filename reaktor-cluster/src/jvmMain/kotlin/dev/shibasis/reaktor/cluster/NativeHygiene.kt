@@ -11,7 +11,7 @@ import java.time.Duration
 import kotlinx.serialization.json.*
 
 class NativeHygiene(
-    private val state: Path = Path.of(System.getProperty("user.home"), "dev", ".remote-dev"),
+    private val state: Path = ClusterLocations.state(),
     private val commands: ClusterCommands = SystemClusterCommands,
     private val now: () -> Long = System::currentTimeMillis,
     private val home: Path = Path.of(System.getProperty("user.home")),

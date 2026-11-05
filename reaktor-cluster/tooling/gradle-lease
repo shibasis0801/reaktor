@@ -1,0 +1,37 @@
+#!/usr/bin/env python3
+import os
+import signal
+import subprocess
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import remote_build
+from cluster_locations import state_root, workspace_root
+
+STATE = Path(os.environ.get('REMOTE_DEV_STATE', state_root(workspace_root(__file__))))
+
+
+def main(argv):
+    command = argv[1:] if argv[:1] == ['--'] else argv
+    if not command:
+        print('usage: gradle-lease -- COMMAND [ARGUMENT...]', file=sys.stderr)
+        return 2
+    child = None
+
+    def forward(signum, frame):
+        if child is not None and child.poll() is None:
+            child.send_signal(signum)
+        else:
+            raise SystemExit(128 + signum)
+
+    signal.signal(signal.SIGTERM, forward)
+    signal.signal(signal.SIGINT, forward)
+    with remote_build.local_lease(STATE):
+        print('gradle-lease: this process holds the local Gradle lease', file=sys.stderr, flush=True)
+        child = subprocess.Popen(command, env=dict(os.environ, REMOTE_DEV_WORKER='1'))
+        return child.wait()
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))

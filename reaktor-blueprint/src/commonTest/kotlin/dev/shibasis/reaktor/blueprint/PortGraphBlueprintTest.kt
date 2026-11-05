@@ -141,7 +141,6 @@ class PortGraphBlueprintTest {
         assertEquals(shape, Json.decodeFromString(Json.encodeToString(shape)))
         val graph = AppGraph(shape)
         val full = AppGraphLayout.layout(graph, LayoutRequest(Detail.Ports, nested = true, bundles = false))
-        val levels = full.blueprintMapLevels()
         assertSame(shape, graph.shape)
         assertEquals(mapOf("id" to "integer", "external" to ""), full.cards.getValue("public.parent").pins.associate { it.key to it.type })
         assertEquals(listOf("bigint", ""), full.cards.getValue("public.child").pins.map { it.type })
@@ -151,13 +150,9 @@ class PortGraphBlueprintTest {
             assertEquals(source.providerPort, link.fromPort)
             assertEquals(source.consumerPort, link.toPort)
         }
-        for (zoom in listOf(.01, .2, .8, 1.0, 2.0, 16.0)) {
-            val cut = levels.at(zoom)
-            assertSame(full, levels.full)
-            val visible = cut.layout.links.flatMap { it.members }.toSet()
-            assertEquals(shape.wires.map { it.id }.toSet(), visible + cut.layout.foldedLinks.keys)
-            assertTrue(visible.intersect(cut.layout.foldedLinks.keys).isEmpty())
-        }
+        val visible = full.links.flatMap { it.members }.toSet()
+        assertEquals(shape.wires.map { it.id }.toSet(), visible + full.foldedLinks.keys)
+        assertTrue(visible.intersect(full.foldedLinks.keys).isEmpty())
         val strict = graphDefinition("strict", "r1") {
             region("schema", "Schema")
             node("a", "a", "table", "schema", listOf(PortDefinition("id", "column", "integer", PortPolarity.Offer)))
@@ -203,24 +198,4 @@ class PortGraphBlueprintTest {
         assertEquals("a%2Eb.out%3A>c%7Cd.in%23", AppGraph(GraphShape(listOf(scope), nodes, listOf(wire), emptyList())).wires.single().id)
     }
 
-    @Test fun everyZoomPartitionsOriginalRelationsAndKeepsFullPortGeometry() {
-        val shape = definition().blueprintShape()
-        val graph = AppGraph(shape)
-        val full = AppGraphLayout.layout(graph, LayoutRequest(Detail.Ports, nested = true, bundles = false))
-        val levels = BlueprintMapLevels.prepare(full, titleZoom = { .8 })
-        val ids = shape.wires.map { it.id }.toSet()
-        val points = full.links.associate { it.id to it.points }
-        for (zoom in listOf(.01, .2, .8, 1.0, 2.0, 16.0)) {
-            val level = levels.at(zoom)
-            val visible = level.layout.links.flatMap { it.members }.toSet()
-            assertEquals(ids, visible + level.layout.foldedLinks.keys)
-            assertTrue(visible.intersect(level.layout.foldedLinks.keys).isEmpty())
-            assertEquals(points, levels.full.links.associate { it.id to it.points })
-            level.layout.foldedLinks.forEach { (id, owner) ->
-                val wire = shape.wires.single { it.id == id }
-                assertEquals(owner, level.layout.cardOf[wire.provider])
-                assertEquals(owner, level.layout.cardOf[wire.consumer])
-            }
-        }
-    }
 }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.drag
@@ -155,12 +156,34 @@ fun CodeEditor(
     intelligence: CodeIntelligence = CodeIntelligence.None,
     showGutter: Boolean = true,
     showStatusBar: Boolean = true,
-    fontSize: TextUnit = MachineSignal.Type.dataStrong,
+    fontSize: TextUnit = MachineSignal.Editor.Code.fontSize,
     onRun: (() -> Unit)? = null,
     onOpenExternally: (() -> Unit)? = null,
     tag: String = "code-editor",
-) = CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-    EditorSurface(state, modifier, intelligence, showGutter, showStatusBar, fontSize, onRun, onOpenExternally, tag)
+    softWrap: Boolean = state.language === CodeLanguage.Markdown,
+    focusRequester: FocusRequester? = null,
+) {
+    val markdown = state.language === CodeLanguage.Markdown
+    if (markdown && state.readOnly && state.presentation == CodePresentation.Preview) {
+        MarkdownPreview(state, modifier, tag)
+        return
+    }
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        Column(modifier) {
+            if (markdown && !state.readOnly) Row(Modifier.fillMaxWidth().padding(MachineSignal.Space.s2),
+                verticalAlignment = Alignment.CenterVertically) {
+                Text("Markdown", role = Type.Meta, ink = Ink.Muted)
+                Spacer(Modifier.weight(1f))
+                CodeChromeAction(if (state.presentation == CodePresentation.Source) "Preview" else "Edit source", "$tag-presentation") {
+                    state.presentation = if (state.presentation == CodePresentation.Source) CodePresentation.Preview else CodePresentation.Source
+                }
+            }
+            if (markdown && state.presentation == CodePresentation.Preview) {
+                MarkdownPreview(state, Modifier.fillMaxWidth().weight(1f).padding(MachineSignal.Space.s3), tag, scrollable = true)
+            } else EditorSurface(state, Modifier.fillMaxWidth().weight(1f), intelligence, showGutter, showStatusBar,
+                fontSize, onRun, onOpenExternally, tag, softWrap, focusRequester)
+        }
+    }
 }
 
 @Composable
@@ -174,6 +197,8 @@ private fun EditorSurface(
     onRun: (() -> Unit)?,
     onOpenExternally: (() -> Unit)?,
     tag: String,
+    softWrap: Boolean,
+    focusRequester: FocusRequester?,
 ) {
     val signalColors = MachineSignal.colors
     val fonts = LocalMachineSignalFonts.current
@@ -181,7 +206,8 @@ private fun EditorSurface(
     val clipboard = LocalClipboardManager.current
     val measurer = rememberTextMeasurer()
     val scope = rememberCoroutineScope()
-    val focus = remember { FocusRequester() }
+    val localFocus = remember { FocusRequester() }
+    val focus = focusRequester ?: localFocus
     val listState = rememberLazyListState()
     val hScroll = remember { CodeHorizontalViewport() }
 
@@ -195,20 +221,22 @@ private fun EditorSurface(
     }
     val metrics = remember(style, measurer, density) {
         val probe = measurer.measure(AnnotatedString("0".repeat(64)), style)
-        CodeMetrics(probe.size.width / 64f, probe.size.height.toFloat())
+        CodeMetrics(probe.size.width / 64f, max(probe.size.height.toFloat(), with(density) { style.lineHeight.roundToPx().toFloat() }))
     }
     val lineHeightDp = with(density) { metrics.lineHeight.toDp() }
     val gutterWidth = with(density) {
         if (!showGutter) 0.dp
-        else (state.document.lineCount.toString().length * metrics.charWidth).toDp() +
-            MachineSignal.Editor.Code.gutterPaddingX * 2
+        else ((state.document.lineCount.toString().length * metrics.charWidth).toDp() +
+            MachineSignal.Editor.Code.gutterPaddingX * 2).coerceAtLeast(MachineSignal.Editor.Code.lineNumberWidth)
     }
-    val contentWidth = remember(state.document, metrics, density) {
-        state.document.longestLine * metrics.charWidth + with(density) { 48.dp.toPx() }
-    }
-
     var focused by remember { mutableStateOf(false) }
     var viewportWidth by remember { mutableIntStateOf(0) }
+    val columns = if (softWrap && viewportWidth > 0) maxOf(1, (viewportWidth / metrics.charWidth).toInt()) else Int.MAX_VALUE
+    val rows = remember(state.document, columns) { CodeRows(state.document, columns) }
+    val contentWidth = remember(state.document, metrics, density, softWrap, viewportWidth) {
+        if (softWrap) viewportWidth.toFloat() else state.document.longestLine * metrics.charWidth +
+            with(density) { MachineSignal.Editor.Code.gutterPaddingX.toPx() * 2 }
+    }
     LaunchedEffect(contentWidth, viewportWidth) {
         hScroll.resize(contentWidth, viewportWidth)
     }
@@ -228,17 +256,17 @@ private fun EditorSurface(
     }
 
     fun requestCompletions() {
-        completionTick++
+        if (state.editingLanguage !== CodeLanguage.Markdown) completionTick++
     }
 
     LaunchedEffect(intelligence, state.uri) {
-        runCatching { intelligence.opened(state.source) }
+        if (intelligence !== CodeIntelligence.None) runCatching { intelligence.opened(state.source) }
     }
     DisposableEffect(intelligence, state.uri) {
         onDispose { scope.launch { runCatching { intelligence.closed(state.uri) } } }
     }
     LaunchedEffect(intelligence, state.uri, state.version) {
-        if (state.version > 0) {
+        if (state.version > 0 && intelligence !== CodeIntelligence.None) {
             delay(180)
             runCatching { intelligence.changed(state.source) }
         }
@@ -272,16 +300,17 @@ private fun EditorSurface(
             caretOn = !caretOn
         }
     }
-    LaunchedEffect(state.caret, metrics, viewportWidth) {
+    LaunchedEffect(state.caret, if (state.readOnly) null else rows, metrics, viewportWidth) {
         val visible = listState.layoutInfo.visibleItemsInfo
         val first = visible.firstOrNull()?.index ?: 0
         val last = visible.lastOrNull()?.index ?: 0
         val page = max(1, last - first)
+        val caretRow = rows.indexOf(state.caret)
         when {
-            state.caret.line <= first -> listState.scrollToItem(max(0, state.caret.line - 1))
-            state.caret.line >= last -> listState.scrollToItem(max(0, state.caret.line - page + 1))
+            caretRow <= first -> listState.scrollToItem(max(0, caretRow - 1))
+            caretRow >= last -> listState.scrollToItem(max(0, caretRow - page + 1))
         }
-        if (viewportWidth > 0) {
+        if (!softWrap && viewportWidth > 0) {
             val x = (state.caret.column * metrics.charWidth).toInt()
             val margin = (metrics.charWidth * 6).toInt()
             when {
@@ -359,13 +388,13 @@ private fun EditorSurface(
             Key.DirectionUp -> {
                 if (alt) return@handler state.moveLines(up = true)
                 closeCompletions()
-                if (command) state.moveDocumentEdge(toStart = true, extend = shift) else state.moveVertical(-1, shift)
+                if (command) state.moveDocumentEdge(toStart = true, extend = shift) else state.moveVertical(-1, shift, rows)
                 return@handler true
             }
             Key.DirectionDown -> {
                 if (alt) return@handler state.moveLines(up = false)
                 closeCompletions()
-                if (command) state.moveDocumentEdge(toStart = false, extend = shift) else state.moveVertical(1, shift)
+                if (command) state.moveDocumentEdge(toStart = false, extend = shift) else state.moveVertical(1, shift, rows)
                 return@handler true
             }
             Key.MoveHome -> {
@@ -379,11 +408,11 @@ private fun EditorSurface(
                 return@handler true
             }
             Key.PageUp -> {
-                state.moveVertical(-pageLines, shift)
+                state.moveVertical(-pageLines, shift, rows)
                 return@handler true
             }
             Key.PageDown -> {
-                state.moveVertical(pageLines, shift)
+                state.moveVertical(pageLines, shift, rows)
                 return@handler true
             }
         }
@@ -433,7 +462,10 @@ private fun EditorSurface(
 
         val codePoint = event.utf16CodePoint
         if (!alt && codePoint >= 32 && codePoint != 127) {
-            val typed = codePoint.toChar().toString()
+            val typed = if (codePoint <= 0xffff) codePoint.toChar().toString() else {
+                val pair = codePoint - 0x10000
+                "${(0xd800 + (pair shr 10)).toChar()}${(0xdc00 + (pair and 0x3ff)).toChar()}"
+            }
             if (!state.type(typed)) return@handler false
             if (typed[0].isWordChar() || typed == ".") requestCompletions() else closeCompletions()
             return@handler true
@@ -443,6 +475,7 @@ private fun EditorSurface(
 
     Column(
         modifier.background(signalColors.canvas)
+            .border(MachineSignal.Space.s0_25, if (focused) signalColors.accentLine else signalColors.lineSubtle)
             // The editor keeps its own document and caret rather than wrapping a text field, so
             // no `SetText` action reached it and no harness could fill it in — which is how the
             // desktop MCP flow ended up unable to supply a tool's arguments. Reading is already
@@ -461,15 +494,28 @@ private fun EditorSurface(
             Modifier.fillMaxWidth().weight(1f)
                 .focusRequester(focus)
                 .onFocusChanged { focused = it.isFocused }
-                .focusable(interactionSource = remember { MutableInteractionSource() })
                 .onPreviewKeyEvent(onKey)
+                .focusable(interactionSource = remember { MutableInteractionSource() })
+                .pointerInput(state, metrics) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Final)
+                        if (!down.isConsumed) {
+                            focus.requestFocus()
+                            val row = listState.layoutInfo.visibleItemsInfo.lastOrNull { it.offset <= down.position.y }
+                            val at = if (row == null || down.position.y >= row.offset + row.size) state.document.end
+                                else positionOf(Offset(down.position.x - gutterWidth.toPx() + hScroll.value, 0f), row.index, rows, metrics)
+                            state.moveTo(at, currentEvent.keyboardModifiers.isPointerShiftPressed)
+                        }
+                    }
+                }
                 .semantics { contentDescription = "${state.language.label} editor, ${state.document.lineCount} lines" }
                 .testTag("$tag-surface"),
         ) {
             LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-                items(state.document.lineCount) { index ->
+                items(rows.size) { index ->
                     CodeLine(
-                        index = index,
+                        rowIndex = index,
+                        rows = rows,
                         state = state,
                         metrics = metrics,
                         style = style,
@@ -488,7 +534,7 @@ private fun EditorSurface(
                 CodeCompletionPopup(
                     items = completions,
                     selected = completionSelected,
-                    offset = completionOffset(state, listState, metrics, hScroll.value, gutterWidth, density),
+                    offset = completionOffset(state, rows, listState, metrics, hScroll.value, gutterWidth, density),
                     onPick = { item -> state.applyCompletion(item.completion); closeCompletions() },
                     tag = tag,
                 )
@@ -505,7 +551,8 @@ private fun EditorSurface(
 
 @Composable
 private fun CodeLine(
-    index: Int,
+    rowIndex: Int,
+    rows: CodeRows,
     state: CodeEditorState,
     metrics: CodeMetrics,
     style: TextStyle,
@@ -519,13 +566,13 @@ private fun CodeLine(
     onPress: () -> Unit,
 ) {
     val signalColors = MachineSignal.colors
+    val row = rows[rowIndex]
+    val index = row.line
     val text = state.document.line(index)
-    val entry = state.entryState(index)
-    val language = state.language
-    val spans = remember(text, entry, language) { language.spans(text, entry) }
+    val spans = state.spans(index)
     var lineWidth by remember { mutableIntStateOf(0) }
-    val firstColumn = (hScroll.value / metrics.charWidth).toInt().coerceIn(0, text.length)
-    val lastColumn = (firstColumn + (lineWidth / metrics.charWidth).toInt() + 2).coerceAtMost(text.length)
+    val firstColumn = (row.start + (hScroll.value / metrics.charWidth).toInt()).coerceIn(row.start, row.end)
+    val lastColumn = (firstColumn + (lineWidth / metrics.charWidth).toInt() + 2).coerceAtMost(row.end)
     val annotated = remember(text, spans, firstColumn, lastColumn, signalColors) {
         AnnotatedString(
             text = text.substring(firstColumn, lastColumn),
@@ -539,6 +586,7 @@ private fun CodeLine(
     }
     val selection = state.selectionOn(index)
     val onCaretLine = state.caret.line == index
+    val onCaretRow = rows.indexOf(state.caret) == rowIndex
     val matches = state.findMatches.filter { it.start.line == index }
     val marks = occurrences.filter { it.start.line == index }
     val problems = state.diagnostics.filter { index >= it.span.ordered.start.line && index <= it.span.ordered.end.line }
@@ -547,13 +595,13 @@ private fun CodeLine(
     Row(Modifier.height(lineHeight).fillMaxWidth()) {
         if (showGutter) {
             Box(
-                Modifier.width(gutterWidth).fillMaxHeight().background(signalColors.canvas),
+                Modifier.width(gutterWidth).fillMaxHeight().background(signalColors.surface),
                 contentAlignment = Alignment.CenterEnd,
             ) {
                 androidx.compose.material3.Text(
-                    text = "${index + 1}",
+                    text = if (row.start == 0) "${index + 1}" else "",
                     style = style.copy(
-                        color = if (onCaretLine) signalColors.textMuted else signalColors.textFaint,
+                        color = if (onCaretLine) signalColors.text else signalColors.textMuted,
                         fontWeight = if (onCaretLine) FontWeight.Medium else FontWeight.Normal,
                     ),
                     maxLines = 1,
@@ -578,22 +626,22 @@ private fun CodeLine(
                     .pointerHoverIcon(PointerIcon.Text)
                     .drawWithContent {
                         if (onCaretLine && selection == null) {
-                            drawRect(signalColors.rowHover.copy(alpha = .6f), size = Size(size.width, size.height))
+                            drawRect(signalColors.rowSelected, size = Size(size.width, size.height))
                         }
-                        translate(left = -hScroll.value.toFloat()) {
+                        translate(left = -hScroll.value.toFloat() - row.start * metrics.charWidth) {
                         marks.forEach { fillColumns(it.start.column, it.end.column, metrics, signalColors.textMuted.copy(alpha = .13f)) }
                         matches.forEach { fillColumns(it.start.column, it.end.column, metrics, signalColors.warn.copy(alpha = .24f)) }
                         selection?.let { fillColumns(it.first, it.last + 1, metrics, signalColors.selection) }
                         }
                         drawContent()
-                        translate(left = -hScroll.value.toFloat()) {
+                        translate(left = -hScroll.value.toFloat() - row.start * metrics.charWidth) {
                         problems.forEach { problem ->
                             val span = problem.span.ordered
                             val from = if (span.start.line == index) span.start.column else 0
                             val to = if (span.end.line == index) span.end.column else text.length
                             squiggle(from, maxOf(to, from + 1), metrics, CodePalette.color(problem.severity).syntaxInk(signalColors))
                         }
-                        if (caretVisible && onCaretLine) {
+                        if (caretVisible && onCaretRow) {
                             drawRect(
                                 color = signalColors.controlAccent,
                                 topLeft = Offset(state.caret.column * metrics.charWidth, 1f),
@@ -602,12 +650,12 @@ private fun CodeLine(
                         }
                         }
                     }
-                    .pointerInput(state, metrics, index) {
+                    .pointerInput(state, metrics, rowIndex, rows) {
                         awaitEachGesture {
                             val down = awaitFirstDown(requireUnconsumed = false)
                             onPress()
                             val extend = currentEvent.keyboardModifiers.isPointerShiftPressed
-                            val at = positionOf(down.position + Offset(hScroll.value.toFloat(), 0f), index, state, metrics)
+                            val at = positionOf(down.position + Offset(hScroll.value.toFloat(), 0f), rowIndex, rows, metrics)
                             when (clicks.register(at)) {
                                 2 -> state.selectWordAt(at)
                                 3 -> state.selectLines(at.line, at.line)
@@ -615,14 +663,15 @@ private fun CodeLine(
                             }
                             down.consume()
                             drag(down.id) { change ->
-                                state.moveTo(positionOf(change.position + Offset(hScroll.value.toFloat(), 0f), index, state, metrics), extend = true)
+                                state.moveTo(positionOf(change.position + Offset(hScroll.value.toFloat(), 0f), rowIndex, rows, metrics), extend = true)
                                 change.consume()
                             }
                         }
                     },
+                contentAlignment = Alignment.CenterStart,
             ) {
                 androidx.compose.material3.Text(text = annotated, style = style, softWrap = false, maxLines = 1,
-                    modifier = Modifier.graphicsLayer { translationX = firstColumn * metrics.charWidth - hScroll.value })
+                    modifier = Modifier.graphicsLayer { translationX = (firstColumn - row.start) * metrics.charWidth - hScroll.value })
             }
         }
     }
@@ -729,23 +778,22 @@ private fun rememberOccurrences(state: CodeEditorState): List<CodeSpan> {
     }
 }
 
-private fun positionOf(offset: Offset, line: Int, state: CodeEditorState, metrics: CodeMetrics): CodePosition {
-    val row = (line + floor(offset.y / metrics.lineHeight).toInt()).coerceIn(0, state.document.lastLine)
-    val column = ((offset.x / metrics.charWidth) + 0.5f).toInt().coerceIn(0, state.document.line(row).length)
-    return CodePosition(row, column)
-}
+private fun positionOf(offset: Offset, row: Int, rows: CodeRows, metrics: CodeMetrics): CodePosition =
+    rows.positionAt(row + floor(offset.y / metrics.lineHeight).toInt(), ((offset.x / metrics.charWidth) + 0.5f).toInt())
 
 private fun completionOffset(
     state: CodeEditorState,
+    rows: CodeRows,
     listState: androidx.compose.foundation.lazy.LazyListState,
     metrics: CodeMetrics,
     scrollX: Int,
     gutterWidth: Dp,
     density: androidx.compose.ui.unit.Density,
 ): IntOffset {
-    val row = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == state.caret.line }
+    val index = rows.indexOf(state.caret)
+    val row = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == index }
     val y = (row?.offset ?: 0) + metrics.lineHeight
-    val x = with(density) { gutterWidth.toPx() } + state.caret.column * metrics.charWidth - scrollX
+    val x = with(density) { gutterWidth.toPx() } + (state.caret.column - rows[index].start) * metrics.charWidth - scrollX
     return IntOffset(max(0f, x).toInt(), y.toInt())
 }
 

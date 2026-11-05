@@ -48,6 +48,7 @@ internal fun Project.desktopApplication(spec: DesktopAppSpec) {
             "--add-exports=java.desktop/com.apple.eawt.event=ALL-UNNAMED")
         jvmArgs(*spec.runtime.properties.map { (name, value) -> "-D$name=$value" }.toTypedArray())
         spec.runtime.initialHeap?.let { jvmArgs("-Xms${it.megabytes}m") }
+        jvmArgs("-XX:+UseZGC", "-XX:SoftMaxHeapSize=1g", "-XX:ZUncommitDelay=60")
         nativeDistributions {
             targetFormats(*spec.installers.map { when (it) {
                 Installer.Dmg -> TargetFormat.Dmg

@@ -132,6 +132,51 @@ private fun realTime(block: suspend CoroutineScope.() -> Unit) = runTest { withC
 private fun quick() = Retry(backoff = listOf(1.milliseconds, 1.milliseconds))
 
 class ContractTest {
+    @Test fun aRepeatedOperationNameKeepsEarlierIssues() {
+        val base = Greeter().shape
+        val heartbeat = base.operations.first().copy(name = "heartbeat", method = "POST", route = "/reaktor.presence/heartbeat")
+        val server = base.copy(fingerprint = "server", operations = listOf(heartbeat))
+        val client = base.copy(fingerprint = "client", operations = listOf(heartbeat.copy(route = "/wrong-route"), heartbeat))
+        val issues = listOf("heartbeat: the client sends POST /wrong-route, the server listens on POST /reaktor.presence/heartbeat")
+        assertEquals(Compatibility(Verdict.Incompatible, issues), Compatibility.between(client, server))
+        assertEquals(mapOf("heartbeat" to issues), Compatibility.operations(client, server))
+    }
+
+    @Test fun aMissingOperationIsUnavailableWithoutAffectingOtherOperations() {
+        val client = Greeter().shape
+        val server = client.copy(fingerprint = "missing-health", operations = client.operations.filterNot { it.name == "health" })
+        val issues = Compatibility.operations(client, server)
+        assertEquals(listOf("health: the server does not offer it"), issues.getValue("health"))
+        assertTrue(issues.filterKeys { it != "health" }.values.all { it.isEmpty() })
+        assertEquals(Compatibility(Verdict.Incompatible, issues.getValue("health")), Compatibility.between(client, server))
+    }
+
+    @Test fun aRequiredRequestFieldMakesOnlyItsOperationUnavailable() {
+        val shape = Greeter().shape
+        val client = shape.copy(fingerprint = "request-v1", operations = shape.operations.map {
+            if (it.name == "greet") it.copy(request = SchemaShape.of(ProfileV1.serializer().descriptor)) else it
+        })
+        val server = shape.copy(fingerprint = "request-v3", operations = shape.operations.map {
+            if (it.name == "greet") it.copy(request = SchemaShape.of(ProfileV3.serializer().descriptor)) else it
+        })
+        val issues = Compatibility.operations(client, server)
+        assertEquals(listOf("greet request.age: required by the reader, never written"), issues.getValue("greet"))
+        assertTrue(issues.filterKeys { it != "greet" }.values.all { it.isEmpty() })
+        assertEquals(Compatibility(Verdict.Incompatible, issues.getValue("greet")), Compatibility.between(client, server))
+    }
+
+    @Test fun anOptionalResponseFieldKeepsEveryOperationUsable() {
+        val shape = Greeter().shape
+        val client = shape.copy(fingerprint = "response-v1", operations = shape.operations.map {
+            if (it.name == "greet") it.copy(response = SchemaShape.of(ProfileV1.serializer().descriptor)) else it
+        })
+        val server = shape.copy(fingerprint = "response-v2", operations = shape.operations.map {
+            if (it.name == "greet") it.copy(response = SchemaShape.of(ProfileV2.serializer().descriptor)) else it
+        })
+        assertTrue(Compatibility.operations(client, server).values.all { it.isEmpty() })
+        assertEquals(Compatibility(Verdict.Compatible), Compatibility.between(client, server))
+    }
+
     @Test
     fun clientAndServerInterceptorsRunInPositionOrder() = runTest {
         val seen = mutableListOf<String>()

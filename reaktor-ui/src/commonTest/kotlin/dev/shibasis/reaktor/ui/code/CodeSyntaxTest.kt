@@ -6,7 +6,7 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 class CodeSyntaxTest {
-    private fun tokensOf(language: CodeLanguage, line: String, entry: Int = CodeLanguage.Code) =
+    private fun tokensOf(language: CodeLanguage, line: String, entry: CodeLexState = CodeLanguage.Code) =
         language.spans(line, entry).map { it.token to line.substring(it.start, it.end) }
 
     @Test fun kotlinClassifiesTheUsualRuns() {

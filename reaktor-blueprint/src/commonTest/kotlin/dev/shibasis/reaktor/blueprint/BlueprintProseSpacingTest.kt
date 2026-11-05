@@ -62,32 +62,6 @@ class BlueprintProseSpacingTest {
         }
     }
 
-    @Test fun zoomAndSelectionKeepEveryOriginalAnchorRouteAndCard() {
-        val full = AppGraphLayout.layout(graph, LayoutRequest(Detail.Ports, nested = true))
-        val levels = BlueprintMapLevels.prepare(full, titleZoom = { 1.0 })
-        val geometry = full.cards.mapValues { (_, card) -> listOf(card.x, card.y, card.width, card.height) }
-        val pins = full.cards.mapValues { it.value.pins }
-        val points = full.links.associate { it.id to it.points }
-        var expanded = emptySet<String>()
-        listOf(.01, .1, .5, 1.2, 2.0, 16.0).forEach { zoom ->
-            val level = levels.at(zoom, expanded)
-            expanded = level.expanded
-            level.layout.cards.filterKeys { it in full.cards }.forEach { (id, card) -> assertSame(full.cards.getValue(id), card) }
-            val visible = level.layout.links.flatMap { it.members }.toSet()
-            assertTrue(visible.intersect(level.layout.foldedLinks.keys).isEmpty())
-            assertEquals(graph.wiresById.keys, visible + level.layout.foldedLinks.keys)
-            full.cards.values.forEach { card -> card.pins.forEach { pin ->
-                val selection = card.ref(pin)
-                assertTrue(selection.matches(card.id, pin))
-                assertSame(card, levels.targetBounds(selection.card))
-            } }
-            assertEquals(geometry, full.cards.mapValues { (_, card) -> listOf(card.x, card.y, card.width, card.height) })
-            assertEquals(pins, full.cards.mapValues { it.value.pins })
-            assertEquals(points, full.links.associate { it.id to it.points })
-        }
-        assertSame(full, levels.at(16.0).layout)
-    }
-
     @Test fun legacyAndPortlessCompactGeometryStaysUnchanged() {
         val ordinary = BlueprintNode("ordinary", 0, inputs = listOf(PinSpec("in", "Agent", PortWiring.Unmatched)))
         assertEquals(72.0, BlueprintEngine.cardHeight(ordinary))

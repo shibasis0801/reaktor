@@ -49,6 +49,8 @@ data class CodeService(
     fun declared(operation: CodeOperation): List<RelationTuple> = declared.filter { it.target == ref || it.target == operation.ref }
 }
 
+data class CodeRoute(val ref: ObjectRef, val graph: ObjectRef, val served: ServedRoute)
+
 data class PortTarget(val graph: ObjectRef, val node: ObjectRef, val port: ObjectRef) {
     val structure: List<RelationTuple>
         get() = graph.id.split('/').runningReduce { parent, segment -> "$parent/$segment" }.zipWithNext { parent, child ->
@@ -56,7 +58,7 @@ data class PortTarget(val graph: ObjectRef, val node: ObjectRef, val port: Objec
         } + RelationTuple(node, CodeAccess.GraphRelation, Subject.Object(graph)) + RelationTuple(port, CodeAccess.NodeRelation, Subject.Object(node))
 }
 
-data class CodeResources(val graphs: List<CodeGraph>, val services: List<CodeService>) {
+data class CodeResources(val graphs: List<CodeGraph>, val services: List<CodeService>, val routes: List<CodeRoute> = emptyList()) {
     val operations: List<CodeOperation> get() = services.flatMap { it.operations }
 
     val objects: List<ObjectRef> get() = graphs.map { it.ref } + services.map { it.ref } + operations.map { it.ref }
@@ -92,6 +94,7 @@ object CodeAccess {
     const val Graph = "graph"
     const val Service = "service"
     const val Operation = "operation"
+    const val Route = "route"
     const val Node = "node"
     const val Port = "port"
     const val Parent = "parent"
@@ -123,6 +126,8 @@ object CodeAccess {
     fun service(contract: String): ObjectRef = ObjectRef(Service, key(contract))
 
     fun operation(contract: String, operation: String): ObjectRef = ObjectRef(Operation, "${key(contract)}.${key(operation)}")
+
+    fun route(island: String, method: String, template: String): ObjectRef = ObjectRef(Route, "${key(island)}/${method.uppercase()}${key(template.takeIf { it.startsWith('/') } ?: "/$template")}")
 
     fun operationName(operation: String, request: String): String = operation.removePrefix("$request.")
 

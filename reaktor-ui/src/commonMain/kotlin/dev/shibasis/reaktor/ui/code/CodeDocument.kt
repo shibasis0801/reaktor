@@ -11,7 +11,7 @@ class CodeDocument private constructor(val lines: List<String>, val lineSeparato
     val lineCount get() = lines.size
     val lastLine get() = lines.lastIndex
     val end get() = CodePosition(lastLine, lines.last().length)
-    val longestLine get() = lines.maxOf { it.length }
+    val longestLine by lazy(LazyThreadSafetyMode.NONE) { lines.maxOf { it.length } }
 
     fun line(index: Int): String = lines.getOrElse(index) { "" }
 
@@ -23,10 +23,27 @@ class CodeDocument private constructor(val lines: List<String>, val lineSeparato
 
     fun clamp(position: CodePosition): CodePosition {
         val line = position.line.coerceIn(0, lastLine)
-        return CodePosition(line, position.column.coerceIn(0, this.line(line).length))
+        val text = this.line(line)
+        val column = position.column.coerceIn(0, text.length)
+        return CodePosition(line, if (column > 0 && text.getOrNull(column)?.isLowSurrogate() == true &&
+            text[column - 1].isHighSurrogate()) column - 1 else column)
     }
 
     fun clamp(span: CodeSpan) = CodeSpan(clamp(span.start), clamp(span.end))
+
+    internal fun adjacent(position: CodePosition, forward: Boolean): CodePosition {
+        val here = clamp(position)
+        val text = line(here.line)
+        return when {
+            forward && here.column < text.length -> here.copy(column = here.column +
+                if (text[here.column].isHighSurrogate() && text.getOrNull(here.column + 1)?.isLowSurrogate() == true) 2 else 1)
+            forward && here.line < lastLine -> CodePosition(here.line + 1, 0)
+            !forward && here.column > 0 -> here.copy(column = here.column -
+                if (text[here.column - 1].isLowSurrogate() && text.getOrNull(here.column - 2)?.isHighSurrogate() == true) 2 else 1)
+            !forward && here.line > 0 -> lineEnd(here.line - 1)
+            else -> here
+        }
+    }
 
     fun slice(span: CodeSpan): String {
         val (start, end) = clamp(span).ordered.let { it.start to it.end }
@@ -136,7 +153,9 @@ class CodeDocument private constructor(val lines: List<String>, val lineSeparato
         }
     }
 
-    override fun toString() = lines.joinToString("\n")
+    private val text by lazy(LazyThreadSafetyMode.NONE) { lines.joinToString("\n") }
+
+    override fun toString() = text
 
     /** The text as it should be written back, with the separator the file arrived with. */
     fun render() = lines.joinToString(lineSeparator)

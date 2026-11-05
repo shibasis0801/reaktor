@@ -20,9 +20,10 @@ class AppGraphFeaturesTest {
     )
 
     @Test fun `a declared graph draws one frame per graph, named by the graph`() {
-        val features = AppGraphFeatures.of(AppGraph(shape, GraphSource.Declared("plans", "Plans")))
-        assertEquals(mapOf("Review checkout" to setOf("Read the diff"), "Wire onboarding" to setOf("Read the state", "Onboarding.kt")),
-            features.associate { feature -> feature.label to feature.members.mapTo(HashSet()) { it.label } })
+        val graph = AppGraph(shape, GraphSource.Declared("plans", "Plans"))
+        assertEquals(mapOf("Review checkout" to setOf("Read the diff"), "Wire onboarding" to setOf("Read the state", "Onboarding.kt"), "Plans" to emptySet()),
+            AppGraphFeatures.of(graph).associate { feature -> feature.label to feature.members.map { it.label }.toSet() })
+        assertEquals(setOf("Review checkout", "Wire onboarding"), AppGraphLayout.layout(graph, LayoutRequest(Detail.Standard)).frames.mapTo(HashSet()) { it.label })
     }
 
     @Test fun `a running app groups the same nodes by role instead`() {

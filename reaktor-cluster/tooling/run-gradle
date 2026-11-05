@@ -1,0 +1,33 @@
+#!/bin/bash
+set -euo pipefail
+worker_state=/Users/ovd/dev/offload/.remote-dev
+lock_state=${REMOTE_DEV_LOCK_ROOT:-$worker_state}
+has_lock=0
+finish() {
+    code=$?
+    if [ "$has_lock" = 1 ]; then rmdir "$lock_state/gradle.lock"; fi
+    if [ -n "${REMOTE_DEV_RUN_ID:-}" ]; then
+        job="${REMOTE_DEV_JOB_ROOT:-$worker_state}/jobs/$REMOTE_DEV_RUN_ID"
+        printf '%s\n' "$code" > "$job/exitcode.tmp"
+        mv "$job/exitcode.tmp" "$job/exitcode"
+    fi
+}
+trap finish EXIT
+trap 'exit 143' TERM
+trap 'exit 130' INT
+if ! mkdir "$lock_state/gradle.lock" 2>/dev/null; then
+    echo 'Another remote Gradle build is running; wait for it to finish.' >&2
+    exit 75
+fi
+has_lock=1
+if [ -f "$worker_state/mobile-env.sh" ]; then
+    source "$worker_state/mobile-env.sh"
+fi
+if [[ "$PWD" == */bestbuds ]] && [ -f config/release.env ]; then
+    caller_environment=$(export -p)
+    set -a
+    source config/release.env
+    set +a
+    eval "$caller_environment"
+fi
+/usr/bin/caffeinate -i "$@"

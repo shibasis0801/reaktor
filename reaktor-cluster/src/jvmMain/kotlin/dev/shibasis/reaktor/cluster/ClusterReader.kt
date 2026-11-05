@@ -17,7 +17,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 
 class ClusterReader(
-    private val state: Path = Path.of(System.getProperty("user.home"), "dev", ".remote-dev"),
+    private val state: Path = ClusterLocations.state(),
     private val probe: HostProbe = HostProbe(),
     private val now: () -> Long = System::currentTimeMillis,
     private val alive: (Long) -> Boolean = { ProcessHandle.of(it).map(ProcessHandle::isAlive).orElse(false) },
@@ -37,7 +37,8 @@ class ClusterReader(
         val remote = config?.string("host") ?: "m1-worker"
         val hosts = listOf(probe.read("local"), probe.read(remote, remote)).map { host ->
             host.problem?.let { problems += "${host.id}: $it" }
-            host.copy(truth = truthOverride ?: host.truth)
+            host.copy(truth = truthOverride ?: host.truth,
+                processes = host.processes?.let { it.copy(truth = truthOverride ?: it.truth) })
         }
         val jobs = jobs(limit = 500)
         problems += jobs.problems
@@ -63,13 +64,17 @@ class ClusterReader(
             val pid = owner?.long("pid")
             val ownerStart = owner?.string("started")
             val exit = record.long("exit_code")?.toInt()
+            val publishing = record.containsKey("pending_publications") ||
+                (record["pending_xcode"] as? JsonPrimitive)?.booleanOrNull == true
             val status = when {
-                finished != null || exit != null -> "Finished"
+                finished != null -> "Finished"
                 pid != null && !alive(pid) -> "Abandoned"
+                publishing -> "Publishing"
+                exit != null -> "Finished"
                 pid != null && ownerStart != null -> processStart(pid)?.let { if (it == ownerStart) "Running" else "Abandoned" } ?: "Unknown"
                 else -> "Unknown"
             }
-            if ((finished ?: started)?.let { it < since } == true && status != "Running") return@mapNotNull null
+            if ((finished ?: started)?.let { it < since } == true && status !in setOf("Running", "Publishing")) return@mapNotNull null
             val tasks = runCatching { record["tasks"]?.jsonArray?.mapNotNull { (it as? JsonPrimitive)?.content }
                 ?.filter { it.matches(Regex(":?[A-Za-z_][A-Za-z0-9_.-]*(?::[A-Za-z_][A-Za-z0-9_.-]*)*")) } }.getOrNull().orEmpty()
             val log = path.resolveSibling(path.fileName.toString().removeSuffix(".json") + ".log")
@@ -82,7 +87,7 @@ class ClusterReader(
                 truthOverride ?: if (status == "Unknown") "Partial" else "Source")
         }
         val waiting = queue(problems).map { waiter ->
-            Job(waiter.id, "Unknown", emptyList(), if (waiter.reason.startsWith("Output")) "Publishing" else "Queued",
+            Job(waiter.id, "Unknown", emptyList(), "Queued",
                 "Unknown", null, Requester(pid = waiter.pid), waiter.queuedAt, null, null,
                 waiter.queuedAt?.let { (now() - it).coerceAtLeast(0) / 1000.0 }, null,
                 state.resolve("local-gradle.line").resolve(waiter.id).toString(), null, "Pending", truthOverride ?: "Partial")
@@ -99,7 +104,8 @@ class ClusterReader(
         val workers = config?.long("worker_slot_max_workers")?.toInt()?.coerceIn(1, 64) ?: 6
         fun slot(host: String, index: Int, parallelism: Int, tree: String, file: String): Slot = Slot(host, index,
             parallelism, tree, inspect(state.resolve(file)).let { it.copy(truth = truthOverride ?: it.truth) })
-        return listOf(slot("local", 0, 6, state.parent.toString(), "local-gradle.lock")) +
+        val localWorkers = config?.long("local_max_workers")?.toInt()?.coerceIn(1, 64) ?: 6
+        return listOf(slot("local", 0, localWorkers, ClusterLocations.workspace(state).toString(), "local-gradle.lock")) +
             (0..2).map { index -> slot(remote, index, if (index == 0) 10 else workers,
                 if (index == 0) root else "$root/.remote-dev/slots/job-$index",
                 if (index == 0) "worker-gradle.lock" else "worker-slot-$index.lock") }
@@ -115,7 +121,7 @@ class ClusterReader(
         if (held.state != "Held") return@mapNotNull null
         val aside = runCatching { Files.readString(path).trim() == "aside" }.getOrDefault(false)
         Waiter(name, pid, match.groupValues[1].toLongOrNull()?.div(1_000_000),
-            if (aside) "Output publication waits for the local lease" else "Waiting for the local Gradle lease",
+            if (aside) "Waiting for available host capacity" else "Waiting for the local Gradle lease",
             truthOverride ?: "Live")
     }.sortedBy { it.id }
 

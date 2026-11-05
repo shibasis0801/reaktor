@@ -89,8 +89,10 @@ class BlueprintMapNeverHideTest {
                     if (pixels > 0) sawImage = true
                     assertEquals(zoom, canvas.viewport().zoom, .000001)
                     val reading = canvas.reading()!!
-                    rows += listOf(host, mode.name, zoom, BlueprintTier.entries.single { reading[it] > 0 }.name, reading[BlueprintTitle.Whole], pixels, blank, lost).joinToString("\t")
+                    val tier = BlueprintTier.entries.single { reading[it] > 0 }
+                    rows += listOf(host, mode.name, zoom, tier.name, reading[BlueprintTitle.Whole], pixels, blank, lost).joinToString("\t")
                     assertTrue(!lost, "Screenshot disappeared at $zoom"); assertTrue(!blank, "Blank card at $zoom")
+                    assertEquals(BlueprintTier.Detail, tier, "$host $mode face at $zoom")
                     assertEquals(card, layout.cards.getValue(card.id))
                 }
             } finally { edt { scene.close() }; File(folder, "ladder.tsv").writeText(rows.joinToString("\n") + "\n") }

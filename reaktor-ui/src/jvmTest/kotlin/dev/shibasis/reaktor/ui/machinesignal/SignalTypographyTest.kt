@@ -66,7 +66,7 @@ class SignalTypographyTest {
         TypeWeight.Strong to FontWeight.SemiBold, TypeWeight.Bold to FontWeight.Bold,
     )
     private val inks: Map<InkRole, Color> = mapOf(
-        Ink.Strong to MachineSignal.Editor.Text, Ink.Text to MachineSignal.Editor.Text, Ink.Muted to MachineSignal.Editor.Muted,
+        Ink.Strong to MachineSignal.Editor.Text, Ink.Text to MachineSignal.Editor.Body, Ink.Muted to MachineSignal.Editor.Muted,
         Ink.Unknown to MachineSignal.Editor.Unknown, Ink.Accent to MachineSignal.Editor.Accent, Ink.Source to MachineSignal.Editor.Source,
         Ink.Busy to MachineSignal.Editor.Accent, Ink.Ok to MachineSignal.Status.Ok, Ink.Warn to MachineSignal.Status.Warn,
         Ink.Danger to MachineSignal.Status.Error, Ink.Inverse to MachineSignal.Editor.Canvas, Ink.OnAccent to MachineSignal.Editor.Canvas,
@@ -76,16 +76,13 @@ class SignalTypographyTest {
         EntityInk.Auth to MachineSignal.Entity.Auth, EntityInk.Infra to MachineSignal.Entity.Infra,
         EntityInk.Agent to MachineSignal.Entity.Agent, EntityInk.Topic to MachineSignal.Entity.Topic,
         EntityInk.Repo to MachineSignal.Entity.Repo, EntityInk.Interactor to MachineSignal.Entity.Interactor,
-        EdgeInk.Exec to MachineSignal.Edge.Exec, EdgeInk.Navigation to MachineSignal.Edge.Navigation,
-        EdgeInk.Data to MachineSignal.Edge.Data, EdgeInk.Attachment to MachineSignal.Edge.Attachment,
-        EdgeInk.Containment to MachineSignal.Edge.Containment, EdgeInk.PortOff to MachineSignal.Edge.PortOff,
         ProvenanceInk(TruthClass.Imported) to MachineSignal.provenance(TruthClass.Imported).base,
-        BoardInk.Text1 to MachineSignal.Editor.Text, BoardInk.Text2 to MachineSignal.Editor.Text, BoardInk.Text3 to MachineSignal.Editor.Muted,
+        BoardInk.Text1 to MachineSignal.Editor.Text, BoardInk.Text2 to MachineSignal.Editor.Body, BoardInk.Text3 to MachineSignal.Editor.Muted,
         BoardInk.Text4 to MachineSignal.Editor.Unknown, BoardInk.AccentText to MachineSignal.AccentText,
-        SignalInk.Soft to MachineSignal.Editor.Text.copy(alpha = .9f), SignalInk.Dim to MachineSignal.Editor.Muted.copy(alpha = .6f),
+        SignalInk.Soft to MachineSignal.Editor.Body.copy(alpha = .9f), SignalInk.Dim to MachineSignal.Editor.Muted.copy(alpha = .6f),
         SignalInk.ScreenReadout to MachineSignal.Editor.Canvas.copy(alpha = .9f), SignalInk.ScreenAction to MachineSignal.Editor.Canvas.copy(alpha = .8f),
         SignalInk.ScreenNote to MachineSignal.Editor.Canvas.copy(alpha = .78f), SignalInk.Code to MachineSignal.Editor.Code.Text,
-        SignalInk.Gutter to MachineSignal.Editor.Code.Gutter, SignalInk.Rule to MachineSignal.Editor.Line,
+        SignalInk.Gutter to MachineSignal.Editor.Code.Gutter, SignalInk.Rule to MachineSignal.Editor.LineStrong,
     )
 
     @Test
@@ -111,8 +108,8 @@ class SignalTypographyTest {
             same("$ink", true, { MaterialText(sample, color = legacy, fontSize = 12.sp, maxLines = 1) }, { Text(sample, role = Type.Label, ink = ink) })
         }
         same("text1 remapped", true, { SignalText(sample, color = MachineSignal.Text1) }, { Text(sample, role = Type.Body, ink = Ink.Strong) })
-        same("text3 remapped", true, { SignalText(sample, color = MachineSignal.Entity.Infra) }, { Text(sample, role = Type.Body, ink = Ink.Muted) })
-        same("text4 remapped", true, { SignalText(sample, color = MachineSignal.provenance(TruthClass.Fixture).base) }, { Text(sample, role = Type.Body, ink = Ink.Unknown) })
+        same("text3 remapped", true, { SignalText(sample, color = MachineSignal.Text3) }, { Text(sample, role = Type.Body, ink = Ink.Muted) })
+        same("text4 remapped", true, { SignalText(sample, color = MachineSignal.Text4) }, { Text(sample, role = Type.Body, ink = Ink.Unknown) })
         assertTrue(failures.isEmpty(), failures.joinToString("\n"))
     }
 

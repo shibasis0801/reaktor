@@ -5,6 +5,7 @@ import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.serialization.encodeToString
 import java.io.File
 import java.nio.file.Files
@@ -17,7 +18,7 @@ class GradleReceiptRunLedgerTest {
         try {
             val ledger = GradleReceiptRunLedger(root)
             val node = NodeId("fixture", ":lib", "checks")
-            val observed = async(start = CoroutineStart.UNDISPATCHED) { withTimeout(10000) { ledger.changes().first() } }
+            val observed = async(start = CoroutineStart.UNDISPATCHED) { withTimeout(10000) { ledger.changes(10).first() } }
             val receipt = RunReceipt(run = "fixture-run", build = "fixture", requestedNodes = listOf(node),
                 requestedTasks = listOf(":lib:checks"), startedAtEpochMillis = 10, finishedAtEpochMillis = 25,
                 status = ReceiptStatus.Succeeded, tasks = listOf(TaskObservation(node, TaskOutcome.UpToDate, 10, 15)))
@@ -25,7 +26,7 @@ class GradleReceiptRunLedgerTest {
             val pending = directory.resolve("fixture.pending")
             pending.writeText(BuildModelReader.json.encodeToString(receipt))
             Files.move(pending.toPath(), directory.resolve("fixture.json").toPath(), ATOMIC_MOVE)
-            val run = observed.await()
+            val run = observed.await().single()
             assertEquals(TaskId(node.toString()), run.taskId)
             assertEquals(RunStatus.Succeeded, run.status)
             assertEquals(run, ledger.run(run.id))
@@ -36,7 +37,7 @@ class GradleReceiptRunLedgerTest {
             directory.resolve("broken.json").writeText("{")
             assertEquals(listOf(run), ledger.runs())
             val published = async(start = CoroutineStart.UNDISPATCHED) {
-                withTimeout(10000) { ledger.changes().first { it.artifacts.single().kind == "deploy-receipt" } }
+                withTimeout(10000) { ledger.changes(10).mapNotNull { batch -> batch.singleOrNull { it.artifacts.single().kind == "deploy-receipt" } }.first() }
             }
             val deployment = DeployReceipt(node, Environment("dev"), ServiceRef("fixture-service"), "fixture-deploy", "apply",
                 "revision", "host", "reviewed-plan", "bundle-digest", "new-version", "old-version", ReceiptStatus.Succeeded,
@@ -65,6 +66,27 @@ class GradleReceiptRunLedgerTest {
 
         } finally { root.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir"))) }
     }
+    @Test fun backlogArrivesAsOneBatchOfTheNewestReceipts() = runBlocking {
+        val root = Files.createTempDirectory("gradle-backlog").toFile()
+        try {
+            val ledger = GradleReceiptRunLedger(root)
+            val directory = root.resolve(GradleProtocol.ReceiptDirectory)
+            val node = NodeId("fixture", ":lib", "checks")
+            val receipt = RunReceipt(run = "first", build = "fixture", requestedNodes = listOf(node),
+                requestedTasks = listOf(":lib:checks"), startedAtEpochMillis = 10, finishedAtEpochMillis = 20, status = ReceiptStatus.Succeeded)
+            listOf("first" to 20L, "second" to 30L, "third" to 40L).forEachIndexed { index, (run, finished) ->
+                directory.resolve("$run.json").apply {
+                    writeText(BuildModelReader.json.encodeToString(receipt.copy(run = run, finishedAtEpochMillis = finished)))
+                    setLastModified(1_700_000_000_000 + index * 1000L)
+                }
+            }
+            val backlog = withTimeout(10000) { ledger.changes(2).first() }
+            assertEquals(listOf("gradle-third/$node", "gradle-second/$node"), backlog.map { it.id.value })
+            for (run in backlog) assertEquals(BuildModelReader.digest(File(run.artifacts.single().location)), run.artifacts.single().digest)
+            assertEquals(listOf("gradle-first/$node"), withTimeout(10000) { ledger.changes(1, RunId("gradle-first/$node")).first() }.map { it.id.value })
+        } finally { root.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir"))) }
+    }
+
     @Test fun boundedReadsKeepNodeOrderAndFreshEvidenceAcrossArbitraryReceiptNames() = runBlocking {
         val root = Files.createTempDirectory("gradle-bounded-receipts").toFile()
         try {

@@ -6,20 +6,76 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.shibasis.reaktor.core.truth.TruthClass
+import dev.shibasis.reaktor.surface.Type as SurfaceType
 
 object MachineSignal {
+    object Scale {
+        object Space {
+            val hair = MachineSignal.Space.s0_25
+            val tight = MachineSignal.Space.s0_5
+            val compact = MachineSignal.Space.s1
+            val regular = MachineSignal.Space.s2
+            val roomy = MachineSignal.Space.s3
+            val section = MachineSignal.Space.s4
+            val page = MachineSignal.Space.s5
+            val wide = MachineSignal.Space.s6
+        }
+
+        object Text {
+            val Meta = SurfaceType.Meta
+            val Body = SurfaceType.Body
+            val Data = SurfaceType.Data.code
+            val Title = SurfaceType.Title3.strong
+            val Heading = SurfaceType.Title
+            val Display = SurfaceType.Display
+        }
+
+        object Radius {
+            val control = MachineSignal.Radius.control
+            val panel = MachineSignal.Radius.panel
+            val pill = RoundedCornerShape(percent = 50)
+        }
+
+        object Size {
+            val control = Editor.controlHeight
+            val tableRow = GatewayTable.headerHeight
+            val listRow = GatewayTable.rowHeight
+            val toolbar = Editor.toolbarHeight
+            val statusBar = Editor.statusHeight
+            val controlIcon = Editor.controlIconSize
+            val rowIcon = SearchField.iconSize
+            val inspector = Glance.width
+            val inspectorMin = Editor.navigatorWidth
+            val inspectorMax = Breakpoint.compact
+            val navigator = Editor.navigatorWidth
+            val dropdownMin = Column.w120
+            val dropdownMax = PaneSearch.compactWidth
+            val search = PaneSearch.compactWidth
+            val popover = PaneSearch.wideWidth
+        }
+    }
+
+
     /** Living Graph editor tokens: reaktor.pen ms2-* variables and MG56E shell geometry. */
     object Editor {
         val Canvas = Color(0xFF161719)
         val Surface = Color(0xFF1D1E21)
+        val SurfaceAlt = Color(0xFF222327)
+        val Card = Color(0xFF25272B)
         val Raised = Color(0xFF2A2C31)
+        val RaisedAlt = Color(0xFF33363C)
+        val LineSubtle = Color(0xFF2C2E34)
         val Line = Color(0xFF3B3E46)
+        val LineStrong = Color(0xFF50535D)
         val Text = Color(0xFFEEEFF2)
+        val Body = Color(0xFFDCDEE3)
         val Muted = Color(0xFFA2A5AF)
         val Accent = Color(0xFF6F8FFF)
         val AccentSoft = Color(0x1F6F8FFF)
+        val AccentLine = Color(0x736F8FFF)
+        val Selection = Color(0x456F8FFF)
         val Source = Color(0xFF8DA7FF)
-        val Unknown = Color(0xFF9195A1)
+        val Unknown = Color(0xFF8A8E99)
         val menuHeight = 28.dp
         val toolbarHeight = 42.dp
         val documentTabHeight = 34.dp
@@ -87,11 +143,12 @@ object MachineSignal {
             val Operator = Color(0xFFADB4C3)
             val Bracket = Color(0xFFC6CEDC)
 
+            val fontSize = 13.sp
             val gutterPaddingX = 10.dp
             val lineNumberGap = 12.dp
             val lineNumberWidth = 44.dp
             val caretWidth = 1.5.dp
-            const val lineHeight = 1.45f
+            const val lineHeight = 1.6f
         }
     }
 
@@ -109,12 +166,6 @@ object MachineSignal {
         const val portFont = 11.0
         const val metaFont = 10.0
         const val pinSize = 8.0
-        val Pin = Color(0xFF38BDF8)
-        val kindColors = mapOf(
-            "Actor" to Color(0xFF38BDF8), "Interactor" to Color(0xFF9A8CFF),
-            "Repository" to Color(0xFFF5B84B), "Route" to Color(0xFF8DA7FF),
-            "Screen" to Color(0xFF42D392), "Service" to Color(0xFFFB923C),
-        )
     }
 
     val Bg0 = Color(0xFF06080D)
@@ -130,7 +181,7 @@ object MachineSignal {
     val Text1 = Color(0xFFF0F3F8)
     val Text2 = Color(0xFFB3BDD0)
     val Text3 = Color(0xFF8995AD)
-    val Text4 = Color(0xFF748198)
+    val Text4 = Color(0xFF7E8494)
 
     val Accent = Color(0xFF5C80FF)
     val Accent2 = Color(0xFF8DA7FF)
@@ -142,26 +193,36 @@ object MachineSignal {
     val Signal = Color(0xFF60DDEB)
 
     object Entity {
-        val Route = Color(0xFF658BFF)
-        val Screen = Color(0xFF65B58E)
-        val Container = Color(0xFF9D85E6)
-        val Service = Color(0xFFD2A05C)
-        val Cloud = Color(0xFF48B8D0)
-        val Actor = Color(0xFF55AFC2)
-        val Auth = Color(0xFFD977A8)
-        val Infra = Color(0xFF8995AD)
-        val Agent = Color(0xFF55D3C3)
-        val Topic = Color(0xFFB07CFF)
-        val Repo = Color(0xFFB98952)
-        val Interactor = Color(0xFF8D73D9)
+        val Route = Color(0xFF62A5F3)
+        val Screen = Color(0xFF5ED987)
+        val Container = Color(0xFFCDCBFF)
+        val Service = Color(0xFFFE8F42)
+        val Cloud = Color(0xFF53CDF0)
+        val Actor = Color(0xFFF86C67)
+        val Auth = Color(0xFFFB83AE)
+        val Infra = Color(0xFF94999F)
+        val Agent = Color(0xFF4ED7C7)
+        val Topic = Color(0xFFC5E162)
+        val Repo = Color(0xFFF7BF43)
+        val Interactor = Color(0xFFAC8BFB)
+    }
+
+    object Port {
+        val Call = Color(0xFF00C5A4)
+        val Data = Color(0xFFB5679A)
+        val Event = Color(0xFFF89CFF)
+        val Route = Color(0xFF00A0C2)
+        val Resource = Color(0xFF789B00)
+        val Relation = Color(0xFF677C76)
+        val Control = Text2
     }
 
     object Edge {
-        val Exec = Color(0xFFE6EAF2)
-        val Navigation = Color(0xFF3B82F6)
-        val Data = Color(0xFF8B5CF6)
-        val Attachment = Color(0xFF6366F1)
-        val Containment = Color(0xFFA78BFA)
+        val Exec = Port.Call
+        val Navigation = Port.Route
+        val Data = Port.Data
+        val Attachment = Port.Resource
+        val Containment = Port.Relation
         val PortOff = Color(0xFF66748B)
     }
 

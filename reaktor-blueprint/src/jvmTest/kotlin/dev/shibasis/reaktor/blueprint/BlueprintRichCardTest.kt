@@ -80,25 +80,20 @@ class BlueprintRichCardTest {
         }
     }
 
-    @Test fun rowGlyphWidthParticipatesInTheSameDetailAndHitDecision() {
-        var boundary = false
+    @Test fun rowGlyphNeverHidesThePortOrItsHitTarget() {
         for (width in 112..144 step 4) {
-            if (boundary) break
             val card = Card("long", 0.0, 0.0, width.toDouble(), 100.0, listOf(Pin("unit:1", "Unit", false, 64.0, PortWiring.Connected)), 0)
             val row = BlueprintPinLook(Color.Blue, "Linear algebra", Color.White, true)
             val look = BlueprintCardLook(Color.Blue, glyph, "Source", "", pins = listOf(row))
             specimen(card, look, MachineSignalMode.Dark) { canvas, scene, state, frame ->
-                val before = canvas.reading()!![BlueprintTier.Detail]
-                assertEquals(before == 1, "port-unit:1" in tags(scene))
+                assertEquals(1, canvas.reading()!![BlueprintTier.Detail])
+                assertTrue("port-unit:1" in tags(scene), "width=$width")
                 state.value = look.copy(pins = listOf(row.copy(icon = glyph)))
                 frame()
-                val after = canvas.reading()!![BlueprintTier.Detail]
-                assertTrue(after <= before)
-                assertEquals(after == 1, "port-unit:1" in tags(scene), "width=$width before=$before after=$after")
-                boundary = before == 1 && after == 0
+                assertEquals(1, canvas.reading()!![BlueprintTier.Detail])
+                assertTrue("port-unit:1" in tags(scene), "width=$width with a glyph")
             }
         }
-        assertTrue(boundary)
     }
 
     @Test fun portraitScreenshotKeepsAspectAndHighlightUsesItsContainedBounds() {
@@ -237,7 +232,7 @@ class BlueprintRichCardTest {
         for (mode in listOf(MachineSignalMode.Light, MachineSignalMode.Dark)) specimen(card, look, mode) { canvas, _, _, _ ->
             assertEquals(1, canvas.reading()!![BlueprintTier.Detail])
             val painter = (canvas.reading as kotlin.jvm.internal.CallableReference).boundReceiver as dev.shibasis.reaktor.blueprint.canvas.BlueprintPainter
-            val footer = requireNotNull(painter.agentBounds(card.id, canvas.zoom))
+            val footer = requireNotNull(painter.agentBounds(card.id))
             assertTrue(!footer.compact)
             assertTrue(card.pins.single().y + BlueprintEngine.RowHeight / 2 + node.pinFooter <= footer.y)
             assertTrue(footer.y + footer.height <= card.height)

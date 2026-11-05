@@ -1,7 +1,6 @@
 package dev.shibasis.reaktor.blueprint.editor
 
 import dev.shibasis.reaktor.blueprint.BlueprintBody
-import dev.shibasis.reaktor.blueprint.blueprintMapLevels
 import dev.shibasis.reaktor.graph.core.GraphShape
 import dev.shibasis.reaktor.graph.core.NodeKind
 import dev.shibasis.reaktor.graph.core.NodeShape
@@ -149,18 +148,6 @@ class GraphEditorBodyTest {
         mutable.clear()
         assertEquals(body.width, editor.settled.cards.getValue("a").width)
         assertEquals(plain.settled.cards.getValue("b"), editor.settled.cards.getValue("b"))
-    }
-
-    @Test fun theSameFullEnvelopeSurvivesEveryMapStepAndSelection() {
-        val editor = GraphEditor(shape, placed, bodies = mapOf("a" to body)).also { it.showChanges = false }
-        val full = editor.settled
-        val levels = full.blueprintMapLevels()
-        for (zoom in listOf(.002, .03, .3, 1.0, 4.0, 16.0, .002)) {
-            editor.select(Selection(setOf("a")))
-            levels.at(zoom)
-            assertEquals(full, editor.settled)
-            assertEquals(full.cards.getValue("a"), levels.targetBounds("a"))
-        }
     }
 
     @Test fun staleAndRefusedWritesKeepTheOriginalEnvelopeAndHistory() {

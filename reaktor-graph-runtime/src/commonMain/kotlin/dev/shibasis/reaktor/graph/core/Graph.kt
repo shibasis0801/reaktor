@@ -303,13 +303,13 @@ open class Graph(
 
     override fun close() {
         if (!closed.compareAndSet(false, true)) return
+        parentGraph?.ownedGraphs?.remove(id)
         changed(GraphChange.Closed)
         structureListeners.value = emptyList()
         transition(Lifecycle.Destroying)
         ownedGraphs.values().forEach { it.close() }
         ownedGraphs.clear()
         importedGraphs.clear()
-        parentGraph?.ownedGraphs?.remove(id)
         _navigationActivation.value = null
         captureNavigationContext = null
         dependencyCapability.close()

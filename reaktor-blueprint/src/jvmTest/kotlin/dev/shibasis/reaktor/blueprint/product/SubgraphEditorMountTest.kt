@@ -14,7 +14,6 @@ import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.Density
 import dev.shibasis.reaktor.blueprint.*
 import dev.shibasis.reaktor.blueprint.canvas.GraphCanvasState
-import dev.shibasis.reaktor.blueprint.canvas.paintMap
 import dev.shibasis.reaktor.blueprint.editor.Selection
 import dev.shibasis.reaktor.blueprint.editor.id
 import dev.shibasis.reaktor.graph.core.*
@@ -50,7 +49,6 @@ class SubgraphEditorMountTest {
             Frame("inner", "Inner context", 40.0, 120.0, 1120.0, 460.0, setOf(producer.id, member.id), emptyList(), false, parent = "outer")),
             listOf(link(first, 460.0, 250.0, 720.0), link(second, 1100.0, 294.0, 1360.0).copy(
                 points = listOf(1100.0 to 294.0, 1240.0 to 294.0, 1240.0 to 250.0, 1360.0 to 250.0))), 1840.0, 670.0)
-        val levels = BlueprintMapLevels.prepare(full, { if (it.id == "summary:inner") .4 else 1.0 })
         val search = SearchGraph("bound-search", "source-2", source.nodes.map { SearchNode(it.id, it.label, it.type) }, listOf(
             SearchEdge(first.id, producer.id, member.id, "wire", "Receives payload"),
             SearchEdge(second.id, member.id, sink.id, "wire", "Stores payload")))
@@ -72,7 +70,7 @@ class SubgraphEditorMountTest {
                     val appearance = palette.copy(canvas = colors.canvas, card = colors.surface, text = colors.textStrong, muted = colors.textMuted, line = colors.line)
                     val save: (Subgraph, Int) -> Unit = { next, expected -> writes += next to expected; documents = listOf(next) }
                     if (typed) SubgraphEditor(search, documents, appearance, { "new-view" }, save, Modifier.fillMaxSize(),
-                        sourceGraph = source, sourceLevels = levels,
+                        sourceGraph = source, sourceLayout = full,
                         sourceCardLook = { node ->
                             suppliedNodes[node.id] = node
                             BlueprintCardLook(Color.Blue, SurfaceGraphSymbol, node.label, "${node.type} · ${node.attributes.getValue("fact")}",
@@ -107,16 +105,15 @@ class SubgraphEditorMountTest {
             }
             suspend fun open(scene: ImageComposeScene) { settle(scene); click(scene, "Views"); settle(scene); click(scene, original.title); settle(scene) }
             fun assertGeometry() {
-                val expected = paintMap(levels, levels.at(canvas.zoom)).layout
+                val expected = full
                 assertEquals(expected.cards.values.toList(), canvas.extent.filterIsInstance<Card>())
                 assertEquals(expected.frames, canvas.extent.filterIsInstance<Frame>())
-                assertSame(full, levels.full)
-                assertEquals(cards.associateBy { it.id }, levels.full.cards)
-                assertEquals(source.wires.map { it.id }, levels.full.links.flatMap { it.members })
+                assertEquals(cards.associateBy { it.id }, full.cards)
+                assertEquals(source.wires.map { it.id }, full.links.flatMap { it.members })
                 assertEquals(source.nodes.toSet(), suppliedNodes.values.toSet())
                 for (wire in full.links) assertTrue(wire in suppliedLinks, "Full raw link must reach the supplied style")
                 for (node in source.nodes) assertEquals(node.ports.map { Triple(it.key, it.type, it.provides) },
-                    levels.full.cards.getValue(node.id).pins.map { Triple(it.key, it.type, it.provides) })
+                    full.cards.getValue(node.id).pins.map { Triple(it.key, it.type, it.provides) })
             }
             var mounted = scene(true)
             try {
@@ -240,7 +237,6 @@ class SubgraphEditorMountTest {
             Frame("outer", "Outer context", 0.0, 70.0, 1840.0, 600.0, setOf(sink.id), emptyList(), false),
             Frame("inner", "Inner context", 40.0, 120.0, 1120.0, 460.0, setOf(producer.id, member.id), emptyList(), false, parent = "outer")),
             listOf(firstLink, secondLink, projectedLink, route), 1840.0, 670.0)
-        val levels = BlueprintMapLevels.prepare(full, { if (it.id == "summary:inner") .4 else 1.0 })
         val search = SearchGraph("bound-search", "source-2", view.nodes.values.map { SearchNode(it.id, it.label, it.type) }, listOf(
             SearchEdge(first.id, producer.id, member.id, "wire", "Receives payload"),
             SearchEdge(second.id, member.id, sink.id, "wire", "Stores payload"),
@@ -257,7 +253,7 @@ class SubgraphEditorMountTest {
             val suppliedNodes = linkedMapOf<String, NodeShape>()
             val suppliedLinks = linkedSetOf<Link>()
             var tick = 0L
-            fun scene(input: GraphShape = source, searchInput: SearchGraph = search, prepared: BlueprintMapLevels<String> = levels,
+            fun scene(input: GraphShape = source, searchInput: SearchGraph = search, prepared: BlueprintLayout<String> = full,
                 failureContext: kotlin.coroutines.CoroutineContext = kotlin.coroutines.EmptyCoroutineContext) =
                 ImageComposeScene((1512 * density).toInt(), (982 * density).toInt(), Density(density), coroutineContext = Dispatchers.Swing + failureContext) {
                     MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact, mode = mode) {
@@ -265,7 +261,7 @@ class SubgraphEditorMountTest {
                         val appearance = palette.copy(canvas = colors.canvas, card = colors.surface, text = colors.textStrong, muted = colors.textMuted, line = colors.line)
                         SubgraphEditor(searchInput, documents, appearance, { "new-view" },
                             { next, expected -> writes += next to expected; documents = listOf(next) }, Modifier.fillMaxSize(),
-                            sourceGraph = input, sourceLevels = prepared,
+                            sourceGraph = input, sourceLayout = prepared,
                             sourceCardLook = { node ->
                                 suppliedNodes[node.id] = node
                                 BlueprintCardLook(Color.Blue, SurfaceGraphSymbol, node.label, "${node.type} · ${node.attributes.getValue("fact")}",
@@ -300,19 +296,18 @@ class SubgraphEditorMountTest {
                 settle(scene)
             }
             fun assertGeometry() {
-                val expected = paintMap(levels, levels.at(canvas.zoom)).layout
+                val expected = full
                 assertEquals(expected.cards.values.toList(), canvas.extent.filterIsInstance<Card>())
                 assertEquals(expected.frames, canvas.extent.filterIsInstance<Frame>())
-                assertSame(full, levels.full)
-                assertEquals(cards.associateBy { it.id }, levels.full.cards)
-                assertEquals(listOf(firstLink, secondLink, projectedLink, route), levels.full.links)
-                assertEquals(listOf(first.id, second.id, projected.id, hop.id), levels.full.links.flatMap { it.members })
-                assertFalse(levels.full.links.any { routeId in it.members })
+                assertEquals(cards.associateBy { it.id }, full.cards)
+                assertEquals(listOf(firstLink, secondLink, projectedLink, route), full.links)
+                assertEquals(listOf(first.id, second.id, projected.id, hop.id), full.links.flatMap { it.members })
+                assertFalse(full.links.any { routeId in it.members })
                 assertEquals(view.nodes.values.toSet(), suppliedNodes.filterKeys { it in view.nodes }.values.toSet())
                 for ((id, node) in suppliedNodes) assertEquals(source.nodes.single { it.id == id }, node)
                 for (link in full.links) assertTrue(link in suppliedLinks, "Full raw relationship must reach the supplied style")
                 for (node in view.nodes.values) assertEquals(node.ports.map { Triple(it.key, it.type, it.provides) },
-                    levels.full.cards.getValue(node.id).pins.map { Triple(it.key, it.type, it.provides) })
+                    full.cards.getValue(node.id).pins.map { Triple(it.key, it.type, it.provides) })
             }
             var routeProbe: Offset? = null
             val routeFrames = mutableListOf<java.awt.image.BufferedImage>()

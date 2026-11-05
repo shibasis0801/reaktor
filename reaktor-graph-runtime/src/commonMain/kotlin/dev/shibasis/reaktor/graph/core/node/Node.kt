@@ -43,10 +43,10 @@ sealed class Node(
     override val coroutineDispatcher get() = concurrencyCapability.coroutineDispatcher
 
     override fun close() {
+        concurrencyCapability.close()
+        lifecycleCapability.close()
         consumerPorts.flattenedValues().forEach { it.close() }
         providerPorts.flattenedValues().forEach { it.close() }
-        lifecycleCapability.close()
-        concurrencyCapability.close()
     }
 
     interface Stateful<State> {

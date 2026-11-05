@@ -29,7 +29,7 @@ class RawRouteTraceContextTest {
                 RawTraceResponse()
             }
         })
-        val app = Hono().get("/raw") { served.call(RawInspect().inspect, RawTraceRequest()); text("ok") }
+        val app = Hono().get("/raw", Fixture) { served.call(RawInspect().inspect, RawTraceRequest()); text("ok") }
         val request: dynamic = js("new Request('https://fixture.invalid/raw', {headers:{traceparent:'00-11111111111111111111111111111111-2222222222222222-01', baggage:'reaktor-session=raw-session'}})")
         val response = app.fetch(request, js("({})"), js("({waitUntil:function(){}})")).unsafeCast<Promise<dynamic>>().await()
         assertEquals(200, response.status as Int)
@@ -41,7 +41,7 @@ class RawRouteTraceContextTest {
 
     @Test fun malformedIdentityCannotCreateRawRouteContext() = GlobalScope.promise {
         var observed: ServiceCall? = null
-        val app = Hono().get("/raw") { observed = currentCoroutineContext()[ServiceCall]; text("ok") }
+        val app = Hono().get("/raw", Fixture) { observed = currentCoroutineContext()[ServiceCall]; text("ok") }
         val request: dynamic = js("new Request('https://fixture.invalid/raw', {headers:{traceparent:'00-00000000000000000000000000000000-2222222222222222-01', baggage:'reaktor-session=private@example.invalid'}})")
         app.fetch(request, js("({})"), js("({waitUntil:function(){}})")).unsafeCast<Promise<dynamic>>().await()
         assertNull(observed)
@@ -49,7 +49,7 @@ class RawRouteTraceContextTest {
 
     @Test fun concurrentRawCallbacksRetainSeparateSessionsAcrossSuspension() = GlobalScope.promise {
         val seen = mutableMapOf<String, Pair<String, String?>>()
-        val app = Hono().get("/raw") {
+        val app = Hono().get("/raw", Fixture) {
             val before = assertNotNull(currentCoroutineContext()[ServiceCall])
             delay(1)
             val after = assertNotNull(currentCoroutineContext()[ServiceCall])
@@ -68,6 +68,8 @@ class RawRouteTraceContextTest {
         for (n in 1..8) assertEquals(n.toString(16).padStart(32, '0') to n.toString(16).padStart(32, '0'), seen["raw-$n"])
     }
 }
+
+private val Fixture = RouteGate.Public("fixture")
 
 @Serializable private class RawTraceRequest : Request()
 @Serializable private class RawTraceResponse : Response()

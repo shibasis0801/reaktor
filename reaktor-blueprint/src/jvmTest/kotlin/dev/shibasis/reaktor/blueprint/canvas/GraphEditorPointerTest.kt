@@ -324,7 +324,7 @@ class GraphEditorPointerTest {
                 Box(Modifier.fillMaxSize().padding(start = 160.dp, top = 47.dp)) {
                     GraphView(null, state, { _, _, _ -> true }, { _, _, _ -> true }, editing = editor, markers = {
                         GraphMarkers(state, listOf(card), { "card" }) { _, _ ->
-                            CardMarker(card, BlueprintCardLook(Color.Black, icon, "Card title", "Subtitle"), false, { _, _ -> null }, {}, null)
+                            CardMarker(card, BlueprintCardLook(Color.Black, icon, "Card title", "Subtitle"), { _, _ -> null }, {}, null)
                         }
                     }, draw = { _, _, _ -> })
                 }

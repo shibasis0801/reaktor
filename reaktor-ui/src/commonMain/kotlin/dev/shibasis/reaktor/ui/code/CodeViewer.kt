@@ -1,7 +1,6 @@
 package dev.shibasis.reaktor.ui.code
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 
@@ -21,8 +20,10 @@ fun CodeViewer(
     showGutter: Boolean = true,
     showStatusBar: Boolean = false,
     tag: String = "code-viewer",
+    presentation: CodePresentation = CodePresentation.Source,
 ) {
-    val state = remember(tag) { CodeEditorState("", language, "reaktor://view/$tag", readOnly = true) }
-    LaunchedEffect(text, language) { state.load(text, language) }
+    val state = remember(tag) { CodeEditorState(text, language, "reaktor://view/$tag", readOnly = true) }
+    state.presentation = presentation
+    remember(state, text, language) { state.update(text, language) }
     CodeEditor(state, modifier, showGutter = showGutter, showStatusBar = showStatusBar, tag = tag)
 }

@@ -50,7 +50,7 @@ class BlueprintPaintedPinsTest {
                     edt {
                         val painter = (canvas.reading as kotlin.jvm.internal.CallableReference).boundReceiver as BlueprintPainter
                         val rows = painter.reading()[BlueprintTier.Detail] == 1
-                        assertEquals(rows, painter.rows(card.id, .05), "Paint/hit mismatch at $zoom / $density")
+                        assertEquals(rows, painter.drawn(card.id), "Paint/hit mismatch at $zoom / $density")
                         val hits = scene.semanticsOwners.flatMap { walk(it.unmergedRootSemanticsNode) }
                             .filter { it.config.getOrNull(SemanticsProperties.TestTag) == "record-provides-KNOWS" }
                         assertEquals(if (rows) 1 else 0, hits.size, "Missing painted pin at $zoom / $density")

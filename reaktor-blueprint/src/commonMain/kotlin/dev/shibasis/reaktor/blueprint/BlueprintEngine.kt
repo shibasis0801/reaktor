@@ -558,7 +558,7 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
         fun crosses(edge: FrameEdge) = rootOf[edge.from] != rootOf[edge.to]
         overlays = if (merged.none { it.kind == LinkKind.Wire && crosses(it) }) emptySet()
             else merged.filter { it.kind == LinkKind.Route && crosses(it) }.mapTo(HashSet()) { it.id }
-        joined = merged
+        joined = merged.map { edge -> if (edge.id in overlays) edge.copy(curved = true) else edge }
         fun chain(id: String) = generateSequence(groupOf[id]) { parentOf[it] }
         joined.forEach { edge ->
             val source = rootOf[edge.from] ?: return@forEach
@@ -839,8 +839,6 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
                 block.group.nodes.filter { it.inner == null && it.id in cards }.mapTo(LinkedHashSet()) { it.id }, block.group.detail, block.group.muted, lanes = block.group.mode, loose = block.group.loose)
         }
         val boxes = nested.associateBy { it.key }
-        val boundaries = roots.associateBy { it.key }
-        val trunks = HashMap<Pair<String?, String?>, List<Pair<Double, Double>>>()
         fun middle(id: String) = if (id in cards) BlueprintEngine.HeaderHeight / 2 else BlueprintEngine.FrameTop / 2
         joined.forEach { edge ->
             if (edge.id in routed) return@forEach
@@ -850,23 +848,9 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
             val end = BlueprintEngine.anchorIn(to, edge.toPort, false, middle(edge.to))
             val source = rootOf[edge.from]
             val target = rootOf[edge.to]
-            val departure = if (!edge.curved && source != target) leg(keyed, origins, source, edge.id, true) else null
-            val arrival = if (!edge.curved && source != target) leg(keyed, origins, target, edge.id, false) else null
-            val trunk = if (!options.bundles && departure != null && arrival != null) {
-                val fromFrame = boundaries.getValue(checkNotNull(source))
-                val toFrame = boundaries.getValue(checkNotNull(target))
-                val margin = BlueprintEngine.CardGap / 2
-                BlueprintEngine.openRoute(fromFrame.x + fromFrame.width + margin to departure.last().second,
-                    toFrame.x - margin to arrival.first().second, roots)
-            }
-            else flow?.trunks?.get(source to target)?.takeIf { !edge.curved && it.size >= 2 }
-                ?: if (departure != null && arrival != null) trunks.getOrPut(source to target) {
-                    val fromFrame = boundaries.getValue(checkNotNull(source))
-                    val toFrame = boundaries.getValue(checkNotNull(target))
-                    val margin = BlueprintEngine.CardGap / 2
-                    BlueprintEngine.openRoute(fromFrame.x + fromFrame.width + margin to departure.last().second,
-                        toFrame.x - margin to arrival.first().second, roots)
-                } else null
+            val trunk = flow?.trunks?.get(source to target)?.takeIf { !edge.curved && source != target && it.size >= 2 }
+            val departure = trunk?.let { leg(keyed, origins, source, edge.id, true) }
+            val arrival = trunk?.let { leg(keyed, origins, target, edge.id, false) }
             links += if (trunk != null && departure != null && arrival != null) Link(edge.id, edge.from, edge.to, edge.fromPort, edge.toPort, edge.kind, edge.members,
                 BlueprintEngine.stitch(listOf(departure, trunk, arrival)), cross = true, reversed = edge.reversed, family = edge.family)
             else Link(edge.id, edge.from, edge.to, edge.fromPort, edge.toPort, edge.kind, edge.members, BlueprintEngine.bezier(start, end),

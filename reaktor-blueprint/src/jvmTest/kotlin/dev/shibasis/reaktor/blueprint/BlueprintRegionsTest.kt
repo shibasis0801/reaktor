@@ -123,13 +123,6 @@ class BlueprintRegionsTest {
             assertEquals(440.0, prose.width)
             assertEquals(expected.getValue("prose").pinHeader + 301.0, prose.height)
             assertEquals(original.cards.getValue("prose").pins, prose.pins)
-            val callsAtPrepare = calls.toList()
-            val levels = measured.blueprintMapLevels()
-            for (zoom in listOf(.01, .1, .5, 1.0, 2.0, 16.0)) {
-                levels.at(zoom)
-                assertSame(measured, levels.full)
-                assertEquals(callsAtPrepare, calls)
-            }
         }
     }
 
@@ -183,19 +176,14 @@ class BlueprintRegionsTest {
             assertEquals(BlueprintEngine.anchor(folded.cards, link.to, link.toPort, false), link.points.last(), "consumer ${wire.id}")
         }
         assertPartition(full.links, folded)
-        val levels = BlueprintMapLevels.prepare(folded, titleZoom = { 1.0 })
-        var expanded = emptySet<String>()
-        for (zoom in listOf(.01, .1, .5, 1.2, 2.0, 16.0)) {
-            val cut = levels.at(zoom, expanded)
-            expanded = cut.expanded
-            assertSame(folded, levels.full)
-            cut.layout.cards.filterKeys { it in retained }.forEach { (id, card) -> assertSame(folded.cards.getValue(id), card) }
-            assertEquals(graph.wiresById.keys, cut.layout.links.flatMap { it.members }.toSet() + cut.layout.foldedLinks.keys)
+        run {
+            val cut = folded
+            cut.cards.filterKeys { it in retained }.forEach { (id, card) -> assertSame(folded.cards.getValue(id), card) }
+            assertEquals(graph.wiresById.keys, cut.links.flatMap { it.members }.toSet() + cut.foldedLinks.keys)
             assertEquals(cards, full.cards)
             assertEquals(routes, full.links.associate { it.id to it.points })
             assertEquals(preparedLayouts, layouts)
         }
-        assertSame(folded, levels.at(16.0).layout)
     }
 
     private fun assertPartition(source: List<Link>, folded: BlueprintLayout<String>) {

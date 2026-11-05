@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.cloudflare
 
+import dev.shibasis.reaktor.auth.graph.RouteKind
+import dev.shibasis.reaktor.auth.kernel.AuthContext
 import dev.shibasis.reaktor.core.framework.toUint8Array
 import dev.shibasis.reaktor.core.framework.toByteArray
 import dev.shibasis.reaktor.core.framework.json
@@ -110,6 +112,7 @@ class CloudflareHttpRequest internal constructor(
 
 class CloudflareRouteContext internal constructor(
     private val hono: HonoContext,
+    val caller: AuthContext? = null,
 ) {
     val request: CloudflareHttpRequest = CloudflareHttpRequest(hono.req.raw.unsafeCast<RawWorkerRequest>())
     val cloudflare: CloudflareContext = CloudflareContext(hono.env, hono.executionCtx, hono)
@@ -195,46 +198,67 @@ class CloudflareRouteContext internal constructor(
 fun Hono.handle(
     method: String,
     path: String,
+    gate: RouteGate,
     handler: suspend CloudflareRouteContext.() -> Any,
-): Hono = on(method, path) { context ->
-    val headers = context.req.header()
-    val trace = TraceContext.parse(headers[TraceContext.Header] as? String)
-    val session = ServiceCall.sessionFromBaggage(headers["baggage"] as? String)
-    val call = trace?.let { ServiceCall(it, null, if (session == null) emptyMap() else mapOf(ServiceCall.SessionAttribute to session)) }
-    GlobalScope.promise((call ?: EmptyCoroutineContext) + requestContext(context.req.raw)) {
-        handler(CloudflareRouteContext(context))
+): Hono {
+    val respond: (HonoContext) -> dynamic = { context ->
+        val headers = context.req.header()
+        val trace = TraceContext.parse(headers[TraceContext.Header] as? String)
+        val session = ServiceCall.sessionFromBaggage(headers["baggage"] as? String)
+        val call = trace?.let { ServiceCall(it, null, if (session == null) emptyMap() else mapOf(ServiceCall.SessionAttribute to session)) }
+        GlobalScope.promise((call ?: EmptyCoroutineContext) + requestContext(context.req.raw)) {
+            val admission = gate.admit(context.req.raw, context.env, method, path)
+            admission.refusal?.let(::refusedResponse) ?: handler(CloudflareRouteContext(context, admission.caller))
+        }
     }
+    return on(method, path, respond.marked(RouteKind.Raw, gate))
+}
+
+@OptIn(DelicateCoroutinesApi::class)
+fun Hono.on(
+    method: String,
+    path: String,
+    gate: RouteGate,
+    handler: (HonoContext) -> dynamic,
+): Hono {
+    val respond: (HonoContext) -> dynamic = { context ->
+        GlobalScope.promise(requestContext(context.req.raw)) {
+            val admission = gate.admit(context.req.raw, context.env, method, path)
+            admission.refusal?.let(::refusedResponse) ?: Promise.resolve(handler(context).unsafeCast<Any>()).await()
+        }
+    }
+    return on(method, path, respond.marked(RouteKind.Raw, gate))
 }
 
 fun Hono.get(
     path: String,
+    gate: RouteGate,
     handler: suspend CloudflareRouteContext.() -> Any,
-): Hono = handle("GET", path, handler)
+): Hono = handle("GET", path, gate, handler)
 
 fun Hono.post(
     path: String,
+    gate: RouteGate,
     handler: suspend CloudflareRouteContext.() -> Any,
-): Hono = handle("POST", path, handler)
+): Hono = handle("POST", path, gate, handler)
 
 fun Hono.put(
     path: String,
+    gate: RouteGate,
     handler: suspend CloudflareRouteContext.() -> Any,
-): Hono = handle("PUT", path, handler)
+): Hono = handle("PUT", path, gate, handler)
 
 fun Hono.patch(
     path: String,
+    gate: RouteGate,
     handler: suspend CloudflareRouteContext.() -> Any,
-): Hono = handle("PATCH", path, handler)
+): Hono = handle("PATCH", path, gate, handler)
 
 fun Hono.delete(
     path: String,
+    gate: RouteGate,
     handler: suspend CloudflareRouteContext.() -> Any,
-): Hono = handle("DELETE", path, handler)
-
-fun Hono.head(
-    path: String,
-    handler: suspend CloudflareRouteContext.() -> Any,
-): Hono = handle("HEAD", path, handler)
+): Hono = handle("DELETE", path, gate, handler)
 
 @PublishedApi
 internal fun workerResponse(

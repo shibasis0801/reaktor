@@ -1,7 +1,6 @@
 package dev.shibasis.reaktor.blueprint
 
 import androidx.compose.ui.unit.IntSize
-import dev.shibasis.reaktor.blueprint.canvas.Area
 import dev.shibasis.reaktor.blueprint.canvas.GraphCanvasState
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -153,17 +152,13 @@ class NavigationCameraTest {
         }
     }
 
-    @Test fun repeatedFitWithStablePaintedBoundsIgnoresThePreviousCamera() {
+    @Test fun repeatedFitIgnoresThePreviousCamera() {
         for (density in listOf(1.0, 2.0)) {
             val camera = GraphCanvasState(.002..16.0)
             camera.density(density)
             camera.insetStart = 80.0; camera.insetEnd = 240.0
             camera.insetTop = 32.0; camera.insetBottom = 64.0
             camera.resize(IntSize((1100 * density).toInt(), (800 * density).toInt()))
-            camera.paintedBounds = { box, zoom ->
-                listOf(Area(box.x - 80.0 / zoom, box.y - 28.0 / zoom,
-                    box.width + 200.0 / zoom, box.height + 56.0 / zoom))
-            }
             camera.fit(0.0, 0.0, 54000.0, 57000.0, minZoom = 0.0)
             val fit = camera.viewport()
             for (zoom in listOf(.1, 4.0, 16.0)) {

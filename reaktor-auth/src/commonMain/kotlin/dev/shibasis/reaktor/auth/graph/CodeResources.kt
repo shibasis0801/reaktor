@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.auth.graph
 import dev.shibasis.reaktor.auth.fga.ObjectRef
 import dev.shibasis.reaktor.auth.fga.RelationTuple
 import dev.shibasis.reaktor.auth.fga.Subject
+import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.graph.core.GraphShape
 import dev.shibasis.reaktor.graph.core.IslandShape
 import dev.shibasis.reaktor.graph.core.NodeKind
@@ -14,6 +15,7 @@ import dev.shibasis.reaktor.service.ServiceExecutionPhase
 import dev.shibasis.reaktor.service.contract.descriptors
 import dev.shibasis.reaktor.service.ServiceAccess
 import dev.shibasis.reaktor.service.contract.Service
+import kotlinx.serialization.builtins.ListSerializer
 
 fun CodeAccess.resources(shape: GraphShape, rootLabel: String? = null): CodeResources {
     val scopes = shape.scopes.associateBy { it.id }
@@ -67,9 +69,14 @@ private fun CodeAccess.within(parent: ObjectRef, island: String, scopes: List<St
 private fun CodeAccess.island(parent: ObjectRef, shape: IslandShape): CodeResources {
     val graph = within(parent, shape.island, shape.graph.scopes.filter { it.parent == null }.map { it.id })
     val servers = shape.graph.nodes.filter { it.kind == NodeKind.Service && it.attributes["role"] == ServerRole && contractOf(it) != null }
+    val routes = shape.graph.nodes.firstNotNullOfOrNull { it.attributes[ServedRoute.Attribute] }?.let(::servedRoutes).orEmpty()
+        .map { CodeRoute(route(shape.island, it.method, it.path), graph.ref, it) }
     return CodeResources(listOf(graph), servers.groupBy { requireNotNull(contractOf(it)) }.map { (contract, nodes) -> serviceOf(contract, nodes, listOf(graph.ref)) }
-        .sortedBy { it.ref.id })
+        .sortedBy { it.ref.id }, routes)
 }
+
+private fun servedRoutes(encoded: String): List<ServedRoute> =
+    runCatching { json.decodeFromString(ListSerializer(ServedRoute.serializer()), encoded) }.getOrDefault(emptyList())
 
 private fun CodeAccess.nested(parent: ObjectRef, shape: IslandShape): CodeResources =
     island(parent, shape).let { here -> shape.objects.fold(here) { all, inner -> all + nested(here.graphs.first().ref, inner) } }
@@ -112,10 +119,11 @@ private fun CodeAccess.admitted(contract: String, access: ServiceAccess, operati
 
 fun CodeResources.at(island: ObjectRef): CodeResources =
     CodeResources(generateSequence(graph(island)) { it.parent?.let(::graph) }.toList().asReversed(),
-        services.filter { island in it.graphs }.map { it.copy(graphs = listOf(island)) })
+        services.filter { island in it.graphs }.map { it.copy(graphs = listOf(island)) }, routes.filter { it.graph == island })
 
 operator fun CodeResources.plus(other: CodeResources): CodeResources =
-    CodeResources((graphs + other.graphs).distinctBy { it.ref }, (services + other.services).groupBy { it.ref }.map { (_, same) -> same.reduce(CodeService::with) })
+    CodeResources((graphs + other.graphs).distinctBy { it.ref }, (services + other.services).groupBy { it.ref }.map { (_, same) -> same.reduce(CodeService::with) },
+        (routes + other.routes).distinctBy { it.ref })
 
 private fun CodeService.with(more: CodeService): CodeService =
     copy(roles = roles + more.roles, graphs = (graphs + more.graphs).distinct(), nodes = (nodes + more.nodes).distinct(),

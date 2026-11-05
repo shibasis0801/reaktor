@@ -214,7 +214,7 @@ fun LegacyTooltipFrame(text: String) = Box(
 ) {
     Text(
         text = text,
-        color = MachineSignal.Editor.Text,
+        color = MachineSignal.Editor.Body,
         fontFamily = LocalMachineSignalFonts.current.ui,
         fontSize = MachineSignal.Editor.label,
         lineHeight = MachineSignal.Editor.label * MachineSignal.Editor.lineHeight,

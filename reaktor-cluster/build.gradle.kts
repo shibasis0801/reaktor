@@ -9,7 +9,7 @@ plugins { id("dev.shibasis.dependeasy.library") }
 library(namespace = "dev.shibasis.reaktor.cluster", targets = Targets.Android + Targets.Jvm) {
     dependencies {
         common {
-            api(Reaktor.Core, Reaktor.GraphRuntime)
+            api(Reaktor.Core, Reaktor.GraphRuntime, Reaktor.Service)
             commonCoroutines()
             commonSerialization(protobuf = false)
         }

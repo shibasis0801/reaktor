@@ -17,6 +17,7 @@ import kotlin.js.JsStatic
 import dev.shibasis.reaktor.auth.kernel.AuthDefaults
 import dev.shibasis.reaktor.service.Callers
 import dev.shibasis.reaktor.service.ServiceAccess
+import dev.shibasis.reaktor.service.contract.Idempotency
 import dev.shibasis.reaktor.service.contract.Service
 
 @JsExport
@@ -342,7 +343,7 @@ open class AuthService : Service("reaktor.auth") {
 
     open val anonymous by post<AnonymousAuthRequest, LoginResponse>("/auth/anonymous")
     open val login by post<LoginRequest, LoginResponse>("/auth/sign-in")
-    open val token by post<TokenRequest, TokenResponse>("/auth/token")
+    open val token by post<TokenRequest, TokenResponse>("/auth/token", idempotency = Idempotency.Natural)
     open val mintPat by post<MintPatRequest, MintPatResponse>("/auth/pat/mint")
     open val verifyPat by post<VerifyPatRequest, VerifyPatResponse>("/auth/pat/verify")
     open val sessionRefresh by post<RefreshRequest, RefreshResponse>("/auth/session/refresh")

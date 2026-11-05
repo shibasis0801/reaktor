@@ -6,13 +6,17 @@ import dev.shibasis.reaktor.auth.fga.RelationTuple
 import dev.shibasis.reaktor.auth.fga.Subject
 import dev.shibasis.reaktor.auth.graph.CodeAccess
 import dev.shibasis.reaktor.auth.graph.CodeAccessPolicy
+import dev.shibasis.reaktor.auth.graph.ServedRoute
 import dev.shibasis.reaktor.auth.graph.at
 import dev.shibasis.reaktor.auth.graph.island
 import dev.shibasis.reaktor.auth.graph.islands
 import dev.shibasis.reaktor.graph.remote
 import dev.shibasis.reaktor.graph.serve
 import dev.shibasis.reaktor.graph.core.Graph
+import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.graph.core.IslandShape
+import dev.shibasis.reaktor.graph.core.NodeKind
+import dev.shibasis.reaktor.graph.core.NodeShape
 import dev.shibasis.reaktor.graph.core.shape
 import dev.shibasis.reaktor.service.Callers
 import dev.shibasis.reaktor.service.Request
@@ -20,6 +24,7 @@ import dev.shibasis.reaktor.service.Response
 import dev.shibasis.reaktor.service.ServiceAccess
 import dev.shibasis.reaktor.service.contract.Service
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -95,6 +100,21 @@ class IslandAccessTest {
         val stored = grant("graph:bestbuds/chat#operator@user:cy", "graph:bestbuds/social#operator@user:dee")
         assertTrue(CodeAccessPolicy(model, stored, runtime).lets("cy", "kiosk", "browse"))
         assertFalse(CodeAccessPolicy(model, stored, runtime).lets("dee", "kiosk", "browse"))
+    }
+
+    @Test fun theRoutesAnIslandServesOutsideItsContractsBecomeRoutesNamedAsTheirDecisionsAre() {
+        val served = listOf(ServedRoute("POST", "/*", gate = "signed in"), ServedRoute("GET", "/health", gate = "liveness", public = true), ServedRoute("GET", "/open"))
+        val plain = shape("media", PostboxServer())
+        val routes = NodeShape("routes", plain.graph.scopes.first().id, "HTTP routes", "WorkerRoutes", NodeKind.Node,
+            attributes = mapOf(ServedRoute.Attribute to json.encodeToString(ListSerializer(ServedRoute.serializer()), served)))
+        val media = ObjectRef(CodeAccess.Graph, "bestbuds/media")
+        val resources = CodeAccess.islands("BestBuds", listOf(plain.copy(graph = plain.graph.copy(nodes = plain.graph.nodes + routes))))
+        assertEquals(listOf("route:media/POST/*", "route:media/GET/health", "route:media/GET/open"), resources.routes.map { it.ref.toString() })
+        assertEquals(listOf(media), resources.routes.map { it.graph }.distinct())
+        assertEquals(listOf("route:media/GET/open"), resources.routes.filterNot { it.served.gated }.map { it.ref.toString() })
+        assertEquals(resources.routes, resources.at(media).routes)
+        assertEquals(emptyList(), CodeAccess.islands("BestBuds", listOf(plain)).routes)
+        assertEquals(CodeAccessPolicy(model, emptyList(), CodeAccess.islands("BestBuds", listOf(plain))).digest, CodeAccessPolicy(model, emptyList(), resources).digest)
     }
 }
 

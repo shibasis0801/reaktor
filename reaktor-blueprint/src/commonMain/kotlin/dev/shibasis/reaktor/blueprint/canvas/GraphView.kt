@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -93,7 +94,7 @@ internal fun GraphView(
     enterOpens: Boolean = false,
     focusable: Boolean = true,
     editing: CanvasEditing? = null,
-    projectedHit: ((Float, Float, Float) -> Boolean)? = null,
+    preempt: ((Float, Float, Float) -> Boolean)? = null,
     markers: @Composable (focus: () -> Unit) -> Unit = {},
     draw: DrawScope.(Viewport, Size, Float) -> Unit,
 ) {
@@ -114,7 +115,7 @@ internal fun GraphView(
     val selected by rememberUpdatedState(selection)
     val steps by rememberUpdatedState(step)
     val edit by rememberUpdatedState(editing)
-    val projection by rememberUpdatedState(projectedHit)
+    val preempting by rememberUpdatedState(preempt)
     val world = remember(flow) { { point: Offset -> flow.screenToFlowPosition(point.x.toDouble(), point.y.toDouble()).let { it.x.toFloat() to it.y.toFloat() } } }
     val reach = { (Reach / state.zoom).toFloat() }
     val pointer = remember { arrayOfNulls<Offset>(1) }
@@ -220,7 +221,7 @@ internal fun GraphView(
                     }
                 }
                 .flowViewportGestures(flow, interaction, config, bridge, onPaneClick = paneClick, onPaneTap = paneTap)
-                .then(if (editing == null) Modifier else Modifier.pointerInput(editing, world) { edits(editing, world, origin, reach, space, { x, y, distance -> projection?.invoke(x, y, distance) == true }) { at -> state.zoomAt(2.0, at.x / density.toDouble(), at.y / density.toDouble()) } })
+                .then(if (editing == null) Modifier else Modifier.pointerInput(editing, world) { edits(editing, world, origin, reach, space, { x, y, distance -> preempting?.invoke(x, y, distance) == true }) { at -> state.zoomAt(2.0, at.x / density.toDouble(), at.y / density.toDouble()) } })
                 .drawBehind {
                     painter?.version?.intValue
                     painter?.inset(state.insetStart.toFloat(), state.insetTop.toFloat(), state.insetEnd.toFloat(), state.insetBottom.toFloat())
@@ -235,7 +236,7 @@ internal fun GraphView(
     } }
 }
 
-private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.edits(editing: CanvasEditing, world: (Offset) -> Pair<Float, Float>, origin: FloatArray, reach: () -> Float, space: BooleanArray, projectedHit: ((Float, Float, Float) -> Boolean)?, zoom: (Offset) -> Unit) {
+private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.edits(editing: CanvasEditing, world: (Offset) -> Pair<Float, Float>, origin: FloatArray, reach: () -> Float, space: BooleanArray, preempt: ((Float, Float, Float) -> Boolean)?, zoom: (Offset) -> Unit) {
     var last: Pair<TimeSource.Monotonic.ValueTimeMark, Offset>? = null
     var clicks = 0
     awaitPointerEventScope {
@@ -254,7 +255,7 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.edits(ed
                     if ((next.position - change.position).getDistance() > MenuSlop * density) moved = true
                     if (!next.pressed) break
                 }
-                if (!moved && projectedHit?.invoke(x, y, reach()) != true) editing.menu(x, y, window)
+                if (!moved) editing.menu(x, y, window)
                 continue
             }
             if (!touch && !event.buttons.isPrimaryPressed) continue
@@ -275,14 +276,14 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.edits(ed
                 continue
             }
             val selectedBefore = (editing as? GraphEditor)?.selection
-            val projected = projectedHit?.invoke(x, y, reach()) == true
-            if (!projected && !editing.press(x, y, window, reach(), event.keyboardModifiers, clicks, touch)) continue
+            val preempted = preempt?.invoke(x, y, reach()) == true
+            if (!preempted && !editing.press(x, y, window, reach(), event.keyboardModifiers, clicks, touch)) continue
             if (!touch) change.consume()
             while (true) {
                 var nextEvent = awaitPointerEvent()
                 if (touch && nextEvent.changes.count { it.pressed } > 1) {
                     if (editing is GraphEditor && selectedBefore != null) editing.cancelPointer(selectedBefore)
-                    else if (!projected) editing.invoke(CommandId("edit-escape"))
+                    else if (!preempted) editing.invoke(CommandId("edit-escape"))
                     last = null
                     while (nextEvent.changes.any { it.pressed }) nextEvent = awaitPointerEvent()
                     break
@@ -290,8 +291,8 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.edits(ed
                 val next = nextEvent.changes.firstOrNull { it.id == change.id } ?: break
                 val (nx, ny) = world(next.position)
                 val at = Offset(origin[0], origin[1]) + next.position
-                if (!next.pressed) { if (!projected) editing.release(nx, ny, at); next.consume(); break }
-                if (next.positionChange() != Offset.Zero) { if (!projected) editing.drag(nx, ny, at); next.consume() }
+                if (!next.pressed) { if (!preempted) editing.release(nx, ny, at); next.consume(); break }
+                if (next.positionChange() != Offset.Zero) { if (!preempted) editing.drag(nx, ny, at); next.consume() }
             }
         }
     }
@@ -300,16 +301,31 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.edits(ed
 private class Shown(val indices: List<Int>, val view: Viewport, val zoom: Double)
 
 @Composable
-internal fun GraphMarkers(state: GraphCanvasState, boxes: List<Bounds>, id: (Int) -> Any, minZoom: Double = 0.0, content: @Composable (Int, Double) -> Unit) {
+internal fun GraphMarkers(state: GraphCanvasState, boxes: List<Bounds>, id: (Int) -> Any, minZoom: Double = 0.0, follow: Boolean = true, content: @Composable (Int, Double) -> Unit) {
     val flow = state.flow
     val ambient = LocalDensity.current
     val density = ambient.density
     var shown by remember(boxes, flow, density) { mutableStateOf<Shown?>(null) }
+    var rested by remember(flow) { mutableStateOf(flow.viewport) }
+    if (!follow) LaunchedEffect(flow) {
+        while (true) {
+            snapshotFlow { flow.viewport }.first { it != rested }
+            var last = flow.viewport
+            var still = 0
+            while (still < RestFrames) {
+                withFrameNanos { }
+                val now = flow.viewport
+                if (now == last) still++ else { last = now; still = 0 }
+            }
+            rested = last
+        }
+    }
     LaunchedEffect(boxes, flow, density) {
         var seen: Pair<Viewport, IntSize>? = null
         while (true) {
             var now = snapshotFlow { flow.viewport to flow.canvasSize }.first { it != seen }
-            if (seen != null) while (true) { delay(SettleMillis); val next = flow.viewport to flow.canvasSize; if (next == now) break; now = next }
+            val laidOut = seen?.second?.let { it.width > 0 && it.height > 0 } == true
+            if (laidOut) while (true) { delay(SettleMillis); val next = flow.viewport to flow.canvasSize; if (next == now) break; now = next }
             seen = now
             val (view, canvas) = now
             val scale = view.zoom
@@ -317,10 +333,11 @@ internal fun GraphMarkers(state: GraphCanvasState, boxes: List<Bounds>, id: (Int
             val left = -view.x / scale - mx; val top = -view.y / scale - my
             val right = (canvas.width - view.x) / scale + mx; val bottom = (canvas.height - view.y) / scale + my
             shown = Shown(if (scale / density < minZoom) emptyList() else boxes.indices.filter { boxes[it].let { box -> box.x < right && box.y < bottom && box.x + box.width > left && box.y + box.height > top } }, view, scale / density)
+            rested = view
         }
     }
     Box(Modifier.fillMaxSize().graphicsLayer {
-        val view = flow.viewport
+        val view = if (follow) flow.viewport else rested
         translationX = view.x.toFloat(); translationY = view.y.toFloat()
         scaleX = (view.zoom / density).toFloat(); scaleY = scaleX
         transformOrigin = TransformOrigin(0f, 0f)
@@ -367,6 +384,7 @@ internal fun Said(text: String) {
 }
 
 private const val SettleMillis = 100L
+private const val RestFrames = 3
 private const val Reach = 10.0
 private const val Pan = 120.0
 private const val DoubleTapSlop = 8f

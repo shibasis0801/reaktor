@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.cloudflare
 
+import dev.shibasis.reaktor.auth.graph.RouteKind
 import dev.shibasis.reaktor.graph.ContractRole
 import dev.shibasis.reaktor.graph.contracts
 import dev.shibasis.reaktor.graph.core.Graph
@@ -29,7 +30,8 @@ private class Mounted(val served: Served<*>, val call: Call<*, *>, val island: S
 
 private fun Hono.mount(routes: List<Mounted>): Hono = apply {
     routes.sortedWith(compareBy<Mounted>({ it.call.binding.specificity }, { it.served.service.id })).forEach { route ->
-        on(route.call.binding.method.name, route.call.binding.path.toHonoRoute()) { context -> route.served.respond(route.call, context, route.island) }
+        val respond: (HonoContext) -> dynamic = { context -> route.served.respond(route.call, context, route.island) }
+        on(route.call.binding.method.name, route.call.binding.path.toHonoRoute(), respond.marked(RouteKind.Contract))
     }
 }
 
@@ -37,8 +39,10 @@ private val Route.specificity: String get() = path.split('/').joinToString("") {
 
 fun Graph.toHono(): Hono = Hono().mount(this)
 
-fun Hono.fallback(served: Served<*>, call: Call<*, *>): Hono =
-    on(call.binding.method.name, "/*") { context -> served.respond(call, context, null) }
+fun Hono.fallback(served: Served<*>, call: Call<*, *>): Hono {
+    val respond: (HonoContext) -> dynamic = { context -> served.respond(call, context, null) }
+    return on(call.binding.method.name, "/*", respond.marked(RouteKind.Contract))
+}
 
 fun Served<*>.answers(request: CloudflareWorkerRequest): Boolean =
     request.httpMethod?.let { find(it, request.path) } != null

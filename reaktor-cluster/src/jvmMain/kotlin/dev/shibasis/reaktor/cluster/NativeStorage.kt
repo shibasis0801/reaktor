@@ -46,7 +46,7 @@ class NativeStorage(
     private val localWorktrees: Map<String, Boolean> = emptyMap(),
 ) {
     private val state = state.toAbsolutePath().normalize()
-    private val root = this.state.parent
+    private val root = ClusterLocations.workspace(this.state)
     private val json = Json { ignoreUnknownKeys = true }
     private val problems = linkedSetOf<String>()
     private fun <K, V> boundedCache(): MutableMap<K, V> = object : LinkedHashMap<K, V>(256, .75f, true) {
@@ -198,8 +198,9 @@ class NativeStorage(
     }
 
     private fun workspaceTemps(): List<Path> {
-        val projects = children(root).filter { directory(it) && !it.fileName.toString().startsWith('.') }
-        return (listOf(root) + projects).flatMap { base -> listOf("tmp", "temp", ".tmp").map(base::resolve) }
+        val workspaces = (listOf(root) + listOfNotNull(root.parent?.resolve("other")?.takeIf(::directory))).distinct()
+        val projects = workspaces.flatMap(::children).filter { directory(it) && !it.fileName.toString().startsWith('.') }
+        return (workspaces + projects).flatMap { base -> listOf("tmp", "temp", ".tmp").map(base::resolve) }
             .plus(listOf(home.resolve("tmp"), home.resolve(".codex/tmp"), home.resolve(".claude/tmp")))
             .filter(::directory).distinct()
     }

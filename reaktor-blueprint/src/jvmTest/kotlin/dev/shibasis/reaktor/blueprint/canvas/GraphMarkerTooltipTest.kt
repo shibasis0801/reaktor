@@ -54,7 +54,7 @@ class GraphMarkerTooltipTest {
                         focusable = true, markers = {
                             GraphMarkers(state, boxes, { it }) { _, _ ->
                                 CardMarker(card, BlueprintCardLook(Color.Black, icon, "Card title", "Subtitle", selected = selected,
-                                    pins = listOf(BlueprintPinLook(Color.Black, "port", Color.Black, true))), false,
+                                    pins = listOf(BlueprintPinLook(Color.Black, "port", Color.Black, true))),
                                     { _, _ -> BlueprintTip { BasicText("Port contract") } }, {}, { _, _ -> selected = true })
                             }
                         }, draw = { _, _, _ -> })

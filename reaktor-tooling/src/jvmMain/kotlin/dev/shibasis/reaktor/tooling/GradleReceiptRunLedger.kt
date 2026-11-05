@@ -32,7 +32,7 @@ class GradleReceiptRunLedger(private val root: File) : RunLedger {
     override suspend fun runs(workspaceId: WorkspaceId?, limit: Int): List<TaskRun> =
         if (workspaceId != null && workspaceId != workspace) emptyList() else entries(limit.coerceIn(0, 1000))
 
-    fun changes(): Flow<TaskRun> = callbackFlow {
+    fun changes(backlog: Int, runId: RunId? = null): Flow<List<TaskRun>> = callbackFlow {
         FileSystems.getDefault().newWatchService().use { watcher ->
             for (source in listOf(directory, deployments)) for (attempt in 1..3) {
                 try {
@@ -44,11 +44,10 @@ class GradleReceiptRunLedger(private val root: File) : RunLedger {
             }
             val delivered = mutableSetOf<RunId>()
             val job = launch(Dispatchers.IO) {
-                suspend fun deliver(file: File) {
-                    if (file.extension != "json") return
-                    for (run in read(file)) if (delivered.add(run.id)) send(run)
+                suspend fun deliver(runs: List<TaskRun>) {
+                    runs.filter { delivered.add(it.id) }.takeIf { it.isNotEmpty() }?.let { send(it) }
                 }
-                listOf(directory, deployments).flatMap { it.listFiles().orEmpty().toList() }.sortedBy { it.name }.forEach { deliver(it) }
+                deliver(recent(backlog, runId))
                 while (true) {
                     val key = try { runInterruptible { watcher.take() } }
                     catch (closed: java.nio.file.ClosedWatchServiceException) {
@@ -57,7 +56,8 @@ class GradleReceiptRunLedger(private val root: File) : RunLedger {
                     }
                     for (event in key.pollEvents()) {
                         val relative = event.context() as? java.nio.file.Path ?: continue
-                        deliver((key.watchable() as java.nio.file.Path).resolve(relative).toFile())
+                        val file = (key.watchable() as java.nio.file.Path).resolve(relative).toFile()
+                        if (file.extension == "json") deliver(read(file))
                     }
                     if (!key.reset()) break
                 }
@@ -67,8 +67,8 @@ class GradleReceiptRunLedger(private val root: File) : RunLedger {
     }
 
     override fun events(runId: RunId, afterSequence: Long): Flow<RunEvent> = flow {
-        changes().collect { run ->
-            if (run.id == runId) {
+        changes(1, runId).collect { runs ->
+            runs.filter { it.id == runId }.forEach { run ->
                 run.artifacts.forEachIndexed { index, artifact ->
                     if (index.toLong() > afterSequence) emit(RunEvent.ArtifactProduced(runId, index.toLong(),
                         run.finishedAtEpochMillis ?: run.createdAtEpochMillis, artifact))
@@ -82,13 +82,26 @@ class GradleReceiptRunLedger(private val root: File) : RunLedger {
 
     private fun entries(limit: Int, runId: RunId? = null): List<TaskRun> {
         if (limit == 0) return emptyList()
-        val selected = listOf(directory, deployments).flatMap { it.listFiles().orEmpty().toList() }
-            .filter { it.extension == "json" }
+        return digested(receipts()
             .also { require(it.size <= 10000) { "Receipt ledger exceeds its bounded read limit" } }
             .flatMap { read(it, includeDigest = false) }
             .filter { runId == null || it.id == runId }
-            .sortedByDescending { it.finishedAtEpochMillis }.take(limit)
-        // One receipt can supply several nodes; hash its evidence once, after selection.
+            .sortedByDescending { it.finishedAtEpochMillis }.take(limit))
+    }
+
+    private fun recent(limit: Int, runId: RunId? = null): List<TaskRun> {
+        val found = ArrayList<TaskRun>()
+        for (file in receipts().map { it to it.lastModified() }.sortedByDescending { it.second }.map { it.first }) {
+            if (found.size >= limit) break
+            read(file, includeDigest = false).filterTo(found) { runId == null || it.id == runId }
+        }
+        return digested(found.sortedByDescending { it.finishedAtEpochMillis }.take(limit))
+    }
+
+    private fun receipts(): List<File> =
+        listOf(directory, deployments).flatMap { it.listFiles().orEmpty().toList() }.filter { it.extension == "json" }
+
+    private fun digested(selected: List<TaskRun>): List<TaskRun> {
         val digests = mutableMapOf<String, String>()
         return selected.mapNotNull { run ->
             runCatching {

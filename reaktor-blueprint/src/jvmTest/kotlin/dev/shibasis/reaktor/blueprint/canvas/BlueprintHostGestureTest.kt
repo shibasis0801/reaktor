@@ -47,7 +47,7 @@ import kotlin.test.assertTrue
 import kotlin.test.assertNull
 
 class BlueprintHostGestureTest {
-    private class Host(val density: Float, editable: Boolean, projected: Boolean = false, bridge: FlowViewportPlatformBridge? = null) : AutoCloseable {
+    private class Host(val density: Float, editable: Boolean, preempted: Boolean = false, bridge: FlowViewportPlatformBridge? = null) : AutoCloseable {
         val editor = GraphEditor(GraphShape(listOf(ScopeShape("scope", "Scope")),
             listOf(NodeShape("node", "scope", "Node", "Node", NodeKind.Service)), emptyList(), emptyList()),
             Placement(mapOf("node" to Spot(0.0, 0.0)))).apply {
@@ -62,7 +62,7 @@ class BlueprintHostGestureTest {
         private val scene = ImageComposeScene((1100 * density).toInt(), (800 * density).toInt(), Density(density), coroutineContext = Dispatchers.Swing) {
             ProvideFlowViewportPlatformBridge(bridge) {
                 GraphView(null, canvas, { _, _, _ -> true }, { _, _, _ -> true }, editing = editor.takeIf { editable },
-                    projectedHit = if (projected) { _, _, _ -> editor.select(Selection(setOf("node"))); true } else null,
+                    preempt = if (preempted) { _, _, _ -> editor.select(Selection(setOf("node"))); true } else null,
                     markers = { focus -> LaunchedEffect(Unit) { focus() } }, draw = { _, _, _ -> })
             }
         }
@@ -257,8 +257,8 @@ class BlueprintHostGestureTest {
         }
     }
 
-    private suspend fun pinch(editable: Boolean, projected: Boolean = false, drag: Boolean = false, capture: Boolean = false) {
-        for (density in listOf(1f, 2f)) Host(density, editable, projected).use { host ->
+    private suspend fun pinch(editable: Boolean, preempted: Boolean = false, drag: Boolean = false, capture: Boolean = false) {
+        for (density in listOf(1f, 2f)) Host(density, editable, preempted).use { host ->
             host.start(); val at = host.anchor; val before = host.world(at); val zoom = host.canvas.zoom
             if (capture) host.editor.pick(EditorTool.Box)
             val shape = host.editor.shape; val placement = host.editor.placement
@@ -282,7 +282,7 @@ class BlueprintHostGestureTest {
 
     @Test fun editableTwoPointerPinchPreservesItsCentroidAndSource() = runBlocking(Dispatchers.Swing) { pinch(true) }
 
-    @Test fun projectedTwoPointerPinchPreservesTheOriginalSelection() = runBlocking(Dispatchers.Swing) { pinch(true, projected = true) }
+    @Test fun preemptedTwoPointerPinchPreservesTheOriginalSelection() = runBlocking(Dispatchers.Swing) { pinch(true, preempted = true) }
 
     @Test fun aSecondTouchCancelsTheUncommittedNodeDrag() = runBlocking(Dispatchers.Swing) { pinch(true, drag = true) }
 

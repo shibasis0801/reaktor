@@ -251,6 +251,7 @@ class GraphEditor(
         private set
     var focus by mutableStateOf<String?>(null)
         private set
+    var hides by mutableStateOf<Set<String>>(emptySet())
     var system: SystemClipboard? = null
     var onSelect: (String?) -> Unit = {}
     var onOpen: (String) -> Unit = {}
@@ -366,12 +367,13 @@ class GraphEditor(
         val routes = routeRevision
         val shown = if (showChanges) diff else null
         val view = Triple(folded, focus, opened)
-        val last = built?.takeIf { it.shape === this.shape && it.diff === shown && it.view == view && it.routing == routing && it.measurementRevision == measured && ((folded.isEmpty() && opened.isEmpty()) || it.placement.notes == this.placement.notes) }
+        val hidden = hides
+        val last = built?.takeIf { it.shape === this.shape && it.diff === shown && it.view == view && it.hidden == hidden && it.routing == routing && it.measurementRevision == measured && ((folded.isEmpty() && opened.isEmpty()) || it.placement.notes == this.placement.notes) }
         (if (last != null) moved(last, this.placement, movedCards.takeIf { last.routeRevision != routes }.orEmpty())
             else avoidMoved(scene(this.shape, this.placement, shown), movedCards.takeIf { built?.routeRevision != routes }.orEmpty()))
             .also {
                 projectedOpening = projectedOpening?.copy(layout = it)
-                built = Built(this.shape, shown, this.placement, it, last?.links ?: Links(it.links), view, routing, measured, routes)
+                built = Built(this.shape, shown, this.placement, it, last?.links ?: Links(it.links), view, hidden, routing, measured, routes)
             }
     }
     val applied: Boolean get() = revision > 0 && conflicts.isEmpty() && (if (against == null) diff.empty else GraphDiff(base, shape, terms).empty) && !dirty
@@ -700,8 +702,8 @@ class GraphEditor(
         submit(Step(nextShape, nextPlacement, title, name ?: named(shape, nextShape, placement, nextPlacement)))
     }
 
-    fun rebase(next: GraphShape, renamed: Map<String, String> = emptyMap(), spots: Map<String, Spot> = emptyMap()) {
-        if (pending != null) { refreshes += { rebase(next, renamed, spots) }; return }
+    fun rebase(next: GraphShape, renamed: Map<String, String> = emptyMap(), spots: Map<String, Spot> = emptyMap(), notes: List<Note>? = null) {
+        if (pending != null) { refreshes += { rebase(next, renamed, spots, notes) }; return }
         aliases.putAll(renamed)
         val incoming = next.injected()
         val echo = shape.renamed(renamed).sameGraph(incoming)
@@ -712,7 +714,7 @@ class GraphEditor(
         }
         if (!echo) { undos.clear(); redos.clear() }
         shape = incoming
-        placement = placement.renamed(renamed).let { kept -> kept.copy(cards = spots.filterKeys { it !in kept.cards } + kept.cards) }
+        placement = placement.renamed(renamed).let { kept -> kept.copy(cards = spots.filterKeys { it !in kept.cards } + kept.cards, notes = notes ?: kept.notes) }
         select(Selection(selection.nodes.mapNotNullTo(hashSetOf()) { id -> (renamed[id] ?: id).takeIf { shape.node(it) != null } },
             selection.wires.filterTo(hashSetOf()) { id -> shape.wires.any { it.id == id } }, selection.notes))
     }
@@ -2416,7 +2418,7 @@ class GraphEditor(
         val cards = LinkedHashMap<String, Card>(shape.nodes.size * 2)
         var spare = placement.cards.values.maxOfOrNull { it.x }?.plus(cardWidth + BlueprintEngine.LayerGap) ?: 0.0
         var spareY = 0.0
-        val shown = shape.nodes.filter { it.kind != NodeKind.Route } + diff?.removedNodes.orEmpty().filter { it.kind != NodeKind.Route }
+        val shown = shape.nodes.filter { it.kind != NodeKind.Route && it.id !in hides } + diff?.removedNodes.orEmpty().filter { it.kind != NodeKind.Route }
         shown.forEach { node ->
             val pins = pins(node)
             val body = bodies[node.id]
@@ -2681,7 +2683,7 @@ class GraphEditor(
             BlueprintEngine.openRoute(from, to, avoid) to false
         } else BlueprintEngine.bezier(from, to) to true
 
-    private class Built(val shape: GraphShape, val diff: GraphDiff?, val placement: Placement, val layout: BlueprintLayout<String>, val links: Links, val view: Triple<Set<String>, String?, List<String>>, val routing: LayoutOptions, val measurementRevision: Int, val routeRevision: Int)
+    private class Built(val shape: GraphShape, val diff: GraphDiff?, val placement: Placement, val layout: BlueprintLayout<String>, val links: Links, val view: Triple<Set<String>, String?, List<String>>, val hidden: Set<String>, val routing: LayoutOptions, val measurementRevision: Int, val routeRevision: Int)
 
     private class Links(links: List<Link>) {
         val slots: Map<String, Int> by lazy { HashMap<String, Int>(links.size * 2).also { map -> links.forEachIndexed { i, link -> map[link.id] = i } } }

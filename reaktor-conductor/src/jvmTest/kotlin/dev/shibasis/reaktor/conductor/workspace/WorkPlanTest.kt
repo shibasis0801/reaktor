@@ -300,31 +300,12 @@ class WorkPlanTest {
         assertContains(Files.readString(inbox.resolve("codex-c1.txt")), "no plan yet")
     }
 
-    private val revamp = HarnessSession(RuntimeKind.ClaudeCode, "c8", "Revamp the pane", "/w", startedAt = 1, lastActiveAt = 5, origin = null, version = null, branch = null,
-        model = null, effort = null, tokens = null, steps = emptyList(), transcript = "", files = listOf("modules/engine/Pane.kt", "modules/engine/Rail.kt"),
-        checklist = listOf(HarnessCheck("Read the pane", PlanState.Done, listOf("modules/engine/Pane.kt")), HarnessCheck("Rewrite it", PlanState.Active)), checklistAt = 4)
-
-    @Test fun aThreadWithoutAPlanIsDrawnFromItsOwnChecklist() {
-        val plan = PlanMirror.of(revamp, PlanStatus.Done)
-        assertEquals("claude:c8", plan.thread)
-        assertEquals(listOf("read-the-pane", "rewrite-it"), plan.items.map { it.id })
-        assertEquals(listOf(PlanStatus.Done, PlanStatus.Doing), plan.items.map { it.status })
-        assertEquals(listOf("read-the-pane"), plan.item("rewrite-it")?.after)
-        assertEquals(listOf("file:modules/engine/Pane.kt"), plan.item("read-the-pane")?.refs)
-        assertEquals(4, plan.updatedAt)
-
-        val bare = PlanMirror.of(revamp.copy(checklist = emptyList()), PlanStatus.Doing).items.single()
-        assertEquals(Triple("Revamp the pane", PlanStatus.Doing, listOf("file:modules/engine/Pane.kt", "file:modules/engine/Rail.kt")), Triple(bare.title, bare.status, bare.refs))
-
-        val store = WorkPlanStore(directory("plan-mirror"))
-        val edited = store.write(plan.thread, PlanPatch(PlanMirror.ops(plan) + PlanOp.Status("rewrite-it", PlanStatus.Done), title = plan.title), person)
-        assertEquals(emptyList(), edited.refused)
-        assertEquals(listOf(PlanStatus.Done, PlanStatus.Done), edited.plan.items.map { it.status })
-        assertEquals(listOf("read-the-pane"), edited.plan.item("rewrite-it")?.after)
-    }
+    private val revamp = WorkPlan("claude:c8", "Revamp the pane", createdBy = person, createdAt = 1, updatedAt = 4,
+        items = listOf(PlanItem("read-the-pane", "Read the pane", status = PlanStatus.Done, refs = listOf("file:modules/engine/Pane.kt")),
+            PlanItem("rewrite-it", "Rewrite it", status = PlanStatus.Doing, after = listOf("read-the-pane"))))
 
     @Test fun aLinkedFileReachesTheModuleThatOwnsIt() {
-        val plan = PlanMirror.of(revamp, PlanStatus.Done)
+        val plan = revamp
         val shape = PlanGraph.shape(listOf(plan)) { ref -> if (ref.startsWith("file:modules/engine/")) listOf("module:bestbuds/modules/engine") else emptyList() }
         val module = shape.nodes.single { it.id == "claude:c8 ref module:bestbuds/modules/engine" }
         assertEquals("engine", module.label)
@@ -333,7 +314,7 @@ class WorkPlanTest {
     }
 
     @Test fun withoutCodeThePlanGraphHoldsOnlyItsItems() {
-        val plan = PlanMirror.of(revamp, PlanStatus.Done)
+        val plan = revamp
         val shape = PlanGraph.shape(listOf(plan), code = false) { listOf("module:bestbuds/modules/engine") }
         assertTrue(shape.nodes.none { it.attributes["ref"] != null }, "${shape.nodes.map { it.id }}")
         assertTrue(shape.scopes.none { it.id == "claude:c8 code" })

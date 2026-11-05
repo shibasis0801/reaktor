@@ -55,19 +55,18 @@ fun BlueprintGraph(
     onFrameClick: ((Frame) -> Unit)? = null,
     onFrameOpen: ((Frame) -> Unit)? = null,
     bundles: Boolean? = null,
-    mapLevels: BlueprintMapLevels<String>? = null,
-    mapLevel: BlueprintMapLevel<String>? = null,
-    onGeometry: ((BlueprintLayout<String>, Double, List<Bounds>) -> Unit)? = null,
+    onGeometry: ((BlueprintLayout<String>, Double) -> Unit)? = null,
 ) {
     androidx.compose.runtime.SideEffect { bundles?.let { editor.routing = editor.routing.copy(bundles = it) } }
     val activeOpening = opening ?: editor.opening
     val layout = activeOpening?.layout ?: editor.settled
+    val faint = Blueprint.Faint
     BlueprintCanvas(
         layout = layout,
         canvas = canvas,
         highlight = editor.selection.nodes,
         selected = editor.selection.nodes.singleOrNull(),
-        linkStyle = { link -> linkStyle(link) ?: LinkStyle(Blueprint.Faint) },
+        linkStyle = { link -> linkStyle(link) ?: LinkStyle(faint) },
         frameLook = groupLook,
         cardLook = { card -> (editor.node(card.id) ?: editor.ghost(card.id))?.let { node ->
             cardLook(node).copy(selected = card.id in editor.selection.nodes)
@@ -83,15 +82,13 @@ fun BlueprintGraph(
         onFrameOpen = onFrameOpen,
         editable = editable,
         modifier = modifier,
-        labels = (mapLevels?.full?.links ?: layout.links).mapNotNull { link -> linkLabel(link)?.let { link.id to it } }.toMap(),
+        labels = layout.links.mapNotNull { link -> linkLabel(link)?.let { link.id to it } }.toMap(),
         focusable = true,
         editor = editor,
         foldLook = foldLook,
         cardContent = cardContent,
         onAgentOpen = onAgentOpen,
         opening = activeOpening,
-        mapLevels = mapLevels,
-        mapLevel = mapLevel,
         onGeometry = onGeometry,
     )
 }

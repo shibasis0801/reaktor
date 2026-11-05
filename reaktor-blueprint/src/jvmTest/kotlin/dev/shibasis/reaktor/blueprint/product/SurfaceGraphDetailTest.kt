@@ -26,20 +26,6 @@ private fun card(id: String, x: Double, y: Double, height: Double, rows: Int = 0
     Card(id, x, y, 272.0, height, SurfaceGraphNode(id, id, "", rows = List(rows) { SurfaceGraphRow("$id-$it", "Row $it") }).pins(), 0)
 
 class SurfaceGraphDetailTest {
-    @Test fun explorerBoundaryClickKeepsTheExactOriginalRowAndDirection() {
-        val provider = dev.shibasis.reaktor.blueprint.Pin("record", "Record", true, 70.0, dev.shibasis.reaktor.graph.core.PortWiring.Connected, "source-unit")
-        val consumer = provider.copy(provides = false, id = "destination-unit")
-        val original = Card("source", 0.0, 0.0, 272.0, 180.0, listOf(provider, consumer), 0)
-        val layout = BlueprintLayout("pins", mapOf(original.id to original), emptyList(), emptyList(), 272.0, 180.0)
-        val boundary = provider.copy(key = "boundary", id = "presentation-only")
-        val summary = original.copy(id = "summary:domain", pins = listOf(boundary))
-        val ref = dev.shibasis.reaktor.blueprint.PinRef(summary.id, boundary.key, true)
-        val source = dev.shibasis.reaktor.blueprint.PinRef(original.id, provider.key, true)
-        assertEquals(original to provider, surfaceGraphPinTarget(layout, mapOf(ref to listOf(source)), summary, boundary))
-        assertEquals(original to consumer, surfaceGraphPinTarget(layout, emptyMap(), original, consumer))
-        kotlin.test.assertNull(surfaceGraphPinTarget(layout, mapOf(ref to listOf(source, source.copy(provides = false))), summary, boundary))
-        kotlin.test.assertNull(surfaceGraphPinTarget(layout, mapOf(ref to listOf(source.copy(key = "absent"))), summary, boundary))
-    }
 
     @Test fun explorerModelKeepsNestedSceneRowsFamiliesAndOneOwnerPerCard() {
         val a = SurfaceGraphNode("a", "Sheet", "Book", scope = "chapter", rows = listOf(SurfaceGraphRow("unit", "Unit", "unit-key", aliases = listOf("unit-alias"))))

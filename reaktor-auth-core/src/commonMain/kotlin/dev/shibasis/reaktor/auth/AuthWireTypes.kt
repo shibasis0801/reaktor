@@ -40,3 +40,21 @@ enum class AuthGrantType(val wireName: String) {
             values().firstOrNull { it.wireName == wireName }
     }
 }
+
+@Serializable
+enum class AuthAuditEventType {
+    TOKEN_MINT,
+    TOKEN_EXCHANGE,
+    TOKEN_REFRESH,
+    TOKEN_REVOKE,
+    AUTH_FAILURE,
+    ROLE_GRANT,
+    ROLE_REVOKE,
+    ROLE_CHANGE
+}
+
+@Serializable
+enum class AuthAuditOutcome {
+    SUCCESS,
+    FAILURE
+}

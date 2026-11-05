@@ -1,0 +1,33 @@
+import org.gradle.caching.http.HttpBuildCache
+
+// Optional injected transport policy. No write authority is inferred from CI.
+settingsEvaluated { settings ->
+    def endpoint = System.getenv('REMOTE_DEV_CACHE_URL')
+    if (endpoint) {
+        def address = new URI(endpoint)
+        if (address.scheme != 'http' || address.host != '127.0.0.1') {
+            throw new GradleException('The pilot cache must use the private loopback SSH transport')
+        }
+        settings.buildCache {
+            if (System.getenv('REMOTE_DEV_CACHE_LOCAL') == 'false') {
+                local { enabled = false }
+            }
+            remote(HttpBuildCache) {
+                url = endpoint
+                allowInsecureProtocol = true
+                push = System.getenv('REMOTE_DEV_CACHE_PUSH') == 'true'
+                credentials {
+                    username = System.getenv('REMOTE_DEV_CACHE_USER')
+                    password = System.getenv('REMOTE_DEV_CACHE_PASSWORD')
+                }
+            }
+        }
+    }
+}
+allprojects {
+    tasks.configureEach { task ->
+        outputs.doNotCacheIf('Pilot output cache admits JVM compilation and jars only') {
+            !(task.name in ['compileKotlin', 'compileKotlinJvm', 'compileJava', 'jar', 'jvmJar'])
+        }
+    }
+}

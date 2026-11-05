@@ -73,7 +73,7 @@ class OperationGate internal constructor(
             },
             { args, authenticated ->
                 classifier?.ownPlan(operation.name, args, authenticated) ?: existing?.ownPlan?.invoke(args, authenticated) ?: false
-            }, existing?.confirmationPhrase) { call, _ ->
+            }, existing?.confirmationPhrase, existing?.person ?: { false }) { call, _ ->
             exchange.attributes[CallAttribute] = call
             json.encodeToJsonElement(operation.response, next(exchange))
         }
@@ -150,10 +150,13 @@ class OperationGate internal constructor(
         val confirmationPhrase = runCatching { entry.confirmationPhrase?.invoke(invocation.arguments) }.getOrElse { failure ->
             return Outcome.Failed(failure.message ?: "Could not validate the reviewed approval").also { record("failed", it.message) }
         }
+        val person = runCatching { entry.person(invocation.arguments) }.getOrElse { failure ->
+            return Outcome.Failed(failure.message ?: "Could not tell whether ${descriptor.id} needs a person").also { record("failed", it.message) }
+        }
         val seatPolicy = authority.policy.seat(seat)
         var approval: DoorApproval? = null
         var superadmin = false
-        when (val decision = entry.decide(effect, seatPolicy, ownPlan)) {
+        when (val decision = entry.decide(effect, seatPolicy, ownPlan, person)) {
             DoorDecision.Allowed -> superadmin = seatPolicy.superadmin
             is DoorDecision.Refused -> return Outcome.Refused(effect, decision.reason).also { record("refused", decision.reason) }
             is DoorDecision.Ask -> {
@@ -242,11 +245,12 @@ class OperationGate internal constructor(
         val effect: (JsonObject, CallCaller) -> SafetyClass,
         val ownPlan: suspend (JsonObject, CallCaller) -> Boolean,
         val confirmationPhrase: ((JsonObject) -> String?)? = null,
+        val person: (JsonObject) -> Boolean = { false },
         val execute: suspend (OperationCall, JsonObject) -> JsonElement,
     ) {
-        fun decide(effect: SafetyClass, seat: dev.shibasis.reaktor.tooling.mcp.door.SeatPolicy, ownPlan: Boolean = false): DoorDecision =
+        fun decide(effect: SafetyClass, seat: dev.shibasis.reaktor.tooling.mcp.door.SeatPolicy, ownPlan: Boolean = false, person: Boolean = false): DoorDecision =
             DoorAuthority.decide(effect, seat, ownPlan).let { decision ->
-                if (decision == DoorDecision.Allowed && confirmationPhrase != null && !seat.superadmin) DoorDecision.Ask(effect) else decision
+                if (decision == DoorDecision.Allowed && (person || confirmationPhrase != null && !seat.superadmin)) DoorDecision.Ask(effect) else decision
             }
     }
 

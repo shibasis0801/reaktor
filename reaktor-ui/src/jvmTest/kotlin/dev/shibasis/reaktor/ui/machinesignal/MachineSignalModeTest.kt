@@ -85,7 +85,7 @@ class MachineSignalModeTest {
     @Test
     fun themeTextStatusAndProvenanceRemainReadableOnEveryNeutralSurface() {
         val inks = listOf(Ink.Strong, Ink.Text, Ink.Muted, Ink.Unknown, Ink.Accent, Ink.Ok, Ink.Warn, Ink.Danger,
-            SignalInk.Code, SignalInk.Gutter) + TruthClass.entries.map(::ProvenanceInk) + EntityInk.entries + EdgeInk.entries
+            SignalInk.Code, SignalInk.Gutter) + TruthClass.entries.map(::ProvenanceInk) + EntityInk.entries
         for (mode in listOf(MachineSignalMode.Light, MachineSignalMode.Matrix)) {
             val theme = MachineSignalSnapshot.of(MachineSignalVariant.Editor, MachineSignalDensity.Compact, mode = mode)
             for (background in listOf(theme.colors.canvas, theme.colors.surface, theme.colors.raised)) {

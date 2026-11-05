@@ -74,6 +74,30 @@ class ClusterStatusTest {
         assertEquals("Free", NativeLease.inspect(path).state)
     }
 
+    @Test fun localSlotUsesConfiguredWorkerCapacity() = temporary { root ->
+        Files.writeString(root.resolve("config.json"), """{"host":"worker","worker_slots":1,"local_max_workers":12}""")
+        assertEquals(12, reader(root).status().slots.first { it.host == "local" }.workers)
+    }
+
+    @Test fun publicationReceiptsRemainActiveUntilFinishedAndOutliveTheHistoryWindow() = temporary { root ->
+        for (id in listOf("publications", "xcode", "finished", "dead-owner")) {
+            receipt(root, id, pid = if (id == "dead-owner") 13 else 11, exit = 0)
+            val path = root.resolve("logs/$id.json")
+            val original = Json.parseToJsonElement(Files.readString(path)) as kotlinx.serialization.json.JsonObject
+            Files.writeString(path, buildJsonObject {
+                original.forEach { (key, value) -> if (key != "finished" || id == "finished") put(key, value) }
+                if (id == "xcode") put("pending_xcode", true)
+                else put("pending_publications", buildJsonArray {})
+            }.toString())
+        }
+        val jobs = reader(root).jobs(since = at + 1)
+        assertEquals(setOf("publications", "xcode"), jobs.jobs.map { it.id }.toSet())
+        assertTrue(jobs.jobs.all { it.state == "Publishing" && it.exitCode == 0 })
+        val states = reader(root).jobs(since = 0).jobs.associate { it.id to it.state }
+        assertEquals("Finished", states["finished"])
+        assertEquals("Abandoned", states["dead-owner"])
+    }
+
     @Test fun receiptsDistinguishRunningFinishedAbandonedAndUnknownOwners() = temporary { root ->
         receipt(root, "20261101-0400-running", pid = 11)
         receipt(root, "20261101-0300-finished", pid = 12, exit = 1)
@@ -100,9 +124,9 @@ class ClusterStatusTest {
             NativeLease.tryAcquire(abandoned)!!.use {
                 val status = reader(root).status()
                 assertEquals(1, status.queue.size)
-                assertTrue(status.queue.single().reason.startsWith("Output publication"))
+                assertTrue(status.queue.single().reason.startsWith("Waiting for available host capacity"))
                 assertEquals(at, status.queue.single().queuedAt)
-                assertEquals("Publishing", reader(root).jobs(since = 0).jobs.single().state)
+                assertEquals("Queued", reader(root).jobs(since = 0).jobs.single().state)
             }
         }
         assertEquals(3L, Files.list(line).use { it.count() })

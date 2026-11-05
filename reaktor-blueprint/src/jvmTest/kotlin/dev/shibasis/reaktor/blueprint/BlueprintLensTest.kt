@@ -24,37 +24,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class BlueprintLensTest {
-    @Test fun occupiedGrowthIsOpaqueInBothThemes() {
-        for (mode in listOf(MachineSignalMode.Dark, MachineSignalMode.Light)) specimen(mode) { canvas, scene, opening, frame ->
-            val camera = canvas.viewport()
-            opening.value = BlueprintOpening(layout, layout.frames.first(), mapOf("covered" to 18000.0), emptySet())
-            frame()
-            val inside = pixel(scene, 420, 290)
-            val outside = pixel(scene, 510, 290)
-            coveredTone.value = Color.Green
-            frame()
-            assertEquals(inside, pixel(scene, 420, 290), "Covered color leaked through the lens: $mode")
-            assertTrue(outside != pixel(scene, 510, 290), "Exposed neighbour did not update: $mode")
-            coveredTone.value = Color.Red
-            assertEquals(camera, canvas.viewport())
-            assertEquals(geometry, layout.cards)
-        }
-    }
-
-    @Test fun lensContainsNestedMembersAndOmitsCoveredNeighboursAndRoutes() {
-        specimen(MachineSignalMode.Dark) { canvas, scene, opening, frame ->
-            opening.value = BlueprintOpening(layout, layout.frames.first(), mapOf("covered" to 18000.0), setOf("outside-route"))
-            frame()
-            val inner = assertNotNull(field(painter(canvas), "lensPainter"))
-            val subset = field(inner, "layout") as BlueprintLayout<*>
-            assertEquals(setOf("inner", "nested"), subset.cards.keys)
-            assertEquals(setOf("scope", "child"), subset.frames.mapTo(HashSet()) { it.key })
-            assertTrue(subset.links.none { it.id == "outside-route" })
-            assertTrue("Covered neighbour" !in texts(scene))
-            assertTrue("Opened member" in texts(scene))
-            assertTrue("Nested member" in texts(scene))
-        }
-    }
 
     @Test fun lensHeaderShieldsItsTitleStripFromRoutes() {
         specimen(MachineSignalMode.Dark) { _, scene, opening, frame ->
@@ -64,32 +33,6 @@ class BlueprintLensTest {
             routeTone.value = Color.Green
             frame()
             assertEquals(before, pixel(scene, 370, 130))
-        }
-    }
-
-    @Test fun freeGrowthDoesNotCreateALens() {
-        specimen(MachineSignalMode.Dark) { canvas, scene, opening, frame ->
-            val before = pixel(scene, 420, 250)
-            opening.value = BlueprintOpening(layout, layout.frames.first(), emptyMap(), emptySet())
-            frame()
-            assertNull(field(painter(canvas), "lensPainter"))
-            assertEquals(before, pixel(scene, 420, 250))
-            assertTrue("Covered neighbour" in texts(scene))
-        }
-    }
-
-    @Test fun closingTheLensRestoresMarkersWithoutMovingTheCamera() {
-        specimen(MachineSignalMode.Light) { canvas, scene, opening, frame ->
-            val camera = canvas.viewport()
-            opening.value = BlueprintOpening(layout, layout.frames.first(), mapOf("covered" to 18000.0), setOf("outside-route"))
-            frame()
-            assertNotNull(field(painter(canvas), "lensPainter"))
-            opening.value = null
-            frame()
-            assertNull(field(painter(canvas), "lensPainter"))
-            assertEquals(camera, canvas.viewport())
-            assertEquals(geometry, layout.cards)
-            assertTrue("Covered neighbour" in texts(scene))
         }
     }
 

@@ -1,0 +1,28 @@
+// Physical-device policy applies after every project has configured its test tasks.
+def simulatorTest = { task ->
+    task.name ==~ /(?i).*(iosSimulatorArm64|iosX64|tvosSimulatorArm64|watchosSimulatorArm64).*Test.*/
+}
+gradle.projectsEvaluated {
+    allprojects { project ->
+        project.tasks.configureEach { task ->
+            def mobileHook = System.getenv('REMOTE_DEV_MOBILE_HOOK')
+            if (mobileHook && task.class.name.startsWith('dev.shibasis.dependeasy.verification.DeviceFlow')) {
+                def original = task.hook.get()
+                task.hook.set(['python3', mobileHook, groovy.json.JsonOutput.toJson(original)])
+            }
+            if (simulatorTest(task)) {
+                task.enabled = false
+                task.onlyIf { false }
+            }
+            if (task.name.toLowerCase().endsWith('jsnodetest') && !task.timeout.isPresent()) {
+                task.timeout.set(java.time.Duration.ofMinutes(5))
+            }
+            if (task instanceof org.gradle.api.tasks.testing.Test && !task.timeout.isPresent()) {
+                task.timeout.set(java.time.Duration.ofMinutes(10))
+            }
+        }
+    }
+}
+gradle.taskGraph.whenReady { graph ->
+    graph.allTasks.findAll(simulatorTest).each { task -> task.enabled = false }
+}

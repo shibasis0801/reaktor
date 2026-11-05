@@ -16,6 +16,30 @@ import dev.shibasis.reaktor.portgraph.port.registerProvider
 import kotlinx.serialization.json.JsonPrimitive
 import org.koin.dsl.koinApplication
 
+object PlanIds {
+    fun plan(thread: String): String = thread
+    fun part(thread: String, item: String): String = "$thread parts $item"
+    fun code(thread: String): String = "$thread code"
+    fun item(thread: String, item: String): String = "$thread#$item"
+    fun ref(thread: String, ref: String): String = "$thread ref $ref"
+}
+
+object PlanPorts {
+    const val After = "after "
+    const val ReplacedBy = "replaced by"
+    fun after(id: String): String = "$After$id"
+    fun refIn(ref: String): String = "in $ref"
+    fun relations(item: PlanItem, targets: Set<String>): List<Pair<String, PlanRelation>> {
+        val taken = (item.after.map(::after) + item.refs + ReplacedBy).toMutableSet()
+        val labels = item.relations.groupingBy { it.label }.eachCount()
+        return item.relations.filter { it.to in targets && it.to != item.id }.map { relation ->
+            val port = (if (labels.getValue(relation.label) > 1) "${relation.label} ${relation.to}" else relation.label)
+                .let { if (it in taken) "${relation.label} → ${relation.to}" else it }.also(taken::add)
+            port to relation
+        }
+    }
+}
+
 class PlanGraph(plans: List<WorkPlan>, code: Boolean = true, links: (String) -> List<String> = { emptyList() }) : AutoCloseable {
     val graph = Graph(dependencyAdapter = KoinDependencyAdapter(koinApplication {}), label = "Plans")
     val scopes: List<PlanScope> = plans.map { plan -> graph.Graph { parent -> PlanScope(parent, plan, includeCode = code, links = links) } }
@@ -24,11 +48,11 @@ class PlanGraph(plans: List<WorkPlan>, code: Boolean = true, links: (String) -> 
         put(graph.id.toString(), "plans")
         scopes.forEach { scope ->
             val thread = scope.plan.thread
-            put(scope.id.toString(), thread)
-            scope.parts.forEach { (item, part) -> put(part.id.toString(), "$thread parts $item") }
-            scope.code?.let { put(it.id.toString(), "$thread code") }
-            scope.items.forEach { (item, node) -> put(node.id.toString(), "$thread#$item") }
-            scope.refs.forEach { (ref, node) -> put(node.id.toString(), "$thread ref $ref") }
+            put(scope.id.toString(), PlanIds.plan(thread))
+            scope.parts.forEach { (item, part) -> put(part.id.toString(), PlanIds.part(thread, item)) }
+            scope.code?.let { put(it.id.toString(), PlanIds.code(thread)) }
+            scope.items.forEach { (item, node) -> put(node.id.toString(), PlanIds.item(thread, item)) }
+            scope.refs.forEach { (ref, node) -> put(node.id.toString(), PlanIds.ref(thread, ref)) }
         }
     })
 
@@ -113,18 +137,12 @@ class PlanItemNode(graph: Graph, val plan: WorkPlan, val item: PlanItem, private
         }
 
     fun wire(items: Map<String, PlanItemNode>, refs: Map<String, ReaktorRefNode>) {
-        item.after.forEach { id -> items[id]?.let { upstream -> connect(registerConsumer<PlanItemNode>(Key("after $id"), ItemType), upstream.provided).getOrThrow() } }
+        item.after.forEach { id -> items[id]?.let { upstream -> connect(registerConsumer<PlanItemNode>(Key(PlanPorts.after(id)), ItemType), upstream.provided).getOrThrow() } }
         item.replacement?.let(items::get)?.let { target ->
-            connect(registerConsumer<PlanItemNode>(Key("replaced by"), ItemType), target.provided).getOrThrow()
+            connect(registerConsumer<PlanItemNode>(Key(PlanPorts.ReplacedBy), ItemType), target.provided).getOrThrow()
         }
-        val taken = (item.after.map { "after $it" } + item.refs + "replaced by").toMutableSet()
-        val labels = item.relations.groupingBy { it.label }.eachCount()
-        item.relations.forEach { relation ->
-            items[relation.to]?.takeIf { relation.to != item.id }?.let { target ->
-                val port = (if (labels.getValue(relation.label) > 1) "${relation.label} ${relation.to}" else relation.label)
-                    .let { if (it in taken) "${relation.label} → ${relation.to}" else it }.also(taken::add)
-                connect(registerConsumer<PlanItemNode>(Key(port), ItemType), target.provided).getOrThrow()
-            }
+        PlanPorts.relations(item, items.keys).forEach { (port, relation) ->
+            connect(registerConsumer<PlanItemNode>(Key(port), ItemType), items.getValue(relation.to).provided).getOrThrow()
         }
         item.refs.forEach { ref -> refs[ref]?.let { node -> connect(registerConsumer<ReaktorRefNode>(Key(ref), RefType), node.provided).getOrThrow() } }
     }
@@ -162,5 +180,5 @@ class ReaktorRefNode(graph: Graph, val plan: WorkPlan, val ref: String) : BasicN
         }
     }
 
-    fun wire(targets: List<ReaktorRefNode>) = targets.forEach { target -> connect(registerConsumer<ReaktorRefNode>(Key("in ${target.ref}"), PlanItemNode.RefType), target.provided).getOrThrow() }
+    fun wire(targets: List<ReaktorRefNode>) = targets.forEach { target -> connect(registerConsumer<ReaktorRefNode>(Key(PlanPorts.refIn(target.ref)), PlanItemNode.RefType), target.provided).getOrThrow() }
 }

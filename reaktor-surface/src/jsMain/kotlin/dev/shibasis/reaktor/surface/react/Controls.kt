@@ -27,9 +27,11 @@ object SurfaceReact {
         val choices = choices(props)
         val input = without(props, "label", "choices", "onChange", "children")
         input.id = props.id ?: id
+        val labelId = "${input.id}-label"
+        input["aria-labelledby"] = labelId
         input.onChange = { event: dynamic -> props.onChange(event.target.value) }
         return surfaceAppearance("Select", props, element("label", attrs("className" to "surface-field", "htmlFor" to input.id),
-            element("span", null, props.label), element("select", input, *choices.map { choice ->
+            element("span", attrs("id" to labelId), props.label), element("select", input, *choices.map { choice ->
                 element("option", attrs("key" to choice.id, "value" to choice.id, "disabled" to (choice.disabled == true)), choice.label)
             }.toTypedArray())))
     }

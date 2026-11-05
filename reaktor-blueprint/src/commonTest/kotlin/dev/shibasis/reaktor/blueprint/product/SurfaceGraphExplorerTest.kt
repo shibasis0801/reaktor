@@ -28,18 +28,13 @@ class SurfaceGraphExplorerTest {
     private val appearance = SurfaceGraphAppearance(Color.White, Color.White, Color.Black, Color.Gray, Color.Gray, Color.Blue)
     private fun presentation() = SurfaceGraphExplorerPresentation(layout, nodes, listOf(edge), listOf(SurfaceGraphGroup("area", "Area")))
 
-    @Test fun suppliedFullLayoutAndDirectionalTypedPinsRemainOriginalAtEveryZoom() {
+    @Test fun suppliedFullLayoutAndDirectionalTypedPinsRemainOriginal() {
         val model = presentation()
         assertSame(layout, model.full)
-        assertSame(layout, model.levels.full)
-        var expanded = emptySet<String>()
-        for (zoom in listOf(.01, .1, .5, 1.0, 2.0, 4.0, 8.0, 16.0, .01)) {
-            expanded = model.levels.at(zoom, expanded).expanded
-            assertSame(source, model.full.cards.getValue(source.id))
-            assertEquals(listOf(PinRef("source", "raw:key", false), PinRef("source", "raw:key", true)), source.pins.map(source::ref))
-            assertTrue(model.full.cards.values.flatMap { it.pins }.all { it.type == "DomainValue" })
-            assertSame(wire, model.full.links.single())
-        }
+        assertSame(source, model.full.cards.getValue(source.id))
+        assertEquals(listOf(PinRef("source", "raw:key", false), PinRef("source", "raw:key", true)), source.pins.map(source::ref))
+        assertTrue(model.full.cards.values.flatMap { it.pins }.all { it.type == "DomainValue" })
+        assertSame(wire, model.full.links.single())
     }
 
     @Test fun sourceWireAndBundleMembersResolveToOriginalRowEndpoints() {
@@ -78,18 +73,7 @@ class SurfaceGraphExplorerTest {
         assertEquals(listOf(false, true), look.pins.map { it?.selected })
         assertEquals(listOf(false, true), directional.pins.map { it.provides })
         assertEquals(listOf("raw:key", "raw:key"), directional.pins.map { it.key })
-        assertSame(full, model.levels.full)
-    }
-
-    @Test fun projectedBoundaryHitKeepsTheOriginalDirectionAndRawKey() {
-        val summary = source.copy(id = "summary", pins = listOf(source.pins.last().copy(key = "boundary")))
-        val forwarded = mapOf(PinRef(summary.id, "boundary", true) to listOf(PinRef(source.id, "raw:key", true)))
-        val actual = surfaceGraphPinTarget(layout, forwarded, summary, summary.pins.single())!!
-        assertSame(source, actual.first)
-        assertSame(source.pins.last(), actual.second)
-        assertTrue(actual.second.provides)
-        assertEquals("DomainValue", actual.second.type)
-        assertEquals(null, surfaceGraphPinTarget(layout, forwarded + (PinRef(summary.id, "boundary", true) to listOf(PinRef(source.id, "raw:key", true), PinRef(target.id, "sink:key", false))), summary, summary.pins.single()))
+        assertSame(full, model.full)
     }
 
     @Test fun selectionAndOverviewBackKeepTheSavedCameraAndDeclaredGeometry() {

@@ -17,29 +17,8 @@ import dev.shibasis.reaktor.blueprint.graph.AppGraphLayout
 import dev.shibasis.reaktor.blueprint.graph.Detail
 import dev.shibasis.reaktor.blueprint.graph.LayoutRequest
 
-fun AppGraph.blueprintMap(request: LayoutRequest = LayoutRequest(Detail.Ports)): BlueprintMapLevels<LayoutRequest> {
-    val full = AppGraphLayout.layout(this, request.copy(detail = Detail.Ports, nested = true, bundles = true,
-        expandedFlows = containers.keys))
-    return full.blueprintApplicationMapLevels()
-}
-
-/** Keep organizational wrappers open so their actual child scopes and corridors remain visible. */
-fun <K> BlueprintLayout<K>.blueprintApplicationMapLevels(): BlueprintMapLevels<K> {
-    val wrappers = frames.mapNotNullTo(HashSet()) { it.parent }
-    return blueprintMapLevels { frame ->
-        "summary:${frame.key}".takeIf { frame.key !in wrappers && (frame.parent != null || frames.size == 1) }
-    }
-}
-
-fun <K> BlueprintLayout<K>.blueprintMapLevels(
-    summary: (Frame) -> String? = { frame -> "summary:${frame.key}".takeIf { frame.parent != null || frames.size == 1 } },
-): BlueprintMapLevels<K> {
-    val frameOf = frames.flatMap { frame -> frame.nodes.map { it to frame } }.toMap()
-    return BlueprintMapLevels.prepare(this, titleZoom = { card ->
-        maxOf(frameOf[card.id]?.let { frame -> 384.0 / frame.width.coerceAtLeast(1.0) } ?: 0.0,
-            128.0 / card.width.coerceAtLeast(1.0), 48.0 / card.height.coerceAtLeast(1.0)).coerceAtMost(.9 / 1.12)
-    }, summary = summary)
-}
+fun AppGraph.blueprintMap(request: LayoutRequest = LayoutRequest(Detail.Ports)): BlueprintLayout<LayoutRequest> =
+    AppGraphLayout.layout(this, request.copy(detail = Detail.Ports, nested = true, bundles = true, expandedFlows = containers.keys))
 
 @Composable
 fun <K> BlueprintGraph(
@@ -73,17 +52,14 @@ fun <K> BlueprintGraph(
     editable: Boolean = true,
     onAgentOpen: (BlueprintAgent) -> Unit = {},
     onFrameClick: ((Frame) -> Unit)? = null,
-    mapLevels: BlueprintMapLevels<K>? = null,
-    mapLevel: BlueprintMapLevel<K>? = null,
-    onGeometry: ((BlueprintLayout<K>, Double, List<Bounds>) -> Unit)? = null,
+    onGeometry: ((BlueprintLayout<K>, Double) -> Unit)? = null,
     labelExclusions: List<Rect> = emptyList(),
+    focusLabels: Boolean = false,
 ) {
-    val drawn = mapLevel?.layout ?: layout
-    val full = mapLevels?.full ?: layout
-    BlueprintCanvas(drawn, canvas, highlight, selected, linkStyle, frameLook, cardLook, onCardClick, onLinkClick, onPaneClick,
+    BlueprintCanvas(layout, canvas, highlight, selected, linkStyle, frameLook, cardLook, onCardClick, onLinkClick, onPaneClick,
         modifier = modifier, labels = labels, fitKey = fitKey, fitScene = fitScene, startInset = startInset, pulses = pulses,
         glow = glow, pinTip = pinTip, onPinClick = onPinClick, onCardOpen = onCardOpen, focusable = focusable, port = port,
         editor = editor, cardContent = cardContent, interaction = interaction,
-        initialFit = initialFit ?: mapLevels?.let { { canvas.fit(full.frames + full.cards.values) } }, foldLook = foldLook,
-        editable = editable, onAgentOpen = onAgentOpen, onFrameClick = onFrameClick, mapLevels = mapLevels, mapLevel = mapLevel, onGeometry = onGeometry, labelExclusions = labelExclusions)
+        initialFit = initialFit, foldLook = foldLook,
+        editable = editable, onAgentOpen = onAgentOpen, onFrameClick = onFrameClick, onGeometry = onGeometry, labelExclusions = labelExclusions, focusLabels = focusLabels)
 }

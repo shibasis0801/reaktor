@@ -5,12 +5,11 @@ enum class CodeToken { Plain, Keyword, Type, Function, Builtin, Number, Text, Co
 
 data class CodeTokenSpan(val start: Int, val end: Int, val token: CodeToken)
 
-/**
- * One configurable lexer rather than one lexer per language. Every grammar here is line-oriented
- * and carries a small integer across the line break, which is what lets the editor re-colour an
- * edited line without re-reading the file.
- */
-class CodeLanguage(
+interface CodeLexState
+
+private data class CodeMode(val value: Int) : CodeLexState
+
+open class CodeLanguage(
     val id: String,
     val label: String,
     val keywords: Set<String> = emptySet(),
@@ -46,13 +45,32 @@ class CodeLanguage(
      * Colours one line and returns the state to feed into the next one. [emit] receives only
      * non-plain runs, in order, which is exactly what an annotated string needs.
      */
-    fun lex(line: String, entry: Int = 0, emit: (Int, Int, CodeToken) -> Unit): Int {
-        var mode = entry and 0b11
-        var doc = entry and DocBit != 0
-        var depth = entry shr 3
+    open fun lex(line: String, entry: CodeLexState = Code, emit: (Int, Int, CodeToken) -> Unit): CodeLexState {
+        val bits = (entry as? CodeMode)?.value ?: 0
+        var mode = bits and 0b11
+        var doc = bits and DocBit != 0
+        var depth = bits shr 3
+        var string = entry as? CodeString
         var index = 0
 
         while (index < line.length) {
+            val literal = if (mode == ModeCode) string ?: stringAt(line, index) else null
+            if (literal != null) {
+                val from = index
+                if (string == null) index += literal.openingLength
+                string = literal
+                while (index < line.length) {
+                    if (line.startsWith(literal.delimiter, index)) {
+                        index += literal.delimiter.length
+                        string = null
+                        break
+                    }
+                    index += if (literal.escaped && line[index] == '\\') 2 else 1
+                }
+                index = index.coerceAtMost(line.length)
+                emit(from, index, CodeToken.Text)
+                continue
+            }
             when (mode) {
                 ModeBlock -> {
                     val (open, close) = blockComment ?: return Code
@@ -71,21 +89,12 @@ class CodeLanguage(
                     if (mode == ModeCode) doc = false
                 }
 
-                ModeRaw -> {
-                    val raw = rawQuote ?: return Code
-                    val from = index
-                    val close = line.indexOf(raw, index)
-                    index = if (close < 0) line.length else close + raw.length
-                    if (close >= 0) mode = ModeCode
-                    emit(from, index, CodeToken.Text)
-                }
-
                 else -> {
                     val char = line[index]
                     when {
                         char.isWhitespace() -> index++
 
-                        lineComment != null && line.startsWith(lineComment, index) -> {
+                        commentAt(line, index) -> {
                             emit(index, line.length, CodeToken.Comment)
                             index = line.length
                         }
@@ -98,19 +107,7 @@ class CodeLanguage(
                             index += blockComment.first.length
                         }
 
-                        rawQuote != null && line.startsWith(rawQuote, index) -> {
-                            mode = ModeRaw
-                            emit(index, index + rawQuote.length, CodeToken.Text)
-                            index += rawQuote.length
-                        }
-
-                        char in quotes -> {
-                            val end = scanQuoted(line, index, char)
-                            emit(index, end, CodeToken.Text)
-                            index = end
-                        }
-
-                        char.isDigit() -> {
+                        char.isDigit() || (char == '.' && index + 1 < line.length && line[index + 1].isDigit()) -> {
                             val end = scanNumber(line, index)
                             emit(index, end, CodeToken.Number)
                             index = end
@@ -124,8 +121,7 @@ class CodeLanguage(
                         }
 
                         char.isIdentifierStart() -> {
-                            var end = index
-                            while (end < line.length && line[end].isIdentifierPart()) end++
+                            val end = wordEnd(line, index)
                             val word = line.substring(index, end)
                             var probe = end
                             while (probe < line.length && line[probe] == ' ') probe++
@@ -138,7 +134,12 @@ class CodeLanguage(
 
                         char in Operators -> {
                             var end = index
-                            while (end < line.length && line[end] in Operators) end++
+                            while (end < line.length && line[end] in Operators) {
+                                if (end > index && (commentAt(line, end) ||
+                                        (blockComment != null && line.startsWith(blockComment.first, end)) ||
+                                        (line[end] == '.' && end + 1 < line.length && line[end + 1].isDigit()))) break
+                                end++
+                            }
                             emit(index, end, CodeToken.Operator)
                             index = end
                         }
@@ -148,28 +149,33 @@ class CodeLanguage(
                 }
             }
         }
-        return mode or (if (doc) DocBit else 0) or (depth shl 3)
+        if (string?.multiline == true) return string
+        val next = mode or (if (doc) DocBit else 0) or (depth shl 3)
+        return if (next == 0) Code else CodeMode(next)
     }
 
-    fun spans(line: String, entry: Int = 0): List<CodeTokenSpan> =
+    fun spans(line: String, entry: CodeLexState = Code): List<CodeTokenSpan> =
         buildList { lex(line, entry) { start, end, token -> add(CodeTokenSpan(start, end, token)) } }
 
     /** The cheap path when only the carry-over matters, as when re-validating lines above the viewport. */
-    fun state(line: String, entry: Int = 0): Int = lex(line, entry) { _, _, _ -> }
+    fun state(line: String, entry: CodeLexState = Code): CodeLexState = lex(line, entry) { _, _, _ -> }
 
-    private fun scanQuoted(line: String, start: Int, quote: Char): Int {
-        var index = start + 1
-        while (index < line.length) {
-            when (line[index]) {
-                '\\' -> index += 2
-                quote -> return index + 1
-                else -> index++
-            }
-        }
-        return line.length
+    internal open fun commentAt(line: String, index: Int): Boolean =
+        lineComment != null && line.startsWith(lineComment, index)
+
+    internal open fun stringAt(line: String, index: Int): CodeString? = when {
+        rawQuote != null && line.startsWith(rawQuote, index) -> CodeString(rawQuote, escaped = false, multiline = true)
+        line[index] in quotes -> CodeString(line[index].toString(), escaped = true, multiline = false)
+        else -> null
     }
 
-    private fun scanNumber(line: String, start: Int): Int {
+    internal open fun wordEnd(line: String, start: Int): Int {
+        var end = start + 1
+        while (end < line.length && line[end].isIdentifierPart()) end++
+        return end
+    }
+
+    internal open fun scanNumber(line: String, start: Int): Int {
         var index = start
         if (line.startsWith("0x", index) || line.startsWith("0X", index) ||
             line.startsWith("0b", index) || line.startsWith("0B", index)
@@ -186,11 +192,10 @@ class CodeLanguage(
     companion object {
         private const val ModeCode = 0
         private const val ModeBlock = 1
-        private const val ModeRaw = 2
         private const val DocBit = 0b100
 
         /** The state a line inherits when nothing is open above it. */
-        const val Code = 0
+        val Code: CodeLexState = object : CodeLexState {}
 
         private const val Brackets = "()[]{}"
         private const val Operators = "+-*/%=<>!&|^~?:.,;@#$"
@@ -281,16 +286,31 @@ class CodeLanguage(
             keywords = setOf("true", "false", "null"), indent = "  ",
         )
 
-        val Markdown = CodeLanguage(id = "markdown", label = "Markdown", indent = "  ")
+        val Markdown: CodeLanguage = object : CodeLanguage(id = "markdown", label = "Markdown", quotes = emptySet(), indent = "  ") {
+            override fun lex(line: String, entry: CodeLexState, emit: (Int, Int, CodeToken) -> Unit): CodeLexState =
+                MarkdownSyntax.lex(line, entry, emit)
+        }
 
-        val all = listOf(Kotlin, TypeScript, Sql, Cypher, Json, Markdown, Plain)
+        val Cpp: CodeLanguage = CppLanguage
+        val OpenFga: CodeLanguage = OpenFgaLanguage
 
-        fun forId(id: String): CodeLanguage = all.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: Plain
+        val all = listOf(Kotlin, TypeScript, Cpp, OpenFga, Sql, Cypher, Json, Markdown, Plain)
+
+        fun forId(id: String): CodeLanguage = when (id.lowercase()) {
+            "kt", "kts" -> Kotlin
+            "ts", "tsx", "js", "jsx", "javascript" -> TypeScript
+            "md", "mdx" -> Markdown
+            "c++", "c", "cc", "cxx", "hpp", "h" -> Cpp
+            "fga" -> OpenFga
+            else -> all.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: Plain
+        }
 
         /** For payloads that arrive as a string with no filename attached. */
         fun sniff(text: String): CodeLanguage {
             val head = text.trimStart()
             return when {
+                head.startsWith("model\n") || head.startsWith("model\r") || head.startsWith("model schema ") -> OpenFga
+                head.startsWith("#include ") || head.startsWith("#include<") -> Cpp
                 head.startsWith('{') || head.startsWith('[') -> Json
                 head.startsWith("--") || head.startsWith("SELECT", true) || head.startsWith("WITH", true) -> Sql
                 else -> Plain
@@ -300,6 +320,8 @@ class CodeLanguage(
         fun forPath(path: String): CodeLanguage = when (path.substringAfterLast('.', "").lowercase()) {
             "kt", "kts" -> Kotlin
             "ts", "tsx", "js", "jsx", "mjs", "cjs" -> TypeScript
+            "cpp", "cc", "cxx", "c++", "c", "h", "hpp", "hh", "hxx", "ipp", "inl", "ixx", "cppm" -> Cpp
+            "fga", "openfga" -> OpenFga
             "sql" -> Sql
             "cypher", "cql" -> Cypher
             "json", "jsonc" -> Json

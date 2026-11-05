@@ -61,7 +61,8 @@ class BlueprintAgentSlotTest {
                 assertEquals(bounds, p.tag("blueprint-agent-bpo-agent-slot").boundsInRoot)
                 assertEquals(icon, p.tag("blueprint-agent-bpo-agent-slot-icon").boundsInRoot)
                 assertEquals(tuple, p.tag("blueprint-agent-bpo-agent-slot-tuple").boundsInRoot)
-                val label = activity.label + if (count > 0) " · +$count" else ""
+                val label = listOfNotNull(agent.label, activity.label.takeIf { activity != BlueprintAgent.Activity.Unavailable }).joinToString(" · ") +
+                    if (count > 0) " · +$count" else ""
                 val state = p.tag("blueprint-agent-bpo-agent-slot-state")
                 assertTrue(state.config[SemanticsProperties.Text].any { it.text == label })
                 val texts = arrayListOf<TextLayoutResult>()
@@ -84,21 +85,6 @@ class BlueprintAgentSlotTest {
             assertTrue(p.body!!.height < withAgent.height)
             assertEquals(BlueprintEngine.cardHeight(node), p.layout!!.cards.getValue(node.id).height)
             assertTrue(p.nodes().none { it.config.getOrNull(SemanticsProperties.TestTag)?.startsWith("blueprint-agent-") == true })
-        }
-    }
-
-    @Test fun aLongTupleFitsItsMeasuredSlotAndMiddleZoomKeepsOnlyTheGalleryIcon() {
-        probe(MachineSignalMode.Light) { p ->
-            p.set(p.state.value.agent!!.copy(role = "designer for graph presentation and interaction acceptance"))
-            val tuple = p.tag("blueprint-agent-bpo-agent-slot-tuple")
-            val bounds = p.tag("blueprint-agent-bpo-agent-slot").boundsInRoot
-            assertTrue(tuple.boundsInRoot.bottom <= bounds.bottom + 1f)
-            val card = p.layout!!.cards.getValue(node.id)
-            edt { p.canvas.restore(40.0 - card.x * .8, 70.0 - card.y * .8, .8) }; p.frame()
-            assertTrue(p.nodes().none { it.config.getOrNull(SemanticsProperties.TestTag) == "blueprint-agent-bpo-agent-slot-tuple" })
-            assertTrue(p.nodes().none { it.config.getOrNull(SemanticsProperties.TestTag) == "blueprint-agent-bpo-agent-slot-state" })
-            edt { assertTrue(p.tag("blueprint-agent-bpo-agent-slot-icon").config[SemanticsActions.OnClick].action!!.invoke()) }
-            assertEquals(p.state.value.agent, p.opened)
         }
     }
 

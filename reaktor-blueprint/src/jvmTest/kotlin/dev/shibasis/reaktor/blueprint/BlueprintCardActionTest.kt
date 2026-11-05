@@ -77,7 +77,7 @@ class BlueprintCardActionTest {
             assertTrue(hit.boundsInRoot.width > 0)
             canvas.look(card.x + card.width / 2, card.y + card.height / 2, .03)
             frames(40)
-            assertEquals(null, action())
+            assertTrue(action() != null)
         } finally { scene.close() }
     }
 }

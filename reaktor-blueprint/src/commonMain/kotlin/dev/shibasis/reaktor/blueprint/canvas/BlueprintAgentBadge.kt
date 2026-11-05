@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
@@ -52,6 +53,7 @@ fun BlueprintAgentBadge(
     compact: Boolean = false,
     visible: Boolean = true,
     tag: String = "blueprint-agent",
+    fillHeight: Boolean = false,
 ) {
     val phase = remember { mutableFloatStateOf(0f) }
     LaunchedEffect(agent.activity, visible) {
@@ -71,7 +73,7 @@ fun BlueprintAgentBadge(
                 drawBlueprintAgentIcon(agent, tone, phase.floatValue)
             }
         }
-        if (!compact) Column(Modifier.weight(1f).testTag("$tag-tuple")
+        if (!compact) Column(Modifier.weight(1f).then(if (fillHeight) Modifier.fillMaxHeight() else Modifier).testTag("$tag-tuple")
             .semantics { contentDescription = description }.clickable(onClickLabel = "Open agent gallery", onClick = onOpen),
             verticalArrangement = Arrangement.spacedBy(MachineSignal.AgentBadge.gap)) {
             agentBadgeState(agent).takeIf(String::isNotBlank)?.let { state ->

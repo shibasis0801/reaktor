@@ -27,7 +27,6 @@ import dev.shibasis.reaktor.blueprint.BlueprintGraph
 import dev.shibasis.reaktor.blueprint.BlueprintCanvas
 import dev.shibasis.reaktor.blueprint.BlueprintCardLook
 import dev.shibasis.reaktor.blueprint.BlueprintLayout
-import dev.shibasis.reaktor.blueprint.BlueprintMapLevels
 import dev.shibasis.reaktor.blueprint.Card
 import dev.shibasis.reaktor.blueprint.Frame
 import dev.shibasis.reaktor.ui.machinesignal.*
@@ -120,71 +119,6 @@ class SurfaceGraphMotionTest {
             assertEquals(zoomed, canvas.viewport())
             assertEquals(before, editor.layout.cards)
             assertEquals(shape, editor.shape)
-        } finally { scene.close() }
-    }
-
-    @Test
-    fun readOnlySummarySelectionSupportsSemanticsAndKeyboardWithoutClickZoom() = runBlocking(Dispatchers.Swing) {
-        val first = Card("member", 100.0, 140.0, 160.0, 96.0, emptyList(), 0)
-        val tail = Card("tail", 600.0, 480.0, 160.0, 96.0, emptyList(), 0)
-        val group = Frame("region", "Policy region", 80.0, 80.0, 300.0, 240.0, setOf(first.id), emptyList(), false)
-        val full = BlueprintLayout(Unit, listOf(first, tail).associateBy { it.id }, listOf(group), emptyList(), 800.0, 640.0)
-        val levels = BlueprintMapLevels.prepare(full, { 1.0 })
-        val canvas = GraphCanvasState()
-        var selected by mutableStateOf<String?>(null)
-        val rawClicks = mutableListOf<String>()
-        val opened = mutableListOf<String>()
-        val scene = ImageComposeScene(1000, 700, Density(1f), coroutineContext = Dispatchers.Unconfined) {
-            MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact) {
-                val level = levels.at(canvas.zoom)
-                BlueprintCanvas(level.layout, canvas, emptySet(), selected,
-                    { Blueprint.link(Color.Gray, false, false) }, { BlueprintFrameLook(SurfaceGraphSymbol, "") },
-                    { card -> BlueprintCardLook(Color.Blue, SurfaceGraphSymbol, card.id, "Ready", selected = selected == card.id, action = "Select " + card.id) },
-                    { id -> if (id in full.cards) { rawClicks += id; selected = id } }, {}, { selected = null },
-                    Modifier.fillMaxSize(), focusable = true, editable = false, initialFit = {},
-                    onCardOpen = { opened += it }, mapLevels = levels, mapLevel = level)
-            }
-        }
-        var time = 0L
-        suspend fun settle() { repeat(16) { Snapshot.sendApplyNotifications(); scene.render(++time * 16_666_667L).close(); delay(4) } }
-        fun click(point: Offset) {
-            scene.sendPointerEvent(PointerEventType.Press, point, buttons = PointerButtons(isPrimaryPressed = true), button = PointerButton.Primary)
-            scene.sendPointerEvent(PointerEventType.Release, point, button = PointerButton.Primary)
-        }
-        fun press(key: Key, shift: Boolean = false) {
-            scene.sendKeyEvent(KeyEvent(key, KeyEventType.KeyDown, isShiftPressed = shift))
-            scene.sendKeyEvent(KeyEvent(key, KeyEventType.KeyUp, isShiftPressed = shift))
-        }
-        fun summary(): SemanticsNode {
-            fun walk(node: SemanticsNode): List<SemanticsNode> = listOf(node) + node.children.flatMap(::walk)
-            return scene.semanticsOwners.flatMap { walk(it.unmergedRootSemanticsNode) }
-                .single { it.config.getOrNull(SemanticsProperties.TestTag) == "blueprint-summary:region" }
-        }
-        try {
-            settle()
-            canvas.restore(80.0, 70.0, .5); settle()
-            val before = canvas.viewport()
-            val card = assertNotNull(levels.at(.5).frames.getValue(group.key).summary)
-            click(Offset((before.x + (card.x + card.width / 2) * before.zoom).toFloat(),
-                (before.y + (card.y + 12) * before.zoom).toFloat()))
-            settle()
-            assertEquals(true, summary().config.getOrNull(SemanticsProperties.Selected))
-            assertTrue(rawClicks.isEmpty(), "A region selection never fabricates a raw node ID")
-            assertEquals(before, canvas.viewport(), "Single click selects without zooming")
-            press(Key.Enter); settle()
-            assertTrue(opened.isEmpty())
-            assertEquals(before, canvas.viewport(), "Enter does not navigate or zoom")
-            press(Key.RightBracket); settle()
-            assertEquals(tail.id, selected, "Next-card continues after the selected summary")
-            assertEquals(listOf(tail.id), rawClicks)
-            assertTrue(assertNotNull(summary().config[SemanticsActions.OnClick].action).invoke()); settle()
-            assertEquals(true, summary().config.getOrNull(SemanticsProperties.Selected))
-            assertEquals(before, canvas.viewport(), "The accessibility action only selects")
-            press(Key.Three, shift = true); settle()
-            assertTrue(canvas.viewport().zoom > before.zoom, "Fit selection uses the actual region bounds")
-            assertEquals(listOf(tail.id), rawClicks)
-            assertEquals(listOf(first, tail).associateBy { it.id }, levels.full.cards)
-            assertEquals(listOf(group), levels.full.frames)
         } finally { scene.close() }
     }
 

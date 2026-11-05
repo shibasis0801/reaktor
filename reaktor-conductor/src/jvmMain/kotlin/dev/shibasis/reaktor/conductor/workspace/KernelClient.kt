@@ -33,6 +33,30 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.JsonElement
 import org.koin.dsl.koinApplication
 
+private fun operationId(operation: Call<*, *>): OperationId =
+    OperationId("${operation.service.id.substringAfterLast('.')}.${operation.name}")
+
+internal fun availability(apis: List<Service>, hello: KernelHello): Map<OperationId, String?> = buildMap {
+    for (api in apis) {
+        val offered = hello.contracts.singleOrNull { it.id == api.id }
+        if (api.id == KernelApi().id) {
+            if (offered == null) throw ContractDrift("The owner does not serve ${api.id}", 409)
+            val compatibility = Compatibility.between(api.shape, offered)
+            if (compatibility.verdict == dev.shibasis.reaktor.service.contract.Verdict.Incompatible)
+                throw ContractDrift("Incompatible ${api.id}: ${compatibility.issues.joinToString()}", 409)
+        }
+        val issues = offered?.let { Compatibility.operations(api.shape, it) }.orEmpty()
+        for (operation in api.operations.filterIsInstance<Call<*, *>>()) {
+            val id = operationId(operation)
+            put(id, when {
+                offered == null -> "The workspace owner does not serve ${api.id} yet"
+                !issues[operation.name].isNullOrEmpty() -> "The workspace owner does not offer $id yet: ${issues.getValue(operation.name).first()}"
+                else -> null
+            })
+        }
+    }
+}
+
 class KernelClient internal constructor(private val connection: AgentWorkspaceConnection) : AutoCloseable {
     private val mutex = Mutex()
     private var state: Connected? = null
@@ -50,6 +74,9 @@ class KernelClient internal constructor(private val connection: AgentWorkspaceCo
                     state?.close()
                     state = it
                 }
+            }
+            current.available[invocation.operation]?.let { reason ->
+                return@withContext Outcome.Failed("$reason. It arrives when the owner restarts into the current build.", "contract-drift")
             }
             val result = when (invocation.operation.value) {
                 "operation.catalog" -> current.call(current.kernel.catalog, OperationJson.decodeFromJsonElement(CatalogQuery.serializer(), invocation.arguments))
@@ -76,6 +103,10 @@ class KernelClient internal constructor(private val connection: AgentWorkspaceCo
         })
     }
 
+    fun unavailable(): Map<String, String> = state?.available.orEmpty().mapNotNull { (operation, reason) ->
+        reason?.let { operation.value to it }
+    }.toMap()
+
     override fun close() { state?.close(); state = null }
 
     private inner class Connected(val incarnation: String) : AutoCloseable {
@@ -89,8 +120,10 @@ class KernelClient internal constructor(private val connection: AgentWorkspaceCo
             }
         })
         val kernel = KernelApi()
-        private val apis = listOf(kernel, AtlasApi(), ChangesApi(), ChecksApi(), RunsApi(), PlansApi())
+        private val apis = listOf(kernel, AtlasApi(), ChangesApi(), ChecksApi(), RunsApi(), PlansApi(), AgentPresenceApi())
         val calls = linkedMapOf<OperationId, Consumer>()
+        var available: Map<OperationId, String?> = emptyMap()
+            private set
 
         init {
             for (api in apis) {
@@ -100,27 +133,26 @@ class KernelClient internal constructor(private val connection: AgentWorkspaceCo
                     val consumer = Consumer(graph, operation as Call<Any?, Any?>)
                     graph.attach(consumer)
                     connect(consumer, provider)
-                    calls[OperationId("${api.id.substringAfterLast('.')}.${operation.name}")] = consumer
+                    calls[operationId(operation)] = consumer
                 }
             }
         }
 
         suspend fun verify() {
-            val hello = OperationJson.decodeFromJsonElement(KernelHello.serializer(), call(kernel.hello, Unit))
+            val hello = try {
+                OperationJson.decodeFromJsonElement(KernelHello.serializer(), call(kernel.hello, Unit))
+            } catch (failure: Rejected) {
+                if (failure.status != 404) throw failure
+                throw ContractDrift("The workspace owner does not serve ${KernelApi.Id}", failure.status, failure)
+            }
             if (hello.incarnation != incarnation || hello.workspaceRoot != connection.workspaceRoot)
                 throw ContractDrift("The owner identity changed during connection", 409)
-            for (api in apis) {
-                val shape = hello.contracts.singleOrNull { it.id == api.id }
-                    ?: throw ContractDrift("The owner does not serve ${api.id}", 409)
-                val compatibility = Compatibility.between(api.shape, shape)
-                if (compatibility.verdict == dev.shibasis.reaktor.service.contract.Verdict.Incompatible)
-                    throw ContractDrift("Incompatible ${api.id}: ${compatibility.issues.joinToString()}", 409)
-            }
+            available = availability(apis, hello)
             fingerprints = hello.contracts.associate { it.id to it.fingerprint }
         }
 
         suspend fun <In, Out> call(operation: Call<In, Out>, request: In): JsonElement {
-            val port = calls.getValue(OperationId("${operation.service.id.substringAfterLast('.')}.${operation.name}"))
+            val port = calls.getValue(operationId(operation))
             @Suppress("UNCHECKED_CAST")
             val response = port.call(request) as Out
             return OperationJson.encodeToJsonElement(operation.response, response)

@@ -1,6 +1,12 @@
 package dev.shibasis.reaktor.blueprint.product
 
+import dev.shibasis.reaktor.blueprint.BlueprintEngine
+import dev.shibasis.reaktor.blueprint.BlueprintFace
 import dev.shibasis.reaktor.blueprint.editor.id
+import dev.shibasis.reaktor.blueprint.graph.AppGraph
+import dev.shibasis.reaktor.blueprint.graph.AppGraphLayout
+import dev.shibasis.reaktor.blueprint.graph.Detail
+import dev.shibasis.reaktor.blueprint.graph.LayoutRequest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -32,6 +38,19 @@ class SurfaceGraphShapeTest {
             SurfaceGraphLink("first-link", "source-row", "target-row"),
             SurfaceGraphLink("second-link", "source-row", "target-row")), emptyList())
         assertEquals(listOf("first-link"), document.shape.wires.map { it.id })
+    }
+
+    @Test
+    fun portlessSourceUsesProseGeometryWithSpaceForItsPaintedTitle() {
+        val document = SurfaceGraphDocument(
+            listOf(SurfaceGraphNode("book", "A complete source title", "Book · 12 chapters")),
+            emptyList(), emptyList())
+        assertEquals("Prose", document.shape.nodes.single().attributes[BlueprintFace.Key])
+        val card = AppGraphLayout.layout(AppGraph(document.shape), LayoutRequest(Detail.Ports)).cards.getValue("book")
+        assertTrue(card.height >= 144.0)
+        assertTrue(card.height - BlueprintEngine.ProseFooterHeight >= BlueprintEngine.ProseHeaderHeight - 6.0)
+        assertEquals("Code", SurfaceGraphDocument(nodes, emptyList(), emptyList())
+            .shape.nodes.first().attributes[BlueprintFace.Key])
     }
 
     @Test

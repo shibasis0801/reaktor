@@ -7,12 +7,15 @@ import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.node.RouteNode
 import dev.shibasis.reaktor.graph.core.node.ExitPort
 import dev.shibasis.reaktor.portgraph.port.ConsumerPort
+import dev.shibasis.reaktor.portgraph.port.PortEventListener
 import dev.shibasis.reaktor.portgraph.port.flattenedValues
 import dev.shibasis.reaktor.service.OperationDescriptor
 import dev.shibasis.reaktor.service.ServiceAccess
 import dev.shibasis.reaktor.service.contract.ChannelShape
 import dev.shibasis.reaktor.service.contract.ContractShape
 import dev.shibasis.reaktor.service.contract.InterceptorShape
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
@@ -194,6 +197,14 @@ private val ConsumerPort<*>.shapeKey: String get() = (this as? ExitPort)?.exit?.
 
 private fun Graph.watched(visited: MutableSet<Graph> = mutableSetOf()): List<Flow<*>> = buildList {
     if (!visited.add(this@watched)) return@buildList
+    add(callbackFlow {
+        val members = nodes.toList()
+        val ports: PortEventListener = { trySend(Unit) }
+        val stop = onStructure { trySend(Unit) }
+        members.forEach { it.addPortEventListener(ports) }
+        trySend(Unit)
+        awaitClose { stop(); members.forEach { it.removePortEventListener(ports) } }
+    })
     add(backStack.entries)
     nodes.toList().filterIsInstance<ContainerNode>().forEach { container ->
         addAll(container.changes)

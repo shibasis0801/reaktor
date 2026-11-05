@@ -7,6 +7,11 @@ import dev.shibasis.reaktor.portgraph.graph.PortGraph
 import dev.shibasis.reaktor.portgraph.port.PortCapability
 import dev.shibasis.reaktor.portgraph.port.PortCapabilityImpl
 import dev.shibasis.reaktor.portgraph.port.flattenedValues
+import dev.shibasis.reaktor.portgraph.port.ConsumerPort
+import dev.shibasis.reaktor.portgraph.port.ProviderPort
+import dev.shibasis.reaktor.portgraph.port.KeyType
+import dev.shibasis.reaktor.portgraph.port.registerConsumer
+import dev.shibasis.reaktor.portgraph.port.registerProvider
 import dev.shibasis.reaktor.portgraph.visitor.Visitable
 import kotlin.js.JsExport
 import kotlin.uuid.Uuid
@@ -18,6 +23,12 @@ open class PortNode<G: PortGraph<*, *>>(
     override val label: String = "",
     portCapability: PortCapability = PortCapabilityImpl()
 ): Unique, Visitable, PortCapability by portCapability, Attachable by Attachments() {
+
+    override fun <Functionality : Any> registerProvider(keyType: KeyType, impl: Functionality): ProviderPort<Functionality> =
+        registerProvider(keyType.key, keyType.type, impl)
+
+    override fun <Functionality : Any> registerConsumer(keyType: KeyType): ConsumerPort<Functionality> =
+        registerConsumer(keyType.key, keyType.type)
 
     open fun close() {
         consumerPorts.flattenedValues().forEach { it.close() }

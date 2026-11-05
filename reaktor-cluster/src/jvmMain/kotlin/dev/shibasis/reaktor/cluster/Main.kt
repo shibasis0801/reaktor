@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.cluster
 
 import dev.shibasis.reaktor.core.build.Entry
 import java.nio.file.Path
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -10,12 +11,12 @@ fun main(args: Array<String>) {
     val command = args.firstOrNull() ?: "status"
     require(command in setOf("status", "jobs", "hygiene", "storage")) { "Usage: reaktor-cluster status|jobs|hygiene|storage [--json] [--state PATH]" }
     val stateIndex = args.indexOf("--state")
-    val state = if (stateIndex >= 0) Path.of(requireNotNull(args.getOrNull(stateIndex + 1))) else Path.of(System.getProperty("user.home"), "dev", ".remote-dev")
+    val state = if (stateIndex >= 0) Path.of(requireNotNull(args.getOrNull(stateIndex + 1))) else ClusterLocations.state()
     val reader = ClusterReader(state)
     val json = Json { prettyPrint = true; encodeDefaults = true }
     when (command) {
         "status" -> {
-            val status = reader.status()
+            val status = ClusterRuntime(reader).use { runtime -> runBlocking { runtime.api.status(Unit) } }
             if ("--json" in args) println(json.encodeToString(status)) else {
                 for (host in status.hosts) println("${host.id}: ${host.state}, CPU idle ${host.capacity?.cpuIdlePercent ?: "Unknown"}%, free memory ${host.capacity?.memoryFreePercent ?: "Unknown"}%, ${host.truth}")
                 for (slot in status.slots) println("${slot.host}/${slot.index}: ${slot.lease.state}, ${slot.job ?: "no matched receipt"}")
@@ -23,7 +24,7 @@ fun main(args: Array<String>) {
                 status.problems.forEach { println(it) }
             }
         }
-        "jobs" -> println(json.encodeToString(reader.jobs()))
+        "jobs" -> println(json.encodeToString(ClusterRuntime(reader).use { runtime -> runBlocking { runtime.api.jobs(ClusterJobsQuery()) } }))
         "storage" -> {
             require("--apply" !in args) { "Storage is read-only; eviction remains with dev-storage" }
             fun value(flag: String): String? = args.indexOf(flag).takeIf { it >= 0 }?.let { requireNotNull(args.getOrNull(it + 1)) }

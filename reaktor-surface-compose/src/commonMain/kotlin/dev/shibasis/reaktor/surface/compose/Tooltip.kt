@@ -162,6 +162,8 @@ internal class TooltipAnchor(private val behavior: TooltipBehavior, private val 
     private var properties = TooltipProperties()
     private var machine by mutableStateOf<Machine<TooltipProperties, TooltipState, TooltipInput, TooltipEvent>?>(null)
     var bounds by mutableStateOf(IntRect.Zero)
+        private set
+    private var placed: LayoutCoordinates? = null
     var frame by mutableStateOf<(@Composable () -> Unit)?>(null)
 
     val state: TooltipState get() = machine?.state ?: TooltipState()
@@ -196,6 +198,15 @@ internal class TooltipAnchor(private val behavior: TooltipBehavior, private val 
         return true
     }
 
+    fun place(coordinates: LayoutCoordinates) {
+        placed = coordinates
+        if (shown) locate()
+    }
+
+    private fun locate() {
+        placed?.takeIf { it.isAttached }?.let { bounds = it.boundsInWindow().roundToIntRect() }
+    }
+
     fun retire() {
         group?.retire(this)
         host?.tips?.remove(this)
@@ -205,6 +216,7 @@ internal class TooltipAnchor(private val behavior: TooltipBehavior, private val 
     private fun event(event: TooltipEvent) {
         when (event) {
             TooltipEvent.Shown -> {
+                locate()
                 host?.tips?.add(this)
                 val previous = group?.active
                 group?.active = this
@@ -236,7 +248,7 @@ private class TooltipAnchorNode(var anchor: TooltipAnchor) :
     }
 
     override fun onPlaced(coordinates: LayoutCoordinates) {
-        anchor.bounds = coordinates.boundsInWindow().roundToIntRect()
+        anchor.place(coordinates)
     }
 }
 

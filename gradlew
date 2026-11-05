@@ -1,7 +1,14 @@
 #!/bin/sh
 
-if [ "${REMOTE_DEV_WORKER:-0}" != 1 ] && [ -x "$HOME/dev/tools/remote-dev" ] && [ -f "$HOME/dev/.remote-dev/config.json" ]; then
-    exec "$HOME/dev/tools/remote-dev" gradle --project-dir "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)" -- "$@"
+if [ "${REMOTE_DEV_WORKER:-0}" != 1 ]; then
+    cluster_project_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+    cluster_tooling="$cluster_project_dir/reaktor-cluster/tooling"
+    if [ ! -x "$cluster_tooling/remote-dev" ]; then
+        cluster_tooling="$HOME/dev/reaktor/reaktor-cluster/tooling"
+    fi
+    if [ -x "$cluster_tooling/remote-dev" ] && python3 "$cluster_tooling/cluster_locations.py" configured; then
+        exec "$cluster_tooling/remote-dev" gradle --project-dir "$cluster_project_dir" -- "$@"
+    fi
 fi
 
 #

@@ -16,7 +16,7 @@ data class BlueprintReading(val level: Int, val smallest: Double, val titles: Ma
 }
 
 enum class BlueprintFace {
-    Code, Prose, Region;
+    Code, Prose;
 
     companion object {
         const val Key = "face"
@@ -61,7 +61,9 @@ data class BlueprintCardLook(
     val progress: Float? = null,
     val agent: BlueprintAgent? = null,
     val actions: List<BlueprintCardAction> = emptyList(),
-)
+) {
+    val drawsControls: Boolean get() = choice != null || actions.isNotEmpty() || pins.any { it?.choice != null }
+}
 
 data class BlueprintFrameLook(
     val icon: ImageVector,
@@ -70,6 +72,7 @@ data class BlueprintFrameLook(
     val marks: List<BlueprintMark> = emptyList(),
     val tag: String? = null,
     val muted: Boolean = false,
+    val selected: Boolean = false,
 )
 
 class BlueprintTip(val appearance: TooltipAppearance? = null, val content: @Composable () -> Unit)

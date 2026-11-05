@@ -181,7 +181,11 @@ class SurfaceGraphDocument(
     private fun endpointOf(node: String, port: String) = if (port == CardPort) node else rowIds[node to port]?.id ?: "$node:$port"
 
     private fun shapeOf(node: SurfaceGraphNode) = NodeShape(node.id, node.scope.ifBlank { root }, node.title, node.symbol, NodeKind.Node, ports = ports(node.rows.map { key(node, it) }),
-        attributes = buildMap { if (node.subtitle.isNotEmpty()) put("subtitle", node.subtitle); if (node.owner != node.id) put("owner", node.owner) })
+        attributes = buildMap {
+            if (node.subtitle.isNotEmpty()) put("subtitle", node.subtitle)
+            if (node.owner != node.id) put("owner", node.owner)
+            put(dev.shibasis.reaktor.blueprint.BlueprintFace.Key, if (node.rows.isEmpty()) "Prose" else "Code")
+        })
 
     private fun nodeOf(shape: NodeShape): SurfaceGraphNode {
         val original = nodeById[shape.id]
