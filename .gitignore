@@ -21,7 +21,7 @@ pids
 *.pid
 *.seed
 *.pid.lock
-*..hprof
+*.hprof
 
 **/build
 **/.gradle
@@ -165,3 +165,28 @@ local.properties
 
 # graphify output — regenerate locally; commit later if the team wants a shared map
 graphify-out/
+
+
+# Generated JVM diagnostics and macOS metadata.
+.DS_Store
+*.hprof
+hs_err_pid*.jfr
+hs_err_pid*.log
+replay_pid*.log
+
+# Raw generated reports; retain scripts, runnable packages and authored documents.
+/reports/**/*.json
+/reports/**/*.jsonl
+/reports/**/*.zip
+/reports/**/*.jfr
+/reports/**/*.xml
+/reports/**/*.manifest.json.gz
+/reports/**/java-*.ips
+!/reports/dependeasy-build-plane-hld-2026-10-28/model-page-qualified-results.zip
+!/reports/dependeasy-build-plane-hld-2026-10-28/engine-native-attachment-results.zip
+
+# Compiler source maps and profiling output; executable exports and harnesses remain.
+**/ts/export/**/*.map
+/reaktor-flexbuffer/flamechart/output/**/*.data
+/reaktor-flexbuffer/flamechart/output/**/*.txt
+/reaktor-flexbuffer/flamechart/output/**/*.cpuprofile
