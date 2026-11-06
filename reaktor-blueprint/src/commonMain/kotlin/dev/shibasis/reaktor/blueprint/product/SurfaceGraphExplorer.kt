@@ -195,7 +195,8 @@ fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraph
             editable = editor != null,
             bundles = areaCorridors && active.bundles,
             onFrameClick = { frame -> looks.firstOrNull { it.key == frame.key }?.owner?.let(select) },
-            onFrameOpen = {})
+            onFrameOpen = {},
+            denseOverview = true)
     }
     MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact,
         mode = if (appearance.canvas.luminance() > .5f) MachineSignalMode.Light else MachineSignalMode.Dark) {
@@ -295,7 +296,8 @@ private fun <K> SurfaceGraphDeclaredExplorer(
             fitKey = (key ?: layout.key).hashCode(), fitScene = key ?: layout.key, initialFit = { state.fit() },
             onPinClick = { card, pin -> surfaceGraphPinTarget(layout, card, pin)?.let { (original, port) -> select(port.id.takeUnless { chosen == it } ?: original.id) } },
             editable = false,
-            onFrameClick = { frame -> groups.firstOrNull { it.key == frame.key }?.owner?.let(select) })
+            onFrameClick = { frame -> groups.firstOrNull { it.key == frame.key }?.owner?.let(select) },
+            denseOverview = true)
     }
 }
 

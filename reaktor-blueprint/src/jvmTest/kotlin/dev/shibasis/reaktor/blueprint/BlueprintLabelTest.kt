@@ -90,25 +90,22 @@ class BlueprintLabelTest {
     @Test fun headerAndBannerHitsEndAtTheirPaintedBounds() {
         val frame = Frame("island", "Circles island", 0.0, 40.0, 940.0, 330.0, cards.keys, emptyList(), false)
         for (zoom in listOf(.3, .7, 1.2)) specimen(layout.copy(frames = listOf(frame)), emptyMap(), zoom = zoom) { canvas, engine, scene, _ ->
-            val level = field(engine, "level") as Int
-            if (level == 2) {
-                assertEquals(frame.key, engine.frameAt(1f, 41f)?.key)
-                assertNull(engine.frameAt(941f, 41f))
-                assertNull(engine.frameAt(1f, 81f))
-            } else {
+            assertEquals(frame.key, engine.frameAt(1f, 41f)?.key)
+            assertNull(engine.frameAt(941f, 41f))
+            if (field(engine, "bannering") as Boolean) {
                 @Suppress("UNCHECKED_CAST")
                 val banners = field(engine, "banners") as Array<GraphicsLayer?>
                 val banner = assertNotNull(banners.first())
-                val top = frame.y + maxOf((BlueprintEngine.FrameTop * zoom - banner.size.height - 2) / zoom, -(BlueprintEngine.GroupGap + BlueprintEngine.FrameSide))
-                val bottom = top + banner.size.height / zoom
-                val right = frame.x + banner.size.width / zoom
+                val at = field(engine, "bannerAt") as FloatArray
+                val left = frame.x + at[0] / zoom; val top = frame.y + at[1] / zoom
+                val right = left + banner.size.width / zoom; val bottom = top + banner.size.height / zoom
                 val y = ((top + bottom) / 2).toFloat()
-                assertEquals(frame.key, engine.frameAt(1f, y)?.key)
+                assertTrue(bottom <= frame.y, "A group with nothing above it keeps its name tag above its cards")
+                assertEquals(frame.key, engine.frameAt((left + 1).toFloat(), y)?.key)
                 assertEquals(frame.key, engine.frameAt((right - 1).toFloat(), y)?.key)
                 assertNull(engine.frameAt((right + 1).toFloat(), y))
-                assertNull(engine.frameAt(1f, (top - 1).toFloat()))
-                assertNull(engine.frameAt(1f, (bottom + 1).toFloat()))
-            }
+                assertNull(engine.frameAt((left + 1).toFloat(), (top - 1).toFloat()))
+            } else assertNull(engine.frameAt(1f, 81f))
             assertEquals(zoom, canvas.viewport().zoom)
             capture(scene, "header-hit-$zoom")
         }

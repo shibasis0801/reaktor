@@ -35,6 +35,8 @@ data class LinkStyle(
     val dash: Pair<Float, Float>? = null,
     val flowing: Boolean = false,
     val lifted: Boolean = false,
+    val startLabel: String? = null,
+    val endLabel: String? = null,
 )
 
 data class CanvasGrid(val minor: Color, val major: Color, val step: Double = 16.0, val every: Int = 8, val weight: Float = 1.4f)
@@ -95,6 +97,14 @@ open class GraphCanvasState(val zoomRange: ClosedFloatingPointRange<Double> = 0.
         if (boxes.isEmpty()) return
         val left = boxes.minOf { it.x }; val top = boxes.minOf { it.y }
         fit(left, top, boxes.maxOf { it.x + it.width } - left, boxes.maxOf { it.y + it.height } - top, padding, maxZoom, minZoom)
+    }
+
+    fun fitReadable(boxes: List<Bounds>, focus: Bounds?) {
+        if (boxes.isEmpty() || span <= 0 || room <= 0) return
+        val minimum = focus?.let { readableZoom(it.x, it.y, it.width, it.height) }?.takeIf { it.isFinite() && it > 0 }
+        if (minimum == null) { fit(boxes); return }
+        fit(boxes, maxZoom = minimum)
+        if (aimed.zoom / density < minimum) focus?.let { centre(it.x, it.y, it.width, it.height) }
     }
 
     val untouched: Boolean get() = framed != null && aimed == framed

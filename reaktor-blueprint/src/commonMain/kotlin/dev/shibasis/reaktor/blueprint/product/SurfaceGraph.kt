@@ -95,7 +95,8 @@ fun SurfaceGraphCanvas(
             groupLook = { BlueprintFrameLook(SurfaceGraphSymbol, "") },
             linkStyle = { link -> model.link(link.id)?.let { Blueprint.link(it.color ?: appearance.selected, false, false, dash = if (it.proposed) 6f to 4f else null) } },
             linkLabel = { model.link(it.id)?.label?.takeIf(String::isNotBlank) },
-            modifier = modifier)
+            modifier = modifier,
+            denseOverview = true)
     }
 }
 

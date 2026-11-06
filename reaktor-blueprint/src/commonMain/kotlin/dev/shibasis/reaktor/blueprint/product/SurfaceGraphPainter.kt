@@ -443,8 +443,8 @@ internal class SurfaceGraphPainter(graphics: GraphicsContext, private val measur
         return SurfaceGraphBanner(label, tally, if (domain) max(label.size.width, tally.size.width) + 22f else label.size.width + tally.size.width + 28f)
     }
 
-    override fun banner(i: Int, width: Float, zoom: Double): GraphicsLayer? {
-        val domain = zoom < .18
+    override fun banner(i: Int, width: Float, zoom: Double, compact: Boolean): GraphicsLayer? {
+        val domain = zoom < .18 && !compact
         val banner = bannerText[i * 2 + if (domain) 1 else 0] ?: return null
         val full = width >= banner.natural
         return bannerLayer(i, if (full) (if (domain) -1 else -2) else (width / 4).toInt() * 2 + if (domain) 1 else 0) { layer ->

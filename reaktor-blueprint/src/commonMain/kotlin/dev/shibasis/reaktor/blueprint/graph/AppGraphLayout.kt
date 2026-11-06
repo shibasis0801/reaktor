@@ -35,6 +35,7 @@ data class LayoutRequest(
 typealias GraphLayout = BlueprintLayout<LayoutRequest>
 
 private const val RoutePort = "routeBinding"
+private const val WorkflowAttribute = "workflow"
 
 object AppGraphLayout {
     fun layout(graph: AppGraph, request: LayoutRequest, layouter: FrameLayouter = DefaultFrameLayouter,
@@ -115,7 +116,9 @@ object AppGraphLayout {
         vacant.forEach { scope -> visibleScopes += graph.scopePath(scope.id).map { it.id } }
         val framed = if (request.nested) visibleScopes else vacant.mapTo(HashSet()) { it.id }
         fun blueprint(member: NodeShape): BlueprintNode {
-            val node = node(graph, member, request.detail)
+            val node = node(graph, member, request.detail).let { node ->
+                steps(graph, member, request).size.takeIf { it > 0 }?.let { node.copy(rows = BlueprintEngine.rowsOf(node) + it) } ?: node
+            }
             return body(node)?.let { node.copy(body = it, rows = if (BlueprintFace.of(member) == BlueprintFace.Prose) null else node.rows) } ?: node
         }
         val flat = features.mapNotNull { feature ->
@@ -219,6 +222,12 @@ object AppGraphLayout {
             pinHeader = if (prose && shown.isNotEmpty()) BlueprintEngine.ProseHeaderHeight else BlueprintEngine.HeaderHeight,
             pinFooter = if (prose && shown.isNotEmpty()) BlueprintEngine.ProseFooterHeight else BlueprintEngine.FooterHeight,
         )
+    }
+
+    fun steps(graph: AppGraph, node: NodeShape, request: LayoutRequest): List<NodeShape> {
+        if (request.detail < Detail.Standard || WorkflowAttribute !in node.attributes || node.id in request.expandedFlows) return emptyList()
+        val pinned = pinsFor(graph, node, request.detail).mapTo(HashSet()) { it.key }
+        return graph.steps(node.id).filter { it.label !in pinned }
     }
 
     fun pinsFor(graph: AppGraph, node: NodeShape, detail: Detail): List<PortShape> =

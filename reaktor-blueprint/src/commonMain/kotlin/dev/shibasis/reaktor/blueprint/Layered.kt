@@ -219,11 +219,13 @@ private class Sheet(
         for (k in 0 until count) if (inBand[source[k]] == inBand[target[k]]) { outs[source[k]] += k; ins[target[k]] += k }
         val result = IntArray(real)
         var at = 0
+        // Each vertex belongs to one band, and these adjacency lists stay within it.
+        val outWeight = IntArray(real)
+        val inWeight = IntArray(real)
+        val alive = BooleanArray(real)
         for ((_, vs) in bands) {
-            val outWeight = IntArray(real)
-            val inWeight = IntArray(real)
             vs.forEach { v -> outs[v].forEach { k -> outWeight[v] += weight(k) }; ins[v].forEach { k -> inWeight[v] += weight(k) } }
-            val alive = BooleanArray(real).also { a -> vs.forEach { a[it] = true } }
+            vs.forEach { alive[it] = true }
             val front = ArrayList<Int>()
             val back = ArrayList<Int>()
             val sinks = ArrayDeque<Int>()
@@ -377,6 +379,12 @@ private class Sheet(
         return result
     }
 
+    private class IsotonicScratch(size: Int) {
+        val weight = DoubleArray(size)
+        val sum = DoubleArray(size)
+        val start = IntArray(size)
+    }
+
     private inner class Grid(realRank: IntArray) {
         val chains = arrayOfNulls<IntArray>(count)
         val total: Int
@@ -480,9 +488,12 @@ private class Sheet(
 
         private fun crossingsIn(segments: IntArray): Long {
             if (segments.size < 2) return 0
-            val sorted = segments.sortedWith(compareBy<Int> { key(segLeft[it], segLeftOffset[it]) }.thenBy { key(segRight[it], segRightOffset[it]) })
-            val values = DoubleArray(sorted.size) { key(segRight[sorted[it]], segRightOffset[sorted[it]]) }
-            val weights = LongArray(sorted.size) { segWeight[sorted[it]].toLong() }
+            // Positions do not change during this sort; keep the same stable tie order.
+            val leftKey = DoubleArray(segments.size) { key(segLeft[segments[it]], segLeftOffset[segments[it]]) }
+            val rightKey = DoubleArray(segments.size) { key(segRight[segments[it]], segRightOffset[segments[it]]) }
+            val sorted = segments.indices.sortedWith(compareBy<Int> { leftKey[it] }.thenBy { rightKey[it] })
+            val values = DoubleArray(sorted.size) { rightKey[sorted[it]] }
+            val weights = LongArray(sorted.size) { segWeight[segments[sorted[it]]].toLong() }
             return inversions(values, weights, 0, values.size, DoubleArray(values.size), LongArray(values.size))
         }
 
@@ -556,8 +567,24 @@ private class Sheet(
                 layer.forEachIndexed { i, v -> top[v] = at; at += tall[v] + if (i < layer.size - 1) gap(v, layer[i + 1]) else 0.0 }
             }
             val wanted = DoubleArray(total)
-            val pull = DoubleArray(total)
-            val ceiling = if (spacing.compact) layers.maxOfOrNull { stack(it) } ?: 0.0 else Double.POSITIVE_INFINITY
+            val weight = DoubleArray(total) { v ->
+                var sum = 0.0
+                leftOf[v].forEach { sum += segPull[it] }
+                rightOf[v].forEach { sum += segPull[it] }
+                sum
+            }
+            val pull = DoubleArray(total) { if (weight[it] > 0) weight[it] else 1e-3 }
+            // Layer order and gaps stay fixed throughout the coordinate sweeps.
+            val stacks = DoubleArray(layers.size) { stack(layers[it]) }
+            val ceiling = if (spacing.compact) layers.indices.maxOfOrNull { stacks[it] } ?: 0.0 else Double.POSITIVE_INFINITY
+            val room = DoubleArray(layers.size) { ceiling - stacks[it] }
+            val offsets = Array(layers.size) { r ->
+                val layer = layers[r]
+                DoubleArray(layer.size).also { offset ->
+                    for (i in 1 until layer.size) offset[i] = offset[i - 1] + tall[layer[i - 1]] + gap(layer[i - 1], layer[i])
+                }
+            }
+            val scratch = IsotonicScratch(layers.maxOfOrNull { it.size } ?: 0)
             for (sweep in 0 until 96) {
                 var moved = 0.0
                 val sequence = if (sweep % 2 == 0) layers.indices else layers.indices.reversed()
@@ -565,12 +592,11 @@ private class Sheet(
                     val layer = layers[r]
                     layer.forEach { v ->
                         var sum = 0.0
-                        var weight = 0.0
-                        leftOf[v].forEach { s -> sum += segPull[s] * (top[segLeft[s]] + segLeftOffset[s] - segRightOffset[s]); weight += segPull[s] }
-                        rightOf[v].forEach { s -> sum += segPull[s] * (top[segRight[s]] + segRightOffset[s] - segLeftOffset[s]); weight += segPull[s] }
-                        if (weight > 0) { wanted[v] = sum / weight; pull[v] = weight } else { wanted[v] = top[v]; pull[v] = 1e-3 }
+                        leftOf[v].forEach { s -> sum += segPull[s] * (top[segLeft[s]] + segLeftOffset[s] - segRightOffset[s]) }
+                        rightOf[v].forEach { s -> sum += segPull[s] * (top[segRight[s]] + segRightOffset[s] - segLeftOffset[s]) }
+                        wanted[v] = if (weight[v] > 0) sum / weight[v] else top[v]
                     }
-                    moved = max(moved, settle(layer, wanted, pull, top, ceiling - stack(layer)))
+                    moved = max(moved, settle(layer, offsets[r], wanted, pull, top, room[r], scratch))
                 }
                 if (moved < 0.05) break
             }
@@ -582,14 +608,13 @@ private class Sheet(
         private fun stack(layer: IntArray): Double =
             layer.indices.sumOf { i -> tall[layer[i]] + if (i < layer.size - 1) gap(layer[i], layer[i + 1]) else 0.0 }
 
-        private fun settle(layer: IntArray, wanted: DoubleArray, pull: DoubleArray, top: DoubleArray, room: Double): Double {
+        private fun settle(layer: IntArray, offset: DoubleArray, wanted: DoubleArray, pull: DoubleArray, top: DoubleArray, room: Double, scratch: IsotonicScratch): Double {
             val m = layer.size
             if (m == 0) return 0.0
-            val offset = DoubleArray(m)
-            for (i in 1 until m) offset[i] = offset[i - 1] + tall[layer[i - 1]] + gap(layer[i - 1], layer[i])
-            val blockWeight = DoubleArray(m)
-            val blockSum = DoubleArray(m)
-            val blockStart = IntArray(m)
+            // Each active block is overwritten before it is read, so layers share scratch.
+            val blockWeight = scratch.weight
+            val blockSum = scratch.sum
+            val blockStart = scratch.start
             var blocks = 0
             for (i in 0 until m) {
                 val v = layer[i]

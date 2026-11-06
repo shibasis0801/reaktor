@@ -60,6 +60,7 @@ data class Wire(
     val consumer: String,
     val consumerPort: String,
     val type: String,
+    val condition: String? = null,
 )
 
 data class Hop(val from: String, val to: String, val exit: String = "") {
@@ -90,11 +91,11 @@ class AppGraph(
     val routes: Map<String, NodeShape> = shape.nodes.filter { it.kind == NodeKind.Route }.associateBy { it.id }
 
     private val boundWires = shape.wires.mapNotNull { wire ->
-        if (!telemetryBindings && (wire.consumerPort in InternalPorts || wire.providerPort in InternalPorts)) return@mapNotNull null
+        if (!telemetryBindings && (internalBinding(wire.consumer, wire.consumerPort, false) || internalBinding(wire.provider, wire.providerPort, true))) return@mapNotNull null
         val provider = visibleFor(wire.provider) ?: return@mapNotNull null
         val consumer = visibleFor(wire.consumer) ?: return@mapNotNull null
         wire to Wire(wire.sourceId.ifEmpty { "${linkPart(wire.provider)}.${linkPart(wire.providerPort)}>${linkPart(wire.consumer)}.${linkPart(wire.consumerPort)}" },
-            provider, wire.providerPort, consumer, wire.consumerPort, wire.type)
+            provider, wire.providerPort, consumer, wire.consumerPort, wire.type, wire.condition)
     }.distinctBy { it.second.id }
     val wires: List<Wire> = boundWires.map { it.second }
     private val projectedPorts = boundWires.flatMap { (original, shown) ->
@@ -186,6 +187,18 @@ class AppGraph(
 
     fun containerOf(scope: String): NodeShape? = scopes[scope]?.container?.let(nodes::get)
 
+    fun steps(workflow: String): List<NodeShape> {
+        val members = containers[workflow].orEmpty().flatMap { members[it.id].orEmpty() }
+        val ids = members.mapTo(HashSet()) { it.id }
+        val waits = members.associate { member -> member.id to wiresIn(member.id).map { it.provider }.filterTo(HashSet()) { it in ids && it != member.id } }
+        val placed = LinkedHashSet<String>()
+        while (placed.size < members.size) {
+            val open = members.filter { it.id !in placed }
+            placed += (open.firstOrNull { waits.getValue(it.id).all(placed::contains) } ?: open.first()).id
+        }
+        return placed.map(nodes::getValue)
+    }
+
     fun activeScreens(): Set<String> = shape.scopes.filter { scope -> scope.active && scopePath(scope.id).all { it.active } }
         .mapNotNull { scope -> scope.backStack.lastOrNull()?.let { attachedTo[it] ?: it } }
         .toSet()
@@ -195,6 +208,9 @@ class AppGraph(
     fun routeOf(node: NodeShape): String? = node.route
 
     val counts: Map<Role, Int> = nodes.values.groupingBy(::role).eachCount()
+
+    private fun internalBinding(id: String, key: String, provides: Boolean): Boolean =
+        key in InternalPorts && allNodes[id]?.ports?.any { it.key == key && it.provides == provides && it.internal } == true
 
     private fun visibleFor(id: String): String? {
         val node = allNodes[id] ?: return null

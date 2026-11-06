@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.DisposableEffect
@@ -58,6 +60,7 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
@@ -67,6 +70,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.shibasis.reaktor.blueprint.canvas.BlueprintIcon
 import dev.shibasis.reaktor.blueprint.canvas.BlueprintPainter
+import dev.shibasis.reaktor.blueprint.canvas.BlueprintHeaderSlots
 import dev.shibasis.reaktor.blueprint.canvas.BlueprintDetailZoom
 import dev.shibasis.reaktor.blueprint.canvas.BlueprintOverviewCards
 import dev.shibasis.reaktor.blueprint.canvas.BlueprintAgentBadge
@@ -181,10 +185,13 @@ fun <K> BlueprintCanvas(
     onGeometry: ((BlueprintLayout<K>, Double) -> Unit)? = null,
     labelExclusions: List<Rect> = emptyList(),
     focusLabels: Boolean = false,
+    denseOverview: Boolean = false,
+    subject: String? = null,
 ) {
     val cards = remember(layout) { layout.cards.values.toList() }
     val boxes = remember(layout) { layout.frames + cards }
-    val detailedMarkers by remember(canvas, cards.size) { derivedStateOf { cards.size <= BlueprintOverviewCards || canvas.zoom >= BlueprintDetailZoom } }
+    val detailLevel by remember(canvas) { derivedStateOf { canvas.level(canvas.zoom) } }
+    val detailedMarkers by remember(canvas, cards.size, denseOverview) { derivedStateOf { !denseOverview || cards.size <= BlueprintOverviewCards || canvas.zoom >= BlueprintDetailZoom } }
     val markerIndices = remember(boxes, opening, detailedMarkers, selected) { boxes.indices.filter { index ->
         if (index < layout.frames.size) true else cards[index - layout.frames.size].let { card ->
             card.id !in opening?.coveredCards.orEmpty() && (detailedMarkers || card.id == selected || card.pins.any { it.id == selected || selected in it.aliases })
@@ -197,16 +204,17 @@ fun <K> BlueprintCanvas(
         (folds[card.id]?.let { fold -> foldLook?.invoke(card, fold) ?: folded(editor!!, card, fold, frameLook) } ?: cardLook(card))?.let { look -> port?.takeIf { it.card == card.id }?.let { at -> look.copy(pins = look.pins.mapIndexed { k, pin -> pin?.copy(selected = card.pins.getOrNull(k)?.let { at.matches(card.id, it) } == true) }) } ?: look }
     }
     val glows = cards.map { glow(it.id) }
-    val controlled = cards.indices.filter { looks[it]?.drawsControls == true }
-    val carried = cards.indices.filter { cardContent != null || looks[it]?.agent != null }
-    val stillIndices = remember(markerIndices, controlled) { controlled.mapTo(hashSetOf()) { it + layout.frames.size }.let { live -> markerIndices.filter { it !in live } } }
-    val liveIndices = remember(markerIndices, controlled, carried) { (controlled + carried).mapTo(hashSetOf()) { it + layout.frames.size }.let { live -> markerIndices.filter { it in live } } }
-    val stillBoxes = remember(boxes, stillIndices) { stillIndices.map(boxes::get) }
-    val liveBoxes = remember(boxes, liveIndices) { liveIndices.map(boxes::get) }
     val tints = editor?.placement?.notes?.associate { it.id to it.tint }
     val frameLooks = layout.frames.map { frame -> frameLook(frame).let { look -> tints?.get(frame.key)?.takeIf { it != 0L }?.let { look.copy(lit = Color(it.toInt())) } ?: look } }
+    val controlled = frameLooks.indices.filter { frameLooks[it].hasHeaderContent } +
+        cards.indices.filter { looks[it]?.drawsControls == true }.map { it + layout.frames.size }
+    val carried = cards.indices.filter { cardContent != null || looks[it]?.agent != null }.map { it + layout.frames.size }
+    val stillIndices = remember(markerIndices, controlled) { controlled.toHashSet().let { live -> markerIndices.filter { it !in live } } }
+    val liveIndices = remember(markerIndices, controlled, carried) { (controlled + carried).toHashSet().let { live -> markerIndices.filter { it in live } } }
+    val stillBoxes = remember(boxes, stillIndices) { stillIndices.map(boxes::get) }
+    val liveBoxes = remember(boxes, liveIndices) { liveIndices.map(boxes::get) }
     val styles = layout.links.map { link ->
-        linkStyle(link).let { style -> wired?.let { ids -> (link.id in ids).let { on -> Blueprint.link(style.color, true, on, moving = on, width = style.width, dash = style.dash, lifted = on) } } ?: style }
+        linkStyle(link).let { style -> wired?.let { ids -> (link.id in ids).let { on -> Blueprint.link(style.color, true, on, moving = on, width = style.width, dash = style.dash, lifted = on).copy(startLabel = style.startLabel, endLabel = style.endLabel) } } ?: style }
     }
     val density = LocalDensity.current.density
     val fonts = LocalMachineSignalFonts.current
@@ -215,8 +223,8 @@ fun <K> BlueprintCanvas(
     val direction = LocalLayoutDirection.current
     val graphics = LocalGraphicsContext.current
     val colors = MachineSignal.colors
-    val painter = remember(graphics, resolver, direction, fonts, base, colors) {
-        BlueprintPainter(graphics, TextMeasurer(resolver, Density(1f), direction, cacheSize = 512), BlueprintType(fonts.ui, fonts.mono, base, fonts.graphLabel), colors)
+    val painter = remember(graphics, resolver, direction, fonts, base, colors, denseOverview) {
+        BlueprintPainter(graphics, TextMeasurer(resolver, Density(1f), direction, cacheSize = 512), BlueprintType(fonts.ui, fonts.mono, base, fonts.graphLabel), colors, denseOverview)
     }
     fun syncPainter() {
         canvas.insetTop = TopInset.value.toDouble()
@@ -240,7 +248,10 @@ fun <K> BlueprintCanvas(
     LaunchedEffect(fitKey, canvas.flow.canvasSize, layout, density) {
         syncPainter()
         if (boxes.isEmpty()) return@LaunchedEffect
-        canvas.fitOnce(fitKey, fitScene) { initialFit?.invoke() ?: canvas.fit(boxes, minZoom = canvas.zoomRange.start) }
+        canvas.fitOnce(fitKey, fitScene) {
+            initialFit?.invoke() ?: cards.firstOrNull { it.id == subject }?.let { canvas.fitReadable(boxes, it) }
+                ?: canvas.fit(boxes, minZoom = canvas.zoomRange.start)
+        }
     }
     val phase = remember { mutableFloatStateOf(0f) }
     if (styles.any { it.flowing }) LaunchedEffect(Unit) {
@@ -271,7 +282,7 @@ fun <K> BlueprintCanvas(
     GraphView(painter, canvas,
         hit = { x, y, reach -> cardAt(x, y) != null || linkAt(x, y, reach) != null || endAt(x, y) != null || frameClick != null && painter.frameAt(x, y) != null },
         tap = { x, y, reach ->
-            cardAt(x, y)?.let { id -> pinClick?.let { click -> painter.pinAt(x, y)?.takeIf { it.first.id !in coveredCards }?.let { (card, pin) -> click(card, pin) } } ?: cardClick(id); true }
+            cardAt(x, y)?.let { id -> pinClick?.let { click -> painter.pinAt(x, y)?.takeIf { it.first.id !in coveredCards }?.let { (card, pin) -> click(card, pin) } } ?: painter.rowAt(x, y)?.onClick?.invoke() ?: cardClick(id); true }
                 ?: linkAt(x, y, reach)?.let { linkClick(it); true }
                 ?: endAt(x, y)?.let { id -> cardClick(id); true }
                 ?: (painter.frameAt(x, y)?.let { frameClick?.invoke(it); true } ?: false)
@@ -297,20 +308,33 @@ fun <K> BlueprintCanvas(
         } else null,
         markers = { focus ->
             val markerId = { index: Int -> if (index < layout.frames.size) "frame:${layout.frames[index].key}" else cards[index - layout.frames.size].id }
-            @Composable fun Marker(card: Card, look: BlueprintCardLook) =
-                CardMarker(card, look, pinTip, { focus(); cardClick(it) }, pinClick?.let { click -> { card, pin -> focus(); click(card, pin) } })
+            @Composable fun Marker(card: Card, look: BlueprintCardLook) {
+                val slots = if (look.hasHeaderContent && detailLevel > 0) {
+                    val dimmed = card.id in editor?.context.orEmpty() || shown.isNotEmpty() && card.id !in shown
+                    painter.cardHeaderSlots(card, look, dimmed)
+                } else null
+                CardMarker(card, look, pinTip, { focus(); cardClick(it) },
+                    pinClick?.let { click -> { card, pin -> focus(); click(card, pin) } }, slots)
+            }
+            @Composable fun Region(frame: Frame, look: BlueprintFrameLook) {
+                val slots = if (look.hasHeaderContent && detailLevel == 2) painter.frameHeaderSlots(frame, look) else null
+                FrameMarker(frame, Area(frame.x, frame.y, frame.width, BlueprintEngine.FrameTop), look,
+                    frameClick?.let { click -> { focus(); click(frame) } }, slots)
+            }
             GraphMarkers(canvas, stillBoxes, { markerId(stillIndices[it]) }, follow = false) { marker, _ ->
                 val i = stillIndices[marker]
-                if (i < layout.frames.size) layout.frames[i].let { frame ->
-                    FrameMarker(frame, Area(frame.x, frame.y, frame.width, BlueprintEngine.FrameTop), frameLooks[i], frameClick?.let { click -> { focus(); click(frame) } })
-                }
+                if (i < layout.frames.size) Region(layout.frames[i], frameLooks[i])
                 else looks[i - layout.frames.size]?.let { look -> Marker(cards[i - layout.frames.size], look) }
             }
             if (liveBoxes.isNotEmpty()) GraphMarkers(canvas, liveBoxes, { markerId(liveIndices[it]) }) { marker, _ ->
                 val i = liveIndices[marker]
-                looks[i - layout.frames.size]?.let { look ->
+                val moving = editor?.takeIf { it.settled.cards === layout.cards }?.layout
+                if (i < layout.frames.size) {
+                    val frame = layout.frames[i]
+                    Region(moving?.frames?.getOrNull(i)?.takeIf { it.key == frame.key } ?: frame, frameLooks[i])
+                } else looks[i - layout.frames.size]?.let { look ->
                     val card = cards[i - layout.frames.size]
-                    if (look.drawsControls) Marker(card, look)
+                    if (look.drawsControls) Marker(if (look.hasHeaderContent) moving?.cards?.get(card.id) ?: card else card, look)
                     look.agent?.let { agent ->
                         painter.agentBounds(card.id)?.let { bounds -> AgentMarker(card, agent, bounds, canvas, onAgentOpen) }
                     }
@@ -346,13 +370,59 @@ private fun folded(editor: GraphEditor, card: Card, fold: Fold, frameLook: @Comp
 }
 
 @Composable
-private fun FrameMarker(frame: Frame, target: Bounds, look: BlueprintFrameLook, onFrameClick: (() -> Unit)?) {
+private fun FrameMarker(frame: Frame, target: Bounds, look: BlueprintFrameLook, onFrameClick: (() -> Unit)?, slots: BlueprintHeaderSlots?) {
     Box(Modifier.at(target.x, target.y, target.width, target.height).semantics {
         selected = look.selected
         onFrameClick?.let { click -> onClick(label = "Select ${frame.label}") { click(); true } }
     }.tagged(look.tag)) {
-        listOf(frame.label, look.count, frame.detail.joinToString(" · ")).forEach { Said(it) }
-        look.marks.forEach { Said(it.said) }
+        if (slots?.title == null) Said(frame.label)
+        Said(look.count)
+        Said(frame.detail.joinToString(" · "))
+        look.marks.filterNot { it in look.markContent }.forEach { Said(it.said) }
+        slots?.let { HeaderContent(it, look.titleContent, look.markContent) }
+    }
+}
+
+@Composable
+private fun HeaderContent(
+    slots: BlueprintHeaderSlots,
+    titleContent: (@Composable (TextStyle) -> Unit)?,
+    markContent: Map<BlueprintMark, @Composable () -> Unit>,
+) {
+    fun Rect.slot() = Modifier.at(left.toDouble(), top.toDouble(), width.toDouble(), height.toDouble())
+    slots.title?.takeUnless { it.bounds.isEmpty }?.let { title ->
+        Box(title.bounds.slot().clipToBounds(), contentAlignment = if (title.centered) Alignment.CenterStart else Alignment.TopStart) {
+            titleContent?.invoke(title.style)
+        }
+    }
+    val inheritedStyle = LocalTextStyle.current
+    slots.marks.forEach { (mark, bounds, style) ->
+        Box(bounds.slot()) {
+            CompositionLocalProvider(LocalTextStyle provides (style ?: inheritedStyle)) { markContent[mark]?.invoke() }
+        }
+    }
+}
+
+internal object BlueprintBadgeStyle {
+    const val HorizontalPadding = 5f
+    const val MinHeight = 16f
+    const val Radius = 3f
+    const val Tint = .18f
+    val Shape = RoundedCornerShape(Radius.dp)
+}
+
+/** A badge for controls hosted in a Blueprint mark slot, using the slot's label style. */
+@Composable
+fun BlueprintBadge(mark: BlueprintMark, highlighted: Boolean = false) {
+    val shape = BlueprintBadgeStyle.Shape
+    Box(
+        Modifier.heightIn(min = BlueprintBadgeStyle.MinHeight.dp)
+            .background(mark.color.copy(alpha = BlueprintBadgeStyle.Tint), shape)
+            .then(if (highlighted) Modifier.border(MachineSignal.Stroke.hairline, mark.color, shape) else Modifier)
+            .padding(horizontal = BlueprintBadgeStyle.HorizontalPadding.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(mark.text, style = LocalTextStyle.current.copy(color = mark.color), maxLines = 1, softWrap = false)
     }
 }
 
@@ -373,7 +443,8 @@ private fun AgentMarker(card: Card, agent: BlueprintAgent, bounds: BlueprintBadg
 }
 
 @Composable
-internal fun CardMarker(card: Card, look: BlueprintCardLook, pinTip: (Card, Pin) -> BlueprintTip?, onCardClick: (String) -> Unit, onPinClick: ((Card, Pin) -> Unit)?) {
+internal fun CardMarker(card: Card, look: BlueprintCardLook, pinTip: (Card, Pin) -> BlueprintTip?, onCardClick: (String) -> Unit,
+                        onPinClick: ((Card, Pin) -> Unit)?, slots: BlueprintHeaderSlots? = null) {
     Box(Modifier.at(card.x, card.y, card.width, card.height).semantics {
         selected = look.selected
         look.action?.let { onClick(label = it) { onCardClick(card.id); true } }
@@ -384,7 +455,7 @@ internal fun CardMarker(card: Card, look: BlueprintCardLook, pinTip: (Card, Pin)
             }
         }
         Box(Modifier.at(0.0, 0.0, card.width, BlueprintEngine.HeaderHeight)) {
-            Said(look.title)
+            if (slots?.title == null) Said(look.title)
             look.imageDescription?.let { Said(it) }
             look.eyebrow?.let { Said(it) }
             Said(look.subtitle)
@@ -406,27 +477,49 @@ internal fun CardMarker(card: Card, look: BlueprintCardLook, pinTip: (Card, Pin)
                 }
             }
         }
-        look.marks.forEach { Said(it.said) }
+        look.marks.filterNot { it in look.markContent }.forEach { Said(it.said) }
         look.folded?.let { Said(it) }
-        val oneSided = card.pins.all { it.provides } || card.pins.none { it.provides }
-        card.pins.forEachIndexed { k, pin ->
-            val pinLook = look.pins.getOrNull(k) ?: return@forEachIndexed
-            val text = pinLook.text
-            val width = if (oneSided) card.width else card.width / 2
-            Box(Modifier.at(if (pin.provides && !oneSided) card.width / 2 else 0.0, pin.y - BlueprintEngine.RowHeight / 2, width, BlueprintEngine.RowHeight).then(if (onPinClick == null) Modifier else Modifier.semantics {
-                selected = pinLook.selected
-                onClick { onPinClick(card, pin); true }
-            }.tagged(pinLook.tag ?: look.tag?.let { "$it-${if (pin.provides) "provides" else "needs"}-${pin.key}" }))) {
-                val tip = pinTip(card, pin)
-                if (tip == null) Said(text) else Tooltip(appearance = tip.appearance ?: UnframedBlueprintTip, tip = tip.content) { Said(text) }
-                pinLook.marks.forEach { Said(it.said) }
-                pinLook.choice?.let { choice ->
-                    Box(Modifier.at(if (pin.provides) width - BlueprintEngine.RowHeight else 0.0, 0.0, BlueprintEngine.RowHeight, BlueprintEngine.RowHeight), contentAlignment = Alignment.Center) {
+        look.rows.forEachIndexed { index, row ->
+            val content = row.content
+            Box(Modifier.at(0.0, BlueprintEngine.pinY(index, card.pinHeader) - BlueprintEngine.RowHeight / 2, card.width, BlueprintEngine.RowHeight).semantics {
+                selected = content.selected
+                row.onClick?.let { click -> onClick { click(); true } }
+            }.tagged(content.tag)) {
+                (listOf(content) + row.trailingCells).forEach { cell ->
+                    Said(cell.text)
+                    cell.marks.forEach { Said(it.said) }
+                }
+                content.choice?.let { choice ->
+                    Box(Modifier.at(0.0, 0.0, BlueprintEngine.RowHeight, BlueprintEngine.RowHeight), contentAlignment = Alignment.Center) {
                         dev.shibasis.reaktor.surface.compose.Checkbox(if (choice.checked) dev.shibasis.reaktor.surface.compose.CheckState.Checked else dev.shibasis.reaktor.surface.compose.CheckState.Unchecked, choice.change, Modifier.testTag(choice.tag))
                     }
                 }
             }
         }
+        val oneSided = card.pins.all { it.provides } || card.pins.none { it.provides }
+        card.pins.forEachIndexed { k, pin ->
+            val pinLook = look.pins.getOrNull(k) ?: return@forEachIndexed
+            val shared = look.rows.any { it.id == pin.key }
+            val text = if (shared) if (pin.provides) "Output anchor" else "Input anchor" else pinLook.text
+            val width = if (shared) BlueprintEngine.RowHeight else if (oneSided) card.width else card.width / 2
+            val left = if (shared && pin.provides) card.width - width else if (pin.provides && !oneSided) card.width / 2 else 0.0
+            Box(Modifier.at(left, pin.y - BlueprintEngine.RowHeight / 2, width, BlueprintEngine.RowHeight).then(if (onPinClick == null) Modifier else Modifier.semantics {
+                selected = pinLook.selected
+                onClick { onPinClick(card, pin); true }
+            }.tagged(pinLook.tag ?: look.tag?.let { "$it-${if (pin.provides) "provides" else "needs"}-${pin.key}" }))) {
+                val tip = pinTip(card, pin)
+                if (tip == null) Said(text) else Tooltip(appearance = tip.appearance ?: UnframedBlueprintTip, tip = tip.content) { Said(text) }
+                if (!shared) {
+                    pinLook.marks.forEach { Said(it.said) }
+                    pinLook.choice?.let { choice ->
+                        Box(Modifier.at(if (pin.provides) width - BlueprintEngine.RowHeight else 0.0, 0.0, BlueprintEngine.RowHeight, BlueprintEngine.RowHeight), contentAlignment = Alignment.Center) {
+                            dev.shibasis.reaktor.surface.compose.Checkbox(if (choice.checked) dev.shibasis.reaktor.surface.compose.CheckState.Checked else dev.shibasis.reaktor.surface.compose.CheckState.Unchecked, choice.change, Modifier.testTag(choice.tag))
+                        }
+                    }
+                }
+            }
+        }
+        slots?.let { HeaderContent(it, look.titleContent, look.markContent) }
     }
 }
 

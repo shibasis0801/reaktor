@@ -46,7 +46,7 @@ class BlueprintDenseOverviewTest {
                         tag = "dense:${it.id}", action = "Select ${it.id}") },
                     linkStyle = { Blueprint.link(Color.Blue, false, false) },
                     frameLook = { BlueprintFrameLook(BlueprintBench.icon, "") },
-                    onCardClick = {}, onLinkClick = {}, onPaneClick = {}, modifier = Modifier.fillMaxSize())
+                    onCardClick = {}, onLinkClick = {}, onPaneClick = {}, modifier = Modifier.fillMaxSize(), denseOverview = true)
             }
         }
         try {
@@ -74,6 +74,14 @@ class BlueprintDenseOverviewTest {
                 assertTrue(reading[BlueprintTitle.Whole] > 0, "Zooming restores painted readable titles: $reading")
                 assertTrue(markers().any { it.config.getOrNull(SemanticsProperties.TestTag) == "dense:source-0" })
                 assertEquals(600, layout.cards.size)
+                canvas.fit(0.0, 0.0, layout.width, layout.height)
+            }
+            frames()
+            edt {
+                val reading = assertNotNull(canvas.reading())
+                assertEquals(600, reading[BlueprintTier.Overview], "Zooming out reports the actual mesh, despite retained detail caches: $reading")
+                assertEquals(0, reading[BlueprintTier.Detail])
+                assertTrue(markers().size < 30)
             }
         } finally { edt { scene.close() } }
     }

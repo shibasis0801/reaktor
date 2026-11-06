@@ -55,11 +55,13 @@ fun <K> BlueprintGraph(
     onGeometry: ((BlueprintLayout<K>, Double) -> Unit)? = null,
     labelExclusions: List<Rect> = emptyList(),
     focusLabels: Boolean = false,
+    denseOverview: Boolean = false,
+    subject: String? = null,
 ) {
     BlueprintCanvas(layout, canvas, highlight, selected, linkStyle, frameLook, cardLook, onCardClick, onLinkClick, onPaneClick,
         modifier = modifier, labels = labels, fitKey = fitKey, fitScene = fitScene, startInset = startInset, pulses = pulses,
         glow = glow, pinTip = pinTip, onPinClick = onPinClick, onCardOpen = onCardOpen, focusable = focusable, port = port,
         editor = editor, cardContent = cardContent, interaction = interaction,
         initialFit = initialFit, foldLook = foldLook,
-        editable = editable, onAgentOpen = onAgentOpen, onFrameClick = onFrameClick, onGeometry = onGeometry, labelExclusions = labelExclusions, focusLabels = focusLabels)
+        editable = editable, onAgentOpen = onAgentOpen, onFrameClick = onFrameClick, onGeometry = onGeometry, labelExclusions = labelExclusions, focusLabels = focusLabels, denseOverview = denseOverview, subject = subject)
 }

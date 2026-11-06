@@ -52,6 +52,62 @@ class AppGraphRoutesTest {
         assertEquals(navigation.map { "${it.first}>${it.second}" }.toSet(), layout.links.filter { it.kind == LinkKind.Route }.flatMap { it.members }.toSet())
     }
 
+    @Test fun declaredPortsNamedLikeNavigationBindingsKeepTheirRawIdentifiersAndWires() {
+        val keys = listOf("id", "routeBinding", "navBinding")
+        val parent = NodeShape("parent", "catalog", "parent", "Table", NodeKind.Store,
+            ports = keys.map { PortShape(it, "integer", true, PortWiring.Connected) })
+        val child = NodeShape("child", "catalog", "child", "Table", NodeKind.Store,
+            ports = keys.map { PortShape(it, "integer", false, PortWiring.Connected) })
+        val endpoints = listOf("routeBinding" to "id", "id" to "navBinding", "navBinding" to "routeBinding")
+        val wires = endpoints.mapIndexed { index, (consumer, provider) ->
+            WireShape(child.id, consumer, parent.id, provider, "foreign-key", sourceId = "constraint-$index")
+        }
+        val declared = AppGraph(GraphShape(listOf(ScopeShape("catalog", "Catalog")), listOf(parent, child), wires, emptyList()),
+            GraphSource.Declared("schema", "Schema"))
+        assertEquals(wires.map { it.sourceId }, declared.wires.map { it.id })
+        assertEquals(endpoints, declared.wires.map { it.consumerPort to it.providerPort })
+        assertEquals(keys, declared.ports(parent).map { it.key })
+        assertEquals(keys, declared.ports(child).map { it.key })
+        assertEquals(wires.size, declared.wiresOut(parent.id).size)
+        assertEquals(wires.size, declared.wiresIn(child.id).size)
+    }
+
+    @Test fun realInternalNavigationBindingsStayHiddenOutsideTelemetrySources() {
+        val provider = NodeShape("provider", "app", "Provider", "Node", NodeKind.Node,
+            ports = listOf(PortShape("navBinding", "NavBinding", true, PortWiring.Connected, internal = true)))
+        val consumer = NodeShape("consumer", "app", "Consumer", "Screen", NodeKind.Screen,
+            ports = listOf(PortShape("routeBinding", "NavBinding", false, PortWiring.Connected, internal = true)))
+        val binding = WireShape(consumer.id, "routeBinding", provider.id, "navBinding", "NavBinding", sourceId = "binding")
+        val bound = GraphShape(listOf(ScopeShape("app", "App")), listOf(provider, consumer), listOf(binding), emptyList())
+        for (source in listOf(GraphSource.Desktop, GraphSource.Declared("declared", "Declared"), GraphSource.Build, GraphSource.Code)) {
+            val graph = AppGraph(bound, source)
+            assertTrue(graph.wires.isEmpty(), source.id)
+            assertTrue(graph.ports(provider).isEmpty(), source.id)
+            assertTrue(graph.ports(consumer).isEmpty(), source.id)
+        }
+        for (source in listOf(GraphSource.System, GraphSource.Revision("revision", "Revision"))) {
+            val graph = AppGraph(bound, source)
+            assertEquals(listOf("binding"), graph.wires.map { it.id }, source.id)
+            assertEquals(provider.ports, graph.ports(provider))
+            assertEquals(consumer.ports, graph.ports(consumer))
+        }
+    }
+
+    @Test fun internalMetadataOnTheOppositePortDirectionDoesNotHideAPublicWire() {
+        val provider = NodeShape("provider", "app", "Provider", "Node", NodeKind.Node, ports = listOf(
+            PortShape("navBinding", "NavBinding", true, PortWiring.Connected),
+            PortShape("navBinding", "NavBinding", false, PortWiring.Unused, internal = true)))
+        val consumer = NodeShape("consumer", "app", "Consumer", "Node", NodeKind.Node, ports = listOf(
+            PortShape("routeBinding", "NavBinding", false, PortWiring.Connected),
+            PortShape("routeBinding", "NavBinding", true, PortWiring.Unused, internal = true)))
+        val bound = GraphShape(listOf(ScopeShape("app", "App")), listOf(provider, consumer),
+            listOf(WireShape(consumer.id, "routeBinding", provider.id, "navBinding", "NavBinding", sourceId = "public-binding")), emptyList())
+        val graph = AppGraph(bound, GraphSource.Declared("declared", "Declared"))
+        assertEquals(listOf("public-binding"), graph.wires.map { it.id })
+        assertEquals(listOf(true), graph.ports(provider).map { it.provides })
+        assertEquals(listOf(false), graph.ports(consumer).map { it.provides })
+    }
+
     @Test fun `the desktop source keeps routes off the map`() {
         val layout = layout(GraphSource.Desktop)
         assertTrue(layout.cards.keys.none { it.endsWith("-route") })

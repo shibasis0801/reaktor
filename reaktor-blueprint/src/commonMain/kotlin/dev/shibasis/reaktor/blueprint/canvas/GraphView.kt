@@ -63,6 +63,7 @@ import dev.shibasis.reaktor.blueprint.Bounds
 import dev.shibasis.reaktor.blueprint.product.SurfaceGraphEngine
 import dev.shibasis.reaktor.blueprint.product.surfaceGraphIdle
 import dev.shibasis.reaktor.blueprint.editor.GraphEditor
+import dev.shibasis.reaktor.blueprint.editor.Spot
 import dev.shibasis.reaktor.blueprint.editor.viewerCommands
 import dev.shibasis.reaktor.surface.Availability
 import dev.shibasis.reaktor.surface.Chord
@@ -188,15 +189,19 @@ internal fun GraphView(
         val release = (editing as? GraphEditor)?.commandsFromCanvas({ currentRun(it) }, { if (focusable) focus.requestFocus() })
         onDispose { release?.invoke() }
     }
+    var canvasFocused by remember { mutableStateOf(false) }
     val held = if (editing == null) Modifier else Modifier.onPreviewKeyEvent { event ->
-        if (event.key != Key.Spacebar) return@onPreviewKeyEvent false
+        if (!canvasFocused || event.key != Key.Spacebar) return@onPreviewKeyEvent false
         when (event.type) {
             KeyEventType.KeyDown -> if (!space[0]) { space[0] = true; space[1] = false }
             KeyEventType.KeyUp -> { val held = space[0]; space[0] = false; if (held && !space[1]) commands.commands.firstOrNull { it.chord == Chord.Of(KeyName.Space) }?.let { run(it.id) } }
         }
         true
     }
-    TooltipGroup { Island(commands, run, modifier.then(held).onFocusChanged { if (!it.hasFocus) { space[0] = false; space[1] = false } }.focusRequester(focus), focusable = focusable) {
+    TooltipGroup { Island(commands, run, modifier.then(held).onFocusChanged {
+        canvasFocused = it.isFocused
+        if (!canvasFocused) { space[0] = false; space[1] = false }
+    }.focusRequester(focus), focusable = focusable) {
         Box(
             Modifier.fillMaxSize().clipToBounds()
                 .onSizeChanged { sizes(it) }
@@ -244,7 +249,10 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.edits(ed
             val event = awaitPointerEvent()
             if (event.type != PointerEventType.Press) continue
             val change = event.changes.firstOrNull() ?: continue
-            if (change.isConsumed) continue
+            if (change.isConsumed) {
+                last = null
+                continue
+            }
             val touch = change.type == PointerType.Touch
             val (x, y) = world(change.position)
             val window = Offset(origin[0], origin[1]) + change.position
@@ -263,7 +271,8 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.edits(ed
             val previous = last
             clicks = if (previous != null && previous.first.elapsedNow() < DoubleTap && (previous.second - change.position).getDistance() < DoubleTapSlop * density) clicks + 1 else 1
             last = TimeSource.Monotonic.markNow() to change.position
-            if (clicks == 2) {
+            val editItem = clicks == 2 && (editing as? GraphEditor)?.editsOnDoubleClick(Spot(x.toDouble(), y.toDouble())) == true
+            if (clicks == 2 && !editItem) {
                 change.consume()
                 var moved = false
                 while (true) {
@@ -275,6 +284,7 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.edits(ed
                 last = null
                 continue
             }
+            if (clicks == 2) last = null
             val selectedBefore = (editing as? GraphEditor)?.selection
             val preempted = preempt?.invoke(x, y, reach()) == true
             if (!preempted && !editing.press(x, y, window, reach(), event.keyboardModifiers, clicks, touch)) continue

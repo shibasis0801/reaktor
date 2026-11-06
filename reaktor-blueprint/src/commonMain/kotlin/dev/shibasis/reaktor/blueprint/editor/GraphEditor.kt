@@ -237,7 +237,13 @@ class GraphEditor(
         private set
     var gesture by mutableStateOf<Gesture?>(null)
         private set
-    var request by mutableStateOf<Request?>(null)
+    var interceptRename: (Request.Rename) -> Boolean = { false }
+    private var presentedRequest by mutableStateOf<Request?>(null)
+    var request: Request?
+        get() = presentedRequest
+        set(value) {
+            presentedRequest = if (value is Request.Rename && interceptRename(value)) null else value
+        }
     var notice by mutableStateOf<String?>(null)
     override var aim by mutableStateOf<Aim?>(null)
         private set
@@ -255,6 +261,8 @@ class GraphEditor(
     var system: SystemClipboard? = null
     var onSelect: (String?) -> Unit = {}
     var onOpen: (String) -> Unit = {}
+    /** Graph items whose double-click enters the editor instead of zooming the canvas. */
+    var editOnDoubleClick: (String) -> Boolean = { false }
     var onSave: (GraphDraft) -> Unit = {}
     var onTemplate: ((ChangeSet) -> Unit)? = null
     private var preferences by mutableStateOf(EditorPrefs())
@@ -2350,6 +2358,12 @@ class GraphEditor(
     }
 
     fun cardAt(at: Spot): Card? = layout.cards.values.lastOrNull { it.id !in coveredCards && at.x >= it.x && at.x <= it.x + it.width && at.y >= it.y && at.y <= it.y + it.height }
+
+    internal fun editsOnDoubleClick(at: Spot): Boolean {
+        if (tool != EditorTool.Select || locked || pending != null || captureMode) return false
+        cardAt(at)?.let { return it.id !in aside && it.id !in folded && editOnDoubleClick(it.id) }
+        return noteAt(at)?.let { (note, corner) -> !corner && editOnDoubleClick(note.id) } == true
+    }
 
     private fun endpointAt(at: Spot, reach: Float): Pair<WireShape, PinEnd>? =
         shape.wires.asSequence().filter { it.id in selection.wires && it.id !in coveredRoutes }.flatMap { wire ->
