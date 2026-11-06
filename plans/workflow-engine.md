@@ -1,6 +1,6 @@
 # One workflow engine on reaktor-work and reaktor-graph
 
-*Plan of 6 November 2026, rewritten after your answers the same day. The traversal in section 7 is built, verified and uncommitted. Phase 1 is built and uncommitted as of the evening of 6 November: the suite passes on all four platforms it runs on, the browser, Workers, server, iOS and desktop hosts pass their whole platform proofs, and Android passes all but its reboot (section 4). Phases 2 and 3 have not started.*
+*Plan of 6 November 2026, rewritten after your answers the same day. The traversal in section 7 is built, verified and committed in `d6da497a7`. Phase 1 is built and committed in `6203cfe9a` on the evening of 6 November: the suite passes on all four platforms it runs on, and all six hosts pass their whole platform proofs, the Android reboot included (section 4). Phases 2 and 3 have not started.*
 
 ## 1. Plan
 
@@ -35,12 +35,12 @@ Phase 1 makes reaktor-work the engine and uses the graph exactly as it is today.
   - Done: scoped admission, fences, leases, checkpoints that renew the lease, and an atomic journal with acknowledged cursors on SQLite, D1 and Postgres. Due work comes from a projection of the journal that holds one wake per open run, so a drain no longer reads finished runs.
   - Done: each journal event names its transitions, `RunTransition.State` for the run and `RunTransition.Step` for each step, which map onto the kernel's `state` and `progress` run events. A change leaves the journal once every consumer's cursor has passed it and the store's retention, 7 days by default, has run out. Pruning is checked on SQLite on all four platforms, on D1 under workerd and on Postgres.
 - **API** (done): typed definitions and typed run handles (section 3). A caller passes the workflow node and typed values, never a definition id or a payload string.
-- **Hosts and the six-target matrix** (done, with one proof open)
+- **Hosts and the six-target matrix** (done)
   - The conformance suite in commonTest has 23 tests, and `ReplayConformance` adds 9 for the Workers interpreter. All 32 pass on the JVM, in Kotlin/JS, on an Android phone and on an iPhone. Workers runs the interpreter under workerd, and the desktop runs the JVM suite.
   - Platform proofs and their results are in section 4.
   - Done: request mode. `Work.execute` keeps a run in memory while it only reads and stores it once, when it ends or starts to wait. Before a step with any other effect, or a child run, the run is stored and carries on as a stored run, so a write keeps the crash guarantee it has under `start`.
 - **Existing users** (done): the files outside the module moved to the new API. The BestBuds Android, iOS and browser apps build, reaktor-cloudflare's 26 JS tests pass, the engine compiles, and Hangar was reinstalled from it on the evening of 6 November. In the kernel, `KernelWorkTest` passes 3 of 3 and `NativeKernelExecutionTest` 4 of 4.
-- **Exit** (one part open): the suite and the platform proofs pass, apart from the Android reboot in section 4. The README describes what exists, and section 4 records the first measurements of steps per second and wake latency. The reaktor.build page is rewritten in the tree and not yet deployed. The users above still need a rebuild once the other sessions' edits compile.
+- **Exit** (done): the suite and the platform proofs pass, the Android reboot included (section 4). The README describes what exists, and section 4 records the first measurements of steps per second and wake latency. The reaktor.build page is rewritten and deployed.
 
 ### Phase 2: reaktor-graph learns to read workflows, with the same model
 
@@ -56,7 +56,7 @@ Phase 2 adds only what the graph itself has to understand. Each item reuses a co
 
 ### Phase 2 and the Blueprint upgrades
 
-*Revisited on the evening of 6 November.* Phase 2 draws runs on the Blueprint, so the fixes from the 5 November Blueprint review ([ranked list](https://claude.ai/artifact/Snc8yK4KRBVgE5GwyHpZtH)) decide how well a run reads there. Graph ports are built and uncommitted (`plans/graph-ports.md`). I re-checked against the tree the review fixes that Phase 2 touches:
+*Revisited on the evening of 6 November.* Phase 2 draws runs on the Blueprint, so the fixes from the 5 November Blueprint review ([ranked list](https://claude.ai/artifact/Snc8yK4KRBVgE5GwyHpZtH)) decide how well a run reads there. Graph ports are built and committed in `d6da497a7` (`plans/graph-ports.md`). I re-checked against the tree the review fixes that Phase 2 touches:
 
 | Review fix | State on 6 November | Role in Phase 2 |
 | --- | --- | --- |
@@ -73,12 +73,11 @@ The other review fixes (3 packing, 5 keyboard, 7 proof loop, 9 wires, 11 toolbar
 
 The order inside Phase 2:
 
-1. Commit graph ports when you say so, because the step rows and the depth view build on `Graph : PortCapability`.
-2. Fix 7, the proof loop, so a picture can prove each change that follows.
-3. Fixes 1 and 2, then the subject rule of fix 4.
-4. Steps move into graph-runtime's `Workflow` and draw as rows on their workflow's card. That takes the Worker islands from 415 cards to about 227. Build the rows so the depth view can reuse them, since a workflow card with step rows is a collapsed graph with boundary rows.
-5. Conditions label their wires.
-6. The run overlay, with fixes 8 and 12 for live updates. Cloud Work, Studio and the Deploy tab draw it, and `workDagLayout` is deleted.
+1. Fix 7, the proof loop, so a picture can prove each change that follows. Graph ports, which the step rows and the depth view build on, are already committed.
+2. Fixes 1 and 2, then the subject rule of fix 4.
+3. Steps move into graph-runtime's `Workflow` and draw as rows on their workflow's card. That takes the Worker islands from 415 cards to about 227. Build the rows so the depth view can reuse them, since a workflow card with step rows is a collapsed graph with boundary rows.
+4. Conditions label their wires.
+5. The run overlay, with fixes 8 and 12 for live updates. Cloud Work, Studio and the Deploy tab draw it, and `workDagLayout` is deleted.
 
 ### Phase 3: migrate everything
 
@@ -168,7 +167,7 @@ The runbook allows one repair, so the graph has no cycle. A workflow that repair
 
 | Target | Wakeups and waits, as built | Store | Platform proof | Result on 6 November |
 | --- | --- | --- | --- | --- |
-| Android | WorkManager unique one-time work at the next wake, drained by `ReaktorDrainWorker` | SQLite | on a phone, a run with a timer survives a force-stop and a reboot | force-stop passes on the Samsung SM-S918B, and the run finishes about 2.5 s after relaunch; **the reboot is open**, because the phone must be unlocked after it |
+| Android | WorkManager unique one-time work at the next wake, drained by `ReaktorDrainWorker` | SQLite | on a phone, a run with a timer survives a force-stop and a reboot | both pass on the Samsung SM-S918B: after a force-stop the run finishes about 2.5 s after relaunch; after a reboot, once the phone is unlocked, the app finishes it in a background launch about 20 s later |
 | iOS | `LiveScheduler` while the app is active, and `BGProcessingTask` in the background | SQLite | on an iPhone, a run resumes in a background launch and after the app is killed | passes on the iPhone 14 Pro: after a kill, the run finishes about 1 s after relaunch; in a second proof the app was killed while its run waited on a timer, iOS launched the app in the background, as the app recorded at launch, and the run finished in that launch 5 min after the timer fell due |
 | Browser | a page timer under a Web Lock, so one tab drains a scope; the service worker relays `sync`, `periodicsync` and `push` to an open page | SQLite on OPFS in a dedicated worker | under headless Chromium, two tabs share runs without double execution, a reload resumes a run, and a service-worker event drains due work | passes, in BestBuds' `work.spec.ts` |
 | Workers | one Cloudflare Workflows instance per run; each attempt is a `step.do` named by its path and attempt, and each wait is a `step.waitForEvent` with a deadline | the instance's step results, mirrored to D1 | under workerd, retries, sleeps, events and an instance restart behave as the suite expects | passes, in reaktor-cloudflare's `CloudflareWorkflowsTest`: a step fails twice and succeeds on its third attempt, a 2 s sleep, a signal, a workerd restart, and no attempt runs twice |
@@ -177,7 +176,7 @@ The runbook allows one repair, so the graph has no cycle. A workflow that repair
 
 Everywhere except Workers, the store owns the run and a host only wakes the executor. On Workers the Workflows instance owns the run. `Replay` there is deterministic because it only reads recorded results: each attempt, each wait and each reading of the clock is a recorded step, which is what Cloudflare Workflows requires of its code. A wait ends at its due time or after 30 days, whichever is sooner, and then waits again. The Workers host refuses workflows with child runs, and checkpoints are not durable there. A definition check against Cloudflare's step and size limits is not built.
 
-The open part needs one small step: the Android reboot needs the owner to unlock the phone after it restarts. Desktop control is built: the kernel attaches the desktop host's `WorkController` as a command host, the Cloud pane asks the kernel for a `work-control` plan for whichever host it shows, and the command runs only after an operator approves that plan.
+The Android reboot proof ran on the evening of 6 November. The run was stored waiting on a 3-minute timer, the phone was rebooted, and the timer fell due while the phone waited for its PIN. After the unlock, the app started in the background, not on screen, and finished the run in a new launch about 20 seconds later. Desktop control is built: the kernel attaches the desktop host's `WorkController` as a command host, the Cloud pane asks the kernel for a `work-control` plan for whichever host it shows, and the command runs only after an operator approves that plan.
 
 ### First measurements
 

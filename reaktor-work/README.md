@@ -4,7 +4,7 @@ reaktor-work runs durable workflows on Android, iOS, browsers, Cloudflare Worker
 
 Control flow lives in the graph. Resuming a run means reading its recorded results and working out which steps are ready. No workflow code runs twice, so there are no determinism rules to follow.
 
-**Status, 6 November 2026.** Phase 1 of [the workflow engine plan](../plans/workflow-engine.md) is built. The conformance suite passes on the JVM, in Kotlin/JS, on an Android phone and on an iPhone. Each host has passed its platform proof, apart from the Android reboot listed under [Open](#open).
+**Status, 6 November 2026.** Phase 1 of [the workflow engine plan](../plans/workflow-engine.md) is built. The conformance suite passes on the JVM, in Kotlin/JS, on an Android phone and on an iPhone. Each host has passed its platform proof, a reboot of the Android phone included.
 
 ## A workflow
 
@@ -124,7 +124,7 @@ Each host also has a platform proof:
 
 | Target | Proof | Result |
 | --- | --- | --- |
-| Android | a run with a timer survives a force-stop and a reboot | the force-stop passes, and the run finishes about 2.5 s after the app relaunches; the reboot is open |
+| Android | a run with a timer survives a force-stop and a reboot | both pass: after a force-stop the run finishes about 2.5 s after the app relaunches; after a reboot, once the phone is unlocked, the app finishes it in a background launch about 20 s later |
 | iOS | a run resumes after the app is killed, and in a background launch | after a kill, the run finishes about 1 s after relaunch; in a second proof the app was killed while its run waited on a timer, iOS launched the app in the background, as the app recorded at launch, and the run finished in that launch 5 min after the timer fell due |
 | Browser | under headless Chromium, two tabs share a run without running a step twice, a reload resumes a run, and a service-worker `sync` event drains due work | passes |
 | Workers | under workerd, a step fails twice and succeeds on its third attempt, then the run sleeps, waits for a signal and survives a restart of workerd, and no attempt runs twice | passes, in reaktor-cloudflare's `CloudflareWorkflowsTest` |
@@ -160,7 +160,6 @@ Wake latency is the time from a timer falling due to its next step starting.
 
 ## Open
 
-- **Android reboot.** The proof needs the phone unlocked after the reboot.
 - **Unmeasured.** Throughput on Workers, on the Postgres store and in a real browser on OPFS, and wake latency with Quartz's JDBC store.
 - **Journal consumers.** A consumer that stops reading holds the journal from its cursor on, and no call removes a consumer yet.
 - **Changed definitions.** Their runs are quarantined, and no migration maps old step paths to new ones.
