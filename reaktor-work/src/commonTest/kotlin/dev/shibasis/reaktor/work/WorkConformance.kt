@@ -9,6 +9,7 @@ import dev.shibasis.reaktor.db.ObjectDatabase
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.di.KoinDependencyAdapter
+import dev.shibasis.reaktor.graph.step.StepState
 import dev.shibasis.reaktor.work.definition.WorkflowPlan
 import dev.shibasis.reaktor.work.execution.WorkScheduler
 import dev.shibasis.reaktor.work.inspection.WorkControlAction
@@ -21,14 +22,8 @@ import dev.shibasis.reaktor.work.inspection.WorkView
 import dev.shibasis.reaktor.work.run.RunRecord
 import dev.shibasis.reaktor.work.run.RunState
 import dev.shibasis.reaktor.work.run.RunTransition
-import dev.shibasis.reaktor.work.run.StepState
 import dev.shibasis.reaktor.work.run.WorkScope
 import dev.shibasis.reaktor.work.store.ObjectWorkStore
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.runCurrent
-import kotlinx.coroutines.test.runTest
-import org.koin.dsl.koinApplication
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -41,6 +36,11 @@ import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
+import org.koin.dsl.koinApplication
 
 abstract class WorkConformance {
     abstract suspend fun database(): ObjectDatabase

@@ -10,13 +10,14 @@ import dev.shibasis.reaktor.core.framework.Feature
 import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.BasicNode
+import dev.shibasis.reaktor.graph.step.Output
+import dev.shibasis.reaktor.graph.step.StepNode
+import dev.shibasis.reaktor.graph.step.StepState
 import dev.shibasis.reaktor.portgraph.traversal.Members
 import dev.shibasis.reaktor.portgraph.traversal.Step
 import dev.shibasis.reaktor.portgraph.traversal.depthFirst
 import dev.shibasis.reaktor.work.definition.Durable
-import dev.shibasis.reaktor.work.definition.Output
 import dev.shibasis.reaktor.work.definition.SignalNode
-import dev.shibasis.reaktor.work.definition.StepNode
 import dev.shibasis.reaktor.work.definition.WorkflowPlan
 import dev.shibasis.reaktor.work.execution.Drain
 import dev.shibasis.reaktor.work.execution.Executor
@@ -27,16 +28,15 @@ import dev.shibasis.reaktor.work.run.RunLinks
 import dev.shibasis.reaktor.work.run.RunRecord
 import dev.shibasis.reaktor.work.run.RunState
 import dev.shibasis.reaktor.work.run.StepRecord
-import dev.shibasis.reaktor.work.run.StepState
 import dev.shibasis.reaktor.work.run.WorkScope
 import dev.shibasis.reaktor.work.store.Admission
 import dev.shibasis.reaktor.work.store.WorkStore
+import kotlin.concurrent.Volatile
+import kotlin.time.Clock
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlin.concurrent.Volatile
-import kotlin.time.Clock
 
 var Feature.Work by CreateSlot<Work>()
 

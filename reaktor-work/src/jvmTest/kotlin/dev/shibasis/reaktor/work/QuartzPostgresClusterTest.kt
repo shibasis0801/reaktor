@@ -9,28 +9,17 @@ import dev.shibasis.reaktor.graph.Workflow
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.di.KoinDependencyAdapter
+import dev.shibasis.reaktor.graph.step.StepState
+import dev.shibasis.reaktor.graph.step.input
+import dev.shibasis.reaktor.graph.step.step
 import dev.shibasis.reaktor.service.contract.Effect
 import dev.shibasis.reaktor.work.definition.Durable
-import dev.shibasis.reaktor.work.definition.input
-import dev.shibasis.reaktor.work.definition.step
 import dev.shibasis.reaktor.work.host.WorkHost
 import dev.shibasis.reaktor.work.host.WorkHostSession
 import dev.shibasis.reaktor.work.host.quartz.QuartzWorkScheduler
 import dev.shibasis.reaktor.work.run.RunState
-import dev.shibasis.reaktor.work.run.StepState
 import dev.shibasis.reaktor.work.run.WorkScope
 import dev.shibasis.reaktor.work.store.ObjectWorkStore
-import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
-import org.junit.Assume.assumeTrue
-import org.koin.dsl.koinApplication
-import org.postgresql.ds.PGSimpleDataSource
-import org.quartz.Scheduler
-import org.quartz.impl.StdSchedulerFactory
-import org.quartz.impl.matchers.GroupMatcher
-import org.quartz.utils.ConnectionProvider
 import java.io.File
 import java.sql.Connection
 import java.sql.DriverManager
@@ -43,6 +32,17 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import org.junit.Assume.assumeTrue
+import org.koin.dsl.koinApplication
+import org.postgresql.ds.PGSimpleDataSource
+import org.quartz.Scheduler
+import org.quartz.impl.StdSchedulerFactory
+import org.quartz.impl.matchers.GroupMatcher
+import org.quartz.utils.ConnectionProvider
 
 class QuartzPostgresClusterTest {
     @Test fun aSecondServerFinishesTheRunOfAServerKilledMidStep() = runBlocking {

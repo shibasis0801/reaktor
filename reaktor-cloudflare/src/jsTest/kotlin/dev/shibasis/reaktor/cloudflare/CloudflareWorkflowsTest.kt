@@ -11,29 +11,29 @@ import dev.shibasis.reaktor.graph.Workflow
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.di.KoinDependencyAdapter
+import dev.shibasis.reaktor.graph.step.StepState
+import dev.shibasis.reaktor.graph.step.input
+import dev.shibasis.reaktor.graph.step.step
 import dev.shibasis.reaktor.service.contract.Effect
 import dev.shibasis.reaktor.work.Work
 import dev.shibasis.reaktor.work.definition.Durable
-import dev.shibasis.reaktor.work.definition.input
 import dev.shibasis.reaktor.work.definition.signal
-import dev.shibasis.reaktor.work.definition.step
 import dev.shibasis.reaktor.work.definition.timer
 import dev.shibasis.reaktor.work.execution.WorkScheduler
 import dev.shibasis.reaktor.work.host.cloudflare.CloudflareWorkflowHost
 import dev.shibasis.reaktor.work.run.RunRecord
 import dev.shibasis.reaktor.work.run.RunState
-import dev.shibasis.reaktor.work.run.StepState
 import dev.shibasis.reaktor.work.run.WorkScope
 import dev.shibasis.reaktor.work.store.ObjectWorkStore
+import kotlin.js.Promise
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.await
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.promise
 import org.koin.dsl.koinApplication
-import kotlin.js.Promise
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.time.Duration.Companion.seconds
 
 @JsModule("node:fs") private external object ProofFs {
     fun mkdtempSync(prefix: String): String

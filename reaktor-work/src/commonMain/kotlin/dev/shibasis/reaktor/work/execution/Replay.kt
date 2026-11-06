@@ -1,11 +1,12 @@
 package dev.shibasis.reaktor.work.execution
 
+import dev.shibasis.reaktor.graph.step.StepNode
+import dev.shibasis.reaktor.graph.step.StepScope
 import dev.shibasis.reaktor.work.definition.SignalNode
-import dev.shibasis.reaktor.work.definition.StepNode
-import dev.shibasis.reaktor.work.definition.StepScope
 import dev.shibasis.reaktor.work.definition.WorkflowPlan
 import dev.shibasis.reaktor.work.run.RunRecord
 import dev.shibasis.reaktor.work.run.RunState
+import kotlin.time.Clock
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -13,7 +14,6 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.serializer
-import kotlin.time.Clock
 
 internal interface RecordedSteps {
     suspend fun <T> record(name: String, serializer: KSerializer<T>, limitMillis: Long, produce: suspend () -> T): T

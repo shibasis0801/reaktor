@@ -4,19 +4,21 @@ import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.auth.kernel.AuthContext
 import dev.shibasis.reaktor.auth.kernel.AuthDecision
 import dev.shibasis.reaktor.auth.kernel.LocalAuthorizer
-import dev.shibasis.reaktor.work.definition.Output
-import dev.shibasis.reaktor.work.definition.StepNode
-import dev.shibasis.reaktor.work.definition.StepScope
+import dev.shibasis.reaktor.graph.step.Output
+import dev.shibasis.reaktor.graph.step.StepNode
+import dev.shibasis.reaktor.graph.step.StepScope
+import dev.shibasis.reaktor.graph.step.StepState
+import dev.shibasis.reaktor.work.definition.Spawns
 import dev.shibasis.reaktor.work.definition.WorkflowPlan
 import dev.shibasis.reaktor.work.run.ChildRecord
 import dev.shibasis.reaktor.work.run.MaxPayloadBytes
 import dev.shibasis.reaktor.work.run.RunRecord
 import dev.shibasis.reaktor.work.run.RunState
 import dev.shibasis.reaktor.work.run.StepRecord
-import dev.shibasis.reaktor.work.run.StepState
 import dev.shibasis.reaktor.work.run.WorkScope
 import dev.shibasis.reaktor.work.store.Admission
 import dev.shibasis.reaktor.work.store.WorkStore
+import kotlin.time.Clock
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -24,7 +26,6 @@ import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
-import kotlin.time.Clock
 
 data class Drain(val runs: Int, val steps: Int)
 
@@ -158,7 +159,7 @@ internal class Executor(
     }
 
     private suspend fun admitChild(parent: RunRecord, node: Output<*>, child: ChildRecord): ChildRecord {
-        val target = checkNotNull(node.target) { "Node '${node.name}' runs no child workflow" }
+        val target = checkNotNull((node as? Spawns)?.target) { "Node '${node.name}' runs no child workflow" }
         val plan = plans[target.workflowId] ?: return child.copy(admitted = true, state = RunState.Failed)
         val record = RunRecord(scope, child.id, plan.id, plan.digest, child.input, createdAtMillis = now, parent = parent.id, links = parent.links,
             steps = mapOf(target.input.name to StepRecord(StepState.Succeeded, result = child.input, startedAtMillis = now, endedAtMillis = now)))

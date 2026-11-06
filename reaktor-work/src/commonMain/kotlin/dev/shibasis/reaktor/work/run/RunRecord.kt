@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.work.run
 
+import dev.shibasis.reaktor.graph.step.StepState
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -7,13 +8,6 @@ enum class RunState {
     Running, Waiting, Blocked, Compensating, Succeeded, Failed, Cancelled, Quarantined;
 
     val finished: Boolean get() = this == Succeeded || this == Failed || this == Cancelled
-}
-
-@Serializable
-enum class StepState {
-    Pending, Running, Waiting, Succeeded, Failed, Skipped, TimedOut, Unknown, Cancelled, Undoing, Undone;
-
-    val settled: Boolean get() = this != Pending && this != Running && this != Waiting && this != Unknown
 }
 
 @Serializable

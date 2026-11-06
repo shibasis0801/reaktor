@@ -1,6 +1,6 @@
-package dev.shibasis.reaktor.work.definition
+package dev.shibasis.reaktor.graph.step
 
-class StepScope internal constructor(
+class StepScope(
     val effectKey: String,
     val attempt: Int,
     val checkpoint: String?,

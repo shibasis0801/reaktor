@@ -1,16 +1,18 @@
 package dev.shibasis.reaktor.work.execution
 
 import dev.shibasis.reaktor.core.framework.json
+import dev.shibasis.reaktor.graph.step.EitherNode
+import dev.shibasis.reaktor.graph.step.InputNode
+import dev.shibasis.reaktor.graph.step.Outcomes
+import dev.shibasis.reaktor.graph.step.Output
+import dev.shibasis.reaktor.graph.step.StepNode
+import dev.shibasis.reaktor.graph.step.StepState
+import dev.shibasis.reaktor.graph.step.readiness
 import dev.shibasis.reaktor.work.definition.CallNode
 import dev.shibasis.reaktor.work.definition.EachNode
-import dev.shibasis.reaktor.work.definition.EitherNode
-import dev.shibasis.reaktor.work.definition.InputNode
 import dev.shibasis.reaktor.work.definition.LoopNode
 import dev.shibasis.reaktor.work.definition.MaxFanOut
-import dev.shibasis.reaktor.work.definition.Outcomes
-import dev.shibasis.reaktor.work.definition.Output
 import dev.shibasis.reaktor.work.definition.SignalNode
-import dev.shibasis.reaktor.work.definition.StepNode
 import dev.shibasis.reaktor.work.definition.TimerNode
 import dev.shibasis.reaktor.work.definition.WorkflowPlan
 import dev.shibasis.reaktor.work.run.ChildRecord
@@ -19,7 +21,6 @@ import dev.shibasis.reaktor.work.run.MaxRunIdLength
 import dev.shibasis.reaktor.work.run.RunRecord
 import dev.shibasis.reaktor.work.run.RunState
 import dev.shibasis.reaktor.work.run.StepRecord
-import dev.shibasis.reaktor.work.run.StepState
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.jsonArray
 
@@ -83,7 +84,7 @@ private class Pass(
             when (step.state) {
                 StepState.Running -> if (node is StepNode<*>) step.leaseUntilMillis?.let(::wakeAt) else settle(node, step)
                 StepState.Waiting -> open(node, step)
-                StepState.Pending -> when (readiness(node)) {
+                StepState.Pending -> when (node.readiness(this)) {
                     null -> Unit
                     false -> put(node, step.copy(state = StepState.Skipped, dueAtMillis = null, endedAtMillis = now))
                     true -> open(node, step)
@@ -107,25 +108,6 @@ private class Pass(
             is CallNode<*, *>, is EachNode<*, *>, is LoopNode<*, *> -> children(node, step)
         }
     }
-
-    private fun readiness(node: Output<*>): Boolean? {
-        val condition = node.on.evaluate(this)
-        val inputs = if (node is EitherNode<*>) oneSucceeded(node.options) else allSucceeded(node.inputs)
-        return when {
-            condition == false || inputs == false -> false
-            condition == true && inputs == true -> true
-            else -> null
-        }
-    }
-
-    private fun allSucceeded(inputs: List<Output<*>>): Boolean? = when {
-        inputs.any { state(it).settled && state(it) != StepState.Succeeded } -> false
-        inputs.all { state(it) == StepState.Succeeded } -> true
-        else -> null
-    }
-
-    private fun oneSucceeded(options: List<Output<*>>): Boolean? =
-        if (options.any { !state(it).settled }) null else options.any { state(it) == StepState.Succeeded }
 
     private fun claim(node: StepNode<*>, step: StepRecord) {
         val due = step.dueAtMillis

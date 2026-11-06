@@ -86,20 +86,22 @@ An app supplies a `WorkHost`, which opens the `Work` node for a scope when a pla
 
 ## Inspection and control
 
-`WorkInspector` pages a host's runs, definitions and journal for tools such as devtools, Hangar's Cloud pane and the kernel's `work.inspect`. It returns metadata only, never inputs, results or checkpoints. `WorkController` applies an operator's cancel, retry or reconcile to one run at an exact revision, so a command meant for an older state of the run is refused.
+`WorkInspector` pages a host's runs, definitions and journal for tools such as devtools, Hangar's Cloud pane and the kernel's `work.inspect`. It returns metadata only, never inputs, results or checkpoints. Each definition carries its own `GraphShape`, and `RunMetadata.over(shape)` turns a run into a `RunShape` that the Graph map draws on that shape: each step's state, attempt and timing on its card or its row. `WorkController` applies an operator's cancel, retry or reconcile to one run at an exact revision, so a command meant for an older state of the run is refused.
 
 ## Packages
 
 ```text
 dev.shibasis.reaktor.work          Work, Run, Feature.Work
-├── run                            RunRecord, RunTransition, StepRecord, RunState, StepState, WorkScope
-├── definition                     Durable, input, step, signal, timer, call, each, loop, either, Condition, WorkflowPlan
+├── run                            RunRecord, RunTransition, StepRecord, RunState, WorkScope
+├── definition                     Durable, signal, timer, call, each, loop, WorkflowPlan
 ├── store                          WorkStore, ObjectWorkStore
 ├── execution                      the planner, the executor, attempts, outcomes, request mode, Replay, WorkScheduler
 ├── host                           WorkHost, LiveScheduler
 ├── inspection                     WorkInspector, WorkController, WorkInspectionSession
 └── host.android, host.ios, host.browser, host.cloudflare, host.quartz
 ```
+
+`input`, `step`, `either`, conditions, `StepState` and `StepScope` live in reaktor-graph's `dev.shibasis.reaktor.graph.step`, because a step is part of the graph: the Graph pane draws it, the `Ready` relation orders it, and `Workflow.problems()` checks it when the graph is built. reaktor-work adds the waits, the child runs and everything that runs them.
 
 `run` uses no other package. `definition` and `store` use `run`, `execution` uses those three, and `Work` in the root package uses all four. `host` and `inspection` build on `Work`. The main code is 2,570 non-blank lines: 2,159 shared and 411 in the five platform hosts. The tests are 1,076 lines.
 

@@ -4,25 +4,25 @@ import dev.shibasis.reaktor.auth.kernel.AuthRequirement
 import dev.shibasis.reaktor.auth.kernel.PermissionRef
 import dev.shibasis.reaktor.graph.Workflow
 import dev.shibasis.reaktor.graph.core.Graph
+import dev.shibasis.reaktor.graph.step.StepNode
+import dev.shibasis.reaktor.graph.step.either
+import dev.shibasis.reaktor.graph.step.input
+import dev.shibasis.reaktor.graph.step.step
 import dev.shibasis.reaktor.service.contract.Effect
 import dev.shibasis.reaktor.work.definition.Durable
-import dev.shibasis.reaktor.work.definition.StepNode
 import dev.shibasis.reaktor.work.definition.call
 import dev.shibasis.reaktor.work.definition.each
-import dev.shibasis.reaktor.work.definition.either
-import dev.shibasis.reaktor.work.definition.input
 import dev.shibasis.reaktor.work.definition.loop
 import dev.shibasis.reaktor.work.definition.signal
-import dev.shibasis.reaktor.work.definition.step
 import dev.shibasis.reaktor.work.definition.timer
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.awaitCancellation
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.awaitCancellation
 
 class TestClock(var millis: Long = 1_700_000_000_000) : Clock {
     override fun now(): Instant = Instant.fromEpochMilliseconds(millis)

@@ -9,12 +9,13 @@ import dev.shibasis.reaktor.graph.Workflow
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.di.KoinDependencyAdapter
+import dev.shibasis.reaktor.graph.step.StepState
+import dev.shibasis.reaktor.graph.step.input
+import dev.shibasis.reaktor.graph.step.step
 import dev.shibasis.reaktor.service.contract.Effect
 import dev.shibasis.reaktor.work.definition.Durable
 import dev.shibasis.reaktor.work.definition.WorkflowPlan
-import dev.shibasis.reaktor.work.definition.input
 import dev.shibasis.reaktor.work.definition.signal
-import dev.shibasis.reaktor.work.definition.step
 import dev.shibasis.reaktor.work.definition.timer
 import dev.shibasis.reaktor.work.execution.Delivery
 import dev.shibasis.reaktor.work.execution.LongestWaitMillis
@@ -23,11 +24,7 @@ import dev.shibasis.reaktor.work.execution.Replay
 import dev.shibasis.reaktor.work.run.RunRecord
 import dev.shibasis.reaktor.work.run.RunState
 import dev.shibasis.reaktor.work.run.StepRecord
-import dev.shibasis.reaktor.work.run.StepState
 import dev.shibasis.reaktor.work.run.WorkScope
-import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.KSerializer
-import org.koin.dsl.koinApplication
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -35,6 +32,9 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
+import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.KSerializer
+import org.koin.dsl.koinApplication
 
 class Wobbly(graph: Graph) : Workflow(graph, "test.wobbly", "Wobbly"), Durable<Unit, Int> {
     override val input by input<Unit>()

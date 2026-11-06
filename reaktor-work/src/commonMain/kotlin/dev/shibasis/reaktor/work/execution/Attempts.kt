@@ -1,12 +1,12 @@
 package dev.shibasis.reaktor.work.execution
 
-import dev.shibasis.reaktor.work.definition.StepNode
+import dev.shibasis.reaktor.graph.step.StepNode
+import dev.shibasis.reaktor.graph.step.StepState
 import dev.shibasis.reaktor.work.run.StepRecord
-import dev.shibasis.reaktor.work.run.StepState
 import dev.shibasis.reaktor.work.run.WorkScope
-import okio.ByteString.Companion.encodeUtf8
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import okio.ByteString.Companion.encodeUtf8
 
 internal const val MaxAttempts = 3
 internal const val Parallelism = 4

@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.work.run
 
+import dev.shibasis.reaktor.graph.step.StepState
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 

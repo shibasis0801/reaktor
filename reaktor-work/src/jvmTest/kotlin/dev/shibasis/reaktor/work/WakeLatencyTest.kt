@@ -10,10 +10,10 @@ import dev.shibasis.reaktor.graph.Workflow
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.di.KoinDependencyAdapter
+import dev.shibasis.reaktor.graph.step.input
+import dev.shibasis.reaktor.graph.step.step
 import dev.shibasis.reaktor.service.contract.Effect
 import dev.shibasis.reaktor.work.definition.Durable
-import dev.shibasis.reaktor.work.definition.input
-import dev.shibasis.reaktor.work.definition.step
 import dev.shibasis.reaktor.work.definition.timer
 import dev.shibasis.reaktor.work.execution.WorkScheduler
 import dev.shibasis.reaktor.work.host.LiveScheduler
@@ -23,6 +23,10 @@ import dev.shibasis.reaktor.work.host.quartz.QuartzWorkScheduler
 import dev.shibasis.reaktor.work.run.RunState
 import dev.shibasis.reaktor.work.run.WorkScope
 import dev.shibasis.reaktor.work.store.ObjectWorkStore
+import java.util.Properties
+import kotlin.test.Test
+import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -32,10 +36,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.koin.dsl.koinApplication
 import org.quartz.impl.StdSchedulerFactory
-import java.util.Properties
-import kotlin.test.Test
-import kotlin.test.assertTrue
-import kotlin.time.Duration.Companion.seconds
 
 class Nap(graph: Graph) : Workflow(graph, "test.nap", "Nap"), Durable<Unit, String> {
     override val input by input<Unit>()

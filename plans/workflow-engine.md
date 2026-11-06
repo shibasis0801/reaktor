@@ -1,6 +1,6 @@
 # One workflow engine on reaktor-work and reaktor-graph
 
-*Plan of 6 November 2026, rewritten after your answers the same day. The traversal in section 7 is built, verified and committed in `d6da497a7`. Phase 1 is built and committed in `6203cfe9a` on the evening of 6 November: the suite passes on all four platforms it runs on, and all six hosts pass their whole platform proofs, the Android reboot included (section 4). Phases 2 and 3 have not started.*
+*Plan of 6 November 2026, rewritten after your answers the same day. The traversal in section 7 is built, verified and committed in `d6da497a7`. Phase 1 is built and committed in `6203cfe9a` on the evening of 6 November: the suite passes on all four platforms it runs on, and all six hosts pass their whole platform proofs, the Android reboot included (section 4). Phase 2 is built and checked on the evening of 6 November. Its engine half, the steps in graph-runtime and reaktor-work on top of them, is committed; the Hangar overlay and the Blueprint fixes are not, because they are built on another session's uncommitted Blueprint edits (Phase 2 below). Phase 3 has started with one BestBuds change; the rest of it waits on other sessions' unfinished work and on one decision of yours, whether the BestBuds flows may stop being one transaction (Phase 3 below).*
 
 ## 1. Plan
 
@@ -44,34 +44,35 @@ Phase 1 makes reaktor-work the engine and uses the graph exactly as it is today.
 
 ### Phase 2: reaktor-graph learns to read workflows, with the same model
 
-Phase 2 adds only what the graph itself has to understand. Each item reuses a concept the graph already has.
+*Built on the evening of 6 November.* The engine half is committed: the steps, conditions, checks and `RunShape` in graph-runtime, and reaktor-work on top of them. The Graph pane's overlay, the Cloud Work map and the Blueprint fixes are not, for the reason given under the Blueprint upgrades below. Phase 2 adds only what the graph itself has to understand. Each item reuses a concept the graph already has, and no new `NodeKind` was needed.
 
-- **Steps in graph-runtime** (outstanding): `step` moves from reaktor-work into graph-runtime's `Workflow`, where it replaces `activity`. The 26 BestBuds flows can then become the same definitions that reaktor-work runs. reaktor-work keeps waits, calls and the executor.
-- **Readiness as a relation** (outstanding): a `Ready` relation in the traversal follows Upstream and respects conditions, so the planner, the map and the checks share one meaning of "waits on".
-- **Definition checks** (outstanding): when a graph is built, reject cycles (through `topological`), steps that no run can reach, outputs that nothing consumes and conditions that can never hold. Host limits, such as step counts and result sizes, stay in reaktor-work.
-- **Conditions on the map** (outstanding): `WireShape` carries the condition of its input, so the Graph pane labels the wire. This reuses port attachments.
-- **A run overlay** (outstanding): a `RunShape` keyed by node id holds each step's state, attempt and timing. The Graph pane, Studio, the Deploy tab and Cloud Work draw it over `GraphShape`, which retires Cloud Work's own port-less map. It is a new data type, and the graph model is unchanged.
-- **Steps on workflow cards** (outstanding): each step draws as a row on its workflow's card, which is the open ravioli proposal. This is a drawing change.
-- **Kinds** (outstanding): steps, waits and calls draw through the existing `NodeKind` values and shape attributes. A new kind is added only if a card has to look different.
+- **Steps in graph-runtime** (done): `input`, `step`, `either`, conditions, `StepState` and `StepScope` moved from reaktor-work into graph-runtime's new package `dev.shibasis.reaktor.graph.step`, as extensions on its `Workflow`. reaktor-work keeps the waits (`signal`, `timer`), the calls (`call`, `each`, `loop`) and the executor. `activity` and `stage` stay until the BestBuds flows move in Phase 3.
+- **Readiness as a relation** (done): `Ready` follows a step's inputs and the steps its condition reads. `Workflow.steps()` orders a definition with `topological(Ready)`, and the planner, the map and the checks share one `readiness` rule.
+- **Definition checks** (done): `Workflow.problems()` names a step that no run can reach, a condition that can never hold and a result that nothing uses, and a cycle fails in `topological`. `WorkflowPlan` refuses a definition with a problem. Host limits stay in reaktor-work.
+- **Conditions on the map** (done): `WireShape.condition` carries the outcome a wire waits on, such as "failed". On the Graph map the port that waits reads "when charge failed", and the wire's label reads "when failed" when the wire is selected or hovered.
+- **A run overlay** (done): `RunShape` holds each step's state, attempt and timing, keyed by node id, and `GraphShape.run` places a run on any shape that holds its workflow. Work definitions now send their own shape, and `RunMetadata.over(shape)` builds the overlay; a host on an older build that sends no shape is drawn from its node list. Cloud Work draws the definition through the shared Graph map, with real port rows, and `workDagLayout` is deleted. "Show this run on the graph" hands a run to the Graph pane, which follows it live. Following a run lays the map out once, to give closed workflows a state column; each later step change only repaints. Studio's maps hold no workflow, so they draw no run yet, and the Deploy tab gets runs with the release workflow in Phase 3.
+- **Steps on workflow cards** (done): the Graph pane folds every workflow again, and the inspector's "Show steps" opens one. A closed workflow lists, as rows, each step that has no port row of its own: its name, its effect or kind, its condition and, during a run, its state. Steps made with `activity` already show as the workflow's port rows, so each step is drawn once.
+- **Checks** (done): graph-runtime's `StepGraphTest` 4 of 4; reaktor-work's 32 conformance checks on the JVM and in Node; reaktor-cloudflare's 26 JS tests; the kernel's 7; the engine's Graph and Cloud Work suites, 72 tests; the Blueprint name-tag suites, 23 tests; the graph acceptance run, 58 of 58 on six maps in both themes. graph-runtime, reaktor-work and the BestBuds app compile for Android, iOS, the browser and the JVM. `RunOverlayRenderTest` draws a closed and an opened workflow with a run on them. In Hangar's UI flows, the Cloud Work flow was brought up to date with Phase 1's runs view and now also follows a run into the Graph pane; it passes. Four Graph flows (01, 03, 15, 90) were already failing the same way on 5 November, and the feature-frames flow (09) fails the same way with folding switched off, so none of them comes from this work.
 
 ### Phase 2 and the Blueprint upgrades
 
 *Revisited on the evening of 6 November.* Phase 2 draws runs on the Blueprint, so the fixes from the 5 November Blueprint review ([ranked list](https://claude.ai/artifact/Snc8yK4KRBVgE5GwyHpZtH)) decide how well a run reads there. Graph ports are built and committed in `d6da497a7` (`plans/graph-ports.md`). I re-checked against the tree the review fixes that Phase 2 touches:
 
-| Review fix | State on 6 November | Role in Phase 2 |
+| Review fix | State late on 6 November | Role in Phase 2 |
 | --- | --- | --- |
-| 1. Group names at every zoom | not built: banners still draw only below level 2 (`BlueprintPainter.kt:312`, `SurfaceGraphEngine.kt:838`) | needed first, so workflow names read at the opening |
-| 2. Readable context on selection | not built: other cards still fade to alpha 0.2 (`SurfaceGraphEngine.kt:101`) | needed first, because the overlay colours step states and a selected step must not erase its neighbours |
-| 4. Open on the subject | not built: maps still fit everything, or centre a selection (`BlueprintViews.kt:248`, `AppGraphMap.kt:93`) | extended: a run's subject is its running, waiting or blocked step |
-| 6. Port rows on the four port-less maps | partly: the cluster-task map now has port rows; Query plan, Cloud Work (`workDagLayout`) and Studio Navigation still join card bodies | the overlay replaces Cloud Work's map with the workflow's own shape, which closes that part |
-| 8. Never blank on reload | partly: the Graph pane now keeps its last drawn map while a new layout runs; the Relationships producer was not re-checked | needed, because the overlay changes with every run update |
-| 10. Card text budget | not built: Work rows still read "Waits on"; the Relay rows went away with graph ports | independent, because Work maps plans, which stay the checklist |
-| 12. Frame budget | not re-measured | needed, because a status change must repaint without a new layout |
-| The ravioli fold | not built: the Graph pane still opens every flow (`AppGraphPane.kt:281`) | it is the item "steps on workflow cards" above |
+| 1. Group names at every zoom | built, not committed: name tags draw at every zoom. Small groups place their tags first, and a tag that collides moves inside its group, beside or below its neighbour's tag, or under its group. A group whose top has scrolled off the map keeps its name pinned at the top. The acceptance run names every group in view on all six maps it draws, in both themes, at the opening, 10% and 25%, and all 58 of its checks pass | needed first, so workflow names read at the opening |
+| 2. Readable context on selection | built, not committed: other cards keep at least 3:1 text contrast while one is selected (worst 5.2:1 dark and 4.5:1 light on the whole-system map) | needed first, because the overlay colours step states and a selected step must not erase its neighbours |
+| 4. Open on the subject | built, not committed: a plan opens on its subject, and Cloud Work selects a run's subject, its running, waiting or failed step | extended: a run's subject is its running, waiting or blocked step |
+| 6. Port rows on the four port-less maps | Cloud Work done: it draws the definition through the shared Graph map with port rows, and `workDagLayout` is deleted. The cluster-task map already had them. Query plan and Studio Navigation still join card bodies | the overlay replaced Cloud Work's map with the workflow's own shape |
+| 7. Proof loop | built, not committed: `RevampGraphAcceptanceTest` renders six maps in both themes, writes a ledger and a table of checks, names any group it finds unnamed, and fails on a failing check | every change below was proved with it |
+| 8. Never blank on reload | built for the Graph pane and Cloud Work: each keeps its last map while a new layout runs. The Relationships producer was not re-checked | needed, because the overlay changes with every run update |
+| 10. Card text budget | not built: Work rows still read "Waits on" | independent, because Work maps plans, which stay the checklist |
+| 12. Frame budget | not measured. By construction a step change only repaints: following a run lays the map out once, to add the state column | needed, because a status change must repaint without a new layout |
+| The ravioli fold | built, not committed: the Graph pane folds every workflow into one card with a row per step, and "Show steps" opens one | it is the item "steps on workflow cards" above |
 
-The other review fixes (3 packing, 5 keyboard, 7 proof loop, 9 wires, 11 toolbar, 13 search, 14 contrast and 15 inventory) do not depend on the engine and were not re-checked. Another session has uncommitted edits in 15 reaktor-blueprint files, including the painter, the views, the graph engine and the canvas state, which are the files fixes 1, 2, 4 and 5 change. Blueprint work should start from that session's result, not beside it.
+The other review fixes (3 packing, 5 keyboard, 9 wires, 11 toolbar, 13 search, 14 contrast and 15 inventory) do not depend on the engine and were not re-checked. Fixes 1, 2 and 4 were built on top of another session's uncommitted edits in 15 reaktor-blueprint files, the painter, the views, the graph engine and the canvas state among them, so those files can only be committed together with that session's work or hunk by hunk. The Graph pane's step rows also need that session's row support (`BlueprintCardLook.rows` and `BlueprintRowLook`), so the overlay and the Cloud Work map wait with those files.
 
-The order inside Phase 2:
+The order inside Phase 2, all of it built except the measurement for fix 12:
 
 1. Fix 7, the proof loop, so a picture can prove each change that follows. Graph ports, which the step rows and the depth view build on, are already committed.
 2. Fixes 1 and 2, then the subject rule of fix 4.
@@ -80,6 +81,12 @@ The order inside Phase 2:
 5. The run overlay, with fixes 8 and 12 for live updates. Cloud Work, Studio and the Deploy tab draw it, and `workDagLayout` is deleted.
 
 ### Phase 3: migrate everything
+
+*Started on the evening of 6 November.* One change is built: `OnboardingFlow` now builds each island's copy only when that island asks for it, so the social and circle-formation Workers no longer build each other's backend graph. It compiles for Workers and is not deployed, because a Workers deploy from this tree would also ship other sessions' unfinished Worker code. The rest of Phase 3 waits:
+
+- The conductor, the kernel's operations and cluster tasks, and the Deploy tab's lifecycle all have other sessions' uncommitted edits in the files the moves below rewrite.
+- The BestBuds flows are request handlers that run several stages in one Postgres transaction. As durable definitions each step would commit on its own, which is safer for a crash but drops the all-or-nothing behaviour. That is your call.
+- Trimming each Worker's flow copies to its own entry points needs the flows to declare steps per island, which is the same restructuring as turning them into definitions, so it moves with them.
 
 The order puts first the moves that exercise the most of the engine at the least risk.
 
@@ -110,8 +117,8 @@ As built:
 
 ```text
 dev.shibasis.reaktor.work          Work, Run, Feature.Work
-├── run                            RunRecord, RunTransition, StepRecord, RunState, StepState, WorkScope
-├── definition                     Durable, Output, input, step, signal, timer, call, each, loop, either, Condition, WorkflowPlan
+├── run                            RunRecord, RunTransition, StepRecord, RunState, WorkScope
+├── definition                     Durable, signal, timer, call, each, loop, WorkflowPlan
 ├── store                          WorkStore, ObjectWorkStore
 ├── execution                      the planner, the executor, attempts, outcomes, request mode, Replay, WorkScheduler
 ├── host                           WorkHost, LiveScheduler
@@ -119,7 +126,7 @@ dev.shibasis.reaktor.work          Work, Run, Feature.Work
 └── host.android, host.ios, host.browser, host.cloudflare, host.quartz   in their platform source sets
 ```
 
-`run` uses no other package. `definition` and `store` use `run`, `execution` uses those three, and `Work` in the root package uses all four. `host` and `inspection` build on `Work`, the graph node that owns a scope's runs and the one entry point. The desktop host is `LiveScheduler` over SQLite inside the Hangar host. Against the sketch this plan started with, `gate` became a signal with a sender requirement, `repeat` became `loop`, `either` was added, `RunEvent` became the `RunTransition`s that journal events carry, and request mode became `execute`.
+Since Phase 2, `Output`, `input`, `step`, `either`, `Condition`, `StepState` and `StepScope` live in graph-runtime's `dev.shibasis.reaktor.graph.step`, next to `Ready`, the definition checks and `RunShape`. `run` uses no other package. `definition` and `store` use `run`, `execution` uses those three, and `Work` in the root package uses all four. `host` and `inspection` build on `Work`, the graph node that owns a scope's runs and the one entry point. The desktop host is `LiveScheduler` over SQLite inside the Hangar host. Against the sketch this plan started with, `gate` became a signal with a sender requirement, `repeat` became `loop`, `either` was added, `RunEvent` became the `RunTransition`s that journal events carry, and request mode became `execute`.
 
 ```kotlin
 class Onboarding(graph: Graph) : Workflow(graph, "onboarding", "Onboarding"), Durable<OnboardingRequest, Welcome> {

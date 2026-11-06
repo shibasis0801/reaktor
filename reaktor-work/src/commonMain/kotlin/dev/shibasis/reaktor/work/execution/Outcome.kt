@@ -1,13 +1,13 @@
 package dev.shibasis.reaktor.work.execution
 
 import dev.shibasis.reaktor.core.framework.json
-import dev.shibasis.reaktor.work.definition.StepFailed
-import dev.shibasis.reaktor.work.definition.StepNode
-import dev.shibasis.reaktor.work.definition.StepScope
+import dev.shibasis.reaktor.graph.step.StepFailed
+import dev.shibasis.reaktor.graph.step.StepNode
+import dev.shibasis.reaktor.graph.step.StepScope
+import dev.shibasis.reaktor.graph.step.StepState
 import dev.shibasis.reaktor.work.run.MaxPayloadBytes
 import dev.shibasis.reaktor.work.run.RunRecord
 import dev.shibasis.reaktor.work.run.StepRecord
-import dev.shibasis.reaktor.work.run.StepState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive

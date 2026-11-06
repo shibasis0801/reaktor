@@ -1,15 +1,15 @@
 package dev.shibasis.reaktor.work.execution
 
-import dev.shibasis.reaktor.work.definition.StepNode
+import dev.shibasis.reaktor.graph.step.StepNode
+import dev.shibasis.reaktor.graph.step.StepState
 import dev.shibasis.reaktor.work.definition.WorkflowPlan
 import dev.shibasis.reaktor.work.run.RunRecord
-import dev.shibasis.reaktor.work.run.StepState
 import dev.shibasis.reaktor.work.run.WorkScope
 import dev.shibasis.reaktor.work.store.Admission
 import dev.shibasis.reaktor.work.store.WorkStore
+import kotlin.concurrent.Volatile
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlin.concurrent.Volatile
 
 internal class RequestStore(private val durable: WorkStore, private val plan: WorkflowPlan, first: RunRecord) : WorkStore by durable {
     private val mutex = Mutex()

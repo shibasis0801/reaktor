@@ -7,6 +7,7 @@ import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.node.RouteNode
 import dev.shibasis.reaktor.graph.core.node.ExitPort
 import dev.shibasis.reaktor.portgraph.port.ConsumerPort
+import dev.shibasis.reaktor.portgraph.port.Key
 import dev.shibasis.reaktor.portgraph.port.PortCapability
 import dev.shibasis.reaktor.portgraph.port.PortEventListener
 import dev.shibasis.reaktor.portgraph.port.flattenedValues
@@ -105,6 +106,7 @@ data class WireShape(
     val type: String,
     val definitionId: String = "",
     val sourceId: String = "",
+    val condition: String? = null,
 )
 
 @Serializable
@@ -152,6 +154,7 @@ fun Graph.shape(): GraphShape {
                     provider = provider.id.toString(),
                     providerPort = edge.provider.key.key,
                     type = consumer.type.type,
+                    condition = (node as? ShapeAttributes)?.condition(consumer.key),
                 )
             }
             if (node is RouteNode<*, *>) {
@@ -284,6 +287,7 @@ private fun Node.portShapes(graph: Graph): List<PortShape> =
 
 interface ShapeAttributes {
     val shapeAttributes: Map<String, String>
+    fun condition(port: Key): String? = null
 }
 
 private fun Node.attributes(): Map<String, String> = when (this) {
