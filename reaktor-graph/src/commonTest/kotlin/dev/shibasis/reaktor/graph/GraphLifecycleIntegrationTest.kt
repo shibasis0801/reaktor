@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.graph
 import dev.shibasis.reaktor.graph.core.node.currentRoute
 import dev.shibasis.reaktor.graph.capabilities.Lifecycle
 import dev.shibasis.reaktor.graph.core.input
+import dev.shibasis.reaktor.graph.core.provides
 import dev.shibasis.reaktor.graph.core.shape
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.autoWire
@@ -39,11 +40,10 @@ import dev.shibasis.reaktor.service.contract.Service
 
 class GraphLifecycleIntegrationTest {
     @Test
-    fun importedConfigurationIsInheritedAndOwnedHeadlessGraphsAreVisibleAndClosed() {
+    fun offeredConfigurationIsInheritedAndOwnedHeadlessGraphsAreVisibleAndClosed() {
         val root = Graph(dependencyAdapter = TestDependencyAdapter(), label = "app")
-        val config = root.Graph { Graph(parentGraph = it, label = "config") }
-        val provider = config.Node(::ProviderNode)
-        root.dependsOn(config)
+        val config = root.Graph(::Config)
+        val provider = config.provider
         val child = root.Graph { Graph(parentGraph = it, label = "feature") }
         val consumer = child.Node(::ConsumerNode)
         child.autoWire()
@@ -52,6 +52,8 @@ class GraphLifecycleIntegrationTest {
         val shape = root.shape()
         assertEquals(3, shape.scopes.size)
         assertEquals(root.id.toString(), shape.scopes.single { it.label == "config" }.parent)
+        assertTrue(shape.scopes.single { it.label == "config" }.outputs.any { it.name == "provider" && it.node == provider.id.toString() })
+        assertTrue(shape.scopes.single { it.label == "feature" }.inputs.any { it.node == provider.id.toString() })
         assertTrue(shape.wires.any { it.provider == provider.id.toString() && it.consumer == consumer.id.toString() })
         child.close()
         assertTrue(config.nodes.contains(provider))
@@ -378,6 +380,10 @@ private class ConsumerNode(
     graph: Graph,
 ) : BasicNode(graph) {
     val textPort by consumes<String>()
+}
+
+private class Config(parent: Graph) : Graph(parent, label = "config") {
+    val provider by provides(Node(::ProviderNode))
 }
 
 private open class Catalog : Service("test.catalog") {

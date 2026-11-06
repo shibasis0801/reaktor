@@ -6,6 +6,7 @@ import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.node.awaitConnected
 import dev.shibasis.reaktor.graph.core.node.launchWhenWired
 import dev.shibasis.reaktor.graph.core.node.provide
+import dev.shibasis.reaktor.graph.core.provides
 import dev.shibasis.reaktor.graph.core.wire
 import dev.shibasis.reaktor.portgraph.graph.connect
 import dev.shibasis.reaktor.portgraph.port.PortCapabilityImpl
@@ -41,13 +42,21 @@ class WiringTest {
         }
     }
 
+    class Identity(parent: Graph) : Graph(parent, label = "identity") {
+        val users by provides(Node(::Users))
+    }
+
+    class Config(parent: Graph) : Graph(parent, label = "config") {
+        val greeting by provides(provide("hello", "greeting"))
+    }
+
     @Test
     fun workWaitsForTheWholeTreeNotJustItsOwnPorts() {
         Reaktor.web()
         val app = Graph(dispatcher = Dispatchers.Unconfined, label = "app")
         val session = app.Node(::Session)
-        app.Graph { Graph(it, label = "identity") }.Node(::Users)
-        app.Graph { Graph(it, label = "config") }.provide("hello", "greeting")
+        app.Graph(::Identity)
+        app.Graph(::Config)
         app.wire()
         assertIs<IllegalStateException>(session.early?.exceptionOrNull())
         assertEquals("hello", session.greeting)

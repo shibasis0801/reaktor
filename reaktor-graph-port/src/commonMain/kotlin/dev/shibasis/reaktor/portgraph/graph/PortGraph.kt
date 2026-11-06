@@ -1,11 +1,11 @@
 package dev.shibasis.reaktor.portgraph.graph
 
-import dev.shibasis.reaktor.core.structs.ConcurrentHashMap
 import dev.shibasis.reaktor.portgraph.Unique
 import dev.shibasis.reaktor.portgraph.attach.Attachable
 import dev.shibasis.reaktor.portgraph.attach.Attachments
 import dev.shibasis.reaktor.portgraph.node.PortNode
-import dev.shibasis.reaktor.portgraph.visitor.Visitable
+import dev.shibasis.reaktor.portgraph.traversal.Visitable
+import kotlinx.atomicfu.atomic
 import kotlin.js.JsExport
 import kotlin.uuid.Uuid
 
@@ -14,21 +14,29 @@ open class PortGraph<Self: PortGraph<Self, N>, N: PortNode<Self>>(
     override val id: Uuid = Uuid.random(),
     override val label: String = ""
 ): Unique, Visitable, Attachable by Attachments() {
-    private val nodesById = ConcurrentHashMap<Uuid, N>()
+    private val nodesById = atomic<Map<Uuid, N>>(emptyMap())
 
     val nodes: Collection<N>
-        get() = nodesById.values()
+        get() = nodesById.value.values
 
     open fun attach(node: N): Boolean {
-        return nodesById.putIfAbsent(node.id, node) == null
+        while (true) {
+            val current = nodesById.value
+            if (node.id in current) return false
+            if (nodesById.compareAndSet(current, current + (node.id to node))) return true
+        }
     }
 
     open fun detach(node: N): Boolean {
-        val existing = nodesById[node.id] ?: return false
-        if (existing !== node) return false
-        nodesById.remove(node.id)
-        return true
+        while (true) {
+            val current = nodesById.value
+            if (current[node.id] !== node) return false
+            if (nodesById.compareAndSet(current, current - node.id)) return true
+        }
     }
+
+    @JsExport.Ignore
+    open fun members(): List<Visitable> = nodes.toList()
 
     open fun close() {
         nodes.toList().forEach { node ->
@@ -37,7 +45,7 @@ open class PortGraph<Self: PortGraph<Self, N>, N: PortNode<Self>>(
         }
     }
 
-    fun node(id: Uuid): N? = nodesById[id]
+    fun node(id: Uuid): N? = nodesById.value[id]
 
     @JsExport.Ignore
     inline fun<reified T : N> nodesByType(): List<T> =

@@ -5,7 +5,6 @@ import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapability
 import dev.shibasis.reaktor.core.capabilities.ConcurrencyCapabilityImpl
 import dev.shibasis.reaktor.core.framework.Feature
-import dev.shibasis.reaktor.core.structs.ConcurrentHashMap
 import dev.shibasis.reaktor.graph.di.DependencyCapability
 import dev.shibasis.reaktor.graph.di.DependencyCapabilityImpl
 import dev.shibasis.reaktor.graph.capabilities.Lifecycle
@@ -37,6 +36,12 @@ import dev.shibasis.reaktor.portgraph.port.Key
 import dev.shibasis.reaktor.portgraph.port.Type
 import dev.shibasis.reaktor.portgraph.port.Type.Companion.Type
 import dev.shibasis.reaktor.portgraph.port.ProviderPort
+import dev.shibasis.reaktor.portgraph.port.ConsumerPort
+import dev.shibasis.reaktor.portgraph.port.KeyType
+import dev.shibasis.reaktor.portgraph.port.PortCapability
+import dev.shibasis.reaktor.portgraph.port.PortCapabilityImpl
+import dev.shibasis.reaktor.portgraph.port.registerConsumer
+import dev.shibasis.reaktor.portgraph.port.registerProvider
 import dev.shibasis.reaktor.portgraph.port.flattenedValues
 import dev.shibasis.reaktor.portgraph.graph.connect
 import dev.shibasis.reaktor.graph.di.DependencyAdapter
@@ -44,6 +49,10 @@ import dev.shibasis.reaktor.graph.di.DependencyException
 import dev.shibasis.reaktor.graph.di.Dependency
 import dev.shibasis.reaktor.graph.navigation.NavCommand
 import dev.shibasis.reaktor.portgraph.graph.PortGraph
+import dev.shibasis.reaktor.portgraph.traversal.Relation
+import dev.shibasis.reaktor.portgraph.traversal.Step
+import dev.shibasis.reaktor.portgraph.traversal.Visitable
+import dev.shibasis.reaktor.portgraph.traversal.depthFirst
 import dev.shibasis.reaktor.core.framework.reaktorDefaultDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.atomicfu.atomic
@@ -67,6 +76,7 @@ open class Graph(
     val dependencies: (DependencyAdapter.ScopeBuilder.() -> Unit) = {},
     builder: Graph.() -> Unit = {}
 ): PortGraph<Graph, Node>(id, label),
+    PortCapability by PortCapabilityImpl(),
     LifecycleCapability,
     DependencyCapability,
     ConcurrencyCapability,
@@ -90,14 +100,36 @@ open class Graph(
     override val coroutineScope get() = concurrencyCapability.coroutineScope
     override val coroutineDispatcher get() = concurrencyCapability.coroutineDispatcher
 
-    internal val ownedGraphs = ConcurrentHashMap<Uuid, Graph>()
+    private val ownedGraphs = atomic<Map<Uuid, Graph>>(emptyMap())
     internal val wirings = MutableStateFlow(0)
-    private val importedGraphs = ConcurrentHashMap<Uuid, Graph>()
+    private val offered = atomic<List<GraphOutput>>(emptyList())
     private val closed = atomic(false)
     private val structureListeners = atomic<List<(GraphChange) -> Unit>>(emptyList())
 
     @JsExport.Ignore
-    val owned: Collection<Graph> get() = ownedGraphs.values()
+    val owned: Collection<Graph> get() = ownedGraphs.value.values
+
+    internal fun own(child: Graph): Boolean {
+        while (true) {
+            val current = ownedGraphs.value
+            if (child.id in current) return false
+            if (ownedGraphs.compareAndSet(current, current + (child.id to child))) return true
+        }
+    }
+
+    private fun disown(child: Graph) {
+        while (true) {
+            val current = ownedGraphs.value
+            if (current[child.id] !== child) return
+            if (ownedGraphs.compareAndSet(current, current - child.id)) return
+        }
+    }
+
+    @JsExport.Ignore
+    override fun members(): List<Visitable> {
+        val held = nodes.flatMapTo(HashSet()) { it.members() }
+        return buildList<Visitable> { addAll(nodes); owned.filterTo(this) { it !in held } }
+    }
 
     @JsExport.Ignore
     fun onStructure(listener: (GraphChange) -> Unit): () -> Unit {
@@ -115,23 +147,38 @@ open class Graph(
 
     internal fun changed(change: GraphChange) = structureListeners.value.forEach { it(change) }
 
-    fun dependsOn(vararg graphs: Graph) {
-        require(graphs.none { it === this }) { "A graph cannot import itself" }
-        graphs.forEach { importedGraphs.putIfAbsent(it.id, it) }
+    override fun <Functionality : Any> registerProvider(keyType: KeyType, impl: Functionality): ProviderPort<Functionality> =
+        registerProvider(keyType.key, keyType.type, impl)
+
+    override fun <Functionality : Any> registerConsumer(keyType: KeyType): ConsumerPort<Functionality> =
+        registerConsumer(keyType.key, keyType.type)
+
+    @JsExport.Ignore
+    val outputs: List<GraphOutput>
+        get() = offered.value + providerPorts.flattenedValues().map { GraphOutput(it.key.key, listOf(it)) }
+
+    internal fun offer(name: String, owner: PortCapability, ports: List<ProviderPort<Any>>) {
+        val home = (owner as? Node)?.graph ?: owner as? Graph
+        require(home != null && home in tree()) {
+            "Graph '$label' can offer only ports from its own subtree; '$name' belongs to $owner"
+        }
+        while (true) {
+            val current = offered.value
+            if (offered.compareAndSet(current, current + GraphOutput(name, ports))) return
+        }
     }
 
     internal fun providers() = nodes.flatMap { it.providerPorts.flattenedValues() }
 
+    internal fun children(): List<Graph> = childGraphs()
+
+    internal fun visible(): List<ProviderPort<Any>> = (providers() + children().flatMap { child -> child.outputs.flatMap { it.ports } }).distinct()
+
     fun findProvider(type: Type, key: Key): ProviderPort<Any>? {
         var scope: Graph? = this
         while (scope != null) {
-            val local = scope.providers().filter { it.type == type }
-            val localMatches = if (key.key.isEmpty() && local.size == 1) local else local.filter { it.key == key }
-            require(localMatches.size <= 1) { "Graph '${scope.label}' has ambiguous providers for $type / $key" }
-            localMatches.singleOrNull()?.let { return it }
-            val imported = scope.importedGraphs.values().flatMap { it.providers() }.distinct().filter { it.type == type }
-            val matches = if (key.key.isEmpty() && imported.size == 1) imported else imported.filter { it.key == key }
-            require(matches.size <= 1) { "Graph '${scope.label}' has ambiguous imported providers for $type / $key" }
+            val matches = scope.visible().filter { it.type == type }.matching(key)
+            require(matches.size <= 1) { "Graph '${scope.label}' has ambiguous providers for $type / $key: ${matches.joinToString { it.owner.toString() }}" }
             matches.singleOrNull()?.let { return it }
             scope = scope.parentGraph
         }
@@ -140,8 +187,7 @@ open class Graph(
 
     fun findOnlyProvider(type: Type): ProviderPort<Any>? =
         generateSequence(this) { it.parentGraph }
-            .flatMap { scope -> sequenceOf(scope.providers(), scope.importedGraphs.values().flatMap { it.providers() }.distinct()) }
-            .map { providers -> providers.filter { it.type == type } }
+            .map { scope -> scope.visible().filter { it.type == type } }
             .firstOrNull { it.isNotEmpty() }?.singleOrNull()
 
     val sentinel = RouteNode(this, "")
@@ -303,13 +349,15 @@ open class Graph(
 
     override fun close() {
         if (!closed.compareAndSet(false, true)) return
-        parentGraph?.ownedGraphs?.remove(id)
+        parentGraph?.disown(this)
         changed(GraphChange.Closed)
         structureListeners.value = emptyList()
         transition(Lifecycle.Destroying)
-        ownedGraphs.values().forEach { it.close() }
-        ownedGraphs.clear()
-        importedGraphs.clear()
+        owned.forEach { it.close() }
+        ownedGraphs.value = emptyMap()
+        consumerPorts.flattenedValues().forEach { it.close() }
+        providerPorts.flattenedValues().forEach { it.close() }
+        offered.value = emptyList()
         _navigationActivation.value = null
         captureNavigationContext = null
         dependencyCapability.close()
@@ -393,7 +441,7 @@ fun Graph.wire() {
         fun pass(pick: List<ProviderPort<Any>>.(Key) -> List<ProviderPort<Any>>) = graphs.forEach { graph ->
             graph.unconnectedConsumers().forEach { consumer ->
                 val nearest = generateSequence(graph) { it.parentGraph }
-                    .map { scope -> reach.getOrPut(scope) { scope.tree().flatMap { it.providers() }.distinct() }.filter { it.type == consumer.type }.pick(consumer.key) }
+                    .map { scope -> reach.getOrPut(scope) { scope.visible() }.filter { it.type == consumer.type }.pick(consumer.key) }
                     .firstOrNull { it.isNotEmpty() }.orEmpty()
                 require(nearest.size <= 1) { "${consumer.owner} can take ${consumer.type.type} from ${nearest.joinToString { it.owner.toString() }}" }
                 nearest.singleOrNull()?.let { connect(consumer, it).getOrThrow() }
@@ -413,10 +461,12 @@ suspend fun Graph.awaitWired() {
 
 private fun List<ProviderPort<Any>>.matching(key: Key) = if (key.key.isEmpty() && size == 1) this else filter { it.key == key }
 
-internal fun Graph.tree(into: MutableSet<Graph> = linkedSetOf()): Set<Graph> {
-    if (into.add(this)) (ownedGraphs.values() + nodes.filterIsInstance<ContainerNode>().flatMap { it.graphs }).forEach { it.tree(into) }
-    return into
-}
+private fun Graph.childGraphs(): List<Graph> = (owned + nodes.filterIsInstance<ContainerNode>().flatMap { it.graphs }).distinct()
+
+private val ChildGraphs = Relation { element -> (element as? Graph)?.childGraphs()?.asSequence() ?: emptySequence() }
+
+internal fun Graph.tree(): Set<Graph> =
+    depthFirst(ChildGraphs).mapNotNullTo(linkedSetOf()) { (it as? Step.Enter)?.element as? Graph }
 
 fun Graph.unconnectedConsumers() = nodes
     .flatMap { it.consumerPorts.flattenedValues() }
@@ -425,25 +475,35 @@ fun Graph.unconnectedConsumers() = nodes
 fun Graph.requireFullyWired() {
     val unconnected = unconnectedConsumers()
     require(unconnected.isEmpty()) {
+        val everywhere = generateSequence(this) { it.parentGraph }.last().tree().flatMap { graph -> graph.providers().map { it to graph } }
         buildString {
             append("Graph '$label' has unconnected consumer ports:")
             unconnected.forEach { port ->
                 append("\n- key='${port.key.key}' type='${port.type.type}' owner='${port.owner}'")
+                val reach = generateSequence((port.owner as? Node)?.graph ?: this@requireFullyWired) { it.parentGraph }.toSet()
+                everywhere.filter { it.first.type == port.type }.forEach { (provider, graph) ->
+                    val through = generateSequence(graph) { it.parentGraph }.takeWhile { it !in reach }.map { "'${it.label}'" }.toList()
+                    if (through.isNotEmpty()) append("\n  ${provider.owner} provides it inside ${through.first()}; offer it with `by provides` from ${through.joinToString(", then ")}")
+                }
             }
         }
     }
 }
 
-inline fun <reified T : Any> Graph.input(key: String = ""): ProviderPort<T> {
-    @Suppress("UNCHECKED_CAST")
-    return requireNotNull(findProvider(Type<T>(), Key(key))) {
-        "Graph '$label' requires a provider for ${Type<T>()} / $key"
-    } as ProviderPort<T>
+inline fun <reified T : Any> Graph.input(key: String = ""): ProviderPort<T> = input(Type<T>(), Key(key))
+
+@PublishedApi
+@Suppress("UNCHECKED_CAST")
+internal fun <T : Any> Graph.input(type: Type, key: Key): ProviderPort<T> {
+    val provider = requireNotNull(findProvider(type, key)) { "Graph '$label' requires a provider for $type / ${key.key}" } as ProviderPort<T>
+    val home = (provider.owner as? Node)?.graph ?: provider.owner as? Graph
+    if (home !in tree()) registerConsumer<T>(key, type).let { if (!it.isConnected()) connect(it, provider).getOrThrow() }
+    return provider
 }
 
 fun<G: Graph> Graph.Graph(builder: (Graph) -> G): G = builder(this).also {
     require(it.parentGraph === this) { "Owned graph must have its owner as parent" }
-    if (ownedGraphs.putIfAbsent(it.id, it) == null) changed(GraphChange.Owned(it))
+    if (own(it)) changed(GraphChange.Owned(it))
 }
 
 fun Graph.containerPathTo(

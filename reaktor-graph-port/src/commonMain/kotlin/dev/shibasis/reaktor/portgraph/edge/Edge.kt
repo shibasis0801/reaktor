@@ -10,7 +10,7 @@ import dev.shibasis.reaktor.portgraph.port.PortCapability
 import dev.shibasis.reaktor.portgraph.port.PortEvent
 import dev.shibasis.reaktor.portgraph.port.ProviderPort
 import dev.shibasis.reaktor.portgraph.port.ConsumerPort
-import dev.shibasis.reaktor.portgraph.visitor.Visitable
+import dev.shibasis.reaktor.portgraph.traversal.Visitable
 import kotlin.js.JsExport
 
 @JsExport

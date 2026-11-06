@@ -7,8 +7,8 @@ import kotlinx.atomicfu.atomic
  * The consumers one [ProviderPort] is connected to, and the edge reaching each.
  *
  * The same problem as [TypedKeyedMap], one level down. `Edge`'s constructor writes here while a
- * graph wires itself, `close()` drains it during disposal, and the visitors read it with
- * `edges.values.toList()` — so a `LinkedHashMap` here means a traversal of a live graph can throw.
+ * graph wires itself, `close()` drains it during disposal, and traversals read it with
+ * `edges.values` — so a `LinkedHashMap` here means a traversal of a live graph can throw.
  * Immutable map under compare-and-set, so readers get a snapshot and writers do not lose entries.
  *
  * Connection order is preserved, so a provider's consumers read in the order they connected.

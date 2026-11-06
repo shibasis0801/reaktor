@@ -1,4 +1,4 @@
-package dev.shibasis.reaktor.portgraph.visitor
+package dev.shibasis.reaktor.portgraph.traversal
 
 import kotlin.js.JsExport
 

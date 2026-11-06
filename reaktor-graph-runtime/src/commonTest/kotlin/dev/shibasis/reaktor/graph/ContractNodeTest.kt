@@ -1,11 +1,12 @@
 package dev.shibasis.reaktor.graph
 
 import dev.shibasis.reaktor.graph.core.Graph
-import dev.shibasis.reaktor.graph.core.NodeKind
 import dev.shibasis.reaktor.graph.core.autoWire
+import dev.shibasis.reaktor.graph.core.provides
 import dev.shibasis.reaktor.graph.core.node.BasicNode
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.shape
+import dev.shibasis.reaktor.portgraph.port.flattenedValues
 import dev.shibasis.reaktor.service.ServiceCall
 import dev.shibasis.reaktor.service.contract.CallAttributes
 import dev.shibasis.reaktor.service.ServiceExecutionPhase
@@ -24,7 +25,6 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.Serializable
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import dev.shibasis.reaktor.service.contract.CallMetadata
 import dev.shibasis.reaktor.service.contract.Side
@@ -89,25 +89,39 @@ class ContractNodeTest {
     }
 
     @Test
-    fun aRelayStandsInForTheNodeItRelays() = runTest {
+    fun aSiblingGraphCallsTheServiceAGraphOffers() = runTest {
         Reaktor.web()
         val root = Graph(label = "app")
-        val mock = root.Graph { Graph(parentGraph = it, label = "mock") }
+        val mock = root.Graph(::Mock)
         val echo = root.Graph { Graph(parentGraph = it, label = "echo") }
-        val served = mock.serve(CounterServer())
-        val relayed = echo.relay(served)
         val screen = echo.Node { CounterScreen(it) }
         val adder = echo.Node { Adder(it) }
         echo.autoWire()
 
         assertEquals(Total(3), screen.counter.add(Add(3)))
         assertEquals(Total(5), adder.add(Add(2)))
-        assertSame(served, relayed.origin)
-        assertSame(served, root.relay(relayed).origin)
-        assertEquals("test.counter", relayed.label)
-        assertEquals(NodeKind.Service, relayed.kind)
-        assertTrue(root.shape().wires.any { it.consumer == relayed.id.toString() && it.provider == served.id.toString() })
+        val shape = root.shape()
+        assertTrue(shape.wires.any { it.consumer == screen.id.toString() && it.provider == mock.counter.id.toString() })
+        assertTrue(shape.scopes.single { it.label == "mock" }.outputs.any { it.name == "counter" && it.node == mock.counter.id.toString() })
         root.close()
+    }
+
+    @Test
+    fun aServiceStaysInsideTheGraphThatDoesNotOfferIt() = runTest {
+        Reaktor.web()
+        val root = Graph(label = "app")
+        val hidden = root.Graph { Graph(parentGraph = it, label = "hidden") }
+        hidden.serve(CounterServer())
+        val echo = root.Graph { Graph(parentGraph = it, label = "echo") }
+        val screen = echo.Node { CounterScreen(it) }
+        echo.autoWire()
+
+        assertTrue(screen.consumerPorts.flattenedValues().none { it.isConnected() })
+        root.close()
+    }
+
+    private class Mock(parent: Graph) : Graph(parent, label = "mock") {
+        val counter by provides(serve(CounterServer()))
     }
 
     @Test

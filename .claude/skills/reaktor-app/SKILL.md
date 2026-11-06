@@ -17,16 +17,32 @@ type names; read this for the rules that bite.
 
 Three crashes account for most lost time on a new reaktor app. All three are silent until launch.
 
-### 1. A port finds its provider by key first, then by type
+### 1. A port finds its provider by key first, then by type, and stops at a graph's edge
 
-A port's key defaults to the property name. A consumer connects, in this order:
+A port's key defaults to the property name. A consumer looks in its own graph and then in each
+parent in turn. In each graph it sees that graph's nodes and the outputs of the graphs directly
+inside it, and it connects, in this order:
 
-1. to the provider with the same key, in its own graph and then its parents;
-2. failing that, to the **only** provider of its type in the nearest graph that has one: its own
-   nodes, then the graphs it `dependsOn`, then its parents. `wire()` also looks across sibling
-   graphs of the tree it wires.
+1. to the provider with the same key, in the nearest graph that has one;
+2. failing that, to the **only** provider of its type in the nearest graph that has one.
 
-So `consumes<T>()` just works when one provider of `T` is in reach, in the same graph or above it:
+A node inside a child graph stays hidden from the rest of the app until that graph offers it. A
+graph offers a node, a port or a typed service with `by provides`, and the property names the
+output:
+
+```kotlin
+class ConfigGraph(parent: Graph) : Graph(parent, label = "config") {
+    val storage by provides(Node(::AppStorage))
+    private val deployment by provides(provide(AppEnvironment.current))
+}
+```
+
+A graph that needs a provider while it builds reads it with `input<T>()`, or as a property with
+`private val backend by input<Backend>()`. The read follows the same walk, and when the provider
+sits outside the graph it leaves a wire on the map.
+
+So `consumes<T>()` just works when one provider of `T` is in reach: in the same graph, above it,
+or offered by a graph directly inside one of those:
 
 ```kotlin
 private val interactor by consumes<TodayInteractor>()
@@ -42,7 +58,9 @@ private val primary by consumes<HttpClient>("primary")
 
 Two providers of one type at the same distance, with no key between them, fail with a message
 that names both: `X can take T from A, B`. A port nothing provides fails with
-`IllegalStateException: Can't invoke functions through unconnected ports`.
+`IllegalStateException: Can't invoke functions through unconnected ports`. When the provider
+exists but sits inside a graph that does not offer it, `requireFullyWired` names that graph:
+``offer it with `by provides` from 'profile'``.
 
 A key is a property *name*, so minification can rename it. Ports that wire by type are unaffected;
 ports that rely on a written key need the keep rules in `reaktor-ship`.
@@ -154,8 +172,9 @@ route, `Root { HomeTabs(it, …) }` for a container. From the graph itself, `rep
 
 What fails at runtime, not compile time:
 
-- **An exit into a sibling graph** resolves only when that graph is passed to `autoWire`.
-  `requireFullyWired` names the route that still has an unwired exit.
+- **An exit into another graph** resolves only when that graph offers the target route:
+  `val chat by provides(Route("/chats/{id}", ::ChatBinding, ::ChatScreen))`. `requireFullyWired`
+  names the route that still has an unwired exit and the graph that must offer its target.
 - **Two routes bound by the same binding class** in one scope are ambiguous to an exit. Give every
   route its own binding class.
 - **Reading an exit before wiring** throws `No X route is wired to y, an exit of Z`.

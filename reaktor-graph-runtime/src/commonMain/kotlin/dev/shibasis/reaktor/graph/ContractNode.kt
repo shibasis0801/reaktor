@@ -125,7 +125,7 @@ val Service.connected: Boolean get() = (link as? PortLink<*>)?.port?.isConnected
 internal class PortLink<S : Any>(val port: ConsumerPort<S>) : Link() {
     private val wire = WireIdentity(port)
 
-    private val provider: ContractNode<*>? get() = (port.edge?.provider?.owner as? Provides<*>)?.let { if (it is Relay<*>) it.origin else it } as? ContractNode<*>
+    private val provider: ContractNode<*>? get() = port.edge?.provider?.owner as? ContractNode<*>
 
     private val target: Link
         get() = provider?.link ?: error(

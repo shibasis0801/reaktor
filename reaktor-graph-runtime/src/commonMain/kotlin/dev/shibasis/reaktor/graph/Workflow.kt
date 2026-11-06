@@ -2,7 +2,7 @@ package dev.shibasis.reaktor.graph
 
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.Graph as childGraph
-import dev.shibasis.reaktor.graph.core.GraphOwner
+import dev.shibasis.reaktor.portgraph.traversal.Visitable
 import dev.shibasis.reaktor.graph.core.NodeKind
 import dev.shibasis.reaktor.graph.core.ShapeAttributes
 import dev.shibasis.reaktor.graph.core.node.BasicNode
@@ -52,9 +52,10 @@ class ActivityNode<In, Out>(
 
 open class Workflow(graph: Graph, val workflowId: String, override val label: String,
     override val kind: NodeKind = NodeKind.Workflow, private val attributes: Map<String, String> = emptyMap(),
-) : BasicNode(graph), ShapeAttributes, GraphOwner {
-    override val childGraph = graph.childGraph { Graph(parentGraph = it, label = label) }
+) : BasicNode(graph), ShapeAttributes {
+    val childGraph = graph.childGraph { Graph(parentGraph = it, label = label) }
     override val shapeAttributes get() = attributes + mapOf("workflow" to workflowId)
+    override fun members(): List<Visitable> = listOf(childGraph)
     private val names = mutableSetOf<String>()
 
     fun <In, Out> activity(name: String, effect: Effect, attributes: Map<String, String> = emptyMap(), execute: suspend (In) -> Out): Activity<In, Out> {

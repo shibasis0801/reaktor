@@ -29,6 +29,8 @@ import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 import dev.shibasis.reaktor.graph.core.NodeKind
+import dev.shibasis.reaktor.portgraph.traversal.Relation
+import dev.shibasis.reaktor.portgraph.traversal.Visitable
 
 @JsExport
 open class RouteBinding<P: Payload>(
@@ -188,6 +190,11 @@ open class RouteNode<P: Payload, Binding: RouteBinding<P>>(
     }
 }
 
+
+object Exits : Relation {
+    override fun next(element: Visitable): Sequence<Visitable> =
+        (element as? RouteNode<*, *>)?.navigationTargets().orEmpty().asSequence()
+}
 
 fun<P: Payload, Binding: RouteBinding<P>> Graph.Route(pattern: String, binder: Binder<P, Binding>): RouteNode<P, Binding> {
     val node = RouteNode(this, pattern, binder)

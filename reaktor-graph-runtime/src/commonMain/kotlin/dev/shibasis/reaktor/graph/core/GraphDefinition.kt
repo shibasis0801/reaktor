@@ -72,7 +72,9 @@ private fun GraphShape.definitionStructure(): GraphShape {
     fun portKey(key: String, type: String): String? =
         if (type == "NavBinding" && key in nodeIds) nodeIds[key]?.takeIf(String::isNotEmpty) else key
     return GraphShape(
-        definedScopes.map { it.copy(id = it.definitionId, parent = it.parent?.let(scopeIds::get), container = it.container?.let(nodeIds::get), active = false, backStack = emptyList()) }.sortedBy { it.id },
+        definedScopes.map { it.copy(id = it.definitionId, parent = it.parent?.let(scopeIds::get), container = it.container?.let(nodeIds::get), active = false, backStack = emptyList(),
+            outputs = it.outputs.map { row -> row.copy(node = nodeIds[row.node] ?: scopeIds[row.node].orEmpty()) },
+            inputs = it.inputs.map { row -> row.copy(node = nodeIds[row.node] ?: scopeIds[row.node].orEmpty()) }) }.sortedBy { it.id },
         definedNodes.map { it.copy(id = it.definitionId, scope = scopeIds[it.scope].orEmpty(), attachedTo = it.attachedTo?.let(nodeIds::get), lifecycle = null,
             ports = it.ports.map { port -> port.copy(key = portKey(port.key, port.type).orEmpty(), wiring = PortWiring.Unused, connections = 0) }.sortedWith(compareBy({ port -> port.key }, { port -> port.type }, { port -> port.provides })),
             attributes = it.attributes.filterKeys { key -> key in setOf("contract", "version", "role", "service") }.entries.sortedBy { entry -> entry.key }.associate { entry -> entry.toPair() },

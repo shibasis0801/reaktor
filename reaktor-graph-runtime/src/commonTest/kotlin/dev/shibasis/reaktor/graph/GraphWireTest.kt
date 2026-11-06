@@ -9,6 +9,7 @@ import dev.shibasis.reaktor.graph.core.node.Route
 import dev.shibasis.reaktor.graph.core.node.RouteBinding
 import dev.shibasis.reaktor.graph.core.node.exit
 import dev.shibasis.reaktor.graph.core.node.provide
+import dev.shibasis.reaktor.graph.core.provides
 import dev.shibasis.reaktor.graph.core.wire
 import dev.shibasis.reaktor.graph.navigation.Payload
 import dev.shibasis.reaktor.portgraph.port.consumes
@@ -31,49 +32,72 @@ class GraphWireTest {
 
     class Profile : RouteBinding<Payload>(Payload())
 
+    class FeedGraph(parent: Graph) : Graph(parent, label = "feed") {
+        val reader = Node(::Reader)
+        val home = Root("/feed", ::Feed) { BasicNode(it) }
+    }
+
+    class ProfileGraph(parent: Graph) : Graph(parent, label = "profile") {
+        val clock by provides(Node(::Clock))
+        val page by provides(Route("/profile", ::Profile) { BasicNode(it) })
+    }
+
+    class Cache(parent: Graph) : Graph(parent, label = "cache") {
+        val clock by provides(Node(::Clock))
+    }
+
     private fun application(): Graph {
         Reaktor.web()
         return Graph(label = "application")
     }
 
-    @Test fun featuresOfOneSessionReachEachOtherWithoutWiringLists() {
+    @Test fun featuresOfOneSessionReachWhatTheOthersOffer() {
         val app = application()
         app.provide("hello", "greeting")
         val session = app.Graph { Graph(it, label = "session") }
-        val feed = session.Graph { Graph(it, label = "feed") }
-        val profile = session.Graph { Graph(it, label = "profile") }
-        val reader = feed.Node(::Reader)
-        val home = feed.Root("/feed", ::Feed) { BasicNode(it) }
-        val clock = profile.Node(::Clock)
-        val page = profile.Route("/profile", ::Profile) { BasicNode(it) }
+        val feed = session.Graph(::FeedGraph)
+        val profile = session.Graph(::ProfileGraph)
 
         session.wire()
 
-        assertSame(clock, reader.clock())
-        assertEquals("hello", reader.greeting())
-        assertSame(page, home.routeBinding.impl.profile.end)
-        assertSame(home, feed.currentRoute)
+        assertSame(profile.clock, feed.reader.clock())
+        assertEquals("hello", feed.reader.greeting())
+        assertSame(profile.page, feed.home.routeBinding.impl.profile.end)
+        assertSame(feed.home, feed.currentRoute)
         assertSame(app.coroutineDispatcher, feed.coroutineDispatcher)
         app.close()
     }
 
-    @Test fun theNearestProviderWinsAndATieIsNamed() {
+    @Test fun whatAGraphDoesNotOfferStaysInside() {
         val app = application()
         app.provide("hello", "greeting")
         val session = app.Graph { Graph(it, label = "session") }
         val feed = session.Graph { Graph(it, label = "feed") }
-        val cache = feed.Graph { Graph(it, label = "cache") }
         val profile = session.Graph { Graph(it, label = "profile") }
-        val reader = feed.Node(::Reader)
-        val near = cache.Node(::Clock)
+        feed.Node(::Reader)
         profile.Node(::Clock)
 
-        session.wire()
-        assertSame(near, reader.clock())
+        val refusal = assertFailsWith<IllegalArgumentException> { session.wire() }
+        assertTrue("offer it with `by provides` from 'profile'" in refusal.message.orEmpty())
+        app.close()
+    }
 
+    @Test fun theNearestOfferWinsAndATieIsNamed() {
+        val app = application()
+        app.provide("hello", "greeting")
+        val session = app.Graph { Graph(it, label = "session") }
+        val feed = session.Graph { Graph(it, label = "feed") }
+        val near = feed.Graph(::Cache)
+        val far = session.Graph(::Cache)
+        val reader = feed.Node(::Reader)
+
+        session.wire()
+        assertSame(near.clock, reader.clock())
+
+        val tied = session.Graph(::Cache)
         session.Node(::Reader)
         val tie = assertFailsWith<IllegalArgumentException> { session.wire() }
-        assertTrue("can take" in tie.message.orEmpty())
+        assertTrue(far.clock.toString() in tie.message.orEmpty() && tied.clock.toString() in tie.message.orEmpty())
         app.close()
     }
 

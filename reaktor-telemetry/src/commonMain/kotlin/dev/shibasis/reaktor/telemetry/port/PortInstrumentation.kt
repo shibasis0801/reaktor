@@ -3,64 +3,18 @@ package dev.shibasis.reaktor.telemetry.port
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.shape
 import dev.shibasis.reaktor.graph.core.node.Node
-import dev.shibasis.reaktor.graph.visitor.StructuralSelector as RuntimeStructuralSelector
 import dev.shibasis.reaktor.portgraph.attach.attach
 import dev.shibasis.reaktor.portgraph.graph.PortGraph
 import dev.shibasis.reaktor.portgraph.node.PortNode
-import dev.shibasis.reaktor.portgraph.port.ConsumerPort
 import dev.shibasis.reaktor.portgraph.port.Port
-import dev.shibasis.reaktor.portgraph.port.ProviderPort
 import dev.shibasis.reaktor.portgraph.port.addInterceptor
 import dev.shibasis.reaktor.portgraph.port.removeInterceptor
-import dev.shibasis.reaktor.portgraph.visitor.DepthFirstTraverser
-import dev.shibasis.reaktor.portgraph.visitor.ExitScope
-import dev.shibasis.reaktor.portgraph.visitor.PortGraphVisitor
-import dev.shibasis.reaktor.portgraph.visitor.StructuralSelector
-import dev.shibasis.reaktor.portgraph.visitor.Visitable
+import dev.shibasis.reaktor.portgraph.traversal.Contains
+import dev.shibasis.reaktor.portgraph.traversal.Step
+import dev.shibasis.reaktor.portgraph.traversal.Visitable
+import dev.shibasis.reaktor.portgraph.traversal.depthFirst
 import io.opentelemetry.kotlin.ExperimentalApi
 import io.opentelemetry.kotlin.tracing.Tracer
-
-/**
- * D6 — compiling the instrumentation plan.
- *
- * The visitor decides *what* is instrumented by walking the declared graph. K1 decides *when* a
- * call is observed. Those are separate jobs: this pass runs once per revision and installs
- * nothing at call time.
- */
-@OptIn(ExperimentalApi::class)
-class TelemetryPlanVisitor(
-    private val interceptor: PortTelemetryInterceptor,
-    private val defaults: TelemetryFacet = TelemetryFacet(),
-) : PortGraphVisitor() {
-
-    private val _instrumented = mutableListOf<Port<*>>()
-    private val _skipped = mutableListOf<Pair<Port<*>, String>>()
-
-    /** Ports this pass attached to, in visit order. */
-    val instrumented: List<Port<*>> get() = _instrumented
-
-    /** Ports deliberately left alone, each with the reason — the honest half of the plan. */
-    val skipped: List<Pair<Port<*>, String>> get() = _skipped
-
-    override fun visitConsumerPort(port: ConsumerPort<*>): ExitScope = install(port)
-
-    override fun visitProviderPort(port: ProviderPort<*>): ExitScope = install(port)
-
-    private fun install(port: Port<*>): ExitScope {
-        val facet = port.resolvedTelemetryFacet(defaults)
-        when {
-            facet.tracePolicy == TracePolicy.Off ->
-                _skipped += port to "trace policy is Off"
-            facet.semantics == PortSemantics.Reference ->
-                _skipped += port to "reference handoff — the call happens off-port"
-            else -> {
-                port.addInterceptor(interceptor)
-                _instrumented += port
-            }
-        }
-        return NoOpExit
-    }
-}
 
 /** The compiled plan, kept so it can be reported and reversed. */
 class TelemetryPlan internal constructor(
@@ -98,21 +52,32 @@ class TelemetryPlan internal constructor(
 fun dev.shibasis.reaktor.portgraph.attach.Attachable.telemetry(facet: TelemetryFacet) =
     attach(TelemetryPolicy, facet)
 
-/** Walks [root] and installs [interceptor] wherever policy allows. */
 @OptIn(ExperimentalApi::class)
 fun instrumentPorts(
     root: Visitable,
     interceptor: PortTelemetryInterceptor,
     defaults: TelemetryFacet = TelemetryFacet(),
 ): TelemetryPlan {
-    val visitor = TelemetryPlanVisitor(interceptor, defaults)
     val subjects = when (root) {
         is Graph -> interceptor.bind(root.shape())
         is Node -> interceptor.bind(root.graph.shape())
         else -> emptySet()
     }
-    DepthFirstTraverser.traverse(root, if (root is Graph || root is Node) RuntimeStructuralSelector else StructuralSelector, visitor)
-    return TelemetryPlan(interceptor, visitor.instrumented.toList(), visitor.skipped.toList(), subjects)
+    val instrumented = mutableListOf<Port<*>>()
+    val skipped = mutableListOf<Pair<Port<*>, String>>()
+    root.depthFirst(Contains).forEach { step ->
+        val port = (step as? Step.Enter)?.element as? Port<*> ?: return@forEach
+        val facet = port.resolvedTelemetryFacet(defaults)
+        when {
+            facet.tracePolicy == TracePolicy.Off -> skipped += port to "trace policy is Off"
+            facet.semantics == PortSemantics.Reference -> skipped += port to "reference handoff — the call happens off-port"
+            else -> {
+                port.addInterceptor(interceptor)
+                instrumented += port
+            }
+        }
+    }
+    return TelemetryPlan(interceptor, instrumented, skipped, subjects)
 }
 
 /** Convenience for the common case: instrument a whole port graph with one tracer. */

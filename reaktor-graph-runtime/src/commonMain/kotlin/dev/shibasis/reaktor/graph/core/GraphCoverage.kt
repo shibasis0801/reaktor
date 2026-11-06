@@ -3,6 +3,8 @@ package dev.shibasis.reaktor.graph.core
 import dev.shibasis.reaktor.graph.core.node.ContainerNode
 import dev.shibasis.reaktor.graph.core.node.RouteNode
 import dev.shibasis.reaktor.portgraph.Unique
+import dev.shibasis.reaktor.graph.core.node.Exits
+import dev.shibasis.reaktor.portgraph.traversal.breadthFirst
 
 data class RouteCoverage(
     val pattern: String,
@@ -31,12 +33,7 @@ data class GraphCoverage(
 
 fun Graph.coverage(root: RouteNode<*, *> = backStack.entries.value.firstOrNull()?.edge?.end ?: sentinel): GraphCoverage {
     val routes = (nodes.filterIsInstance<RouteNode<*, *>>().filter { it != sentinel } + nodes.filterIsInstance<ContainerNode>().map { it.route }).distinct()
-    val reached = mutableSetOf<RouteNode<*, *>>()
-    val frontier = ArrayDeque(listOf<RouteNode<*, *>>(root))
-    while (frontier.isNotEmpty()) {
-        val route = frontier.removeFirst()
-        if (reached.add(route)) frontier += route.navigationTargets()
-    }
+    val reached = root.breadthFirst(Exits).mapTo(HashSet()) { it.element }
     return GraphCoverage(
         graph = label,
         routes = routes.map { route ->

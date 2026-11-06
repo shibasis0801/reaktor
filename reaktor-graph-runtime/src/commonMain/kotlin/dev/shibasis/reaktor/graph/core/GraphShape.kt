@@ -7,8 +7,14 @@ import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.node.RouteNode
 import dev.shibasis.reaktor.graph.core.node.ExitPort
 import dev.shibasis.reaktor.portgraph.port.ConsumerPort
+import dev.shibasis.reaktor.portgraph.port.PortCapability
 import dev.shibasis.reaktor.portgraph.port.PortEventListener
 import dev.shibasis.reaktor.portgraph.port.flattenedValues
+import dev.shibasis.reaktor.portgraph.traversal.Members
+import dev.shibasis.reaktor.portgraph.traversal.Relation
+import dev.shibasis.reaktor.portgraph.traversal.Step
+import dev.shibasis.reaktor.portgraph.traversal.Visitable
+import dev.shibasis.reaktor.portgraph.traversal.depthFirst
 import dev.shibasis.reaktor.service.OperationDescriptor
 import dev.shibasis.reaktor.service.ServiceAccess
 import dev.shibasis.reaktor.service.contract.ChannelShape
@@ -45,7 +51,12 @@ data class ScopeShape(
     val active: Boolean = true,
     val backStack: List<String> = emptyList(),
     val definitionId: String = "",
+    val outputs: List<ScopePortShape> = emptyList(),
+    val inputs: List<ScopePortShape> = emptyList(),
 )
+
+@Serializable
+data class ScopePortShape(val name: String, val type: String, val node: String, val port: String)
 
 @JsExport
 @Serializable
@@ -101,34 +112,23 @@ data class RouteShape(val from: String, val to: String, val exit: String = "")
 
 fun Graph.shape(): GraphShape {
     val scopes = mutableListOf<ScopeShape>()
-    val nodes = mutableListOf<NodeShape>()
-    val wires = mutableListOf<WireShape>()
-    val routes = mutableListOf<RouteShape>()
+    val contents = mutableListOf<ShapeContent>()
+    val open = ArrayDeque<OpenScope>()
 
-    val visited = mutableSetOf<Graph>()
-    fun visit(graph: Graph, owner: Node?) {
-        val container = owner as? ContainerNode
-        if (!visited.add(graph)) return
-        val scope = graph.id.toString()
-        scopes += ScopeShape(
-            id = scope,
-            label = container?.labelOf(graph) ?: graph.label.ifBlank { "Graph" },
-            parent = if (graph === this) null else container?.graph?.id?.toString() ?: graph.parentGraph?.id?.toString(),
-            container = owner?.id?.toString(),
-            active = container?.shows(graph) ?: true,
-            backStack = graph.backStack.entries.value.mapNotNull { (it.edge.end as? Node)?.id?.toString() },
-        )
-        val members = graph.nodes.toList()
-            .let { attached -> (attached + attached.filterIsInstance<ContainerNode>().map { it.route }).distinct() }
-            .sortedWith(compareBy({ it.shapeLabel() }, { it::class.simpleName }))
-        val attachments = members.filterIsInstance<RouteNode<*, *>>()
+    fun describe(scope: OpenScope) {
+        val graph = scope.graph
+        val id = graph.id.toString()
+        val declared = graph.nodes.let { attached -> attached + attached.filterIsInstance<ContainerNode>().map { it.route } }
+            .distinct().withIndex().associate { it.value to it.index }
+        val sorted = scope.members.sortedWith(ShapeOrder.thenBy { declared[it] })
+        val attachments = sorted.filterIsInstance<RouteNode<*, *>>()
             .flatMap { route -> route.attachedNodes().filterIsInstance<Node>().map { it to route } }
             .toMap()
-        members.forEach { node ->
+        sorted.forEach { node ->
             val route = attachments[node]
-            nodes += NodeShape(
+            scope.content.nodes += NodeShape(
                 id = node.id.toString(),
-                scope = scope,
+                scope = id,
                 label = node.shapeLabel(),
                 type = node::class.simpleName ?: "Node",
                 kind = node.kind.let { if (route != null && it != NodeKind.Route && it != NodeKind.Container) NodeKind.Screen else it },
@@ -146,7 +146,7 @@ fun Graph.shape(): GraphShape {
             node.consumerPorts.flattenedValues().forEach { consumer ->
                 val edge = consumer.edge ?: return@forEach
                 val provider = edge.destination as? Node ?: return@forEach
-                wires += WireShape(
+                scope.content.wires += WireShape(
                     consumer = node.id.toString(),
                     consumerPort = consumer.shapeKey,
                     provider = provider.id.toString(),
@@ -155,34 +155,77 @@ fun Graph.shape(): GraphShape {
                 )
             }
             if (node is RouteNode<*, *>) {
-                node.navigationExits().forEach { (exit, target) -> routes += RouteShape(node.id.toString(), target.id.toString(), exit) }
+                node.navigationExits().forEach { (exit, target) -> scope.content.routes += RouteShape(node.id.toString(), target.id.toString(), exit) }
             }
-        }
-        members.filterIsInstance<ContainerNode>().forEach { child ->
-            child.graphs.toList().forEach { visit(it, child) }
-            child.dormant?.let { dormant ->
-                val root = dormant.scopes.first { it.parent == null }
-                scopes += dormant.scopes.map { shown ->
-                    if (shown.id == root.id) shown.copy(parent = scope, container = child.id.toString(), active = false, backStack = emptyList())
-                    else shown.copy(active = false, backStack = emptyList())
-                }
-                nodes += dormant.nodes.map { it.copy(lifecycle = DormantLifecycle) }
-                wires += dormant.wires
-                routes += dormant.routes
-            }
-        }
-        graph.ownedGraphs.values().forEach { child ->
-            visit(child, members.firstOrNull { (it as? GraphOwner)?.childGraph === child })
         }
     }
 
-    visit(this, null)
-    return GraphShape(scopes, nodes, wires, routes).withDefinitionIdentity()
+    fun enter(graph: Graph, owner: Visitable?) {
+        val container = owner as? ContainerNode
+        scopes += ScopeShape(
+            id = graph.id.toString(),
+            label = container?.labelOf(graph) ?: graph.label.ifBlank { "Graph" },
+            parent = open.lastOrNull()?.graph?.id?.toString(),
+            container = (owner as? Node)?.id?.toString(),
+            active = container?.shows(graph) ?: true,
+            backStack = graph.backStack.entries.value.mapNotNull { (it.edge.end as? Node)?.id?.toString() },
+            outputs = graph.outputs.flatMap { output -> output.ports.map { ScopePortShape(output.name, it.type.type, it.owner.shapeId, it.key.key) } },
+            inputs = graph.consumerPorts.flattenedValues().mapNotNull { port ->
+                port.edge?.provider?.let { ScopePortShape(port.key.key.ifEmpty { port.type.type }, port.type.type, it.owner.shapeId, it.key.key) }
+            },
+        )
+        open.addLast(OpenScope(graph, ShapeContent().also(contents::add)))
+    }
+
+    fun dormant(container: ContainerNode, dormant: GraphShape) {
+        val scope = open.last().graph.id.toString()
+        val root = dormant.scopes.first { it.parent == null }
+        scopes += dormant.scopes.map { shown ->
+            if (shown.id == root.id) shown.copy(parent = scope, container = container.id.toString(), active = false, backStack = emptyList())
+            else shown.copy(active = false, backStack = emptyList())
+        }
+        contents += ShapeContent().apply {
+            nodes += dormant.nodes.map { it.copy(lifecycle = DormantLifecycle) }
+            wires += dormant.wires
+            routes += dormant.routes
+        }
+    }
+
+    depthFirst(InShapeOrder).forEach { step ->
+        val element = step.element
+        when {
+            element is Graph && step is Step.Enter -> enter(element, step.parent)
+            element is Graph -> describe(open.removeLast())
+            element is Node && step is Step.Enter -> open.last().members.add(element)
+            element is ContainerNode -> element.dormant?.let { dormant(element, it) }
+        }
+    }
+    return GraphShape(scopes, contents.flatMap { it.nodes }, contents.flatMap { it.wires }, contents.flatMap { it.routes }).withDefinitionIdentity()
+}
+
+private class ShapeContent {
+    val nodes = mutableListOf<NodeShape>()
+    val wires = mutableListOf<WireShape>()
+    val routes = mutableListOf<RouteShape>()
+}
+
+private class OpenScope(val graph: Graph, val content: ShapeContent) {
+    val members = mutableListOf<Node>()
+}
+
+private val ShapeOrder = compareBy<Node>({ it.shapeLabel() }, { it::class.simpleName })
+
+private val InShapeOrder = Relation { element ->
+    if (element is Graph) element.members().partition { it is Node }.let { (nodes, graphs) ->
+        nodes.filterIsInstance<Node>().sortedWith(ShapeOrder).asSequence() + graphs.asSequence()
+    } else Members.next(element)
 }
 
 const val DormantLifecycle = "Dormant"
 
 private fun Node.shapeLabel(): String = label.ifBlank { this::class.simpleName ?: "Node" }
+
+private val PortCapability.shapeId: String get() = ((this as? Node)?.id ?: (this as? Graph)?.id)?.toString().orEmpty()
 
 fun Graph.shapes(): Flow<GraphShape> = flow {
     while (true) {
@@ -195,22 +238,22 @@ private val InternalPorts = setOf("routeBinding", "navBinding")
 
 private val ConsumerPort<*>.shapeKey: String get() = (this as? ExitPort)?.exit?.name ?: key.key
 
-private fun Graph.watched(visited: MutableSet<Graph> = mutableSetOf()): List<Flow<*>> = buildList {
-    if (!visited.add(this@watched)) return@buildList
-    add(callbackFlow {
-        val members = nodes.toList()
-        val ports: PortEventListener = { trySend(Unit) }
-        val stop = onStructure { trySend(Unit) }
-        members.forEach { it.addPortEventListener(ports) }
-        trySend(Unit)
-        awaitClose { stop(); members.forEach { it.removePortEventListener(ports) } }
-    })
-    add(backStack.entries)
-    nodes.toList().filterIsInstance<ContainerNode>().forEach { container ->
-        addAll(container.changes)
-        container.graphs.toList().forEach { addAll(it.watched(visited)) }
-    }
-    ownedGraphs.values().forEach { addAll(it.watched(visited)) }
+private fun Graph.watched(): List<Flow<*>> =
+    depthFirst(Members).mapNotNull { it as? Step.Enter }.flatMap { step ->
+        when (val element = step.element) {
+            is Graph -> listOf(element.structure(), element.backStack.entries)
+            is ContainerNode -> element.changes
+            else -> emptyList()
+        }
+    }.toList()
+
+private fun Graph.structure(): Flow<Unit> = callbackFlow {
+    val members = nodes.toList()
+    val ports: PortEventListener = { trySend(Unit) }
+    val stop = onStructure { trySend(Unit) }
+    members.forEach { it.addPortEventListener(ports) }
+    trySend(Unit)
+    awaitClose { stop(); members.forEach { it.removePortEventListener(ports) } }
 }
 
 private fun Node.portShapes(graph: Graph): List<PortShape> =
@@ -238,10 +281,6 @@ private fun Node.portShapes(graph: Graph): List<PortShape> =
             internal = port.key.key in InternalPorts,
         )
     }
-
-interface GraphOwner {
-    val childGraph: Graph
-}
 
 interface ShapeAttributes {
     val shapeAttributes: Map<String, String>

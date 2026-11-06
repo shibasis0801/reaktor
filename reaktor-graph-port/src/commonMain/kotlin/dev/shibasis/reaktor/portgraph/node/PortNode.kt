@@ -12,7 +12,7 @@ import dev.shibasis.reaktor.portgraph.port.ProviderPort
 import dev.shibasis.reaktor.portgraph.port.KeyType
 import dev.shibasis.reaktor.portgraph.port.registerConsumer
 import dev.shibasis.reaktor.portgraph.port.registerProvider
-import dev.shibasis.reaktor.portgraph.visitor.Visitable
+import dev.shibasis.reaktor.portgraph.traversal.Visitable
 import kotlin.js.JsExport
 import kotlin.uuid.Uuid
 
@@ -29,6 +29,9 @@ open class PortNode<G: PortGraph<*, *>>(
 
     override fun <Functionality : Any> registerConsumer(keyType: KeyType): ConsumerPort<Functionality> =
         registerConsumer(keyType.key, keyType.type)
+
+    @JsExport.Ignore
+    open fun members(): List<Visitable> = emptyList()
 
     open fun close() {
         consumerPorts.flattenedValues().forEach { it.close() }

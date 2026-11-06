@@ -5,7 +5,7 @@ package dev.shibasis.reaktor.portgraph.port
 import dev.shibasis.reaktor.portgraph.Unique
 import dev.shibasis.reaktor.portgraph.attach.Attachable
 import dev.shibasis.reaktor.portgraph.attach.Attachments
-import dev.shibasis.reaktor.portgraph.visitor.Visitable
+import dev.shibasis.reaktor.portgraph.traversal.Visitable
 import kotlinx.atomicfu.atomic
 import kotlin.js.ExperimentalJsStatic
 import kotlin.js.JsExport

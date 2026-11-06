@@ -9,6 +9,7 @@ import dev.shibasis.reaktor.portgraph.port.consumes
 import dev.shibasis.reaktor.portgraph.port.registerProvider
 import dev.shibasis.reaktor.graph.navigation.Payload
 import kotlinx.coroutines.flow.MutableStateFlow
+import dev.shibasis.reaktor.portgraph.traversal.Visitable
 import kotlin.js.JsExport
 
 @JsExport
@@ -40,6 +41,9 @@ open class ContainerNode(
         graph.label.ifBlank { route.pattern.original.trim('/').ifBlank { this::class.simpleName ?: "Graph" } }
 
     open fun shows(graph: Graph): Boolean = activeGraph == graph
+
+    @JsExport.Ignore
+    override fun members(): List<Visitable> = buildList<Visitable> { if (graph.node(route.id) !== route) add(route); addAll(graphs) }
 
     fun activateGraphForRoute(route: RouteNode<*, *>): Boolean =
         graphs.firstOrNull { graph -> graph.nodes.any { it == route } }?.let(::activate) ?: false
