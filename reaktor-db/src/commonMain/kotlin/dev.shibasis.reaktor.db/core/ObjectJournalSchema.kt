@@ -7,6 +7,7 @@ class ObjectJournalSchema(val table: String, prefix: String) {
     val setConfiguration = "INSERT OR IGNORE INTO ${table}_journal_config(id,prefix) VALUES(1,?)"
     val getConfiguration = "SELECT prefix FROM ${table}_journal_config WHERE id=1"
     val read = "SELECT sequence,store_name,key,payload,at_millis FROM ${table}_changes WHERE store_name=? AND sequence>? ORDER BY sequence LIMIT ?"
+    val prune = "DELETE FROM ${table}_changes WHERE store_name=? AND sequence<=? AND sequence<COALESCE((SELECT sequence FROM ${table}_changes WHERE store_name=? AND at_millis>=? ORDER BY sequence LIMIT 1),?)"
     val statements: List<String> = buildList {
         add("CREATE TABLE IF NOT EXISTS ${table}_changes (sequence INTEGER PRIMARY KEY AUTOINCREMENT,store_name TEXT NOT NULL,key TEXT NOT NULL,payload TEXT,at_millis INTEGER NOT NULL)")
         add("CREATE INDEX IF NOT EXISTS ${table}_changes_scope ON ${table}_changes(store_name,sequence)")

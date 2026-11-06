@@ -89,6 +89,19 @@ class SqliteObjectDatabase(
         }.await()
     }
 
+    override suspend fun pruneChanges(storeName: String, throughSequence: Long, olderThanMillis: Long) {
+        ready()
+        require(journalStorePrefix != null && storeName.startsWith(journalStorePrefix)) { "Store was not opted into retained changes" }
+        require(throughSequence >= 0)
+        driver.execute(null, ObjectJournalSchema(tableName, journalStorePrefix).prune, 5) {
+            bindString(0, storeName)
+            bindLong(1, throughSequence)
+            bindString(2, storeName)
+            bindLong(3, olderThanMillis)
+            bindLong(4, throughSequence + 1)
+        }.await()
+    }
+
     /**
      * Decodes the row the cursor already sits on.
      *

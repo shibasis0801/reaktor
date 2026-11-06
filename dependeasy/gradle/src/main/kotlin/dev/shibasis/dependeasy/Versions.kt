@@ -77,7 +77,7 @@ object Versions {
     const val Okio = "3.18.1"
     const val Tomlj = "1.1.1"
     const val WorkManager = "2.9.0"
-    const val Quartz = "2.5.1"
+    const val Quartz = "2.5.2"
     const val Ktor = "3.1.0"
     const val Koin = "4.1.0"
     const val KoinAnnotations = "2.0.0"

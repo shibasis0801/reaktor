@@ -1,7 +1,7 @@
 package dev.shibasis.reaktor.devtools
 
 import dev.shibasis.reaktor.core.framework.json
-import dev.shibasis.reaktor.work.*
+import dev.shibasis.reaktor.work.inspection.*
 
 fun workInspectionHandler(inspector: () -> WorkInspector?): CommandHandler =
     commandHandler("work.inspect", "describe", "read") { command ->

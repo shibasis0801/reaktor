@@ -1,8 +1,9 @@
 package dev.shibasis.reaktor.google
 
 import dev.shibasis.reaktor.core.framework.json
-import dev.shibasis.reaktor.work.WorkHost
-import dev.shibasis.reaktor.work.WorkScope
+import dev.shibasis.reaktor.work.host.WorkHost
+import dev.shibasis.reaktor.work.host.drain
+import dev.shibasis.reaktor.work.run.WorkScope
 
 /** Timing stays with Quartz/Queues/alarms. Pub/Sub transports a wake and owns delivery retry/DLQ. */
 class PubSubWorkWake(
@@ -22,13 +23,10 @@ class PubSubWorkWake(
         adapter.pull(subscription, maxMessages).getOrThrow().forEach { message ->
             require(message.attributes[KindKey] == Kind) { "Unexpected Work wake envelope; configure broker DLQ" }
             val scope = json.decodeFromString(WorkScope.serializer(), message.data)
-            val session = host.open(scope)
-            try {
-                session.runtime.drain()
-                // Redelivery after an ACK failure is safe: the authoritative records decide execution.
-                adapter.acknowledge(subscription, listOf(message.ackId)).getOrThrow()
-                acknowledged++
-            } finally { session.close() }
+            host.drain(scope)
+            // Redelivery after an ACK failure is safe: the authoritative records decide execution.
+            adapter.acknowledge(subscription, listOf(message.ackId)).getOrThrow()
+            acknowledged++
         }
         return acknowledged
     }

@@ -229,6 +229,9 @@ abstract class ObjectDatabase(
     open suspend fun readChanges(storeName: String, afterSequence: Long, limit: Int): List<ObjectChange> =
         throw UnsupportedOperationException("This database does not expose a retained change journal")
 
+    open suspend fun pruneChanges(storeName: String, throughSequence: Long, olderThanMillis: Long): Unit =
+        throw UnsupportedOperationException("This database does not expose a retained change journal")
+
     /**
      * Writes [items] back verbatim, replacing whatever sits at those keys.
      *

@@ -15,13 +15,13 @@ import kotlin.coroutines.resumeWithException
 import kotlin.js.Promise
 
 /** Opens the shared SQLDelight database through the shipped SQLite/Wasm worker and OPFS. */
-suspend fun openWebSqliteObjectDatabase(name: String): SqliteObjectDatabase {
+suspend fun openWebSqliteObjectDatabase(name: String, journalStorePrefix: String? = null): SqliteObjectDatabase {
     require(name.matches(Regex("[A-Za-z0-9_-]+"))) { "Invalid database name" }
     val worker = js("new Worker('/reaktor-sqlite-worker.mjs?name=' + encodeURIComponent(name), {type: 'module'})")
         .unsafeCast<Worker>()
     val driver = WebWorkerDriver(worker)
     try {
-        val database = SqliteObjectDatabase(driver, name)
+        val database = SqliteObjectDatabase(driver, name, journalStorePrefix = journalStorePrefix)
         database.ready()
         migrateIndexedDb(name, driver, database)
         return database

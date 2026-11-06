@@ -102,4 +102,11 @@ class D1ObjectDatabase(private val d1: D1Database, name: String, private val jou
                 it.string("payload"), it.requireString("at_millis").toLong())
         }
     }
+
+    override suspend fun pruneChanges(storeName: String, throughSequence: Long, olderThanMillis: Long) {
+        ready()
+        require(journalStorePrefix != null && storeName.startsWith(journalStorePrefix)) { "Store was not opted into retained changes" }
+        require(throughSequence >= 0)
+        mutation(ObjectJournalSchema(table, journalStorePrefix).prune, storeName, throughSequence, storeName, olderThanMillis, throughSequence + 1)
+    }
 }
