@@ -93,6 +93,7 @@ internal fun GraphView(
     selection: () -> Bounds? = { null },
     step: (Int) -> Unit = {},
     open: (Float, Float) -> Boolean = { _, _ -> false },
+    doubleOpen: (Float, Float) -> Boolean = { _, _ -> false },
     enterOpens: Boolean = false,
     focusable: Boolean = true,
     editing: CanvasEditing? = null,
@@ -112,6 +113,7 @@ internal fun GraphView(
     val config = remember(density, state, state.minimumZoom) { FlowViewportGestureConfig(minZoom = state.minimumZoom * density, maxZoom = state.zoomRange.endInclusive * density) }
     val hits by rememberUpdatedState(hit)
     val taps by rememberUpdatedState(tap)
+    val doubleOpens by rememberUpdatedState(doubleOpen)
     val panes by rememberUpdatedState(onPane)
     val sizes by rememberUpdatedState(onSize)
     val selected by rememberUpdatedState(selection)
@@ -127,7 +129,7 @@ internal fun GraphView(
         val previous = last[0]
         val twice = previous != null && previous.third == flow.viewport && previous.first.elapsedNow() < DoubleTap && (previous.second - point).getDistance() < DoubleTapSlop * density
         last[0] = if (twice) null else Triple(TimeSource.Monotonic.markNow(), point, flow.viewport)
-        if (twice) { state.zoomAt(2.0, point.x / density.toDouble(), point.y / density.toDouble()); true } else taps(x, y, reach())
+        if (twice) { if (!doubleOpens(x, y)) state.zoomAt(2.0, point.x / density.toDouble(), point.y / density.toDouble()); true } else taps(x, y, reach())
     } }
     val paneClick = remember { { panes() } }
     var pointing by remember { mutableStateOf(false) }

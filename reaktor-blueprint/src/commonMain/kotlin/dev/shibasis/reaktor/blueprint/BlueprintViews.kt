@@ -175,6 +175,7 @@ fun <K> BlueprintCanvas(
     pinTip: (Card, Pin) -> BlueprintTip? = { _, _ -> null },
     onPinClick: ((Card, Pin) -> Unit)? = null,
     onCardOpen: ((String) -> Unit)? = null,
+    onPinOpen: ((Card, Pin) -> Boolean)? = null,
     focusable: Boolean = false,
     port: PinRef? = null,
     editor: GraphEditor? = null,
@@ -276,6 +277,7 @@ fun <K> BlueprintCanvas(
     val pinClick by rememberUpdatedState(onPinClick)
     val paneClick by rememberUpdatedState(onPaneClick)
     val cardOpen by rememberUpdatedState(onCardOpen)
+    val pinOpen by rememberUpdatedState(onPinOpen)
     val frameClick by rememberUpdatedState(onFrameClick)
     val frameOpen by rememberUpdatedState(onFrameOpen)
     val window = LocalWindowInfo.current
@@ -304,9 +306,11 @@ fun <K> BlueprintCanvas(
             if (order.isNotEmpty()) cards[order[(order.indexOfFirst { cards[it].id == selected } + if (selected == null && by < 0) 0 else by).mod(order.size)]].let { cardClick(it.id) }
         },
         open = { x, y ->
-            painter.frameAt(x, y)?.let { frame -> frameOpen?.invoke(frame) ?: canvas.fit(frame.x, frame.y, frame.width, frame.height, maxZoom = 1.4); true }
+            pinOpen?.let { opener -> painter.rowPinAt(x, y)?.takeIf { it.first.id !in coveredCards }?.let { (card, pin) -> opener(card, pin) } } == true
+                || painter.frameAt(x, y)?.let { frame -> frameOpen?.invoke(frame) ?: canvas.fit(frame.x, frame.y, frame.width, frame.height, maxZoom = 1.4); true }
                 ?: cardAt(x, y)?.let { id -> cardOpen?.invoke(id) ?: layout.cards[id]?.let { canvas.centre(it.x, it.y, it.width, it.height) }; true } ?: false
         },
+        doubleOpen = { x, y -> pinOpen?.let { opener -> painter.rowPinAt(x, y)?.takeIf { it.first.id !in coveredCards }?.let { (card, pin) -> opener(card, pin) } } == true },
         enterOpens = onCardOpen != null,
         focusable = focusable,
         editing = if (editable) interaction ?: editor else null,

@@ -453,6 +453,8 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
 
     fun pinAt(x: Float, y: Float): Pair<Card, Pin>? = cardIndex(x, y).takeIf { it >= 0 && committed(it) != null }?.let { i -> pin(i, x, y)?.let { cards[i] to it } }
 
+    fun rowPinAt(x: Float, y: Float): Pair<Card, Pin>? = cardIndex(x, y).takeIf { it >= 0 && level == 2 }?.let { i -> pin(i, x, y)?.let { cards[i] to it } }
+
     fun rowAt(x: Float, y: Float): BlueprintRowLook? = cardIndex(x, y).takeIf { it >= 0 && committed(it) != null }?.let { i ->
         val card = cards[i]
         looks.getOrNull(i)?.rows?.getOrNull(floor((y - card.y - card.pinHeader) / BlueprintEngine.RowHeight).toInt())

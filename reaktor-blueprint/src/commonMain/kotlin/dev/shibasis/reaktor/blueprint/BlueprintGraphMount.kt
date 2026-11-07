@@ -42,6 +42,7 @@ fun <K> BlueprintGraph(
     pinTip: (Card, Pin) -> BlueprintTip? = { _, _ -> null },
     onPinClick: ((Card, Pin) -> Unit)? = null,
     onCardOpen: ((String) -> Unit)? = null,
+    onPinOpen: ((Card, Pin) -> Boolean)? = null,
     focusable: Boolean = false,
     port: PinRef? = null,
     editor: GraphEditor? = null,
@@ -63,7 +64,7 @@ fun <K> BlueprintGraph(
 ) {
     BlueprintCanvas(layout, canvas, highlight, selected, linkStyle, frameLook, cardLook, onCardClick, onLinkClick, onPaneClick,
         modifier = modifier, labels = labels, fitKey = fitKey, fitScene = fitScene, startInset = startInset, pulses = pulses,
-        glow = glow, pinTip = pinTip, onPinClick = onPinClick, onCardOpen = onCardOpen, focusable = focusable, port = port,
+        glow = glow, pinTip = pinTip, onPinClick = onPinClick, onCardOpen = onCardOpen, onPinOpen = onPinOpen, focusable = focusable, port = port,
         editor = editor, cardContent = cardContent, interaction = interaction,
         initialFit = initialFit, foldLook = foldLook,
         editable = editable, onAgentOpen = onAgentOpen, onFrameClick = onFrameClick, onGeometry = onGeometry, labelExclusions = labelExclusions, focusLabels = focusLabels, denseOverview = denseOverview, subject = subject, topInset = topInset, mapLayers = mapLayers, mapDetail = mapDetail)

@@ -320,6 +320,9 @@ private fun <K> SurfaceGraphDeclaredExplorer(
             labels = layout.links.mapNotNull { link -> presentation.source(link)?.label?.takeIf(String::isNotBlank)?.let { link.id to it } }.toMap(),
             fitKey = (key ?: layout.key).hashCode(), fitScene = key ?: layout.key, initialFit = { state.fit() },
             onPinClick = { card, pin -> surfaceGraphPinTarget(layout, card, pin)?.let { (original, port) -> select(port.id.takeUnless { chosen == it } ?: original.id) } },
+            onPinOpen = if (onOpen == null) null else { card, pin ->
+                surfaceGraphPinTarget(layout, card, pin)?.let { (_, port) -> opening?.invoke(port.id)?.also { opened -> if (opened) select(port.id) } } == true
+            },
             editable = false,
             onFrameClick = { frame -> groups.firstOrNull { it.key == frame.key }?.owner?.let(select) },
             topInset = topInset, mapLayers = true, mapDetail = true)
