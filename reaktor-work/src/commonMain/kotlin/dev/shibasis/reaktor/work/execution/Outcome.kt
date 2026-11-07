@@ -20,6 +20,9 @@ internal sealed interface Outcome {
     @Serializable @SerialName("succeeded")
     data class Succeeded(val result: String) : Outcome
 
+    @Serializable @SerialName("skipped")
+    data object Skipped : Outcome
+
     @Serializable @SerialName("failed")
     data class Failed(val reason: String) : Outcome
 
@@ -42,8 +45,10 @@ internal suspend fun <T : Any> StepNode<T>.perform(record: RunRecord, claim: Ste
         val produced = withTimeoutOrNull(timeout) {
             Produced((if (claim.reconcile) reconcile?.invoke(context, values) else null) ?: body(context, values))
         }
+        val value = produced?.value
         if (produced == null) Outcome.Interrupted("The attempt timed out after $timeout")
-        else json.encodeToString(serializer, produced.value).let { result ->
+        else if (value == null) Outcome.Skipped
+        else json.encodeToString(serializer, value).let { result ->
             if (result.encodeToByteArray().size > MaxPayloadBytes) Outcome.Failed("The result of '$name' exceeds 64 KB; return a reference to it")
             else Outcome.Succeeded(result)
         }
@@ -69,6 +74,7 @@ internal suspend fun StepNode<*>.revert(claim: StepRecord, context: StepScope): 
 
 internal fun Outcome.applied(node: StepNode<*>, step: StepRecord, undoing: Boolean, nowMillis: Long): StepRecord = when (this) {
     is Outcome.Succeeded -> step.copy(state = StepState.Succeeded, result = result, reason = null, reconcile = false, dueAtMillis = null, endedAtMillis = nowMillis)
+    Outcome.Skipped -> step.copy(state = StepState.Skipped, result = null, reason = null, reconcile = false, dueAtMillis = null, endedAtMillis = nowMillis)
     is Outcome.Failed -> step.copy(state = StepState.Failed, endedAtMillis = nowMillis, reason = reason)
     is Outcome.Interrupted -> if (undoing) undoInterrupted(step, nowMillis, reason) else node.interrupted(step, nowMillis, reason)
     Outcome.Undone -> step.copy(state = StepState.Undone, reason = null, dueAtMillis = null)

@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.graph.step
 
 import dev.shibasis.reaktor.graph.Workflow
+import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.portgraph.traversal.Relation
 import dev.shibasis.reaktor.portgraph.traversal.Visitable
 import dev.shibasis.reaktor.portgraph.traversal.topological
@@ -11,7 +12,9 @@ object Ready : Relation {
 
 val Output<*>.waitsOn: List<Output<*>> get() = (inputs + on.nodes).distinct()
 
-fun Workflow.steps(): List<Output<*>> = childGraph.nodes.filterIsInstance<Output<*>>().topological(Ready)
+fun Workflow.steps(): List<Output<*>> = stepsOf(childGraph)
+
+internal fun stepsOf(graph: Graph): List<Output<*>> = graph.nodes.filterIsInstance<Output<*>>().topological(Ready)
 
 fun Output<*>.readiness(outcomes: Outcomes): Boolean? = readiness(outcomes::state) { (it as Matches<*>).holds(outcomes) }
 

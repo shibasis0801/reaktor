@@ -63,6 +63,7 @@ abstract class WorkConformance {
         val diamond = graph.Node { Diamond(it) }
         val route = graph.Node { Route(it) }
         val fallback = graph.Node { Fallback(it) }
+        val lookup = graph.Node { Lookup(it) }
         val saga = graph.Node { Saga(it) }
         val booking = graph.Node { Booking(it) }
         val flaky = graph.Node { Flaky(it) }
@@ -130,6 +131,17 @@ abstract class WorkConformance {
         host.work.drain()
         assertEquals("backup", run.result())
         assertEquals(StepState.Failed, run.record()!!.step("primary").state)
+    }
+
+    @Test fun aStepWithNothingToGiveEndsSkippedAndWhatWaitsOnItsSkipRuns() = conformance { host ->
+        val warm = host.work.start(host.lookup, "warm", "warm")
+        val cold = host.work.start(host.lookup, "cold", "cold")
+        host.work.drain()
+        assertEquals("cached warm", warm.result())
+        assertEquals("computed cold", cold.result())
+        assertEquals(StepState.Skipped, warm.record()!!.step("computed").state)
+        assertEquals(StepState.Skipped, cold.record()!!.step("cached").state)
+        assertEquals(null, cold.record()!!.step("cached").result)
     }
 
     @Test fun unhandledFailureUndoesCompletedStepsInReverseOrder() = conformance { host ->

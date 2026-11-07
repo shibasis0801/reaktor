@@ -65,6 +65,13 @@ class Fallback(graph: Graph) : Workflow(graph, "test.fallback", "Fallback"), Dur
     override val output = answer
 }
 
+class Lookup(graph: Graph) : Workflow(graph, "test.lookup", "Lookup"), Durable<String, String> {
+    override val input by input<String>()
+    val cached by step(input, effect = Effect.LiveRead) { key -> if (key == "warm") "cached $key" else null }
+    val computed by step(input, effect = Effect.ReadOnly, on = cached.skipped) { "computed $it" }
+    override val output by either(cached, computed)
+}
+
 class Saga(graph: Graph) : Workflow(graph, "test.saga", "Saga"), Durable<Unit, String> {
     val undone = mutableListOf<String>()
     override val input by input<Unit>()

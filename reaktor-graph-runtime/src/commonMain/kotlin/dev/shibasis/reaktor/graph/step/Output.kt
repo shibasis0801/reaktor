@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.graph.step
 
 import dev.shibasis.reaktor.core.framework.json
+import dev.shibasis.reaktor.graph.NodeIdentity
 import dev.shibasis.reaktor.graph.Workflow
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.core.NodeKind
@@ -21,7 +22,8 @@ abstract class Output<T : Any>(
     graph: Graph,
     workflow: Workflow,
     val name: String,
-    val serializer: KSerializer<T>,
+    internal val format: KSerializer<T>?,
+    val typeName: String = checkNotNull(format) { "Node '$name' needs a type name when its values cannot be stored" }.descriptor.serialName,
 ) : BasicNode(graph), ShapeAttributes {
     init {
         require(graph === workflow.childGraph) { "Node '$name' must live in the graph of workflow '${workflow.workflowId}'" }
@@ -30,7 +32,10 @@ abstract class Output<T : Any>(
 
     val workflowId: String = workflow.workflowId
     override val label: String get() = name
-    internal val provider: ProviderPort<Output<*>> = registerProvider(Key("value"), Type(serializer.descriptor.serialName), this)
+    val storable: Boolean get() = format != null
+    val serializer: KSerializer<T>
+        get() = format ?: error("'$name' in workflow '$workflowId' holds a $typeName, which cannot be stored, so the workflow can only run inline")
+    internal val provider: ProviderPort<Output<*>> = registerProvider(Key("value"), Type(typeName), this)
     open val inputs: List<Output<*>> get() = emptyList()
     open val on: Condition get() = Condition.Always
     open val child: String? get() = null
@@ -52,7 +57,7 @@ abstract class Output<T : Any>(
         get() = details + ("work" to role) + listOfNotNull(on.takeIf { it != Condition.Always }?.let { "on" to it.text })
 
     fun structure(): String = listOf(
-        role, name, serializer.descriptor.serialName, serializer.descriptor.fingerprint(),
+        role, name, typeName, format?.descriptor?.fingerprint().orEmpty(),
         inputs.joinToString(",") { it.name }, on.text, child.orEmpty(),
     ).joinToString("\u0000")
 
@@ -78,8 +83,9 @@ class InputNode<T : Any> internal constructor(
     graph: Graph,
     workflow: Workflow,
     name: String,
-    serializer: KSerializer<T>,
-) : Output<T>(graph, workflow, name, serializer) {
+    format: KSerializer<T>?,
+    typeName: String,
+) : Output<T>(graph, workflow, name, format, typeName) {
     override val kind get() = NodeKind.Node
     override val role get() = "input"
     override val endings get() = setOf(StepState.Succeeded)
@@ -89,21 +95,25 @@ class StepNode<T : Any> internal constructor(
     graph: Graph,
     workflow: Workflow,
     name: String,
-    serializer: KSerializer<T>,
+    format: KSerializer<T>?,
+    typeName: String,
     override val inputs: List<Output<*>>,
     override val on: Condition,
     val effect: Effect,
     val timeout: Duration,
-    val body: suspend StepScope.(List<Any?>) -> T,
+    private val attributes: Map<String, String>,
+    val body: suspend StepScope.(List<Any?>) -> T?,
     val reconcile: (suspend StepScope.(List<Any?>) -> T?)?,
     val undo: (suspend StepScope.(T) -> Unit)?,
-) : Output<T>(graph, workflow, name, serializer) {
+) : Output<T>(graph, workflow, name, format, typeName) {
     init { require(timeout.isPositive() && timeout.isFinite()) { "Step '$name' needs a positive, finite timeout" } }
+
+    internal val identity = NodeIdentity(this, provider.type)
 
     override val kind get() = NodeKind.Interactor
     override val role get() = "step"
     override val endings get() = setOf(StepState.Succeeded, StepState.Failed, StepState.TimedOut, StepState.Skipped)
-    override val details get() = mapOf("effect" to effect.name, "timeout" to timeout.toString())
+    override val details get() = attributes + mapOf("effect" to effect.name, "timeout" to timeout.toString())
 
     suspend fun reverse(scope: StepScope, result: String) {
         undo?.invoke(scope, json.decodeFromString(serializer, result))
@@ -116,10 +126,10 @@ class EitherNode<T : Any> internal constructor(
     name: String,
     val options: List<Output<T>>,
     override val on: Condition,
-) : Output<T>(graph, workflow, name, options.first().serializer) {
+) : Output<T>(graph, workflow, name, options.first().format, options.first().typeName) {
     init {
         require(options.size >= 2 && options.distinct().size == options.size) { "Either '$name' needs two or more distinct options" }
-        require(options.all { it.serializer.descriptor == serializer.descriptor }) { "The options of either '$name' must share one type" }
+        require(options.all { it.typeName == typeName }) { "The options of either '$name' must share one type" }
     }
 
     override val inputs get() = options

@@ -183,7 +183,7 @@ internal fun WorkflowPlan.metadata(): WorkflowMetadata = WorkflowMetadata(
     digest = digest,
     output = workflow.output.name,
     nodes = nodes.map { node ->
-        NodeMetadata(node.name, node.role, node.serializer.descriptor.serialName, node.inputs.map { it.name },
+        NodeMetadata(node.name, node.role, node.typeName, node.inputs.map { it.name },
             node.on.nodes.map { it.name }.distinct(), node.on.takeIf { it != Condition.Always }?.text,
             (node as? StepNode<*>)?.effect?.name, node.child)
     },
