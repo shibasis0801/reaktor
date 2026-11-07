@@ -215,7 +215,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
     override val grid = CanvasGrid(minor = colors.textMuted.copy(alpha = .025f), major = colors.textMuted.copy(alpha = .055f))
     override val cardRadius = MachineSignal.Radius.node.value
     override val worldPictures = !mapDetail
-    override val farZoom get() = if (mapDetail) BlueprintMapTitleZoom * density else super.farZoom
+    override val farZoom get() = if (mapDetail) BlueprintMapTitleZoom else super.farZoom
     override val corridorZoom = if (mapLayers) CorridorZoom else 0.0
     override val corridorRgb = colors.textMuted.toArgb()
     override val corridorsQuiet get() = anyDim || selected != null
@@ -330,7 +330,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         val z = camera.zoom
         val scale = z / density
         level = when {
-            mapDetail -> if (scale < BlueprintDetailZoom) 0 else if (scale < BlueprintMapTitleZoom) 1 else 2
+            mapDetail -> if (z < BlueprintDetailZoom) 0 else if (z < BlueprintMapTitleZoom) 1 else 2
             denseOverview && cards.size > BlueprintOverviewCards && scale < BlueprintDetailZoom -> 0
             else -> 2
         }
@@ -622,7 +622,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
     override fun DrawScope.cardLabels(camera: Viewport) {
         cardLabelsPlaced.clear()
         cardLabelFramesNamed.clear()
-        if (!mapLayers || cards.isEmpty() || mapDetail && level == 1 || titleStyle.fontSize.value * camera.zoom / density >= CardLabelReadable) return
+        if (!mapLayers || cards.isEmpty() || mapDetail && level == 1 || titleStyle.fontSize.value * camera.zoom >= CardLabelReadable) return
         if (cardLabelOrderOf !== cards) {
             fun extent(i: Int) = nestedFrame(i).takeIf { it >= 0 }?.let { frames[it].width * frames[it].height } ?: (cards[i].width * cards[i].height)
             cardLabelOrder = cards.indices.sortedWith(compareByDescending<Int> { extent(it) }.thenBy { it }).toIntArray()
