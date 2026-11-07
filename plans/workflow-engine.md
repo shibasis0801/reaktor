@@ -1,6 +1,6 @@
 # One workflow engine on reaktor-work and reaktor-graph
 
-*Plan of 6 November 2026, rewritten after your answers the same day. The traversal in section 7 is built, verified and committed in `d6da497a7`. Phase 1 is built and committed in `6203cfe9a` on the evening of 6 November: the suite passes on all four platforms it runs on, and all six hosts pass their whole platform proofs, the Android reboot included (section 4). Phase 2 is built and checked on the evening of 6 November. Its engine half, the steps in graph-runtime and reaktor-work on top of them, is committed; the Hangar overlay and the Blueprint fixes are not, because they are built on another session's uncommitted Blueprint edits (Phase 2 below). Phase 3 has started with one BestBuds change; the rest of it waits on other sessions' unfinished work and on one decision of yours, whether the BestBuds flows may stop being one transaction (Phase 3 below).*
+*Plan of 6 November 2026, rewritten after your answers the same day. The traversal in section 7 is built, verified and committed in `d6da497a7`. Phase 1 is built and committed in `6203cfe9a` on the evening of 6 November: the suite passes on all four platforms it runs on, and all six hosts pass their whole platform proofs, the Android reboot included (section 4). Phase 2 is built, checked and committed: the engine half in `6ee6335ae` (BestBuds `7dac1bc92`), and the Hangar overlay with the Blueprint fixes in `ef3b5b8c7` (BestBuds `0cbe9d94c`), which also carries the other sessions' Blueprint work it builds on. Manna's Atlas draws through the same Blueprint code, so fixes 1 and 2 went live there with web `05052932` on 7 November. In Phase 3 every BestBuds flow except chat HTTP ingress and the archiver runs as an inline step definition, as you decided, committed in `139c4bc76` and `3cc55bc3d` (BestBuds `bbcf1e38b` and `0a5c79441`) and not yet deployed. Those two and the conductor, kernel and release moves wait on other sessions' uncommitted edits (Phase 3 below).*
 
 ## 1. Plan
 
@@ -60,17 +60,17 @@ Phase 1 makes reaktor-work the engine and uses the graph exactly as it is today.
 
 | Review fix | State late on 6 November | Role in Phase 2 |
 | --- | --- | --- |
-| 1. Group names at every zoom | built, not committed: name tags draw at every zoom. Small groups place their tags first, and a tag that collides moves inside its group, beside or below its neighbour's tag, or under its group. A group whose top has scrolled off the map keeps its name pinned at the top. The acceptance run names every group in view on all six maps it draws, in both themes, at the opening, 10% and 25%, and all 58 of its checks pass | needed first, so workflow names read at the opening |
-| 2. Readable context on selection | built, not committed: other cards keep at least 3:1 text contrast while one is selected (worst 5.2:1 dark and 4.5:1 light on the whole-system map) | needed first, because the overlay colours step states and a selected step must not erase its neighbours |
-| 4. Open on the subject | built, not committed: a plan opens on its subject, and Cloud Work selects a run's subject, its running, waiting or failed step | extended: a run's subject is its running, waiting or blocked step |
+| 1. Group names at every zoom | committed in `ef3b5b8c7`, and live in Manna's Atlas since web `05052932`: name tags draw at every zoom. Small groups place their tags first, and a tag that collides moves inside its group, beside or below its neighbour's tag, or under its group. A group whose top has scrolled off the map keeps its name pinned at the top. The acceptance run names every group in view on all six maps it draws, in both themes, at the opening, 10% and 25%, and all 58 of its checks pass | needed first, so workflow names read at the opening |
+| 2. Readable context on selection | committed in `ef3b5b8c7`, and live in Manna's Atlas since web `05052932`: other cards keep at least 3:1 text contrast while one is selected (worst 5.2:1 dark and 4.5:1 light on the whole-system map) | needed first, because the overlay colours step states and a selected step must not erase its neighbours |
+| 4. Open on the subject | committed in `ef3b5b8c7` and BestBuds `0cbe9d94c`: a plan opens on its subject, and Cloud Work selects a run's subject, its running, waiting or failed step | extended: a run's subject is its running, waiting or blocked step |
 | 6. Port rows on the four port-less maps | Cloud Work done: it draws the definition through the shared Graph map with port rows, and `workDagLayout` is deleted. The cluster-task map already had them. Query plan and Studio Navigation still join card bodies | the overlay replaced Cloud Work's map with the workflow's own shape |
-| 7. Proof loop | built, not committed: `RevampGraphAcceptanceTest` renders six maps in both themes, writes a ledger and a table of checks, names any group it finds unnamed, and fails on a failing check | every change below was proved with it |
+| 7. Proof loop | committed in BestBuds `0cbe9d94c`: `RevampGraphAcceptanceTest` renders six maps in both themes, writes a ledger and a table of checks, names any group it finds unnamed, and fails on a failing check | every change below was proved with it |
 | 8. Never blank on reload | built for the Graph pane and Cloud Work: each keeps its last map while a new layout runs. The Relationships producer was not re-checked | needed, because the overlay changes with every run update |
 | 10. Card text budget | not built: Work rows still read "Waits on" | independent, because Work maps plans, which stay the checklist |
 | 12. Frame budget | not measured. By construction a step change only repaints: following a run lays the map out once, to add the state column | needed, because a status change must repaint without a new layout |
-| The ravioli fold | built, not committed: the Graph pane folds every workflow into one card with a row per step, and "Show steps" opens one | it is the item "steps on workflow cards" above |
+| The ravioli fold | committed in `ef3b5b8c7` and BestBuds `0cbe9d94c`: the Graph pane folds every workflow into one card with a row per step, and "Show steps" opens one | it is the item "steps on workflow cards" above |
 
-The other review fixes (3 packing, 5 keyboard, 9 wires, 11 toolbar, 13 search, 14 contrast and 15 inventory) do not depend on the engine and were not re-checked. Fixes 1, 2 and 4 were built on top of another session's uncommitted edits in 15 reaktor-blueprint files, the painter, the views, the graph engine and the canvas state among them, so those files can only be committed together with that session's work or hunk by hunk. The Graph pane's step rows also need that session's row support (`BlueprintCardLook.rows` and `BlueprintRowLook`), so the overlay and the Cloud Work map wait with those files.
+The other review fixes (3 packing, 5 keyboard, 9 wires, 11 toolbar, 13 search, 14 contrast and 15 inventory) do not depend on the engine and were not re-checked. Fixes 1, 2 and 4 were built on top of other sessions' uncommitted edits in 15 reaktor-blueprint files, the painter, the views, the graph engine and the canvas state among them. On your answer they went in together in `ef3b5b8c7`, with each session credited in the commit message, and the Graph pane's step rows use that work's row support (`BlueprintCardLook.rows` and `BlueprintRowLook`). Manna's Atlas draws through the same painter, so after a rebuild an area's name stays pinned at the top while you are zoomed in, a small area gets a name tag at the opening (cut short for the narrow "PhD / Research" area), and a card faded by a selection stays readable. Pictures before and after, in both themes, show each of these. All 13 Atlas specs pass; the phone-width interactions spec timed out once while the Mac was loaded and passed when run again. One known failure came in with the other sessions' work: `SubgraphEditorMountTest` fails on the internal-binding filter in `AppGraph.wires`.
 
 The order inside Phase 2, all of it built except the measurement for fix 12:
 
@@ -82,18 +82,78 @@ The order inside Phase 2, all of it built except the measurement for fix 12:
 
 ### Phase 3: migrate everything
 
-*Started on the evening of 6 November.* One change is built: `OnboardingFlow` now builds each island's copy only when that island asks for it, so the social and circle-formation Workers no longer build each other's backend graph. It compiles for Workers and is not deployed, because a Workers deploy from this tree would also ship other sessions' unfinished Worker code. The rest of Phase 3 waits:
+*Started on the evening of 6 November.* `OnboardingFlow` builds each island's copy only when that island asks for it, so the social and circle-formation Workers no longer build each other's backend graph.
 
-- The conductor, the kernel's operations and cluster tasks, and the Deploy tab's lifecycle all have other sessions' uncommitted edits in the files the moves below rewrite.
-- The BestBuds flows are request handlers that run several stages in one Postgres transaction. As durable definitions each step would commit on its own, which is safer for a crash but drops the all-or-nothing behaviour. That is your call.
-- Trimming each Worker's flow copies to its own entry points needs the flows to declare steps per island, which is the same restructuring as turning them into definitions, so it moves with them.
+**BestBuds request flows (built 7 November; committed in `139c4bc76` and BestBuds `bbcf1e38b`; not deployed).** You chose to keep each flow inside its request (decision 3). So the flows are now step definitions that run inline. `Inline` in graph-runtime runs a workflow's steps one after another inside the caller, with the caller's coroutine context. Each step is an activity, so it gets its own span and the graph's interceptors, the same as a stage did. A failure that no step handles reaches the caller unchanged, so HTTP refusals answer as before.
+
+A correction: earlier versions of this plan said each flow ran in one Postgres transaction. That was wrong. Most handlers run their stages on one connection with no transaction, so each statement commits on its own. Only a few hold an explicit transaction: the circle lifecycle store's `transact`, the anonymous analytics path, the archiver, the social projection, formation commit and messaging accept. Inline runs change none of that.
+
+Converted, 22 workflows on 12 islands:
+
+- Moderation: text and image.
+- Bot: the reply.
+- Messaging: finishing an accepted message.
+- Web: account deletion.
+- Plans: RSVP and publish.
+- Invitations: acceptance, and the connection that answering a request also uses.
+- Media: upload, download and chat-file access.
+- Verification: the provider callback. Its storage step still sends to the verification lifecycle actor.
+- Notifications: dispatch, delivery to one device, and FCM in the dispatch coordinator.
+- Analytics: ingestion, plus the span, fleet and place intakes, which keep their ingress attributes.
+- Campaign engagement: one circle, and the cron sweep over circles. Engagement still runs inside the circle lifecycle actor.
+
+Five patterns came out of the conversion:
+
+- Request-scoped objects (the request, the signed-in session, database handles, R2 bodies) travel as fields of a plain input class. Such a workflow cannot be stored, so `WorkflowPlan` refuses to run it durably.
+- A step that returns null ends skipped, and so do the steps that wait on it. Optional values that later steps need travel in small wrapper classes, for example `Account(userId)`.
+- The options of an `either` share one type, so branch answers are declared with the shared type, for example `InvitesResponse.Acceptance`.
+- A loop is a step that runs a child inline workflow for each item. Notification dispatch delivers to each device this way, and the engagement sweep engages each circle this way. Each item keeps its own span.
+- A failure is handled only when some step waits on it with `failed`. If that step's other conditions do not hold, the run ends with the original failure. Notification dispatch uses this so that an inbox failure is tolerated for ordinary notices and is fatal for retried circle notices. `InlineTest` proves it.
+
+What behaves differently:
+
+- Step names are now property names, not the old kebab-case stage names. No dashboard, test or document used the old names.
+- A refusal raised inside a step marks that step's span as failed.
+- Every step is a span, including steps that were plain code before: answer steps such as `delivered`, and pure checks such as media's `target`. The extra spans per request:
+  - none for analytics ingestion or plan RSVP and publish;
+  - about 2 for media upload, the verification callback and campaign engagement;
+  - 3 for a notification dispatch, which still has one span per device;
+  - the most for invitation acceptance: from 1 to 9 when it sends a request, and from about 8 to 15 when it connects;
+  - account deletion gains its subject read, its notification cleanup and its answer steps, and the bot gains its refusal.
+- Text moderation writes the verdict before it sends the checked event.
+- A failed invitation credit and a failed verification storage write now also show as failed spans. They still print the same log lines.
+
+**Onboarding, the actors, account purge and the Worker operations (built 7 November; committed in `3cc55bc3d` and BestBuds `0a5c79441`; not deployed).** Two additions made these moves possible:
+
+- A node consumes an inline workflow through a port, as it consumes a service: `val eligible by consumes(workflow)`. The workflow provides a port named `runs` whose type names the workflow, so the Graph map draws a wire from each caller, and calling the port runs the workflow in the caller. `InlineTest` proves the runs and the wires. The stage forms of `call` and `consumes` are deleted.
+- An actor keeps its store, its state and its transitions. A transition that ran several stages now calls one inline workflow declared next to the actor, so the steps run inside the transition and inside the store's transaction.
+
+Converted, 11 more workflows in BestBuds, which makes 33, and 2 in reaktor-notification:
+
+- Onboarding: completion, matching eligibility, the signal refresh and the formation candidates. The social projection consumes the candidates through a port. Each island still builds only its own copy.
+- Verification session: starting a document scan, checking a signed document and reconciling a scan. An unreadable document and an under-age date of birth are refused by handler steps, which record the failed outcome first, as before.
+- Circle lifecycle: advancing a circle is one inline workflow of 7 steps: the rounds, the reveals, opening the picks, resolving them, telling the members, connecting mutual picks and the wrap. It runs inside the lifecycle store's transaction, which holds the circle's row with `FOR UPDATE`, as the 4 stages did.
+- Account purge: the report, the purge run and the deletion of one media object. A failed invitation or media deletion is logged and tolerated, as before, and the R2 and D1 bindings are still resolved before the Postgres delete.
+- The notification dispatcher in reaktor-notification: delivery to the push provider with its dry-run branch, and the last dispatch state.
+- Worker operations: each operation is an activity with its body declared, so its card on the map keeps one row per port.
+
+What behaves differently in this batch: every new step is a span too. A circle advance runs up to 7 step spans where it ran up to 4 stage spans. A live purge runs 2 more spans than before, the media loop and the answer, and a dry run 1 more. The signed-document check runs 5 spans where it ran 3, and 1 more when it refuses.
+
+Still on stages, both blocked by other sessions' uncommitted edits:
+
+- Chat HTTP ingress: its call site is inside another session's change to `BestBudsWorker.kt`.
+- The archiver: its 7 stages are inside another session's backup-verification change to `ArchiverWorker.kt`.
+
+When both move, `Stage.kt` goes from graph-runtime.
+
+The rest of Phase 3 waits on other sessions: the conductor, the kernel's operations and cluster tasks, and the Deploy tab's lifecycle all have uncommitted edits from other sessions in the files the moves below rewrite.
 
 The order puts first the moves that exercise the most of the engine at the least risk.
 
 1. **Conductor.** The build-review-repair runbook runs on the desktop host, which exercises agents, checks, a gate, conditions and a repair. Then `TaskGraphRuntime`'s coordinator rules (readiness, repair, limits and budgets) move into the engine and the runtime is deleted. Protocols become templates, the Hybrid seat becomes a `repeat` workflow, and the board's task-graph fields go.
 2. **Kernel.** Kernel operations become runs with approvals as gates, and the kernel's run journal converges with the work journal. Cluster tasks follow.
 3. **Releases.** The deploy lifecycle's 63 steps become a release workflow whose steps are the 21 Worker deploys and the server rollout, and the Deploy tab draws its runs.
-4. **BestBuds.** First come the trimmed per-Worker flow copies and the lazy onboarding flow from the ravioli scan, then the 26 flows as definitions. Worker crons start runs.
+4. **BestBuds.** Every flow except chat HTTP ingress and the archiver is an inline definition (7 November). Those two move when the other sessions commit, and then Worker crons start runs.
 5. **Manna.** The documentation export and the connector queue move once the Workers host has run BestBuds flows in production.
 6. **Cleanup.** Each move deletes the old engine's code in the same change.
 
@@ -225,7 +285,7 @@ Temporal replays workflow code against the event history, so workflow code must 
 
 | # | System | Where | Model | Durability | Use today | Fate |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Graph-runtime `Workflow`, `Stage`, `ActivityNode`, `PersistentActorNode` | reaktor-graph-runtime, BestBuds Workers | steps are graph nodes; they run inside the request through reaktor-service `activity` | none; the flow's own D1 or Postgres writes | 68 Workflow nodes, 26 flows, 189 step cards | becomes the definition surface |
+| 1 | Graph-runtime `Workflow`, `Stage`, `ActivityNode`, `PersistentActorNode` | reaktor-graph-runtime, BestBuds Workers | steps are graph nodes; they run inside the request through reaktor-service `activity` | none; the flow's own D1 or Postgres writes | 79 Workflow nodes, 176 step cards and 73 activity cards in the 7 November catalog | is the definition surface; inline runs since 7 November |
 | 2 | Worker crons | `BestBudsWorker.scheduled`; Manna api `*/5`, Manna web `23 * * * *` | a cron event calls an internal route | the route's own writes | engagement runs, account purge, backups, circle formation | start runs |
 | 3 | reaktor-work | reaktor-work | store, runtime, schedulers, durable graph, request DAG, journal | SQLite, D1, text ObjectDatabase; fences, leases, receipts | 2 BestBuds definitions, kernel device commands, devtools | becomes the engine |
 | 4 | Manna documentation export (TypeScript) | manna api | one Cloudflare Workflows step that renders and stores the reading edition | Cloudflare Workflows | live | later |
@@ -309,3 +369,4 @@ Before it can claim parity, the engine must also do what Temporal does with time
 
 1. **Plans and runs** (decided and confirmed 6 Nov): agent work plans, the `WorkPlan` and `PlanGraph` that every Claude, Codex and Hangar thread writes with `plan.write`, stay the human checklist. The engine never executes them, and an item can point at a run and mirror its state. The deploy DAG and Manna's missions are separate: the deploy lifecycle becomes a release workflow in Phase 3, and Manna's missions are unchanged.
 2. **Web** (decided 6 Nov): the browser is a target, with pages, dedicated workers and service workers as hosts.
+3. **BestBuds flows stay in their request** (decided 7 Nov, "Keep one transaction"): the flows do not become durable runs that commit step by step. They are step definitions that run inline, so the graph draws them and each Worker builds only its own.
