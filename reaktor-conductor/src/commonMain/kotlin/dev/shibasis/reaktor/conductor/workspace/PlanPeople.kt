@@ -19,4 +19,7 @@ object PlanPeople {
     fun without(item: PlanItem, actor: BoardActor): List<String> = item.refs.filterNot { it == ref(actor) }
 
     fun everyone(plan: WorkPlan): List<BoardActor> = plan.items.flatMap(::of).distinctBy(::ref)
+
+    fun names(people: List<BoardActor>): String? = people.takeIf { it.isNotEmpty() }
+        ?.joinToString(", ") { if (it.kind == BoardActorKind.Agent) "${it.name} (agent)" else it.name }
 }

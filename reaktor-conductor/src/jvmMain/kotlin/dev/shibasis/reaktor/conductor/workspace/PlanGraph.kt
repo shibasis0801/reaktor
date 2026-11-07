@@ -79,7 +79,7 @@ class PlanScope(parent: Graph, val plan: WorkPlan, includeCode: Boolean = true, 
         item.id to scopeOf(if (item.id in containers) item.id else item.parent).Node { PlanItemNode(it, plan, item, signals[item.id].orEmpty()) }
     }
     private val linked: Map<String, List<String>> = if (!includeCode) emptyMap() else buildMap {
-        val queue = ArrayDeque(plan.items.flatMap { it.refs }.distinct().map { it to 0 })
+        val queue = ArrayDeque(plan.items.flatMap { it.refs }.filter { PlanPeople.actor(it) == null }.distinct().map { it to 0 })
         while (queue.isNotEmpty()) {
             val (ref, depth) = queue.removeFirst()
             if (ref in this) continue
@@ -132,6 +132,7 @@ class PlanItemNode(graph: Graph, val plan: WorkPlan, val item: PlanItem, private
             }
             item.seat?.let(plan::seat)?.let { put("seat", "${it.profile} · ${it.id}") }
             item.by?.let { put("by", it.name) }
+            PlanPeople.names(PlanPeople.of(item))?.let { put("people", it) }
             if (item.detail.isNotBlank()) put("detail", item.detail.take(300))
             putAll(signals)
         }
