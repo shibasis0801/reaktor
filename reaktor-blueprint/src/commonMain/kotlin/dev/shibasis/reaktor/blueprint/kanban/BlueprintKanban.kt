@@ -57,14 +57,15 @@ class BlueprintKanbanState {
     internal fun cancel() { drag = null }
 
     internal suspend fun move(source: String, editor: GraphEditor, projection: KanbanProjection, id: String, lane: KanbanLane,
-                              proposal: ((NodeShape, KanbanLane) -> GraphPart)?, expectedSource: String = source): EditReceipt {
+                              proposal: ((NodeShape, KanbanLane) -> GraphPart)?, expectedSource: String = source,
+                              onMove: (suspend (NodeShape, KanbanLane) -> EditReceipt)? = null): EditReceipt {
         if (moving) return EditReceipt.Refused("A status change is already pending")
         val node = projection.columns.asSequence().flatMap { it.items.asSequence() }.find { it.id == id }
         val reason = when {
             source != expectedSource -> "The graph source changed; try the move again"
             node == null || editor.shape.node(id) != node -> "The work item changed; try the move again"
             projection.columns.none { it.lane == lane } -> "This status is unavailable"
-            proposal == null -> "Status changes are unavailable in this view"
+            proposal == null && onMove == null -> "Status changes are unavailable in this view"
             else -> null
         }
         if (reason != null) return EditReceipt.Refused(reason).also { notice = reason }
@@ -72,7 +73,7 @@ class BlueprintKanbanState {
         moving = true
         notice = null
         return try {
-            editor.propose(proposal!!(node!!, lane)).also { if (it is EditReceipt.Refused) notice = it.message }
+            (onMove?.invoke(node!!, lane) ?: editor.propose(proposal!!(node!!, lane))).also { if (it is EditReceipt.Refused) notice = it.message }
         } finally { moving = false }
     }
 }
@@ -90,6 +91,7 @@ fun BlueprintKanban(
     state: BlueprintKanbanState = rememberBlueprintKanbanState(),
     proposal: ((NodeShape, KanbanLane) -> GraphPart)? = null,
     onAgentOpen: (BlueprintAgent) -> Unit = {},
+    onMove: (suspend (NodeShape, KanbanLane) -> EditReceipt)? = null,
 ) {
     val colors = MachineSignal.colors
     val scope = rememberCoroutineScope()
@@ -99,9 +101,10 @@ fun BlueprintKanban(
     val latestSource by rememberUpdatedState(source)
     val latestProjection by rememberUpdatedState(projection)
     val latestProposal by rememberUpdatedState(proposal)
+    val latestMove by rememberUpdatedState(onMove)
     val latestEditor by rememberUpdatedState(editor)
     fun move(id: String, lane: KanbanLane, from: String = source) {
-        scope.launch { state.move(from, latestEditor, latestProjection, id, lane, latestProposal, latestSource) }
+        scope.launch { state.move(from, latestEditor, latestProjection, id, lane, latestProposal, latestSource, latestMove) }
     }
     fun key(event: KeyEvent): Boolean {
         if (event.type != KeyEventType.KeyDown || event.isCtrlPressed || event.isMetaPressed || event.isAltPressed) return false
@@ -155,8 +158,8 @@ fun BlueprintKanban(
                                 KanbanCard(node, look, node.id in editor.selection.nodes, projection.closingReasons[node.id],
                                     onSelect = { focus.requestFocus(); editor.select(Selection(setOf(node.id))) }, onAgentOpen = onAgentOpen,
                                     modifier = Modifier.onGloballyPositioned { topLeft = it.boundsInRoot().topLeft }
-                                        .pointerInput(source, node.id, proposal != null) {
-                                            if (proposal != null) detectDragGestures(
+                                        .pointerInput(source, node.id, proposal != null || onMove != null) {
+                                            if (proposal != null || onMove != null) detectDragGestures(
                                                 onDragStart = { state.begin(source, node.id, topLeft + it) },
                                                 onDragCancel = state::cancel,
                                                 onDragEnd = {

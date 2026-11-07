@@ -306,7 +306,7 @@ object PlanRules {
     const val MaxRefs = 20
     const val MaxRelations = 20
     val Key = Regex("[a-z][a-z0-9-]{0,39}")
-    val Ref = Regex("(file|symbol|module|graph|op|flow|task|url):\\S.{0,299}")
+    val Ref = Regex("(file|symbol|module|graph|op|flow|task|url|person|agent):\\S.{0,299}")
 
     fun start(thread: String, patch: PlanPatch, by: BoardActor, now: Long): WorkPlan {
         require(BoardRefs.pattern.matches(thread)) { "$thread is not a thread: use hangar:, claude:, codex: or agy: with its id" }
@@ -398,7 +398,7 @@ object PlanRules {
 
         fun refs(values: List<String>): List<String> = values.map(String::trim).filter(String::isNotEmpty).distinct().also { list ->
             require(list.size <= MaxRefs) { "An item links at most $MaxRefs things" }
-            list.firstOrNull { !Ref.matches(it) }?.let { error("$it is not a link: use file:, symbol:, module:, graph:, op:, flow:, task: or url:") }
+            list.firstOrNull { !Ref.matches(it) }?.let { error("$it is not a link: use file:, symbol:, module:, graph:, op:, flow:, task:, url:, person: or agent:") }
         }
 
         fun closing(status: PlanStatus, reason: String, replacement: String?, id: String): Pair<String, String?> {
