@@ -76,6 +76,7 @@ import dev.shibasis.reaktor.surface.compose.TooltipGroup
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
+import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
@@ -311,11 +312,22 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.edits(ed
 private class Shown(val indices: List<Int>, val view: Viewport, val zoom: Double)
 
 @Composable
-internal fun GraphMarkers(state: GraphCanvasState, boxes: List<Bounds>, id: (Int) -> Any, minZoom: Double = 0.0, follow: Boolean = true, content: @Composable (Int, Double) -> Unit) {
+internal fun GraphMarkers(state: GraphCanvasState, boxes: List<Bounds>, id: (Int) -> Any, minZoom: Double = 0.0, follow: Boolean = true,
+                          batch: Int = Int.MAX_VALUE, content: @Composable (Int, Double) -> Unit) {
     val flow = state.flow
     val ambient = LocalDensity.current
     val density = ambient.density
     var shown by remember(boxes, flow, density) { mutableStateOf<Shown?>(null) }
+    var placed by remember(boxes, flow, density) { mutableStateOf<Set<Int>>(emptySet()) }
+    if (batch != Int.MAX_VALUE) LaunchedEffect(shown) {
+        val now = shown ?: return@LaunchedEffect
+        val wanted = now.indices.toHashSet()
+        placed = placed.filterTo(HashSet()) { it in wanted }
+        val scale = now.view.zoom
+        val cx = (flow.canvasSize.width / 2 - now.view.x) / scale; val cy = (flow.canvasSize.height / 2 - now.view.y) / scale
+        val waiting = now.indices.filter { it !in placed }.sortedBy { i -> boxes[i].let { abs(it.x + it.width / 2 - cx) + abs(it.y + it.height / 2 - cy) } }
+        for (chunk in waiting.chunked(batch)) { withFrameNanos { }; placed = placed + chunk }
+    }
     var rested by remember(flow) { mutableStateOf(flow.viewport) }
     if (!follow) LaunchedEffect(flow) {
         while (true) {
@@ -353,7 +365,8 @@ internal fun GraphMarkers(state: GraphCanvasState, boxes: List<Bounds>, id: (Int
         transformOrigin = TransformOrigin(0f, 0f)
     }) {
         val now = shown ?: return@Box
-        now.indices.forEach { i -> key(id(i)) {
+        val allowed = if (batch == Int.MAX_VALUE) null else placed
+        now.indices.forEach { i -> if (allowed == null || i in allowed) key(id(i)) {
             val factor = minOf(1.0, 8190.0 / (maxOf(boxes[i].width, boxes[i].height, 1.0) * density)).toFloat()
             if (factor == 1f) content(i, now.zoom)
             else Box(Modifier.fillMaxSize().graphicsLayer {

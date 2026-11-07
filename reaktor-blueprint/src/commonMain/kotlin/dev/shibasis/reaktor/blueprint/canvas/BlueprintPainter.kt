@@ -67,6 +67,7 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.round
 import kotlin.math.sqrt
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
 
 internal class BlueprintType(private val ui: FontFamily, private val mono: FontFamily, private val base: TextStyle, private val labelFont: FontFamily = FontFamily.Monospace) {
@@ -143,6 +144,9 @@ private data class CardMeasure(val look: BlueprintCardLook, val card: Card, val 
 /** Below this scale, cards remain in the mesh and hit index without measuring unreadable text. */
 internal const val BlueprintDetailZoom = .18
 internal const val BlueprintMapTitleZoom = .45
+internal const val MapTextCache = 2048
+internal const val MapMarkerBatch = 6
+private val MeasureBudget = 2.milliseconds
 internal const val BlueprintLegibleText = 11.0
 internal const val BlueprintOverviewCards = 512
 private const val CardLabelReadable = 7.0
@@ -334,7 +338,13 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         val t = ((-camera.y - viewport.height) / z).toFloat()
         val r = ((viewport.width * 2 - camera.x) / z).toFloat()
         val b = ((viewport.height * 2 - camera.y) / z).toFloat()
-        if (level > 0) for (i in cards.indices) if (inside(cardBox, i, l, t, r, b)) paint(i)
+        if (level > 0) {
+            val until = TimeSource.Monotonic.markNow() + MeasureBudget
+            val vl = (-camera.x / z).toFloat(); val vt = (-camera.y / z).toFloat()
+            val vr = ((viewport.width - camera.x) / z).toFloat(); val vb = ((viewport.height - camera.y) / z).toFloat()
+            for (i in cards.indices) if (inside(cardBox, i, vl, vt, vr, vb)) paint(i, until)
+            for (i in cards.indices) if (inside(cardBox, i, l, t, r, b)) paint(i, until)
+        }
         this.shift = shift; this.pulses = pulses; this.labelExclusions = labelExclusions
         with(scope) { frame(camera, viewport, density) }
         for (i in paints.indices) markerKeys[i].value = paints[i]?.key?.takeIf { current(i, 0) || current(i, 1) }
@@ -385,10 +395,11 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         }
     }
 
-    private fun paint(i: Int): CardPaint? {
+    private fun paint(i: Int, until: TimeSource.Monotonic.ValueTimeMark? = null): CardPaint? {
         val look = looks.getOrNull(i)?.takeIf { shown(i) } ?: return null
         val kept = paints[i]
         if (kept != null && kept.measured.card === cards[i] && kept.measured.look == look) return kept
+        if (until?.hasPassedNow() == true) { changed = true; return kept }
         val next = measureCard(cards[i], look, kept)
         if (kept?.key != next.key) {
             for (slot in 0..1) {
