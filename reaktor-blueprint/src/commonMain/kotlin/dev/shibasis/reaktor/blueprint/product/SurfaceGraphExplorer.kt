@@ -287,6 +287,7 @@ private fun <K> SurfaceGraphDeclaredExplorer(
     val clear by rememberUpdatedState(onClear)
     val opening by rememberUpdatedState(onOpen)
     val chosen by rememberUpdatedState(selectedId)
+    val shown = remember(highlighted, presentation) { highlighted.mapNotNullTo(linkedSetOf(), presentation::owner) }
     SideEffect { state.density(density) }
     LaunchedEffect(cards, layout.frames, key, state.flow.canvasSize, density) {
         state.frames = layout.frames
@@ -294,7 +295,7 @@ private fun <K> SurfaceGraphDeclaredExplorer(
     }
     MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact,
         mode = if (appearance.canvas.luminance() > .5f) MachineSignalMode.Light else MachineSignalMode.Dark) {
-        BlueprintGraph(layout, state, highlighted.mapNotNullTo(linkedSetOf(), presentation::owner), presentation.owner(selectedId),
+        BlueprintGraph(layout, state, shown, presentation.owner(selectedId),
             cardLook = { card -> presentation.look(card, appearance, selectedId, highlighted, if (onOpen == null) null else { id -> opening?.invoke(id) }) },
             frameLook = { frame ->
                 val group = groups.firstOrNull { it.key == frame.key }
@@ -302,7 +303,9 @@ private fun <K> SurfaceGraphDeclaredExplorer(
             },
             linkStyle = { link ->
                 val edge = presentation.source(link)
-                val lit = selectedId != null && edge?.let { it.from == selectedId || it.to == selectedId || presentation.owner(it.from) == presentation.owner(selectedId) || presentation.owner(it.to) == presentation.owner(selectedId) } == true
+                val touching = selectedId != null && edge?.let { it.from == selectedId || it.to == selectedId || presentation.owner(it.from) == presentation.owner(selectedId) || presentation.owner(it.to) == presentation.owner(selectedId) } == true
+                val within = shown.size > 1 && link.family != "chapter" && edge != null && presentation.owner(edge.from) in shown && presentation.owner(edge.to) in shown
+                val lit = touching || within
                 val visible = lit || if (link.family == "chapter") chapterLinks else resourceLinks
                 Blueprint.link(if (visible) edge?.color ?: appearance.selected else Color.Transparent,
                     highlighting = selectedId != null || highlighted.isNotEmpty(), lit = lit, cross = link.cross,

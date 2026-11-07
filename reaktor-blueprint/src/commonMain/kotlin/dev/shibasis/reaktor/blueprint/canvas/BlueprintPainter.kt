@@ -503,9 +503,10 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
 
     override fun face(i: Int, x0: Float, y0: Float, x1: Float, y1: Float, z: Float, fringe: Float, tolerance: Float) {
         val look = looks.getOrNull(i) ?: return
+        val faded = dim.getOrElse(i) { false }
         stroker.roundRect(x0, y0, x1, y1, cardRadius * z, tolerance)
-        stroker.fill(solid, fringe, lerp(colors.card, look.tone, OverviewTint).toArgb(), min(x1 - x0, y1 - y0))
-        stroker.outline(solid, max(z / 2, .5f), fringe, (look.outline ?: look.tone).toArgb(), if (look.selected) 1f else .8f)
+        stroker.fill(solid, fringe, lerp(colors.card, look.tone, if (faded) OverviewTint * FadedTint else OverviewTint).toArgb(), min(x1 - x0, y1 - y0))
+        stroker.outline(solid, max(z / 2, .5f), fringe, (look.outline ?: look.tone).toArgb(), if (look.selected) 1f else if (faded) .2f else .8f)
     }
 
     override fun cardId(i: Int) = cards[i].id
@@ -1151,6 +1152,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         const val ProseLeading = 1.25
         const val CardTint = .05f
         const val OverviewTint = .42f
+        const val FadedTint = .3f
         const val TitledTint = .38f
         const val TitledInset = 18f
         val ProseLines = intArrayOf(3, 4, 5)
