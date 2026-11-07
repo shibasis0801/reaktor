@@ -36,8 +36,8 @@ fun useComposeRegion(host: RefObject<*>, content: @Composable () -> Unit): Boole
         }
         val observer = js("new ResizeObserver(measure)")
         observer.observe(region)
-        val tab: (dynamic) -> Unit = { event ->
-            if (event.key == "Tab") repeat(3) { frame -> kotlinx.browser.window.setTimeout({
+        val refocus = { frames: Int ->
+            repeat(frames) { frame -> kotlinx.browser.window.setTimeout({
                 if (live && kotlinx.browser.document.activeElement === kotlinx.browser.document.body) {
                     val nodes = region.querySelectorAll("*")
                     val canvas: dynamic = (0 until nodes.length).map { nodes.item(it).asDynamic().shadowRoot?.querySelector("canvas") }.firstOrNull { it != null }
@@ -45,7 +45,13 @@ fun useComposeRegion(host: RefObject<*>, content: @Composable () -> Unit): Boole
                 }
             }, 16 * frame) }
         }
+        val tab: (dynamic) -> Unit = { event -> if (event.key == "Tab") refocus(3) }
+        val typed: (dynamic) -> Unit = { event ->
+            val origin: dynamic = event.composedPath()[0]
+            if (event.relatedTarget == null && (origin?.tagName == "TEXTAREA" || origin?.tagName == "INPUT")) refocus(3)
+        }
         region.addEventListener("keydown", tab, true)
+        region.addEventListener("focusout", typed, true)
         ComposeViewport(region) {
             val window = LocalComposeWindow.current
             SideEffect {

@@ -388,6 +388,7 @@ class GraphEditorKeysTest {
         val added = editor.shape.nodes.single { it.type == "Sink" }
         assertTrue(editor.shape.wires.any { it.provider == "b" && it.consumer == added.id })
         assertTrue(editor.placement.cards.getValue(added.id).y > editor.placement.cards.getValue("b").y)
+        assertEquals(added.id, (editor.request as? Request.Rename)?.subject)
     }
 
     @Test

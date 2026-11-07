@@ -263,6 +263,8 @@ class GraphEditor(
     var onOpen: (String) -> Unit = {}
     /** Graph items whose double-click enters the editor instead of zooming the canvas. */
     var editOnDoubleClick: (String) -> Boolean = { false }
+    var nameAdded: (Template) -> Boolean = { false }
+    var addOnDoubleClick = false
     var onSave: (GraphDraft) -> Unit = {}
     var onTemplate: ((ChangeSet) -> Unit)? = null
     private var preferences by mutableStateOf(EditorPrefs())
@@ -1008,7 +1010,7 @@ class GraphEditor(
         }
         edit { s, p -> s to p.copy(notes = p.notes + note) }
         select(Selection(notes = setOf(id)))
-        request = Request.Rename(Spot(note.x, note.y), pointerWindow, id, note = true)
+        request = renaming(Spot(note.x, note.y), pointerWindow, id, note = true)
     }
 
     fun align(edge: Edge) {
@@ -1532,7 +1534,7 @@ class GraphEditor(
         val note = Note(fresh("note"), "Frame", left, top, width, height)
         edit { s, p -> s to p.copy(notes = p.notes + note) }
         select(Selection(notes = setOf(note.id)))
-        request = Request.Rename(Spot(note.x, note.y), pointerWindow, note.id, note = true)
+        request = renaming(Spot(note.x, note.y), pointerWindow, note.id, note = true)
     }
 
     fun flip(horizontal: Boolean) {
@@ -1564,7 +1566,7 @@ class GraphEditor(
         val template = stencil(shape) ?: run { notice = "Nothing can be added here"; return null }
         val id = add(template, at).takeIf { it.isNotEmpty() }
         used()
-        id?.let(layout.cards::get)?.let { card -> request = Request.Rename(Spot(card.x, card.y), pointerWindow, card.id, note = false) }
+        id?.let(layout.cards::get)?.let { card -> request = renaming(Spot(card.x, card.y), pointerWindow, card.id, note = false) }
         return id
     }
 
@@ -1575,8 +1577,9 @@ class GraphEditor(
 
     private fun follow(from: String, at: Spot) {
         val template = stencil(EditorTool.Box) ?: run { notice = "Nothing can be added here"; return }
-        add(template, Request.Palette(at, pointerWindow, link = from))
+        val id = add(template, Request.Palette(at, pointerWindow, link = from)).takeIf { it.isNotEmpty() }
         used()
+        id?.let(layout.cards::get)?.let { card -> request = renaming(Spot(card.x, card.y), pointerWindow, card.id, note = false) }
     }
 
     private fun touched(at: Spot, reach: Float, notes: Boolean): Selection =
@@ -1807,7 +1810,7 @@ class GraphEditor(
             "edit-find" -> request = Request.Find(pointer, pointerWindow)
             "edit-rename" -> (selection.nodes.singleOrNull() ?: selection.notes.singleOrNull())?.let { subject ->
                 val box = layout.cards[subject] ?: layout.frames.firstOrNull { it.key == subject }
-                request = Request.Rename(box?.let { Spot(it.x, it.y) } ?: pointer, pointerWindow, subject, note = subject !in layout.cards)
+                request = renaming(box?.let { Spot(it.x, it.y) } ?: pointer, pointerWindow, subject, note = subject !in layout.cards)
             }
             "edit-tidy" -> tidy()
             "edit-remark" -> selection.nodes.singleOrNull()?.let { subject -> request = Request.Remark(layout.cards[subject]?.let { Spot(it.x, it.y) } ?: pointer, pointerWindow, subject) }
@@ -1982,7 +1985,7 @@ class GraphEditor(
         }
         cardAt(at)?.let { card ->
             if (clicks >= 2 && !toggle && !adding) {
-                request = Request.Rename(Spot(card.x, card.y), window, card.id, note = false)
+                request = renaming(Spot(card.x, card.y), window, card.id, note = false)
                 return true
             }
             if (keys.isAltPressed && ghost(card.id) == null) {
@@ -2005,7 +2008,7 @@ class GraphEditor(
         }
         noteAt(at)?.let { (note, corner) ->
             if (corner) { gesture = Gesture.Resize(note.id, at, placement); select(Selection(notes = setOf(note.id))); return true }
-            if (clicks >= 2) { request = Request.Rename(Spot(note.x, note.y), window, note.id, note = true); return true }
+            if (clicks >= 2) { request = renaming(Spot(note.x, note.y), window, note.id, note = true); return true }
             val inside = inside(note)
             val next = if (toggle || adding) selection + Selection(notes = setOf(note.id)) else Selection(notes = setOf(note.id))
             select(next)
@@ -2114,7 +2117,8 @@ class GraphEditor(
 
     fun added(request: Request.Palette, template: Template) {
         if (this.request === request) this.request = null
-        add(template, request)
+        val id = add(template, request)
+        if (template.captureTool == null && nameAdded(template)) layout.cards[id]?.let { card -> this.request = renaming(Spot(card.x, card.y), pointerWindow, card.id, note = false) }
         if (this.request == null) commandHost?.focus?.invoke()
     }
 
@@ -2357,12 +2361,15 @@ class GraphEditor(
         return layout.cards.values.filter { it.id !in coveredCards && ghost(it.id) == null && it.x < right && it.x + it.width > left && it.y < bottom && it.y + it.height > top }.mapTo(hashSetOf()) { it.id }
     }
 
+    private fun renaming(at: Spot, fallback: Offset, subject: String, note: Boolean): Request.Rename =
+        Request.Rename(at, camera?.window(at.x, at.y) ?: fallback, subject, note)
+
     fun cardAt(at: Spot): Card? = layout.cards.values.lastOrNull { it.id !in coveredCards && at.x >= it.x && at.x <= it.x + it.width && at.y >= it.y && at.y <= it.y + it.height }
 
     internal fun editsOnDoubleClick(at: Spot): Boolean {
         if (tool != EditorTool.Select || locked || pending != null || captureMode) return false
         cardAt(at)?.let { return it.id !in aside && it.id !in folded && editOnDoubleClick(it.id) }
-        return noteAt(at)?.let { (note, corner) -> !corner && editOnDoubleClick(note.id) } == true
+        return noteAt(at)?.let { (note, corner) -> !corner && editOnDoubleClick(note.id) } ?: addOnDoubleClick
     }
 
     private fun endpointAt(at: Spot, reach: Float): Pair<WireShape, PinEnd>? =

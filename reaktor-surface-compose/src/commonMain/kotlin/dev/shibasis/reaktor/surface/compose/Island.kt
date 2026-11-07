@@ -73,7 +73,7 @@ fun Island(
             .commands(commands, onInvoke)
             .onPreviewKeyEvent { hatch.onKey(it, focusManager) }
             .then(if (focus != null) Modifier.onFocusChanged { focused = it.isFocused }.focusRequester(focus)
-                .then(IslandFocusElement(focus)).focusable() else Modifier.focusGroup()),
+                .then(IslandFocusElement(focus, hatch)).focusable() else Modifier.focusGroup()),
         propagateMinConstraints = true,
     ) {
         val visible = focusable && focused && keyboard
@@ -81,22 +81,25 @@ fun Island(
     }
 }
 
-private class IslandFocusNode(var focus: FocusRequester) : Modifier.Node(), PointerInputModifierNode {
+private class IslandFocusNode(var focus: FocusRequester, var hatch: EscapeHatch) : Modifier.Node(), PointerInputModifierNode {
     override fun onPointerEvent(pointerEvent: PointerEvent, pass: PointerEventPass, bounds: IntSize) {
-        if (pass == PointerEventPass.Initial && pointerEvent.type == PointerEventType.Press &&
-            (pointerEvent.buttons.isPrimaryPressed || pointerEvent.changes.any { it.type == PointerType.Touch })) focus.requestFocus()
+        if (pass != PointerEventPass.Initial || pointerEvent.type != PointerEventType.Press) return
+        hatch.disarm()
+        if (pointerEvent.buttons.isPrimaryPressed || pointerEvent.changes.any { it.type == PointerType.Touch }) focus.requestFocus()
     }
 
     override fun onCancelPointerInput() = Unit
 }
 
-private data class IslandFocusElement(val focus: FocusRequester) : ModifierNodeElement<IslandFocusNode>() {
-    override fun create() = IslandFocusNode(focus)
-    override fun update(node: IslandFocusNode) { node.focus = focus }
+private data class IslandFocusElement(val focus: FocusRequester, val hatch: EscapeHatch) : ModifierNodeElement<IslandFocusNode>() {
+    override fun create() = IslandFocusNode(focus, hatch)
+    override fun update(node: IslandFocusNode) { node.focus = focus; node.hatch = hatch }
 }
 
 private class EscapeHatch {
     private var armed = false
+
+    fun disarm() { armed = false }
 
     fun onKey(event: KeyEvent, focus: FocusManager): Boolean {
         if (event.type != KeyEventType.KeyDown) return false

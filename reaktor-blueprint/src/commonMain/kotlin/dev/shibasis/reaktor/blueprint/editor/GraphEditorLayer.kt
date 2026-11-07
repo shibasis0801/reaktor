@@ -101,7 +101,7 @@ fun GraphEditorLayer(editor: GraphEditor, modifier: Modifier = Modifier) {
         when (val request = editor.request) {
             is Request.Menu -> EditorMenu(editor, request)
             is Request.Palette -> Anchored(request.window - origin) { EditorPalette(editor, request) }
-            is Request.Rename -> Anchored(request.window - origin) { EditorRename(editor, request) }
+            is Request.Rename -> Anchored((editor.camera?.window(request.at.x, request.at.y) ?: request.window) - origin) { EditorRename(editor, request) }
             is Request.Naming -> Anchored(request.window - origin) { EditorNaming(editor, request) }
             is Request.Find -> Box(Modifier.align(Alignment.TopStart).padding(start = 16.dp, top = 56.dp)) { EditorFind(editor) }
             is Request.Remark -> Anchored(request.window - origin) { EditorRemark(editor, request) }

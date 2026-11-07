@@ -1050,7 +1050,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
     }
 
     private fun proseTitleBottom(card: Card, look: BlueprintCardLook, height: Float): Float =
-        card.pins.minOfOrNull { it.y - BlueprintEngine.RowHeight / 2 - BlueprintEngine.RowHeight / 3 }?.toFloat()
+        card.pins.filter { it.y > BlueprintEngine.HeaderHeight }.minOfOrNull { it.y - BlueprintEngine.RowHeight / 2 - BlueprintEngine.RowHeight / 3 }?.toFloat()
             ?: (height - if (look.subtitle.isNotEmpty()) 34f else 10f)
 
     private fun proseTitle(card: Card, look: BlueprintCardLook, width: Float, height: Float): TextLayoutResult? =

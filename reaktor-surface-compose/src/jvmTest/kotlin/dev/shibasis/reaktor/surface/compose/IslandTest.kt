@@ -179,6 +179,29 @@ class IslandTest {
     }
 
     @Test
+    fun aPressBetweenEscapeAndTabKeepsTabOnTheCanvas() = runComposeUiTest {
+        val adding = CommandSet(listOf(Command(CommandId("add"), "Add a node", Chord.Of(KeyName.Tab))))
+        setContent {
+            SurfaceEnvironmentProvider(SurfaceEnvironment(keys = KeyConvention.Pc)) {
+                Column {
+                    Island(adding, { invoked += it.value }, Modifier.size(200.dp, 120.dp).testTag("island"), focusable = true, appearance = BareIsland) {}
+                    Button({}, Modifier.testTag("after")) { BasicText("After") }
+                }
+            }
+        }
+        onNodeWithTag("island").performMouseInput { moveTo(center); press(); release() }
+        onRoot().performKeyInput { pressKey(Key.Escape) }
+        onNodeWithTag("island").performMouseInput { press(); release() }
+        onRoot().performKeyInput { pressKey(Key.Tab) }
+        onNodeWithTag("island").assertIsFocused()
+        assertEquals(listOf("add"), invoked)
+        onRoot().performKeyInput { pressKey(Key.Escape) }
+        onRoot().performKeyInput { pressKey(Key.Tab) }
+        onNodeWithTag("after").assertIsFocused()
+        assertEquals(listOf("add"), invoked)
+    }
+
+    @Test
     fun aCanvasLeavesChildControlsAndAnEnginesFocusOwnershipIntact() = runComposeUiTest {
         var text by mutableStateOf("")
         var clicks = 0

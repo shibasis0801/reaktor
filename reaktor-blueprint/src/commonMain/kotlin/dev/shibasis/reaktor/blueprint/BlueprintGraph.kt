@@ -3,6 +3,8 @@ package dev.shibasis.reaktor.blueprint
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.blueprint.canvas.GraphCanvasState
 import dev.shibasis.reaktor.blueprint.canvas.LinkStyle
 import dev.shibasis.reaktor.blueprint.editor.Fold
@@ -60,14 +62,25 @@ fun BlueprintGraph(
     subject: String? = null,
     mapLayers: Boolean = false,
     mapDetail: Boolean = false,
+    fitKey: Int? = null,
+    fitScene: Any? = null,
+    initialFit: (() -> Unit)? = null,
+    startInset: Dp = 0.dp,
+    topInset: Dp = 48.dp,
 ) {
     androidx.compose.runtime.SideEffect { bundles?.let { editor.routing = editor.routing.copy(bundles = it) } }
     val activeOpening = opening ?: editor.opening
     val layout = activeOpening?.layout ?: editor.settled
     val faint = Blueprint.Faint
+    val fit = fitKey ?: (layout.key.hashCode() * 31 + layout.cards.keys.hashCode())
     BlueprintCanvas(
         layout = layout,
         canvas = canvas,
+        fitKey = fit,
+        fitScene = fitScene ?: fit,
+        initialFit = initialFit,
+        startInset = startInset,
+        topInset = topInset,
         highlight = editor.selection.nodes,
         selected = editor.selection.nodes.singleOrNull(),
         linkStyle = { link -> linkStyle(link) ?: LinkStyle(faint) },

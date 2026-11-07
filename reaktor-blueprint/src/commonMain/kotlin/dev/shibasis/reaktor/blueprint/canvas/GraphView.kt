@@ -150,6 +150,9 @@ internal fun GraphView(
                 if (local.x < 0 || local.y < 0 || local.x > flow.canvasSize.width || local.y > flow.canvasSize.height) return null
                 return project(local).let { (x, y) -> Offset(x, y) }
             }
+            override fun window(x: Double, y: Double): Offset = flow.viewport.let { view ->
+                Offset(origin[0] + (x * view.zoom + view.x).toFloat(), origin[1] + (y * view.zoom + view.y).toFloat())
+            }
         })
         onDispose { editing?.attach(null); (editing as? GraphEditor)?.navigation(null, null) }
     }

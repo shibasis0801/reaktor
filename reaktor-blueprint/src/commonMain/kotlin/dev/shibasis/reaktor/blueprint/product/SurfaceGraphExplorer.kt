@@ -94,10 +94,10 @@ class SurfaceGraphExplorerState : GraphCanvasState(0.002..16.0, GraphLevels(.2, 
 @Composable
 fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraphLink>, selectedId: String?, appearance: SurfaceGraphAppearance,
     state: SurfaceGraphExplorerState, onSelect: (String) -> Unit, modifier: Modifier = Modifier, layout: BlueprintLayout<*>? = null, resourceLinks: Boolean = true, chapterLinks: Boolean = true, areaCorridors: Boolean = true, highlighted: Set<String> = emptySet(), onClear: () -> Unit = {}, key: Any? = null, groups: List<SurfaceGraphGroup> = emptyList(), editor: GraphEditor? = null,
-    onOpen: ((String) -> Boolean)? = null, topInset: Dp = 48.dp, onFollow: ((String) -> Unit)? = null) {
+    onOpen: ((String) -> Boolean)? = null, topInset: Dp = 48.dp, onFollow: ((String) -> Unit)? = null, startInset: Dp = 0.dp) {
     if (layout != null && editor == null) {
         SurfaceGraphDeclaredExplorer(nodes, links, selectedId, appearance, state, onSelect, modifier, layout,
-            resourceLinks, chapterLinks, areaCorridors, highlighted, onClear, key, groups, onOpen, topInset, onFollow)
+            resourceLinks, chapterLinks, areaCorridors, highlighted, onClear, key, groups, onOpen, topInset, onFollow, startInset)
         return
     }
     val fallback = remember(nodes, links, appearance, layout != null) {
@@ -138,9 +138,10 @@ fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraph
     fun jump(id: String) {
         select(id)
     }
+    val fitKey = editor?.let { (key ?: laid.key).hashCode() }
     LaunchedEffect(cards, laid.frames, key, state.flow.canvasSize, density) {
         state.frames = laid.frames
-        state.place(cards, nodes, key)
+        state.place(cards, nodes, fitKey ?: key)
     }
     SideEffect {
         state.density(density)
@@ -199,7 +200,8 @@ fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraph
             bundles = areaCorridors && active.bundles,
             onFrameClick = { frame -> looks.firstOrNull { it.key == frame.key }?.owner?.let(select) },
             onFrameOpen = {},
-            mapLayers = true, mapDetail = true)
+            mapLayers = true, mapDetail = true,
+            fitKey = fitKey, fitScene = fitKey, initialFit = fitKey?.let { { state.fit() } }, startInset = startInset, topInset = topInset)
     }
     MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact,
         mode = if (appearance.canvas.luminance() > .5f) MachineSignalMode.Light else MachineSignalMode.Dark) {
@@ -279,6 +281,7 @@ private fun <K> SurfaceGraphDeclaredExplorer(
     state: SurfaceGraphExplorerState, onSelect: (String) -> Unit, modifier: Modifier, layout: BlueprintLayout<K>,
     resourceLinks: Boolean, chapterLinks: Boolean, areaCorridors: Boolean, highlighted: Set<String>, onClear: () -> Unit,
     key: Any?, groups: List<SurfaceGraphGroup>, onOpen: ((String) -> Boolean)?, topInset: Dp, onFollow: ((String) -> Unit)?,
+    startInset: Dp,
 ) {
     val presentation = remember(layout, nodes, links, groups) { SurfaceGraphExplorerPresentation(layout, nodes, links, groups) }
     val cards = remember(layout) { layout.cards.values.toList() }
@@ -318,7 +321,7 @@ private fun <K> SurfaceGraphDeclaredExplorer(
             onLinkClick = { link -> presentation.target(link, chosen)?.let { follow?.invoke(it) ?: select(it) } },
             onPaneClick = { clear() }, modifier = modifier,
             labels = layout.links.mapNotNull { link -> presentation.source(link)?.label?.takeIf(String::isNotBlank)?.let { link.id to it } }.toMap(),
-            fitKey = (key ?: layout.key).hashCode(), fitScene = key ?: layout.key, initialFit = { state.fit() },
+            fitKey = (key ?: layout.key).hashCode(), fitScene = key ?: layout.key, initialFit = { state.fit() }, startInset = startInset,
             onPinClick = { card, pin -> surfaceGraphPinTarget(layout, card, pin)?.let { (original, port) -> select(port.id.takeUnless { chosen == it } ?: original.id) } },
             onPinOpen = if (onOpen == null) null else { card, pin ->
                 surfaceGraphPinTarget(layout, card, pin)?.let { (_, port) -> opening?.invoke(port.id)?.also { opened -> if (opened) select(port.id) } } == true

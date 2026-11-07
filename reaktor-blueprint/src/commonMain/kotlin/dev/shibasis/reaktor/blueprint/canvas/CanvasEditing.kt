@@ -18,6 +18,7 @@ interface CanvasCamera {
     fun reveal(box: Bounds)
     fun frame(box: Bounds)
     fun world(window: Offset): Offset?
+    fun window(x: Double, y: Double): Offset? = null
 }
 
 interface CanvasEditing {
