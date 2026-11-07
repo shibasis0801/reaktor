@@ -4,6 +4,7 @@ import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.sqrt
 
 private const val BalanceSteps = 24
 
@@ -36,6 +37,7 @@ data class LayeredSpacing(
     val wrapHeight: Double = 0.0,
     val align: LayeredAlign = LayeredAlign.Centre,
     val compact: Boolean = false,
+    val fill: Boolean = false,
 )
 
 class LayeredResult(val x: DoubleArray, val y: DoubleArray, val routes: List<DoubleArray>, val width: Double, val height: Double)
@@ -69,10 +71,16 @@ object Layered {
         for (e in edges.indices) if (linked(e)) links.getOrPut(root(from[e])) { ArrayList() } += e
         val sheets = members.map { (key, vs) -> Sheet(nodes, edges, from, to, vs.toIntArray(), links[key].orEmpty().toIntArray(), spacing).also(Sheet::lay) }
         val anchored = doors.firstOrNull()?.let { door -> sheets.indexOfFirst { door in it.members } }?.takeIf { it >= 0 }
-        val rest = sheets.indices.filter { it != anchored }.sortedWith(compareByDescending<Int> { sheets[it].members.size }.thenBy { it })
-        val loose = shelves(rest.map { sheets[it].width to sheets[it].height }, spacing.component, spacing.aspect)
+        val rest = sheets.indices.filter { it != anchored }.sortedWith(
+            if (spacing.fill) compareByDescending<Int> { sheets[it].width * sheets[it].height }.thenBy { it }
+            else compareByDescending<Int> { sheets[it].members.size }.thenBy { it })
         val order = listOfNotNull(anchored) + rest
-        val offsets = if (anchored == null) loose else listOf(0.0 to 0.0) + loose.map { (x, y) -> x to y + sheets[anchored].height + spacing.component }
+        val offsets = if (spacing.fill) order.map { sheets[it].width to sheets[it].height }.let { sizes ->
+            skyline(sizes, spacing.component, sqrt(sizes.sumOf { (w, h) -> (w + spacing.component) * (h + spacing.component) } * spacing.aspect))
+        } else {
+            val loose = shelves(rest.map { sheets[it].width to sheets[it].height }, spacing.component, spacing.aspect)
+            if (anchored == null) loose else listOf(0.0 to 0.0) + loose.map { (x, y) -> x to y + sheets[anchored].height + spacing.component }
+        }
         val x = DoubleArray(nodes.size)
         val y = DoubleArray(nodes.size)
         val routes = arrayOfNulls<DoubleArray>(edges.size)
@@ -94,6 +102,46 @@ object Layered {
     }
 
     private val LayeredNode.door get() = rank == LayeredRank.Entry || rank == LayeredRank.Exit
+
+    private class Ledge(val x: Double, val y: Double, val width: Double)
+
+    fun skyline(sizes: List<Pair<Double, Double>>, gap: Double, width: Double): List<Pair<Double, Double>> {
+        if (sizes.isEmpty()) return emptyList()
+        val total = max(width, sizes.maxOf { it.first }) + gap
+        var line = listOf(Ledge(0.0, 0.0, total))
+        return sizes.map { (w, h) ->
+            val need = w + gap
+            var at = 0
+            var floor = Double.POSITIVE_INFINITY
+            for (i in line.indices) {
+                val x = line[i].x
+                if (x + need > total + 1e-6) break
+                var y = 0.0
+                var j = i
+                while (j < line.size && line[j].x < x + need - 1e-6) { y = max(y, line[j].y); j++ }
+                if (y < floor - 1e-6) { floor = y; at = i }
+            }
+            val x = line[at].x
+            val end = x + need
+            val next = ArrayList<Ledge>(line.size + 2)
+            line.forEach { ledge ->
+                val right = ledge.x + ledge.width
+                if (right <= x + 1e-9 || ledge.x >= end - 1e-9) next += ledge
+                else {
+                    if (ledge.x < x) next += Ledge(ledge.x, ledge.y, x - ledge.x)
+                    if (right > end) next += Ledge(end, ledge.y, right - end)
+                }
+            }
+            next += Ledge(x, floor + h + gap, need)
+            next.sortBy { it.x }
+            line = next.fold(ArrayList()) { merged, ledge ->
+                val last = merged.lastOrNull()
+                if (last != null && abs(last.y - ledge.y) < 1e-9) merged[merged.lastIndex] = Ledge(last.x, last.y, last.width + ledge.width) else merged += ledge
+                merged
+            }
+            x to floor
+        }
+    }
 
     fun shelves(sizes: List<Pair<Double, Double>>, gap: Double, aspect: Double): List<Pair<Double, Double>> {
         if (sizes.isEmpty()) return emptyList()
@@ -306,8 +354,8 @@ private class Sheet(
         var top = rank.maxOrNull() ?: 0
         while (r <= top) {
             val layer = (0 until real).filter { rank[it] == r }
-            val stay = layer.filter { hasOut[it] || door(it) }
-            val sinks = layer.filter { !hasOut[it] && !door(it) }
+            val stay = layer.filter { door(it) || hasOut[it] && !spacing.fill }
+            val sinks = layer.filter { !door(it) && (!hasOut[it] || spacing.fill) }
             val columns = overflow(stay, sinks, spacing.wrapHeight).let { greedy ->
                 if (greedy.isEmpty() || spacing.wrapHeight <= 0) greedy else balanced(stay, sinks, greedy.size)
             }

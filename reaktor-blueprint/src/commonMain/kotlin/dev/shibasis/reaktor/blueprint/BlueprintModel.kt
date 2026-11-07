@@ -37,6 +37,7 @@ data class BlueprintGroup(
     val muted: Boolean = false,
     val loose: Boolean = false,
     val lanes: Lanes? = null,
+    val wrap: Boolean = false,
 ) {
     val mode: Lanes get() = lanes ?: if (loose) Lanes.Free else Lanes.Ends
 }
@@ -57,7 +58,7 @@ data class BlueprintEdge(
 
 enum class Ports { All, Used }
 
-data class LayoutOptions(val hints: Int = 1, val ordered: Boolean = false, val ports: Ports = Ports.All, val packed: Boolean = false, val bundles: Boolean = true)
+data class LayoutOptions(val hints: Int = 1, val ordered: Boolean = false, val ports: Ports = Ports.All, val packed: Boolean = false, val bundles: Boolean = true, val fill: Boolean = false)
 
 interface Bounds {
     val x: Double

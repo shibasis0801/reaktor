@@ -187,6 +187,8 @@ fun <K> BlueprintCanvas(
     focusLabels: Boolean = false,
     denseOverview: Boolean = false,
     subject: String? = null,
+    topInset: Dp = TopInset,
+    mapLayers: Boolean = false,
 ) {
     val cards = remember(layout) { layout.cards.values.toList() }
     val boxes = remember(layout) { layout.frames + cards }
@@ -223,11 +225,11 @@ fun <K> BlueprintCanvas(
     val direction = LocalLayoutDirection.current
     val graphics = LocalGraphicsContext.current
     val colors = MachineSignal.colors
-    val painter = remember(graphics, resolver, direction, fonts, base, colors, denseOverview) {
-        BlueprintPainter(graphics, TextMeasurer(resolver, Density(1f), direction, cacheSize = 512), BlueprintType(fonts.ui, fonts.mono, base, fonts.graphLabel), colors, denseOverview)
+    val painter = remember(graphics, resolver, direction, fonts, base, colors, denseOverview, mapLayers) {
+        BlueprintPainter(graphics, TextMeasurer(resolver, Density(1f), direction, cacheSize = 512), BlueprintType(fonts.ui, fonts.mono, base, fonts.graphLabel), colors, denseOverview, mapLayers)
     }
     fun syncPainter() {
-        canvas.insetTop = TopInset.value.toDouble()
+        canvas.insetTop = topInset.value.toDouble()
         canvas.insetStart = startInset.value.toDouble()
         canvas.extent = boxes
         painter.sync(editor?.takeIf { it.settled.cards === layout.cards }?.layout ?: layout, looks, glows, frameLooks, styles, selected, shown, labels, (editor?.gesture as? Gesture.Move)?.cards.orEmpty(), editor?.context.orEmpty(),

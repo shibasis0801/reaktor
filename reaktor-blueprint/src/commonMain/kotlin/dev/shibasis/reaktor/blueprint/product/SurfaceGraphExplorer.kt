@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import dev.shibasis.composeflow.model.XYPosition
 import dev.shibasis.reaktor.blueprint.*
@@ -24,6 +25,8 @@ import dev.shibasis.reaktor.ui.machinesignal.MachineSignalMode
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignalSurface
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignalVariant
 import kotlin.math.*
+
+private const val BannerRoom = 44.0
 
 fun expandedSurfaceGraphPositions(nodes: List<SurfaceGraphNode>, width: Double = 220.0, height: Double = 88.0): Map<String, XYPosition> {
     val groups = nodes.groupBy { it.scope }.entries.sortedBy { it.key }
@@ -62,7 +65,7 @@ class SurfaceGraphExplorerState : GraphCanvasState(0.002..16.0, GraphLevels(.2, 
     init { insetTop = 48.0 }
     fun fit(ids: Set<String> = emptySet()) {
         val boxes: List<Bounds> = if (ids.isEmpty()) frames.ifEmpty { cards } else cards.filter { it.id in ids }
-        fit(boxes, maxZoom = if (ids.isEmpty()) 1.0 else 1.4, minZoom = .005)
+        fit(boxes, maxZoom = if (ids.isEmpty()) 1.0 else 1.4, minZoom = .005, headroom = if (ids.isEmpty() && frames.isNotEmpty()) BannerRoom else 0.0)
     }
     fun centre(id: String, row: Int? = null, level: Double? = null) {
         val (x, y, width, height) = target(id, row) ?: return
@@ -91,10 +94,10 @@ class SurfaceGraphExplorerState : GraphCanvasState(0.002..16.0, GraphLevels(.2, 
 @Composable
 fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraphLink>, selectedId: String?, appearance: SurfaceGraphAppearance,
     state: SurfaceGraphExplorerState, onSelect: (String) -> Unit, modifier: Modifier = Modifier, layout: BlueprintLayout<*>? = null, resourceLinks: Boolean = true, chapterLinks: Boolean = true, areaCorridors: Boolean = true, highlighted: Set<String> = emptySet(), onClear: () -> Unit = {}, key: Any? = null, groups: List<SurfaceGraphGroup> = emptyList(), editor: GraphEditor? = null,
-    onOpen: ((String) -> Boolean)? = null) {
+    onOpen: ((String) -> Boolean)? = null, topInset: Dp = 48.dp) {
     if (layout != null && editor == null) {
         SurfaceGraphDeclaredExplorer(nodes, links, selectedId, appearance, state, onSelect, modifier, layout,
-            resourceLinks, chapterLinks, areaCorridors, highlighted, onClear, key, groups, onOpen)
+            resourceLinks, chapterLinks, areaCorridors, highlighted, onClear, key, groups, onOpen, topInset)
         return
     }
     val fallback = remember(nodes, links, appearance, layout != null) {
@@ -196,7 +199,7 @@ fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraph
             bundles = areaCorridors && active.bundles,
             onFrameClick = { frame -> looks.firstOrNull { it.key == frame.key }?.owner?.let(select) },
             onFrameOpen = {},
-            denseOverview = true)
+            denseOverview = true, mapLayers = true)
     }
     MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact,
         mode = if (appearance.canvas.luminance() > .5f) MachineSignalMode.Light else MachineSignalMode.Dark) {
@@ -223,6 +226,15 @@ internal class SurfaceGraphExplorerPresentation<K>(
         }
     }
 
+    private val rowsById = HashMap<String, Map<String, SurfaceGraphRow>>()
+    private val rowsByKey = HashMap<String, Map<String, SurfaceGraphRow>>()
+
+    private fun row(node: SurfaceGraphNode, pin: Pin): SurfaceGraphRow? {
+        val byId = rowsById.getOrPut(node.id) { HashMap<String, SurfaceGraphRow>().also { map -> node.rows.forEach { row -> map.getOrPut(row.id) { row }; row.aliases.forEach { map.getOrPut(it) { row } } } } }
+        val byKey = rowsByKey.getOrPut(node.id) { HashMap<String, SurfaceGraphRow>().also { map -> node.rows.forEach { map.getOrPut(it.key) { it } } } }
+        return byId[pin.id] ?: byKey[pin.key]
+    }
+
     fun owner(id: String?) = owners[id]
     fun source(link: Link) = sources[link.id] ?: link.members.firstNotNullOfOrNull(sources::get)
     fun target(link: Link, selected: String?) = source(link)?.let { edge ->
@@ -232,18 +244,27 @@ internal class SurfaceGraphExplorerPresentation<K>(
     fun look(card: Card, appearance: SurfaceGraphAppearance, selected: String?, highlighted: Set<String>, open: ((String) -> Unit)?): BlueprintCardLook? {
         val node = nodes[card.id] ?: return null
         val tone = node.color ?: appearance.selected
+        val matched = card.pins.map { row(node, it) }
+        val sides = HashMap<String, Int>()
+        val keys = HashMap<String, String>()
+        card.pins.forEachIndexed { k, pin -> matched[k]?.let { row -> sides[row.id] = (sides[row.id] ?: 0) or if (pin.provides) 2 else 1; keys.getOrPut(row.id) { pin.key } } }
+        val single = node.rows.isNotEmpty() && node.rows.all { sides[it.id] == 3 }
         return BlueprintCardLook(tone, SurfaceGraphSymbol, node.title, node.subtitle,
             tag = "surface-card:${node.id}", action = "Select ${node.title}",
             selected = owner(selected) == node.id,
             folded = node.folded.takeIf { it > 0 }?.let { "$it ${node.foldedLabel}" },
             marks = node.badges.map { BlueprintMark(it.text, it.background, BlueprintMark.Kind.Badge) } + node.counts.map { BlueprintMark(it.text, tone) },
-            pins = card.pins.map { pin ->
-                (node.rows.firstOrNull { it.id == pin.id || pin.id in it.aliases }
-                    ?: node.rows.firstOrNull { it.key == pin.key })?.let { row ->
+            pins = card.pins.mapIndexed { k, pin ->
+                matched[k]?.let { row ->
                     BlueprintPinLook(if (pin.provides) row.output ?: tone else row.input ?: tone, row.title, appearance.text, row.completed,
                         selected = selected == pin.id || selected in pin.aliases,
                         marks = row.badges.map { BlueprintMark(it.text, it.background, BlueprintMark.Kind.Badge) })
                 }
+            },
+            rows = if (!single) emptyList() else node.rows.map { row ->
+                BlueprintRowLook(keys.getValue(row.id), BlueprintPinLook(row.marker ?: tone, row.title, appearance.text, row.completed,
+                    selected = selected == row.id || selected in row.aliases,
+                    marks = row.badges.map { BlueprintMark(it.text, it.background, BlueprintMark.Kind.Badge) }))
             },
             face = if (node.rows.isEmpty()) BlueprintFace.Prose else BlueprintFace.Code,
             progress = node.progress.takeIf { it > 0f },
@@ -257,7 +278,7 @@ private fun <K> SurfaceGraphDeclaredExplorer(
     nodes: List<SurfaceGraphNode>, links: List<SurfaceGraphLink>, selectedId: String?, appearance: SurfaceGraphAppearance,
     state: SurfaceGraphExplorerState, onSelect: (String) -> Unit, modifier: Modifier, layout: BlueprintLayout<K>,
     resourceLinks: Boolean, chapterLinks: Boolean, areaCorridors: Boolean, highlighted: Set<String>, onClear: () -> Unit,
-    key: Any?, groups: List<SurfaceGraphGroup>, onOpen: ((String) -> Boolean)?,
+    key: Any?, groups: List<SurfaceGraphGroup>, onOpen: ((String) -> Boolean)?, topInset: Dp,
 ) {
     val presentation = remember(layout, nodes, links, groups) { SurfaceGraphExplorerPresentation(layout, nodes, links, groups) }
     val cards = remember(layout) { layout.cards.values.toList() }
@@ -297,7 +318,7 @@ private fun <K> SurfaceGraphDeclaredExplorer(
             onPinClick = { card, pin -> surfaceGraphPinTarget(layout, card, pin)?.let { (original, port) -> select(port.id.takeUnless { chosen == it } ?: original.id) } },
             editable = false,
             onFrameClick = { frame -> groups.firstOrNull { it.key == frame.key }?.owner?.let(select) },
-            denseOverview = true)
+            denseOverview = true, topInset = topInset, mapLayers = true)
     }
 }
 

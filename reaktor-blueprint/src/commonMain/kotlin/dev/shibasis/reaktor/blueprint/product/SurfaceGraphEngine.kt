@@ -42,6 +42,7 @@ import kotlin.math.atan2
 import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.floor
+import kotlin.math.log2
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
@@ -159,6 +160,15 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
     private var bannered = BooleanArray(0)
     private var bannerAt = FloatArray(0)
     private var bannering = false
+    private var corridorsOf: List<Link>? = null
+    private var corridorFramesOf: List<Frame>? = null
+    private var corridorAt = FloatArray(0)
+    private var corridorCount = IntArray(0)
+    private var corridorRide = BooleanArray(0)
+    private var corridorFade = 0f
+    private var corridorQuiet = false
+    private var tallyDrawn = FloatArray(0)
+    private var talliesDrawn = 0
     protected var groupsInView = 0; private set
     protected var namedInView = 0; private set
     protected val unnamedInView = ArrayList<String>()
@@ -216,6 +226,9 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
     protected open val headerZoom = 0.0
     protected open val meshZoom = 0.0
     protected open val worldPictures = false
+    protected open val corridorZoom = 0.0
+    protected open val corridorRgb = 0
+    protected open val corridorsQuiet: Boolean get() = anyDim
     protected abstract val cardRadius: Float
     protected abstract fun pen(i: Int, pen: SurfaceGraphPen): Boolean
     protected abstract fun body(i: Int, x0: Float, y0: Float, x1: Float, y1: Float, z: Float, fringe: Float, tolerance: Float)
@@ -223,6 +236,17 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
     protected open fun edge(i: Int, x0: Float, y0: Float, x1: Float, y1: Float, z: Float, fringe: Float, tolerance: Float) {}
     protected open fun extra(z: Float, fringe: Float, tolerance: Float) {}
     protected open fun shown(i: Int) = true
+
+    protected open fun DrawScope.cardLabels(camera: Viewport) {}
+
+    protected val insets: FloatArray get() = inset
+
+    protected fun covered(left: Float, top: Float, right: Float, bottom: Float): Boolean {
+        for (k in 0 until namedInView) if (left < bannerDrawn[k * 4 + 2] && right > bannerDrawn[k * 4] && top < bannerDrawn[k * 4 + 3] && bottom > bannerDrawn[k * 4 + 1]) return true
+        for (k in 0 until talliesDrawn) if (left < tallyDrawn[k * 4 + 2] && right > tallyDrawn[k * 4] && top < tallyDrawn[k * 4 + 3] && bottom > tallyDrawn[k * 4 + 1]) return true
+        for (box in linkLabelBounds) if (left < box.right && right > box.left && top < box.bottom && bottom > box.top) return true
+        return false
+    }
     protected abstract fun current(i: Int, slot: Int): Boolean
     protected abstract fun record(i: Int, slot: Int, deadline: TimeSource.Monotonic.ValueTimeMark?)
     protected abstract fun DrawScope.placeholder(i: Int, slot: Int)
@@ -479,6 +503,9 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
     private fun tessellate(wired: Boolean) {
         val z = zoom.toFloat(); val fringe = 1f / density; val tolerance = .2f / density
         val l = wl / z; val t = wt / z; val r = wr / z; val b = wb / z
+        corridorFade = if (corridorZoom <= 0.0 || density <= 0f) 0f else ((corridorZoom - zoom / density) / (corridorZoom * CorridorBlend)).coerceIn(0.0, 1.0).toFloat()
+        if (corridorFade > 0f) corridorState()
+        if (corridorFade > 0f && corridorsQuiet != corridorQuiet) { corridorQuiet = corridorsQuiet; dirty[OVER] = true }
         if (dirty[GRID]) grid(z)
         if (dirty[UNDER]) {
             clear(false)
@@ -511,6 +538,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
             clear(false)
             if (level > 0) for (i in 0 until cardBox.size / 4) if (shown(i) && inside(cardBox, i, l, t, r, b))
                 edge(i, cardBox[i * 4] * z - wl, cardBox[i * 4 + 1] * z - wt, cardBox[i * 4 + 2] * z - wl, cardBox[i * 4 + 3] * z - wt, z, fringe, tolerance)
+            if (corridorFade > 0f) corridors(z, fringe, tolerance, l, t, r, b)
             commit(OVER, false)
         }
     }
@@ -580,6 +608,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         pen.clear()
         if (!pen(i, pen)) return
         if (pen.lifted) { lift[i] = true; dirty[LIT] = true; return }
+        if (corridorFade > 0f && !pen.lead && corridorRide.getOrElse(i) { false }) pen.alpha *= 1f - corridorFade
         val from = solid.indexCount
         main = null
         wire(i, z, fringe, tolerance)
@@ -843,7 +872,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         if (pulses.isNotEmpty()) world(camera) { drawPulses() }
         if (labels.isNotEmpty()) drawLabels(camera, l, t, r, b)
         bannering = level < 2 || camera.zoom / density < headerZoom
-        if (bannering) drawBanners(camera) else headersInView(l, t, r, b)
+        if (bannering) { drawBanners(camera); drawTallies(camera); cardLabels(camera) } else { talliesDrawn = 0; headersInView(l, t, r, b) }
         overlay(camera)
         ends.clear()
         if (leading && labelEnds(this, camera, deadline, ends)) pending = true
@@ -1001,6 +1030,79 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         }
     }
 
+    private fun corridorState() {
+        if (corridorsOf === links && corridorFramesOf === frames) return
+        corridorsOf = links; corridorFramesOf = frames
+        bannerState()
+        val slot = HashMap<String, Int>(frames.size * 2).also { map -> frames.forEachIndexed { i, frame -> map[frame.key] = i } }
+        val owner = HashMap<String, Int>()
+        for (i in frames.indices) {
+            var k = i; var steps = 0
+            while (!bannered[k] && steps++ < frames.size) k = frames[k].parent?.let(slot::get) ?: break
+            if (!bannered[k]) continue
+            for (id in frames[i].nodes) owner[id] = k
+        }
+        val counts = LinkedHashMap<Long, Int>()
+        corridorRide = BooleanArray(links.size) { i ->
+            val link = links[i]
+            val a = if (link.cross && link.curve) owner[link.from] else null
+            val b = a?.let { owner[link.to] }
+            if (a == null || b == null || a == b) false else {
+                val key = min(a, b).toLong() shl 32 or max(a, b).toLong()
+                counts[key] = (counts[key] ?: 0) + max(1, link.members.size)
+                true
+            }
+        }
+        val pairs = counts.entries.sortedByDescending { it.value }
+        corridorAt = FloatArray(pairs.size * 6); corridorCount = IntArray(pairs.size); tallyDrawn = FloatArray(pairs.size * 4)
+        pairs.forEachIndexed { n, (key, count) ->
+            val a = frames[(key ushr 32).toInt()]; val b = frames[(key and 0xFFFFFFFFL).toInt()]
+            val sx = a.x.toFloat(); val sy = a.y.toFloat(); val ex = b.x.toFloat(); val ey = b.y.toFloat()
+            corridorAt[n * 6] = sx; corridorAt[n * 6 + 1] = sy
+            corridorAt[n * 6 + 2] = (sx + ex) / 2 - (ey - sy) * CorridorBow; corridorAt[n * 6 + 3] = (sy + ey) / 2 + (ex - sx) * CorridorBow
+            corridorAt[n * 6 + 4] = ex; corridorAt[n * 6 + 5] = ey
+            corridorCount[n] = count
+        }
+    }
+
+    private fun corridors(z: Float, fringe: Float, tolerance: Float, l: Float, t: Float, r: Float, b: Float) {
+        val alpha = CorridorAlpha * corridorFade * if (corridorQuiet) CorridorQuiet else 1f
+        for (n in corridorCount.indices) {
+            val p = n * 6
+            val x0 = min(corridorAt[p], min(corridorAt[p + 2], corridorAt[p + 4])); val x1 = max(corridorAt[p], max(corridorAt[p + 2], corridorAt[p + 4]))
+            val y0 = min(corridorAt[p + 1], min(corridorAt[p + 3], corridorAt[p + 5])); val y1 = max(corridorAt[p + 1], max(corridorAt[p + 3], corridorAt[p + 5]))
+            if (x1 < l || x0 > r || y1 < t || y0 > b) continue
+            stroker.clear(); stroker.point(corridorAt[p] * z - wl, corridorAt[p + 1] * z - wt)
+            stroker.quad(corridorAt[p + 2] * z - wl, corridorAt[p + 3] * z - wt, corridorAt[p + 4] * z - wl, corridorAt[p + 5] * z - wt, tolerance)
+            stroker.stroke(solid, min(.6f + log2(corridorCount[n] + 1f) * .45f, 3.2f), fringe, corridorRgb, alpha, round = true)
+        }
+    }
+
+    private fun DrawScope.drawTallies(camera: Viewport) {
+        talliesDrawn = 0
+        if (corridorFade < .5f || corridorCount.isEmpty() || corridorQuiet) return
+        val color = Color(corridorRgb or 0xFF000000.toInt())
+        val left = inset[0] + BannerPin; val top = inset[1] + BannerPin
+        val right = viewport.width - inset[2] - BannerPin; val bottom = viewport.height - inset[3] - BannerPin
+        for (n in corridorCount.indices) {
+            if (corridorCount[n] < 2) continue
+            val p = n * 6
+            val layer = cached(pills, "×${corridorCount[n]}", color, ::pill) ?: return
+            val w = layer.size.width.toFloat(); val h = layer.size.height.toFloat()
+            for (at in TallySpots) {
+                val u = 1f - at
+                val wx = u * u * corridorAt[p] + 2f * u * at * corridorAt[p + 2] + at * at * corridorAt[p + 4]
+                val wy = u * u * corridorAt[p + 1] + 2f * u * at * corridorAt[p + 3] + at * at * corridorAt[p + 5]
+                val x = (camera.x + wx * camera.zoom).toFloat() - w / 2; val y = (camera.y + wy * camera.zoom).toFloat() - h / 2
+                if (x < left || y < top || x + w > right || y + h > bottom || covered(x - TallyGap, y - TallyGap, x + w + TallyGap, y + h + TallyGap)) continue
+                tallyDrawn[talliesDrawn * 4] = x; tallyDrawn[talliesDrawn * 4 + 1] = y; tallyDrawn[talliesDrawn * 4 + 2] = x + w; tallyDrawn[talliesDrawn * 4 + 3] = y + h
+                talliesDrawn++
+                translate(x, y) { replayLayer(layer, REPLAY_MAP_LABELS) }
+                break
+            }
+        }
+    }
+
     private fun DrawScope.drawCards(slot: Int, l: Float, t: Float, r: Float, b: Float, deadline: TimeSource.Monotonic.ValueTimeMark) {
         for (pass in 0..1) {
             if (pass == 0 && !anyDim) continue
@@ -1154,6 +1256,12 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         private const val BannerPin = 12f
         private const val BannerHeight = 56f
         private const val TallBanner = 66f
+        private const val CorridorBlend = .45
+        private const val CorridorBow = .08f
+        private const val CorridorAlpha = .5f
+        private const val CorridorQuiet = .3f
+        private const val TallyGap = 3f
+        private val TallySpots = floatArrayOf(.5f, .36f, .64f, .25f, .75f)
         const val FadeAlpha = .65f
         const val FadeSaturation = .25f
         private val LabelShares = floatArrayOf(.5f, .62f, .38f, .74f, .26f, .86f, .14f)

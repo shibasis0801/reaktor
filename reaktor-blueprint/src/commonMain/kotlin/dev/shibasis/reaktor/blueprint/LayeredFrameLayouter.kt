@@ -25,16 +25,29 @@ object LayeredFrameLayouter : FrameLayouter {
             LayeredEdge(line.id, owner[line.source]?.let { graph.boxes[it].id } ?: "", owner[line.target]?.let { graph.boxes[it].id } ?: "", line.source, line.target)
         }
         fun option(key: String, fallback: Double) = graph.options[key]?.toDoubleOrNull() ?: fallback
+        val gap = option("elk.spacing.nodeNode", 18.0)
+        val layer = option("elk.layered.spacing.nodeNodeBetweenLayers", 72.0)
+        val aspect = option("elk.aspectRatio", 1.6)
+        val wraps = graph.options[Wrap] == "true"
         val result = Layered.layout(nodes, edges, LayeredSpacing(
-            node = option("elk.spacing.nodeNode", 18.0),
-            layer = option("elk.layered.spacing.nodeNodeBetweenLayers", 72.0),
+            node = gap,
+            layer = layer,
             edge = option("elk.spacing.edgeEdge", 7.0),
-            aspect = option("elk.aspectRatio", 1.6),
+            aspect = aspect,
             padding = Padding,
+            wrapHeight = if (wraps) wrapHeight(graph.boxes, gap, layer, aspect) else 0.0,
+            fill = wraps,
         ))
         val at = DoubleArray(nodes.size * 2) { if (it % 2 == 0) result.x[it / 2] else result.y[it / 2] }
         return FrameResult(result.width, result.height, at, result.routes)
     }
 
+    private fun wrapHeight(boxes: List<ElkBox>, gap: Double, layer: Double, aspect: Double): Double {
+        if (boxes.isEmpty()) return 0.0
+        val area = boxes.sumOf { (it.width + layer) * (it.height + gap) }
+        return maxOf(boxes.maxOf { it.height }, kotlin.math.sqrt(area / aspect))
+    }
+
+    const val Wrap = "reaktor.wrap"
     private const val Padding = 12.0
 }

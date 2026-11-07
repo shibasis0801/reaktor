@@ -144,6 +144,10 @@ private data class CardMeasure(val look: BlueprintCardLook, val card: Card, val 
 internal const val BlueprintDetailZoom = .18
 internal const val BlueprintLegibleText = 11.0
 internal const val BlueprintOverviewCards = 512
+private const val CardLabelReadable = 7.0
+private const val CorridorZoom = .22
+private const val CardLabelWidth = 220
+private const val CardLabelLimit = 160
 
 private data class CardPaint(val key: PaintKey, val smallest: Float, val measured: CardMeasure)
 internal data class PaintStats(val retainedPixelBytes: Long, val releasedViews: Long)
@@ -151,7 +155,7 @@ internal data class PaintStats(val retainedPixelBytes: Long, val releasedViews: 
 private class Read(val text: Float, val title: BlueprintTitle)
 private class Measured(val width: Float, val height: Float, val text: TextLayoutResult?)
 
-internal class BlueprintPainter(graphics: GraphicsContext, private val measurer: TextMeasurer, private val type: BlueprintType, private val colors: dev.shibasis.reaktor.ui.machinesignal.MachineSignalColors, private val denseOverview: Boolean = false) : SurfaceGraphEngine(graphics, scaled = true) {
+internal class BlueprintPainter(graphics: GraphicsContext, private val measurer: TextMeasurer, private val type: BlueprintType, private val colors: dev.shibasis.reaktor.ui.machinesignal.MachineSignalColors, private val denseOverview: Boolean = false, private val mapLayers: Boolean = false) : SurfaceGraphEngine(graphics, scaled = true) {
     private val icons = HashMap<ImageVector, BlueprintIcon>()
     private val tint = colors.source
     private val accent = colors.controlAccent
@@ -206,6 +210,9 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
     override val grid = CanvasGrid(minor = colors.textMuted.copy(alpha = .025f), major = colors.textMuted.copy(alpha = .055f))
     override val cardRadius = MachineSignal.Radius.node.value
     override val worldPictures = true
+    override val corridorZoom = if (mapLayers) CorridorZoom else 0.0
+    override val corridorRgb = colors.textMuted.toArgb()
+    override val corridorsQuiet get() = anyDim || selected != null
 
     fun sync(layout: BlueprintLayout<*>, looks: List<BlueprintCardLook?>, glows: List<Color?>, frameLooks: List<BlueprintFrameLook>, styles: List<LinkStyle>,
              selected: String?, highlight: Set<String>, labels: Map<String, String>, grabbed: Set<String> = emptySet(), aside: Set<String> = emptySet(),
@@ -457,7 +464,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         val half = BlueprintEngine.RowHeight / 2
         return card.pins.indices.firstOrNull { k -> val pin = card.pins[k]
             look.pins.getOrNull(k) != null && y - card.y - pin.y in -half..<half &&
-                if (look.rows.any { it.id == pin.key }) {
+                if (look.rows.any { it.id == pin.key && (it.onClick != null || card.pins.count { other -> other.key == pin.key } < 2) }) {
                     if (pin.provides) x - card.x >= card.width - BlueprintEngine.RowHeight else x - card.x < BlueprintEngine.RowHeight
                 } else (oneSided || (x - card.x >= card.width / 2) == pin.provides)
         }?.let(card.pins::get)
@@ -565,6 +572,46 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
     }
 
     override fun bannerLift(height: Float, z: Float, clear: Boolean) = if (clear) -height - 2f else super.bannerLift(height, z, clear)
+
+    private val cardLabelStyle = type.style(11.5.sp, colors.textStrong, weight = FontWeight.SemiBold)
+    private val cardLabelTexts = HashMap<String, TextLayoutResult>()
+    private val cardLabelsPlaced = ArrayList<Rect>()
+    private var cardLabelOrder = IntArray(0)
+    private var cardLabelOrderOf: Array<Card>? = null
+
+    override fun DrawScope.cardLabels(camera: Viewport) {
+        cardLabelsPlaced.clear()
+        if (!mapLayers || cards.isEmpty() || titleStyle.fontSize.value * camera.zoom / density >= CardLabelReadable) return
+        if (cardLabelOrderOf !== cards) {
+            cardLabelOrder = cards.indices.sortedWith(compareByDescending<Int> { cards[it].width * cards[it].height }.thenBy { it }).toIntArray()
+            cardLabelOrderOf = cards
+        }
+        val left = insets[0]; val top = insets[1]; val right = viewport.width - insets[2]; val bottom = viewport.height - insets[3]
+        fun place(i: Int) {
+            if (cardLabelsPlaced.size >= CardLabelLimit || !shown(i)) return
+            val look = looks.getOrNull(i) ?: return
+            if (look.title.isBlank()) return
+            val x0 = (camera.x + cardBox[i * 4] * camera.zoom).toFloat(); val y0 = (camera.y + cardBox[i * 4 + 1] * camera.zoom).toFloat()
+            val x1 = (camera.x + cardBox[i * 4 + 2] * camera.zoom).toFloat(); val y1 = (camera.y + cardBox[i * 4 + 3] * camera.zoom).toFloat()
+            if (x1 < left || y1 < top || x0 > right || y0 > bottom) return
+            val text = cardLabelTexts.getOrPut(look.title) {
+                measurer.measure(look.title, cardLabelStyle, TextOverflow.Ellipsis, maxLines = 1, constraints = Constraints(maxWidth = CardLabelWidth))
+            }
+            val width = text.size.width + 12f; val height = text.size.height + 6f
+            val x = max(x0, left); val y = max(y0, top)
+            if (x + width > right || y + height > bottom || y > y1) return
+            val box = Rect(x, y, x + width, y + height)
+            if (cardLabelsPlaced.any { it.overlaps(box) } || covered(box.left, box.top, box.right, box.bottom)) return
+            cardLabelsPlaced += box
+            drawRoundRect(colors.surface.copy(alpha = .92f), Offset(x, y), Size(width, height), CornerRadius(4f))
+            drawRect(if (look.selected || cards[i].id == selected) accent else look.tone, Offset(x, y), Size(2.5f, height))
+            paint(text, x + 7f, y + 3f)
+        }
+        val chosen = selected?.let { id -> cards.indexOfFirst { it.id == id } } ?: -1
+        if (chosen >= 0) place(chosen)
+        for (i in cardLabelOrder) if (i != chosen && cards[i].id in highlight) place(i)
+        for (i in cardLabelOrder) if (i != chosen && cards[i].id !in highlight) place(i)
+    }
 
     private fun areaText(label: String, count: String, room: Int) = Constraints(maxWidth = room).let { fit ->
         measurer.measure(label, areaStyle, TextOverflow.Ellipsis, maxLines = 1, constraints = fit) to
@@ -896,10 +943,11 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
                 }
             }
         }
+        val rowIds = look.rows.mapTo(HashSet()) { it.id }
         card.pins.forEachIndexed { k, pin -> look.pins.getOrNull(k)?.let { row ->
             val width = if (look.face == BlueprintFace.Code) codePinWidth(card, pin) else card.width.toFloat() / if (oneSided) 1 else 2
             val left = x + if (pin.provides) card.width.toFloat() - width else 0f
-            if (look.rows.any { it.id == pin.key }) drawPinAnchor(pin.provides, row, left, y + pin.y.toFloat(), width)
+            if (pin.key in rowIds) drawPinAnchor(pin.provides, row, left, y + pin.y.toFloat(), width)
             else drawPin(pin.provides, row, left, y + pin.y.toFloat(), width)
         } }
     }

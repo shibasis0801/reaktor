@@ -85,18 +85,18 @@ open class GraphCanvasState(val zoomRange: ClosedFloatingPointRange<Double> = 0.
         return Area((insetStart - view.x) / view.zoom, (insetTop - view.y) / view.zoom, (width - insetStart - insetEnd) / view.zoom, (height - insetTop - insetBottom) / view.zoom)
     }
 
-    fun fit(x: Double, y: Double, width: Double, height: Double, padding: Double = 0.03, maxZoom: Double = 1.0, minZoom: Double = 0.05) {
-        if (span <= 0 || room <= 0) return
+    fun fit(x: Double, y: Double, width: Double, height: Double, padding: Double = 0.03, maxZoom: Double = 1.0, minZoom: Double = 0.05, headroom: Double = 0.0) {
+        if (span <= 0 || room - headroom <= 0) return
         val box = Area(x, y, width.coerceAtLeast(1.0), height.coerceAtLeast(1.0))
-        val fitted = minOf(span * (1 - 2 * padding) / box.width, room * (1 - 2 * padding) / box.height, maxZoom)
+        val fitted = minOf(span * (1 - 2 * padding) / box.width, (room - headroom) * (1 - 2 * padding) / box.height, maxZoom)
         minimumZoom = minOf(zoomRange.start, minZoom, fitted)
-        look(box.x + box.width / 2, box.y + box.height / 2, fitted)
+        look(box.x + box.width / 2, box.y + box.height / 2 - headroom / 2 / fitted, fitted)
     }
 
-    fun fit(boxes: List<Bounds>, padding: Double = 0.03, maxZoom: Double = 1.0, minZoom: Double = 0.05) {
+    fun fit(boxes: List<Bounds>, padding: Double = 0.03, maxZoom: Double = 1.0, minZoom: Double = 0.05, headroom: Double = 0.0) {
         if (boxes.isEmpty()) return
         val left = boxes.minOf { it.x }; val top = boxes.minOf { it.y }
-        fit(left, top, boxes.maxOf { it.x + it.width } - left, boxes.maxOf { it.y + it.height } - top, padding, maxZoom, minZoom)
+        fit(left, top, boxes.maxOf { it.x + it.width } - left, boxes.maxOf { it.y + it.height } - top, padding, maxZoom, minZoom, headroom)
     }
 
     fun fitReadable(boxes: List<Bounds>, focus: Bounds?) {

@@ -488,6 +488,14 @@ object BlueprintEngine {
         return moved
     }
 
+    internal fun fill(blocks: List<Block>, aspect: Double): List<Pair<Block, Pair<Double, Double>>> {
+        if (blocks.isEmpty()) return emptyList()
+        val ordered = blocks.sortedByDescending { it.width * it.height }
+        val area = ordered.sumOf { (it.width + GroupGap) * (it.height + GroupGap) }
+        val at = Layered.skyline(ordered.map { it.width to it.height }, GroupGap, sqrt(area * aspect))
+        return ordered.indices.map { ordered[it] to at[it] }
+    }
+
     internal fun pack(blocks: List<Block>, aspect: Double): List<Pair<Block, Pair<Double, Double>>> {
         val (loose, own) = blocks.partition { it.group.loose }
         fun shelves(group: List<Block>, limit: Double): List<List<Block>> = group.fold(mutableListOf<MutableList<Block>>()) { rows, block ->
@@ -710,6 +718,7 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
         )
         if (options.ordered) graph["elk.layered.considerModelOrder.strategy"] = "NODES_AND_EDGES"
         if (group.loose) graph["elk.aspectRatio"] = "1.4"
+        if (group.wrap) graph[LayeredFrameLayouter.Wrap] = "true"
         if (doors.isNotEmpty()) graph["elk.separateConnectedComponents"] = "false"
         return FrameRequest(key, group, ElkGraph(graph, boxes + gates, lines), routed, flipped, doors, passes)
     }
@@ -826,7 +835,8 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
         val keyed = blocks.associateBy { it.group.key }
         val crossing = joined.filter { it.id !in routed && it.id !in overlays && rootOf[it.from] != rootOf[it.to] && rootOf[it.from] in keyed && rootOf[it.to] in keyed }
         val flow = if (crossing.isEmpty() || options.packed) null else flow(blocks, keyed, crossing, aspect)
-        val placement = flow?.let { blocks.map { block -> block to it.origins.getValue(block.group.key) } } ?: BlueprintEngine.pack(blocks, aspect)
+        val placement = flow?.let { blocks.map { block -> block to it.origins.getValue(block.group.key) } }
+            ?: if (options.fill) BlueprintEngine.fill(blocks, aspect) else BlueprintEngine.pack(blocks, aspect)
         val origins = placement.associate { (block, origin) -> block.group.key to origin }
         placement.forEach { (block, origin) ->
             val (x, y) = origin
