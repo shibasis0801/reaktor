@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.blueprint.Blueprint
+import dev.shibasis.reaktor.blueprint.BlueprintAgent
 import dev.shibasis.reaktor.blueprint.BlueprintCardLook
 import dev.shibasis.reaktor.blueprint.BlueprintEngine
 import dev.shibasis.reaktor.blueprint.BlueprintFace
@@ -38,7 +39,7 @@ data class SurfaceGraphRow(val id: String, val title: String, val key: String = 
 data class SurfaceGraphNode(val id: String, val title: String, val subtitle: String, val scope: String = "", val color: Color? = null,
     val rows: List<SurfaceGraphRow> = emptyList(), val folded: Int = 0, val owner: String = id, val farTitle: String = title, val foldedLabel: String = "units", val symbol: String = "book", val lane: Int = 0,
     val badges: List<SurfaceGraphBadge> = emptyList(), val progress: Float = 0f, val activity: Color? = null, val counts: List<SurfaceGraphCount> = emptyList(),
-    val opens: Boolean = false)
+    val opens: Boolean = false, val icon: ImageVector? = null, val eyebrow: String? = null, val agent: BlueprintAgent? = null)
 fun SurfaceGraphNode.pins() = rows.mapIndexed { i, row -> Pin(row.key, "", false, BlueprintEngine.HeaderHeight + i * BlueprintEngine.RowHeight + BlueprintEngine.RowHeight / 2, PortWiring.Connected, row.id, row.aliases) }
 enum class SurfaceGraphMark { Done, Session, Note }
 data class SurfaceGraphCount(val text: String, val mark: SurfaceGraphMark? = null)
@@ -113,7 +114,7 @@ internal fun SurfaceGraphSimple.look(id: String, appearance: SurfaceGraphAppeara
     val node = nodes.getValue(id)
     val card = editor.layout.cards.getValue(id)
     val tone = node.color ?: appearance.selected
-    return BlueprintCardLook(tone, SurfaceGraphSymbol, node.title, node.subtitle,
+    return BlueprintCardLook(tone, node.icon ?: SurfaceGraphSymbol, node.title, node.subtitle,
         tag = "surface-card:$id",
         action = "Select ${node.title}",
         folded = node.folded.takeIf { it > 0 }?.let { "$it ${node.foldedLabel}" },
@@ -124,5 +125,5 @@ internal fun SurfaceGraphSimple.look(id: String, appearance: SurfaceGraphAppeara
                 marks = row.badges.map { BlueprintMark(it.text, it.background, BlueprintMark.Kind.Badge) })
         } },
         face = if (node.rows.isEmpty()) BlueprintFace.Prose else BlueprintFace.Code,
-        progress = node.progress.takeIf { it > 0f })
+        progress = node.progress.takeIf { it > 0f }, eyebrow = node.eyebrow, agent = node.agent)
 }

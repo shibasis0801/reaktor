@@ -249,8 +249,8 @@ internal class SurfaceGraphExplorerPresentation<K>(
         val keys = HashMap<String, String>()
         card.pins.forEachIndexed { k, pin -> matched[k]?.let { row -> sides[row.id] = (sides[row.id] ?: 0) or if (pin.provides) 2 else 1; keys.getOrPut(row.id) { pin.key } } }
         val single = node.rows.isNotEmpty() && node.rows.all { sides[it.id] == 3 }
-        return BlueprintCardLook(tone, SurfaceGraphSymbol, node.title, node.subtitle,
-            tag = "surface-card:${node.id}", action = "Select ${node.title}",
+        return BlueprintCardLook(tone, node.icon ?: SurfaceGraphSymbol, node.title, node.subtitle,
+            tag = "surface-card:${node.id}", action = "Select ${node.title}", eyebrow = node.eyebrow, agent = node.agent,
             selected = owner(selected) == node.id,
             folded = node.folded.takeIf { it > 0 }?.let { "$it ${node.foldedLabel}" },
             marks = node.badges.map { BlueprintMark(it.text, it.background, BlueprintMark.Kind.Badge) } + node.counts.map { BlueprintMark(it.text, tone) },
