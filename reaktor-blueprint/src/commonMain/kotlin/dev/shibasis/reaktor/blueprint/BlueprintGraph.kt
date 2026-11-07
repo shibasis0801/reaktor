@@ -59,6 +59,7 @@ fun BlueprintGraph(
     denseOverview: Boolean = false,
     subject: String? = null,
     mapLayers: Boolean = false,
+    mapDetail: Boolean = false,
 ) {
     androidx.compose.runtime.SideEffect { bundles?.let { editor.routing = editor.routing.copy(bundles = it) } }
     val activeOpening = opening ?: editor.opening
@@ -96,5 +97,6 @@ fun BlueprintGraph(
         denseOverview = denseOverview,
         subject = subject,
         mapLayers = mapLayers,
+        mapDetail = mapDetail,
     )
 }

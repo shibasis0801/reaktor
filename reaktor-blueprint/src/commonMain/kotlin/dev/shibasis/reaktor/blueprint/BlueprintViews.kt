@@ -72,6 +72,7 @@ import dev.shibasis.reaktor.blueprint.canvas.BlueprintIcon
 import dev.shibasis.reaktor.blueprint.canvas.BlueprintPainter
 import dev.shibasis.reaktor.blueprint.canvas.BlueprintHeaderSlots
 import dev.shibasis.reaktor.blueprint.canvas.BlueprintDetailZoom
+import dev.shibasis.reaktor.blueprint.canvas.BlueprintMapTitleZoom
 import dev.shibasis.reaktor.blueprint.canvas.BlueprintOverviewCards
 import dev.shibasis.reaktor.blueprint.canvas.BlueprintAgentBadge
 import dev.shibasis.reaktor.blueprint.canvas.BlueprintBadgeBounds
@@ -189,11 +190,12 @@ fun <K> BlueprintCanvas(
     subject: String? = null,
     topInset: Dp = TopInset,
     mapLayers: Boolean = false,
+    mapDetail: Boolean = false,
 ) {
     val cards = remember(layout) { layout.cards.values.toList() }
     val boxes = remember(layout) { layout.frames + cards }
     val detailLevel by remember(canvas) { derivedStateOf { canvas.level(canvas.zoom) } }
-    val detailedMarkers by remember(canvas, cards.size, denseOverview) { derivedStateOf { !denseOverview || cards.size <= BlueprintOverviewCards || canvas.zoom >= BlueprintDetailZoom } }
+    val detailedMarkers by remember(canvas, cards.size, denseOverview, mapDetail) { derivedStateOf { if (mapDetail) canvas.zoom >= BlueprintMapTitleZoom else !denseOverview || cards.size <= BlueprintOverviewCards || canvas.zoom >= BlueprintDetailZoom } }
     val markerIndices = remember(boxes, opening, detailedMarkers, selected) { boxes.indices.filter { index ->
         if (index < layout.frames.size) true else cards[index - layout.frames.size].let { card ->
             card.id !in opening?.coveredCards.orEmpty() && (detailedMarkers || card.id == selected || card.pins.any { it.id == selected || selected in it.aliases })
@@ -225,8 +227,8 @@ fun <K> BlueprintCanvas(
     val direction = LocalLayoutDirection.current
     val graphics = LocalGraphicsContext.current
     val colors = MachineSignal.colors
-    val painter = remember(graphics, resolver, direction, fonts, base, colors, denseOverview, mapLayers) {
-        BlueprintPainter(graphics, TextMeasurer(resolver, Density(1f), direction, cacheSize = 512), BlueprintType(fonts.ui, fonts.mono, base, fonts.graphLabel), colors, denseOverview, mapLayers)
+    val painter = remember(graphics, resolver, direction, fonts, base, colors, denseOverview, mapLayers, mapDetail) {
+        BlueprintPainter(graphics, TextMeasurer(resolver, Density(1f), direction, cacheSize = 512), BlueprintType(fonts.ui, fonts.mono, base, fonts.graphLabel), colors, denseOverview, mapLayers, mapDetail)
     }
     fun syncPainter() {
         canvas.insetTop = topInset.value.toDouble()

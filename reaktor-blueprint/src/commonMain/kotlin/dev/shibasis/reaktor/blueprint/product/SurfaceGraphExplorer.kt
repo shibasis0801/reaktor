@@ -199,7 +199,7 @@ fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraph
             bundles = areaCorridors && active.bundles,
             onFrameClick = { frame -> looks.firstOrNull { it.key == frame.key }?.owner?.let(select) },
             onFrameOpen = {},
-            denseOverview = true, mapLayers = true)
+            mapLayers = true, mapDetail = true)
     }
     MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact,
         mode = if (appearance.canvas.luminance() > .5f) MachineSignalMode.Light else MachineSignalMode.Dark) {
@@ -318,7 +318,7 @@ private fun <K> SurfaceGraphDeclaredExplorer(
             onPinClick = { card, pin -> surfaceGraphPinTarget(layout, card, pin)?.let { (original, port) -> select(port.id.takeUnless { chosen == it } ?: original.id) } },
             editable = false,
             onFrameClick = { frame -> groups.firstOrNull { it.key == frame.key }?.owner?.let(select) },
-            denseOverview = true, topInset = topInset, mapLayers = true)
+            topInset = topInset, mapLayers = true, mapDetail = true)
     }
 }
 

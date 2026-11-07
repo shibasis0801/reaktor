@@ -59,11 +59,12 @@ fun <K> BlueprintGraph(
     subject: String? = null,
     topInset: Dp = 48.dp,
     mapLayers: Boolean = false,
+    mapDetail: Boolean = false,
 ) {
     BlueprintCanvas(layout, canvas, highlight, selected, linkStyle, frameLook, cardLook, onCardClick, onLinkClick, onPaneClick,
         modifier = modifier, labels = labels, fitKey = fitKey, fitScene = fitScene, startInset = startInset, pulses = pulses,
         glow = glow, pinTip = pinTip, onPinClick = onPinClick, onCardOpen = onCardOpen, focusable = focusable, port = port,
         editor = editor, cardContent = cardContent, interaction = interaction,
         initialFit = initialFit, foldLook = foldLook,
-        editable = editable, onAgentOpen = onAgentOpen, onFrameClick = onFrameClick, onGeometry = onGeometry, labelExclusions = labelExclusions, focusLabels = focusLabels, denseOverview = denseOverview, subject = subject, topInset = topInset, mapLayers = mapLayers)
+        editable = editable, onAgentOpen = onAgentOpen, onFrameClick = onFrameClick, onGeometry = onGeometry, labelExclusions = labelExclusions, focusLabels = focusLabels, denseOverview = denseOverview, subject = subject, topInset = topInset, mapLayers = mapLayers, mapDetail = mapDetail)
 }

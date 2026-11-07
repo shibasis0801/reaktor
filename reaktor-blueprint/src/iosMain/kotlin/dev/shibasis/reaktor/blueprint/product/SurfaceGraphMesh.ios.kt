@@ -29,6 +29,7 @@ internal actual fun DrawScope.drawSurfaceGraphMesh(mesh: SurfaceGraphMesh, shade
 }
 
 internal actual fun surfaceGraphFrameElapsed(): Double = Double.NaN
+internal actual val surfaceGraphViewportBridge: dev.shibasis.composeflow.compose.interaction.FlowViewportPlatformBridge? = null
 internal actual val surfaceGraphMeshGrid = true
 
 @OptIn(InternalComposeUiApi::class)

@@ -107,7 +107,7 @@ internal fun GraphView(
     SideEffect { state.density(density.toDouble()) }
     val flow = state.flow
     val interaction = rememberFlowViewportInteractionState()
-    val bridge = LocalFlowViewportPlatformBridge.current
+    val bridge = LocalFlowViewportPlatformBridge.current ?: dev.shibasis.reaktor.blueprint.product.surfaceGraphViewportBridge
     val config = remember(density, state, state.minimumZoom) { FlowViewportGestureConfig(minZoom = state.minimumZoom * density, maxZoom = state.zoomRange.endInclusive * density) }
     val hits by rememberUpdatedState(hit)
     val taps by rememberUpdatedState(tap)

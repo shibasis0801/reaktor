@@ -1,6 +1,10 @@
 package dev.shibasis.reaktor.blueprint.product
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.PointerEvent
+import dev.shibasis.composeflow.compose.interaction.FlowViewportInteractionState
+import dev.shibasis.composeflow.compose.interaction.FlowViewportPlatformBridge
 import androidx.compose.runtime.remember
 import androidx.compose.ui.InternalComposeUiApi
 import androidx.compose.ui.graphics.Shader
@@ -73,6 +77,17 @@ internal actual fun DrawScope.drawSurfaceGraphMesh(mesh: SurfaceGraphMesh, shade
 
 internal actual fun surfaceGraphFrameElapsed(): Double = js("typeof document !== 'undefined' && document.timeline && document.timeline.currentTime != null ? performance.now() - document.timeline.currentTime : NaN").unsafeCast<Double>()
 internal actual val surfaceGraphMeshGrid = true
+
+internal actual val surfaceGraphViewportBridge: FlowViewportPlatformBridge? = object : FlowViewportPlatformBridge {
+    override fun resolveScrollPan(event: PointerEvent, interactionState: FlowViewportInteractionState): Offset {
+        val pixels = event.changes.fold(Offset.Zero) { total, change -> total + change.scrollDelta }
+        val unit = when (event.nativeEvent?.asDynamic()?.deltaMode as? Int) { 1 -> WheelLine; 2 -> WheelPage; else -> 1f }
+        return pixels * (-unit * interactionState.canvasDensity)
+    }
+}
+
+private const val WheelLine = 16f
+private const val WheelPage = 400f
 
 @OptIn(InternalComposeUiApi::class)
 @Composable

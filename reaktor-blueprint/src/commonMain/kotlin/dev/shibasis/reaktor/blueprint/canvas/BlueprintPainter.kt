@@ -142,6 +142,7 @@ private fun BlueprintFrameLook.paintKey() = if (!hasHeaderContent) this else cop
 private data class CardMeasure(val look: BlueprintCardLook, val card: Card, val rows: PaintContent, val bodyHeight: Float, val columns: List<Float>)
 /** Below this scale, cards remain in the mesh and hit index without measuring unreadable text. */
 internal const val BlueprintDetailZoom = .18
+internal const val BlueprintMapTitleZoom = .45
 internal const val BlueprintLegibleText = 11.0
 internal const val BlueprintOverviewCards = 512
 private const val CardLabelReadable = 7.0
@@ -155,7 +156,7 @@ internal data class PaintStats(val retainedPixelBytes: Long, val releasedViews: 
 private class Read(val text: Float, val title: BlueprintTitle)
 private class Measured(val width: Float, val height: Float, val text: TextLayoutResult?)
 
-internal class BlueprintPainter(graphics: GraphicsContext, private val measurer: TextMeasurer, private val type: BlueprintType, private val colors: dev.shibasis.reaktor.ui.machinesignal.MachineSignalColors, private val denseOverview: Boolean = false, private val mapLayers: Boolean = false) : SurfaceGraphEngine(graphics, scaled = true) {
+internal class BlueprintPainter(graphics: GraphicsContext, private val measurer: TextMeasurer, private val type: BlueprintType, private val colors: dev.shibasis.reaktor.ui.machinesignal.MachineSignalColors, private val denseOverview: Boolean = false, private val mapLayers: Boolean = false, private val mapDetail: Boolean = false) : SurfaceGraphEngine(graphics, scaled = true) {
     private val icons = HashMap<ImageVector, BlueprintIcon>()
     private val tint = colors.source
     private val accent = colors.controlAccent
@@ -209,7 +210,8 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
     override val canvas = colors.canvas
     override val grid = CanvasGrid(minor = colors.textMuted.copy(alpha = .025f), major = colors.textMuted.copy(alpha = .055f))
     override val cardRadius = MachineSignal.Radius.node.value
-    override val worldPictures = true
+    override val worldPictures = !mapDetail
+    override val farZoom get() = if (mapDetail) BlueprintMapTitleZoom * density else super.farZoom
     override val corridorZoom = if (mapLayers) CorridorZoom else 0.0
     override val corridorRgb = colors.textMuted.toArgb()
     override val corridorsQuiet get() = anyDim || selected != null
@@ -322,7 +324,12 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
 
     fun draw(scope: DrawScope, camera: Viewport, viewport: Size, density: Float, shift: Float, pulses: List<CanvasPulse>, labelExclusions: List<Rect> = emptyList()) {
         val z = camera.zoom
-        level = if (denseOverview && cards.size > BlueprintOverviewCards && z / density < BlueprintDetailZoom) 0 else 2
+        val scale = z / density
+        level = when {
+            mapDetail -> if (scale < BlueprintDetailZoom) 0 else if (scale < BlueprintMapTitleZoom) 1 else 2
+            denseOverview && cards.size > BlueprintOverviewCards && scale < BlueprintDetailZoom -> 0
+            else -> 2
+        }
         val l = ((-camera.x - viewport.width) / z).toFloat()
         val t = ((-camera.y - viewport.height) / z).toFloat()
         val r = ((viewport.width * 2 - camera.x) / z).toFloat()
@@ -574,6 +581,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
     override fun bannerLift(height: Float, z: Float, clear: Boolean) = if (clear) -height - 2f else super.bannerLift(height, z, clear)
 
     private val cardLabelStyle = type.style(11.5.sp, colors.textStrong, weight = FontWeight.SemiBold)
+    private val titledStyle = type.style(44.sp, colors.textStrong, weight = FontWeight.SemiBold).copy(lineHeight = 50.6.sp)
     private val cardLabelTexts = HashMap<String, TextLayoutResult>()
     private val cardLabelsPlaced = ArrayList<Rect>()
     private var cardLabelOrder = IntArray(0)
@@ -581,7 +589,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
 
     override fun DrawScope.cardLabels(camera: Viewport) {
         cardLabelsPlaced.clear()
-        if (!mapLayers || cards.isEmpty() || titleStyle.fontSize.value * camera.zoom / density >= CardLabelReadable) return
+        if (!mapLayers || cards.isEmpty() || mapDetail && level == 1 || titleStyle.fontSize.value * camera.zoom / density >= CardLabelReadable) return
         if (cardLabelOrderOf !== cards) {
             cardLabelOrder = cards.indices.sortedWith(compareByDescending<Int> { cards[it].width * cards[it].height }.thenBy { it }).toIntArray()
             cardLabelOrderOf = cards
@@ -648,7 +656,8 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         val look = paint.measured.look
         val card = cards[i]
         tile(i, slot, card.x, card.y, card.width, card.height, MARGIN) { x, y ->
-            if (look.face == BlueprintFace.Prose) drawProse(card, look, x, y, paint.measured.bodyHeight, paint.measured.columns) else drawDetail(card, look, x, y, paint.measured.bodyHeight, paint.measured.columns)
+            if (mapDetail && slot == 0) drawTitled(card, look, x, y)
+            else if (look.face == BlueprintFace.Prose) drawProse(card, look, x, y, paint.measured.bodyHeight, paint.measured.columns) else drawDetail(card, look, x, y, paint.measured.bodyHeight, paint.measured.columns)
         }
         keys[i * 2 + slot] = paint.key
         reads[i * 2 + slot] = Read(paint.smallest, BlueprintTitle.Whole)
@@ -952,6 +961,16 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         } }
     }
 
+    private fun DrawScope.drawTitled(card: Card, look: BlueprintCardLook, x: Float, y: Float) {
+        val w = card.width.toFloat(); val h = card.height.toFloat()
+        drawRoundRect(Brush.horizontalGradient(listOf(lerp(colors.card, look.tone, TitledTint), lerp(colors.card, look.tone, TitledTint * .6f)), x, x + w), Offset(x, y), Size(w, h), CornerRadius(MachineSignal.Radius.node.value))
+        drawBorder(look.selected || card.id == selected, look.outline, x, y, w, h)
+        val room = h - TitledInset * 2; val line = titledStyle.lineHeight.value; val k = min(1f, room / line)
+        val style = if (k < 1f) titledStyle.copy(fontSize = titledStyle.fontSize * k, lineHeight = titledStyle.lineHeight * k) else titledStyle
+        val title = measurer.measure(look.title, style, TextOverflow.Ellipsis, maxLines = (room / (line * k)).toInt().coerceIn(1, 3), constraints = Constraints(maxWidth = (w - TitledInset * 2).toInt().coerceAtLeast(1)))
+        paint(title, x + TitledInset, y + (h - title.size.height) / 2)
+    }
+
     private fun DrawScope.drawBorder(selected: Boolean, outline: Color?, x: Float, y: Float, w: Float, h: Float) {
         val border = when { selected -> 2f; outline != null -> 1.6f; else -> 1f }
         val edge = when { selected -> accent; outline != null -> outline; else -> colors.line.copy(alpha = .45f) }
@@ -1132,6 +1151,8 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         const val ProseLeading = 1.25
         const val CardTint = .05f
         const val OverviewTint = .42f
+        const val TitledTint = .38f
+        const val TitledInset = 18f
         val ProseLines = intArrayOf(3, 4, 5)
         const val Joiners = ",;:·–-"
     }

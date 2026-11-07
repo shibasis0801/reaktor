@@ -53,6 +53,7 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
 internal expect fun surfaceGraphFrameElapsed(): Double
+internal expect val surfaceGraphViewportBridge: dev.shibasis.composeflow.compose.interaction.FlowViewportPlatformBridge?
 @Composable internal expect fun surfaceGraphIdle(): (((Long) -> Boolean) -> Unit)?
 internal expect val surfaceGraphMeshGrid: Boolean
 
@@ -217,6 +218,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         set(value) { if (field != value) { field = value; dirty[CARDS] = true; dirty[OVER] = true; changed = true } }
     private var warmed = 0
     private var warming = false
+    private var warmWaits = 0
 
     protected abstract val warmups: Int
     protected abstract val warmable: Boolean
@@ -396,7 +398,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         trim(camera, viewport)
         if (forced || spare > 1.0 || !moving) tessellate(forced || spare >= 2.0 || !moving)
         else if (dirty.any { it } || stale || returningCount > 0) pending = true
-        if (warming && !moving && warmable) { if (spare >= 2.5) { warming = false; if (warm(warmed)) warmed++ }; signal.trySend(Unit) }
+        if (warming && !moving && warmable) { if (spare >= 2.5 || ++warmWaits > WARM_WAITS) { warming = false; warmWaits = 0; if (warm(warmed)) warmed++ }; signal.trySend(Unit) }
         paint(camera, deadline)
         if (work(deadline)) pending = true
         if (pending || moving || changed) signal.trySend(Unit)
@@ -1250,6 +1252,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         const val REPLAY_MAP_LABELS = KINDS + 4; const val REPLAY_END_LABELS = KINDS + 5
         const val REPLAY_GROUPS = KINDS + 6
         val WARMUPS = floatArrayOf(.4f, 1f, 2.5f, .1f, .35f)
+        const val WARM_WAITS = 3
         private val GLOWS = floatArrayOf(12f, .08f, 6f, .18f, 2f, .38f)
         private const val Above = (BlueprintEngine.GroupGap + BlueprintEngine.FrameSide).toFloat()
         private const val BannerGap = 8f
