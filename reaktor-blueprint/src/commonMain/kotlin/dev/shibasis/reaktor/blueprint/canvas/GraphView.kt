@@ -328,7 +328,17 @@ internal fun GraphMarkers(state: GraphCanvasState, boxes: List<Bounds>, id: (Int
         val scale = now.view.zoom
         val cx = (flow.canvasSize.width / 2 - now.view.x) / scale; val cy = (flow.canvasSize.height / 2 - now.view.y) / scale
         val waiting = now.indices.filter { it !in placed }.sortedBy { i -> boxes[i].let { abs(it.x + it.width / 2 - cx) + abs(it.y + it.height / 2 - cy) } }
-        for (chunk in waiting.chunked(batch)) { withFrameNanos { }; placed = placed + chunk }
+        var size = 1
+        var from = 0
+        var last = withFrameNanos { it }
+        while (from < waiting.size) {
+            val until = minOf(waiting.size, from + size)
+            placed = placed + waiting.subList(from, until)
+            from = until
+            val next = withFrameNanos { it }
+            size = if ((next - last) / 1_000_000.0 < MarkerFrameMillis) minOf(batch, size * 2) else maxOf(1, size / 2)
+            last = next
+        }
     }
     var rested by remember(flow) { mutableStateOf(flow.viewport) }
     if (!follow) LaunchedEffect(flow) {
@@ -353,7 +363,8 @@ internal fun GraphMarkers(state: GraphCanvasState, boxes: List<Bounds>, id: (Int
             seen = now
             val (view, canvas) = now
             val scale = view.zoom
-            val mx = canvas.width / scale / 4; val my = canvas.height / scale / 4
+            val reach = if (batch == Int.MAX_VALUE) .25 else 0.0
+            val mx = canvas.width / scale * reach; val my = canvas.height / scale * reach
             val left = -view.x / scale - mx; val top = -view.y / scale - my
             val right = (canvas.width - view.x) / scale + mx; val bottom = (canvas.height - view.y) / scale + my
             shown = Shown(if (scale / density < minZoom) emptyList() else boxes.indices.filter { boxes[it].let { box -> box.x < right && box.y < bottom && box.x + box.width > left && box.y + box.height > top } }, view, scale / density)
@@ -380,7 +391,7 @@ internal fun GraphMarkers(state: GraphCanvasState, boxes: List<Bounds>, id: (Int
     }
 }
 
-internal fun Modifier.at(x: Double, y: Double, width: Double, height: Double) = layout { measurable, _ ->
+internal fun Modifier.at(x: Double, y: Double, width: Double, height: Double, exact: Boolean = true) = layout { measurable, _ ->
     val physicalWidth = width * density
     val physicalHeight = height * density
     val placeable = measurable.measure(Constraints.fixed(physicalWidth.roundToInt(), physicalHeight.roundToInt()))
@@ -391,7 +402,7 @@ internal fun Modifier.at(x: Double, y: Double, width: Double, height: Double) = 
     val widthScale = if (placeable.width == 0) 1f else (physicalWidth / placeable.width).toFloat()
     val heightScale = if (placeable.height == 0) 1f else (physicalHeight / placeable.height).toFloat()
     layout(0, 0) {
-        if (physicalX == left.toDouble() && physicalY == top.toDouble() && widthScale == 1f && heightScale == 1f) {
+        if (!exact || physicalX == left.toDouble() && physicalY == top.toDouble() && widthScale == 1f && heightScale == 1f) {
             placeable.place(left, top)
         } else placeable.placeWithLayer(left, top) {
             translationX = (physicalX - left).toFloat()
@@ -409,6 +420,7 @@ internal fun Said(text: String) {
 }
 
 private const val SettleMillis = 100L
+private const val MarkerFrameMillis = 20.0
 private const val RestFrames = 3
 private const val Reach = 10.0
 private const val Pan = 120.0

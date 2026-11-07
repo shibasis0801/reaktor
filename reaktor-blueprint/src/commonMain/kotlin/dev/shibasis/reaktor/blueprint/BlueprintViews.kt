@@ -457,7 +457,8 @@ private fun AgentMarker(card: Card, agent: BlueprintAgent, bounds: BlueprintBadg
 @Composable
 internal fun CardMarker(card: Card, look: BlueprintCardLook, pinTip: (Card, Pin) -> BlueprintTip?, onCardClick: (String) -> Unit,
                         onPinClick: ((Card, Pin) -> Unit)?, slots: BlueprintHeaderSlots? = null, lean: Boolean = false) {
-    Box(Modifier.at(card.x, card.y, card.width, card.height).semantics {
+    val exact = !lean || slots != null || look.actions.isNotEmpty() || look.choice != null || look.rows.any { it.content.choice != null } || look.pins.any { it?.choice != null }
+    Box(Modifier.at(card.x, card.y, card.width, card.height, exact).semantics {
         selected = look.selected
         look.action?.let { onClick(label = it) { onCardClick(card.id); true } }
     }.tagged(look.tag)) {
@@ -466,7 +467,7 @@ internal fun CardMarker(card: Card, look: BlueprintCardLook, pinTip: (Card, Pin)
                 dev.shibasis.reaktor.surface.compose.Checkbox(if (choice.checked) dev.shibasis.reaktor.surface.compose.CheckState.Checked else dev.shibasis.reaktor.surface.compose.CheckState.Unchecked, choice.change, Modifier.testTag(choice.tag))
             }
         }
-        Box(Modifier.at(0.0, 0.0, card.width, BlueprintEngine.HeaderHeight)) {
+        Box(Modifier.at(0.0, 0.0, card.width, BlueprintEngine.HeaderHeight, exact)) {
             if (slots?.title == null) Said(look.title)
             look.imageDescription?.let { Said(it) }
             look.eyebrow?.let { Said(it) }
@@ -494,7 +495,7 @@ internal fun CardMarker(card: Card, look: BlueprintCardLook, pinTip: (Card, Pin)
         look.rows.forEachIndexed { index, row ->
             val content = row.content
             val cells = listOf(content) + row.trailingCells
-            Box(Modifier.at(0.0, BlueprintEngine.pinY(index, card.pinHeader) - BlueprintEngine.RowHeight / 2, card.width, BlueprintEngine.RowHeight).semantics {
+            Box(Modifier.at(0.0, BlueprintEngine.pinY(index, card.pinHeader) - BlueprintEngine.RowHeight / 2, card.width, BlueprintEngine.RowHeight, exact).semantics {
                 selected = content.selected
                 row.onClick?.let { click -> onClick { click(); true } }
                 if (lean) text = AnnotatedString(cells.flatMap { cell -> listOf(cell.text) + cell.marks.map { it.said } }.filter(String::isNotEmpty).joinToString(" · "))
@@ -518,7 +519,7 @@ internal fun CardMarker(card: Card, look: BlueprintCardLook, pinTip: (Card, Pin)
             val text = if (shared) if (pin.provides) "Output anchor" else "Input anchor" else pinLook.text
             val width = if (shared) BlueprintEngine.RowHeight else if (oneSided) card.width else card.width / 2
             val left = if (shared && pin.provides) card.width - width else if (pin.provides && !oneSided) card.width / 2 else 0.0
-            Box(Modifier.at(left, pin.y - BlueprintEngine.RowHeight / 2, width, BlueprintEngine.RowHeight).then(if (onPinClick == null) Modifier else Modifier.semantics {
+            Box(Modifier.at(left, pin.y - BlueprintEngine.RowHeight / 2, width, BlueprintEngine.RowHeight, exact).then(if (onPinClick == null) Modifier else Modifier.semantics {
                 selected = pinLook.selected
                 onClick { onPinClick(card, pin); true }
             }.tagged(pinLook.tag ?: look.tag?.let { "$it-${if (pin.provides) "provides" else "needs"}-${pin.key}" }))) {
