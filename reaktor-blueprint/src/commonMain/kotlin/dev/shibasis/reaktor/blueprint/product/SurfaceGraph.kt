@@ -45,7 +45,8 @@ enum class SurfaceGraphMark { Done, Session, Note }
 data class SurfaceGraphCount(val text: String, val mark: SurfaceGraphMark? = null)
 data class SurfaceGraphGroup(val key: String, val title: String, val subtitle: String = "", val color: Color? = null, val parent: String? = null, val owner: String? = null, val lanes: Boolean = parent != null, val loose: Boolean = false, val muted: Boolean = false, val opaque: Boolean = false)
 
-data class SurfaceGraphLink(val id: String, val from: String, val to: String, val label: String = "", val proposed: Boolean = false, val color: Color? = null)
+data class SurfaceGraphLink(val id: String, val from: String, val to: String, val label: String = "", val proposed: Boolean = false, val color: Color? = null,
+    val dash: Pair<Float, Float>? = null)
 
 data class SurfaceGraphAppearance(
     val canvas: Color,

@@ -185,7 +185,7 @@ fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraph
                 val lit = edge?.let { it.from == selectedId || it.to == selectedId || owner(it.from) == owner(selectedId) || owner(it.to) == owner(selectedId) } == true
                 val visible = lit || if (link.family == "chapter") chapterLinks else resourceLinks
                 Blueprint.link(if (visible) edge?.color ?: tone else Color.Transparent, highlighting = selectedId != null || highlighted.isNotEmpty(), lit = lit,
-                    cross = link.cross, dash = if (edge?.proposed == true || link.family == "optional") 6f to 4f else null)
+                    cross = link.cross, dash = edge?.dash ?: if (edge?.proposed == true || link.family == "optional") 6f to 4f else null)
             },
             linkLabel = { link -> source(link)?.label?.takeIf { it.isNotBlank() } },
             modifier = shell,
@@ -313,7 +313,7 @@ private fun <K> SurfaceGraphDeclaredExplorer(
                 val visible = lit || if (link.family == "chapter") chapterLinks else resourceLinks
                 Blueprint.link(if (visible) edge?.color ?: appearance.selected else Color.Transparent,
                     highlighting = selectedId != null || highlighted.isNotEmpty(), lit = lit, cross = link.cross,
-                    dash = if (edge?.proposed == true || link.family == "optional") 6f to 4f else null)
+                    dash = edge?.dash ?: if (edge?.proposed == true || link.family == "optional") 6f to 4f else null)
             },
             onCardClick = { id ->
                 presentation.owner(id)?.let(select)
