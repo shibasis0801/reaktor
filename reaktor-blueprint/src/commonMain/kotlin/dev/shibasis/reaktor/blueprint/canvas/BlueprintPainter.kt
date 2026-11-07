@@ -338,7 +338,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         val t = ((-camera.y - viewport.height) / z).toFloat()
         val r = ((viewport.width * 2 - camera.x) / z).toFloat()
         val b = ((viewport.height * 2 - camera.y) / z).toFloat()
-        if (level > 0) {
+        if (level == 2 || level == 1 && !mapDetail) {
             val until = TimeSource.Monotonic.markNow() + MeasureBudget
             val vl = (-camera.x / z).toFloat(); val vt = (-camera.y / z).toFloat()
             val vr = ((viewport.width - camera.x) / z).toFloat(); val vb = ((viewport.height - camera.y) / z).toFloat()
@@ -685,16 +685,30 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         drawBorder(look.selected, look.outline, x, y, w, h)
     }
 
-    override fun current(i: Int, slot: Int): Boolean =
-        layers[i * 2 + slot] != null && keys[i * 2 + slot] == paints.getOrNull(i)?.key
+    override fun current(i: Int, slot: Int): Boolean {
+        val at = i * 2 + slot
+        if (layers[at] == null) return false
+        if (!mapDetail || slot != 0) return keys[at] == paints.getOrNull(i)?.key
+        val look = looks.getOrNull(i) ?: return false
+        val kept = keys[at] as? BlueprintCardLook ?: return false
+        return kept === look || kept.title == look.title && kept.tone == look.tone && kept.selected == look.selected && kept.outline == look.outline
+    }
 
     override fun record(i: Int, slot: Int, deadline: TimeSource.Monotonic.ValueTimeMark?) {
+        if (mapDetail && slot == 0) {
+            val look = looks.getOrNull(i)?.takeIf { shown(i) } ?: return
+            val card = cards[i]
+            val name = nestedFrame(i).takeIf { it >= 0 && frames[it].nodes.firstOrNull() == card.id }?.let { frames[it].label } ?: look.title
+            tile(i, 0, card.x, card.y, card.width, card.height, MARGIN) { x, y -> drawTitled(card, look, name, x, y) }
+            keys[i * 2] = look
+            reads[i * 2] = Read(titledStyle.fontSize.value, BlueprintTitle.Whole)
+            return
+        }
         val paint = paint(i) ?: return
         val look = paint.measured.look
         val card = cards[i]
         tile(i, slot, card.x, card.y, card.width, card.height, MARGIN) { x, y ->
-            if (mapDetail && slot == 0) drawTitled(card, look, x, y)
-            else if (look.face == BlueprintFace.Prose) drawProse(card, look, x, y, paint.measured.bodyHeight, paint.measured.columns) else drawDetail(card, look, x, y, paint.measured.bodyHeight, paint.measured.columns)
+            if (look.face == BlueprintFace.Prose) drawProse(card, look, x, y, paint.measured.bodyHeight, paint.measured.columns) else drawDetail(card, look, x, y, paint.measured.bodyHeight, paint.measured.columns)
         }
         keys[i * 2 + slot] = paint.key
         reads[i * 2 + slot] = Read(paint.smallest, BlueprintTitle.Whole)
@@ -998,13 +1012,13 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         } }
     }
 
-    private fun DrawScope.drawTitled(card: Card, look: BlueprintCardLook, x: Float, y: Float) {
+    private fun DrawScope.drawTitled(card: Card, look: BlueprintCardLook, name: String, x: Float, y: Float) {
         val w = card.width.toFloat(); val h = card.height.toFloat()
         drawRoundRect(Brush.horizontalGradient(listOf(lerp(colors.card, look.tone, TitledTint), lerp(colors.card, look.tone, TitledTint * .6f)), x, x + w), Offset(x, y), Size(w, h), CornerRadius(MachineSignal.Radius.node.value))
         drawBorder(look.selected || card.id == selected, look.outline, x, y, w, h)
         val room = h - TitledInset * 2; val line = titledStyle.lineHeight.value; val k = min(1f, room / line)
         val style = if (k < 1f) titledStyle.copy(fontSize = titledStyle.fontSize * k, lineHeight = titledStyle.lineHeight * k) else titledStyle
-        val title = measurer.measure(look.title, style, TextOverflow.Ellipsis, maxLines = (room / (line * k)).toInt().coerceIn(1, 3), constraints = Constraints(maxWidth = (w - TitledInset * 2).toInt().coerceAtLeast(1)))
+        val title = measurer.measure(name, style, TextOverflow.Ellipsis, maxLines = (room / (line * k)).toInt().coerceIn(1, 3), constraints = Constraints(maxWidth = (w - TitledInset * 2).toInt().coerceAtLeast(1)))
         paint(title, x + TitledInset, y + (h - title.size.height) / 2)
     }
 
