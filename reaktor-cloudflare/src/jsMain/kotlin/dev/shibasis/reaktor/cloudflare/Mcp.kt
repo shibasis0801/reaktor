@@ -62,6 +62,11 @@ class McpToolSchema(val name: String, val description: String) {
         if (required) this.required.add(name)
     }
 
+    fun property(name: String, schema: JsonObject, required: Boolean = false) {
+        properties[name] = schema
+        if (required) this.required.add(name)
+    }
+
     internal fun build(): JsonObject = buildJsonObject {
         put("type", "object")
         putJsonObject("properties") {

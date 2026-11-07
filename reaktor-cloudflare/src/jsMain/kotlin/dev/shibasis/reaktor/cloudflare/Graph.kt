@@ -5,8 +5,10 @@ import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.service.Request
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
 
 /**
  * Thin Memgraph access over the reaktorServer graph gateway, reached through an
@@ -61,6 +63,20 @@ class GraphGateway internal constructor(
         return send("/write-id", body.toString(), headers(JSON_BODY))
     }
 
+    suspend fun tx(statements: List<GraphStatement>): JsonElement {
+        val body = buildJsonObject {
+            putJsonArray("statements") {
+                statements.forEach { statement ->
+                    addJsonObject {
+                        put("query", statement.query)
+                        put("params", statement.params)
+                    }
+                }
+            }
+        }
+        return send("/tx", body.toString(), headers(JSON_BODY))
+    }
+
     private suspend fun sendCypher(
         path: String,
         cypher: String,
@@ -88,6 +104,8 @@ class GraphGateway internal constructor(
         val JSON_BODY = mapOf("Content-Type" to "application/json; charset=utf-8")
     }
 }
+
+class GraphStatement(val query: String, val params: JsonObject = JsonObject(emptyMap()))
 
 /**
  * Declarative graph-gateway binding: the `APP_SERVER_HTTP` VPC service name, the
