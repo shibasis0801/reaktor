@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.graph.step
 import dev.shibasis.reaktor.graph.Reaktor
 import dev.shibasis.reaktor.graph.Workflow
 import dev.shibasis.reaktor.graph.core.Graph
+import dev.shibasis.reaktor.graph.core.node.BasicNode
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.shape
 import dev.shibasis.reaktor.graph.intercept
@@ -89,6 +90,11 @@ private class Inbox(graph: Graph, retried: Boolean) : Workflow(graph, "test.inbo
     val lost by step(effect = Effect.ReadOnly, on = entry.failed and input.matches("is not retried") { !retried }) { "no entry" }
     private val entries by either(entry, lost)
     override val output by step(input, entries, effect = Effect.ProductionReversibleWrite) { title, entry -> "$title pushed with $entry" }
+}
+
+private class Till(graph: Graph, checkout: Checkout) : BasicNode(graph) {
+    override val label = "till"
+    val pay by consumes(checkout)
 }
 
 private class Seen(private val log: MutableList<String>) : Interceptor {
@@ -189,6 +195,22 @@ class InlineTest {
         assertEquals("hello pushed with no entry", tolerant("hello"))
         val failure = assertFailsWith<Refused> { strict("hello") }
         assertEquals("inbox down", failure.message)
+        graph.close()
+    }
+
+    @Test fun nodesRunAnInlineWorkflowThroughPortsTheMapDraws() = runTest {
+        val graph = Graph(label = "worker")
+        val ran = mutableListOf<String>()
+        val checkout = graph.Node { Checkout(it, ran) }
+        val front = graph.Node { Till(it, checkout) }
+        val back = graph.Node { Till(it, checkout) }
+
+        assertEquals("paid 4", front.pay("book"))
+        assertEquals("sorry about declined", back.pay("declined"))
+        assertEquals(listOf("charge", "receipt", "charge", "apology"), ran)
+        val wires = graph.shape().wires.filter { it.provider == checkout.id.toString() }
+        assertEquals(setOf(front.id.toString(), back.id.toString()), wires.map { it.consumer }.toSet())
+        assertTrue(wires.all { it.type == "inline:test.checkout" && it.providerPort == "runs" })
         graph.close()
     }
 

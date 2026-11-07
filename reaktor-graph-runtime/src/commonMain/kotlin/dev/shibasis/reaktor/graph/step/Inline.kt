@@ -1,13 +1,24 @@
 package dev.shibasis.reaktor.graph.step
 
+import dev.shibasis.reaktor.graph.Activity
+import dev.shibasis.reaktor.graph.Workflow
 import dev.shibasis.reaktor.graph.core.Graph
 import dev.shibasis.reaktor.graph.rootOf
 import dev.shibasis.reaktor.graph.serviceInterceptors
+import dev.shibasis.reaktor.portgraph.graph.connect
+import dev.shibasis.reaktor.portgraph.port.Key
+import dev.shibasis.reaktor.portgraph.port.PortCapability
+import dev.shibasis.reaktor.portgraph.port.PortDelegate
+import dev.shibasis.reaktor.portgraph.port.Type
+import dev.shibasis.reaktor.portgraph.port.getProvider
+import dev.shibasis.reaktor.portgraph.port.registerConsumer
+import dev.shibasis.reaktor.portgraph.port.registerProvider
 import dev.shibasis.reaktor.service.ServiceCall
 import dev.shibasis.reaktor.service.contract.activity
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.properties.PropertyDelegateProvider
 
 interface Inline<I : Any, O : Any> {
     val workflowId: String
@@ -18,6 +29,18 @@ interface Inline<I : Any, O : Any> {
 
 suspend operator fun <I : Any, O : Any> Inline<I, O>.invoke(value: I): O =
     InlineRun(this).apply { settle(input, value) }.drive().result(output)
+
+fun <I : Any, O : Any, W> PortCapability.consumes(workflow: W): PropertyDelegateProvider<PortCapability, PortDelegate<Activity<I, O>>>
+    where W : Workflow, W : Inline<I, O> = PropertyDelegateProvider { node, property ->
+    val type = Type("inline:${workflow.workflowId}")
+    val provider = workflow.getProvider<suspend (I) -> O>(Runs, type) ?: workflow.registerProvider<suspend (I) -> O>(Runs, type) { workflow(it) }
+    val consumer = node.registerConsumer<suspend (I) -> O>(Key(property.name), type)
+    connect(consumer, provider).getOrThrow()
+    val port = Activity(consumer, provider)
+    PortDelegate { _, _ -> port }
+}
+
+private val Runs = Key("runs")
 
 private class InlineRun(private val workflow: Inline<*, *>) : Outcomes {
     private val nodes = stepsOf(workflow.childGraph)

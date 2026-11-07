@@ -59,10 +59,10 @@ class WorkflowTest {
         graph.intercept(Spans("worker", spans))
         val onboarding = graph.Node { Workflow(it, "onboarding", "Onboarding") }
         val formation = graph.Node { Workflow(it, "formation", "Formation") }
-        val eligibility = onboarding.stage<Int, Int>("eligibility", Effect.LiveRead)
+        val eligibility = onboarding.activity<Int, Int>("eligibility", Effect.LiveRead) { it * 2 }
         val read = formation.call("eligibility", eligibility)
         val shape = graph.shape()
-        assertEquals(8, read(4) { it * 2 })
+        assertEquals(8, read(4))
         val span = spans.snapshot().single()
         val provider = shape.nodes.single { it.attributes["activity"] == "onboarding/eligibility" }
         assertEquals(provider.definitionId, span.node)
