@@ -511,7 +511,9 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
 
     override fun cardId(i: Int) = cards[i].id
 
-    override fun endTitle(i: Int, to: Boolean) = cardOf(if (to) links[i].to else links[i].from).takeIf { it >= 0 }?.let { looks.getOrNull(it)?.title }
+    override fun endTitle(i: Int, to: Boolean) = cardOf(if (to) links[i].to else links[i].from).takeIf { it >= 0 }?.let { c ->
+        (if (mapLayers) nestedFrame(c) else -1).takeIf { it >= 0 }?.let { frames[it].label } ?: looks.getOrNull(c)?.title
+    }
 
     override fun headerKey(i: Int): Any? = framePaintKeys.getOrNull(i)
 
@@ -587,24 +589,45 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
     private val cardLabelsPlaced = ArrayList<Rect>()
     private var cardLabelOrder = IntArray(0)
     private var cardLabelOrderOf: Array<Card>? = null
+    private val cardLabelFramesNamed = HashSet<Int>()
+    private var nestedOf: Array<Card>? = null
+    private var nested = IntArray(0)
+
+    private fun nestedFrame(i: Int): Int {
+        if (nestedOf !== cards) {
+            val owner = IntArray(cards.size) { -1 }
+            val index = HashMap<String, Int>(cards.size * 2).also { map -> cards.forEachIndexed { k, card -> map[card.id] = k } }
+            frames.indices.filter { frames[it].parent != null && frames[it].label.isNotBlank() }
+                .sortedByDescending { frames[it].width * frames[it].height }
+                .forEach { f -> frames[f].nodes.forEach { id -> index[id]?.let { owner[it] = f } } }
+            nested = owner
+            nestedOf = cards
+        }
+        return nested.getOrElse(i) { -1 }
+    }
 
     override fun DrawScope.cardLabels(camera: Viewport) {
         cardLabelsPlaced.clear()
+        cardLabelFramesNamed.clear()
         if (!mapLayers || cards.isEmpty() || mapDetail && level == 1 || titleStyle.fontSize.value * camera.zoom / density >= CardLabelReadable) return
         if (cardLabelOrderOf !== cards) {
-            cardLabelOrder = cards.indices.sortedWith(compareByDescending<Int> { cards[it].width * cards[it].height }.thenBy { it }).toIntArray()
+            fun extent(i: Int) = nestedFrame(i).takeIf { it >= 0 }?.let { frames[it].width * frames[it].height } ?: (cards[i].width * cards[i].height)
+            cardLabelOrder = cards.indices.sortedWith(compareByDescending<Int> { extent(it) }.thenBy { it }).toIntArray()
             cardLabelOrderOf = cards
         }
         val left = insets[0]; val top = insets[1]; val right = viewport.width - insets[2]; val bottom = viewport.height - insets[3]
         fun place(i: Int) {
             if (cardLabelsPlaced.size >= CardLabelLimit || !shown(i)) return
             val look = looks.getOrNull(i) ?: return
-            if (look.title.isBlank()) return
-            val x0 = (camera.x + cardBox[i * 4] * camera.zoom).toFloat(); val y0 = (camera.y + cardBox[i * 4 + 1] * camera.zoom).toFloat()
-            val x1 = (camera.x + cardBox[i * 4 + 2] * camera.zoom).toFloat(); val y1 = (camera.y + cardBox[i * 4 + 3] * camera.zoom).toFloat()
+            val frame = nestedFrame(i).takeIf { it >= 0 }?.let { f -> if (!cardLabelFramesNamed.add(f)) return; frames[f] }
+            val title = frame?.label ?: look.title
+            if (title.isBlank()) return
+            val x0 = (camera.x + (frame?.x ?: cardBox[i * 4].toDouble()) * camera.zoom).toFloat(); val y0 = (camera.y + (frame?.y ?: cardBox[i * 4 + 1].toDouble()) * camera.zoom).toFloat()
+            val x1 = (camera.x + (frame?.let { it.x + it.width } ?: cardBox[i * 4 + 2].toDouble()) * camera.zoom).toFloat()
+            val y1 = (camera.y + (frame?.let { it.y + it.height } ?: cardBox[i * 4 + 3].toDouble()) * camera.zoom).toFloat()
             if (x1 < left || y1 < top || x0 > right || y0 > bottom) return
-            val text = cardLabelTexts.getOrPut(look.title) {
-                measurer.measure(look.title, cardLabelStyle, TextOverflow.Ellipsis, maxLines = 1, constraints = Constraints(maxWidth = CardLabelWidth))
+            val text = cardLabelTexts.getOrPut(title) {
+                measurer.measure(title, cardLabelStyle, TextOverflow.Ellipsis, maxLines = 1, constraints = Constraints(maxWidth = CardLabelWidth))
             }
             val width = text.size.width + 12f; val height = text.size.height + 6f
             val x = max(x0, left); val y = max(y0, top)
