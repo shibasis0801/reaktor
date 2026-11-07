@@ -147,6 +147,7 @@ internal const val BlueprintMapTitleZoom = .45
 internal const val MapTextCache = 2048
 internal const val MapMarkerBatch = 6
 private val MeasureBudget = 2.milliseconds
+private val TitleBurst = 10.milliseconds
 internal const val BlueprintLegibleText = 11.0
 internal const val BlueprintOverviewCards = 512
 private const val CardLabelReadable = 7.0
@@ -344,6 +345,17 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
             val vr = ((viewport.width - camera.x) / z).toFloat(); val vb = ((viewport.height - camera.y) / z).toFloat()
             for (i in cards.indices) if (inside(cardBox, i, vl, vt, vr, vb)) paint(i, until)
             for (i in cards.indices) if (inside(cardBox, i, l, t, r, b)) paint(i, until)
+        }
+        if (mapDetail && level == 1 && !moving && camera == this.camera) {
+            val until = TimeSource.Monotonic.markNow() + TitleBurst
+            val vl = (-camera.x / z).toFloat(); val vt = (-camera.y / z).toFloat()
+            val vr = ((viewport.width - camera.x) / z).toFloat(); val vb = ((viewport.height - camera.y) / z).toFloat()
+            var recorded = false
+            for (i in cards.indices) {
+                if (until.hasPassedNow()) break
+                if (shown(i) && inside(cardBox, i, vl, vt, vr, vb) && !current(i, 0)) { record(i, 0, null); recorded = true }
+            }
+            if (recorded) { dirty[CARDS] = true; changed = true }
         }
         this.shift = shift; this.pulses = pulses; this.labelExclusions = labelExclusions
         with(scope) { frame(camera, viewport, density) }
@@ -622,7 +634,8 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
     override fun DrawScope.cardLabels(camera: Viewport) {
         cardLabelsPlaced.clear()
         cardLabelFramesNamed.clear()
-        if (!mapLayers || cards.isEmpty() || mapDetail && level == 1 || titleStyle.fontSize.value * camera.zoom >= CardLabelReadable) return
+        if (!mapLayers || cards.isEmpty() || titleStyle.fontSize.value * camera.zoom >= CardLabelReadable) return
+        val titling = mapDetail && level == 1
         if (cardLabelOrderOf !== cards) {
             fun extent(i: Int) = nestedFrame(i).takeIf { it >= 0 }?.let { frames[it].width * frames[it].height } ?: (cards[i].width * cards[i].height)
             cardLabelOrder = cards.indices.sortedWith(compareByDescending<Int> { extent(it) }.thenBy { it }).toIntArray()
@@ -632,7 +645,9 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         fun place(i: Int) {
             if (cardLabelsPlaced.size >= CardLabelLimit || !shown(i)) return
             val look = looks.getOrNull(i) ?: return
-            val frame = nestedFrame(i).takeIf { it >= 0 }?.let { f -> if (!cardLabelFramesNamed.add(f)) return; frames[f] }
+            val nest = nestedFrame(i)
+            if (titling && (nest < 0 && current(i, 0) || nest >= 0 && frames[nest].nodes.firstOrNull()?.let(cardSlots::get)?.let { current(it, 0) } == true)) return
+            val frame = nest.takeIf { it >= 0 }?.let { f -> if (!cardLabelFramesNamed.add(f)) return; frames[f] }
             val title = frame?.label ?: look.title
             if (title.isBlank()) return
             val x0 = (camera.x + (frame?.x ?: cardBox[i * 4].toDouble()) * camera.zoom).toFloat(); val y0 = (camera.y + (frame?.y ?: cardBox[i * 4 + 1].toDouble()) * camera.zoom).toFloat()
