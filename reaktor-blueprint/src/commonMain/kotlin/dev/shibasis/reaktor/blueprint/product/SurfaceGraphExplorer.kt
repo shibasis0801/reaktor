@@ -94,10 +94,10 @@ class SurfaceGraphExplorerState : GraphCanvasState(0.002..16.0, GraphLevels(.2, 
 @Composable
 fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraphLink>, selectedId: String?, appearance: SurfaceGraphAppearance,
     state: SurfaceGraphExplorerState, onSelect: (String) -> Unit, modifier: Modifier = Modifier, layout: BlueprintLayout<*>? = null, resourceLinks: Boolean = true, chapterLinks: Boolean = true, areaCorridors: Boolean = true, highlighted: Set<String> = emptySet(), onClear: () -> Unit = {}, key: Any? = null, groups: List<SurfaceGraphGroup> = emptyList(), editor: GraphEditor? = null,
-    onOpen: ((String) -> Boolean)? = null, topInset: Dp = 48.dp) {
+    onOpen: ((String) -> Boolean)? = null, topInset: Dp = 48.dp, onFollow: ((String) -> Unit)? = null) {
     if (layout != null && editor == null) {
         SurfaceGraphDeclaredExplorer(nodes, links, selectedId, appearance, state, onSelect, modifier, layout,
-            resourceLinks, chapterLinks, areaCorridors, highlighted, onClear, key, groups, onOpen, topInset)
+            resourceLinks, chapterLinks, areaCorridors, highlighted, onClear, key, groups, onOpen, topInset, onFollow)
         return
     }
     val fallback = remember(nodes, links, appearance, layout != null) {
@@ -278,7 +278,7 @@ private fun <K> SurfaceGraphDeclaredExplorer(
     nodes: List<SurfaceGraphNode>, links: List<SurfaceGraphLink>, selectedId: String?, appearance: SurfaceGraphAppearance,
     state: SurfaceGraphExplorerState, onSelect: (String) -> Unit, modifier: Modifier, layout: BlueprintLayout<K>,
     resourceLinks: Boolean, chapterLinks: Boolean, areaCorridors: Boolean, highlighted: Set<String>, onClear: () -> Unit,
-    key: Any?, groups: List<SurfaceGraphGroup>, onOpen: ((String) -> Boolean)?, topInset: Dp,
+    key: Any?, groups: List<SurfaceGraphGroup>, onOpen: ((String) -> Boolean)?, topInset: Dp, onFollow: ((String) -> Unit)?,
 ) {
     val presentation = remember(layout, nodes, links, groups) { SurfaceGraphExplorerPresentation(layout, nodes, links, groups) }
     val cards = remember(layout) { layout.cards.values.toList() }
@@ -287,6 +287,7 @@ private fun <K> SurfaceGraphDeclaredExplorer(
     val clear by rememberUpdatedState(onClear)
     val opening by rememberUpdatedState(onOpen)
     val chosen by rememberUpdatedState(selectedId)
+    val follow by rememberUpdatedState(onFollow)
     val shown = remember(highlighted, presentation) { highlighted.mapNotNullTo(linkedSetOf(), presentation::owner) }
     SideEffect { state.density(density) }
     LaunchedEffect(cards, layout.frames, key, state.flow.canvasSize, density) {
@@ -314,7 +315,7 @@ private fun <K> SurfaceGraphDeclaredExplorer(
             onCardClick = { id ->
                 presentation.owner(id)?.let(select)
             },
-            onLinkClick = { link -> presentation.target(link, chosen)?.let(select) },
+            onLinkClick = { link -> presentation.target(link, chosen)?.let { follow?.invoke(it) ?: select(it) } },
             onPaneClick = { clear() }, modifier = modifier,
             labels = layout.links.mapNotNull { link -> presentation.source(link)?.label?.takeIf(String::isNotBlank)?.let { link.id to it } }.toMap(),
             fitKey = (key ?: layout.key).hashCode(), fitScene = key ?: layout.key, initialFit = { state.fit() },
