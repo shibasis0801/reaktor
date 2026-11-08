@@ -4,7 +4,7 @@ import dev.shibasis.reaktor.conductor.ConductorJson
 import dev.shibasis.reaktor.conductor.workspace.AgentRecovery
 import dev.shibasis.reaktor.conductor.workspace.AgentRunRecord
 import dev.shibasis.reaktor.conductor.workspace.AgentRunStatus
-import dev.shibasis.reaktor.tooling.cloud.AiGatewayClient
+import dev.shibasis.reaktor.cloud.cloudflare.AiGatewayClient
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.buildJsonObject

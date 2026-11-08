@@ -76,6 +76,45 @@ class SourceCaptureTest(unittest.TestCase):
 
 
 class LocalBuildReceiptTest(unittest.TestCase):
+    def test_additional_local_lane_is_isolated_and_stops_admitting_when_removed(self):
+        import remote_build
+        helper = router()
+        with TemporaryDirectory() as temporary:
+            primary = Path(temporary).resolve()
+            helper.ROOT = primary
+            helper.STATE = primary / '.remote-dev'
+            helper.STATE.mkdir()
+            helper.LOCAL_SLOTS = helper.STATE / 'slots'
+            slot = helper.LOCAL_SLOTS / 'local-1'
+            config = helper.STATE / 'config.json'
+            config.write_text('{"local_slots": 2}')
+            args = [':app:jvmTest', '--tests', 'fixture.Test']
+            contract = {'taskFamilies': {':app:jvmTest': 'verification', ':app:assembleWeb': 'web'}}
+            def check(project, relative, arguments, *, local_slot):
+                self.assertEqual(slot, helper.ROOT)
+                self.assertEqual(1, local_slot)
+                self.assertEqual(args, arguments)
+                with (helper.STATE / 'local-slot-1.lock').open('a') as other:
+                    with self.assertRaises(BlockingIOError):
+                        fcntl.flock(other, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                config.write_text('{"local_slots": 1}')
+                helper.LAST_RUN_ID = 'fixture'
+                return 0
+            with (helper.STATE / 'local-gradle.lock').open('a') as lock, \
+                 patch.object(helper, 'read_hosts_contract', return_value=contract), \
+                 patch.object(helper, 'local_capacity', return_value=(True, 'fixture capacity')), \
+                 patch.object(remote_build, 'disk_admission'), patch.object(remote_build, 'freeze', return_value='snapshot'), \
+                 patch.object(remote_build, 'materialize', return_value=slot) as materialize, \
+                 patch.object(remote_build, 'collect_local'), patch.object(helper, 'local_gradle', side_effect=check) as build:
+                fcntl.flock(lock, fcntl.LOCK_EX)
+                self.assertIsNone(helper.route_gradle('manna', Path('.'), [':app:assembleWeb']))
+                self.assertIsNone(helper.route_gradle('manna', Path('.'), [*args, '--project-dir=/tmp']))
+                self.assertEqual(0, helper.route_gradle('manna', Path('.'), args))
+                self.assertEqual(primary, helper.ROOT)
+                self.assertIsNone(helper.route_gradle('manna', Path('.'), args))
+                materialize.assert_called_once_with(helper, 'snapshot', 'local-1')
+                build.assert_called_once()
+
     def test_local_job_is_observable_while_active_and_updates_its_receipt_on_exit(self):
         import workspace_storage
         helper = router()
@@ -205,6 +244,7 @@ class DryRunTransportTest(unittest.TestCase):
             helper.ROOT = Path(temporary)
             helper.STATE = helper.ROOT / '.remote-dev'
             helper.STATE.mkdir()
+            (helper.STATE / 'config.json').write_text('{"worker_slots": 1}')
             with (helper.STATE / 'local-gradle.lock').open('a') as local:
                 fcntl.flock(local, fcntl.LOCK_EX)
                 def worker_build(*args, **kwargs):
@@ -226,6 +266,7 @@ class DryRunTransportTest(unittest.TestCase):
             helper.ROOT = Path(temporary)
             helper.STATE = helper.ROOT / '.remote-dev'
             helper.STATE.mkdir()
+            (helper.STATE / 'config.json').write_text('{"worker_slots": 1}')
             with (helper.STATE / 'worker-gradle.lock').open('a') as worker:
                 fcntl.flock(worker, fcntl.LOCK_EX)
                 with patch.object(helper, 'local_capacity', side_effect=[(False, 'busy'), (True, 'free')]), \
@@ -386,7 +427,7 @@ class DryRunTransportTest(unittest.TestCase):
                         receipt = finish.call_args.args[0]
                         self.assertEqual(metadata, ':exportBuildModel' in receipt['remote_tasks'])
                         self.assertEqual(arguments, receipt['tasks'])
-                        payload = json.loads(remote.call_args.kwargs['input'])
+                        payload = json.loads(remote.call_args.kwargs['input'])['environment']
                         self.assertEqual('/fixture/java' if runtime else '/Users/ovd/Library/Java/JavaVirtualMachines/corretto-21.0.8/Contents/Home', payload['JAVA_HOME'])
                         command = remote.call_args.args[3]
                         self.assertEqual(runtime, '-Dorg.gradle.java.home=/fixture/java' in command)
@@ -423,7 +464,7 @@ class DryRunTransportTest(unittest.TestCase):
                  patch.object(helper, 'remote_python') as remote, \
                  patch.object(helper, 'finish_build', return_value=0):
                 self.assertEqual(0, helper.build('reaktor', '.', ['help'], synchronize=False))
-                payload = json.loads(remote.call_args.kwargs['input'])
+                payload = json.loads(remote.call_args.kwargs['input'])['environment']
                 self.assertEqual(helper.REMOTE + '/reaktor/product', payload['FIXTURE_XCODE_VALUE'])
                 self.assertEqual('', payload['FIXTURE_OPTION'])
                 self.assertEqual('true', payload['ORG_GRADLE_PROJECT_fixture.feature'])
@@ -848,9 +889,6 @@ class DryRunTransportTest(unittest.TestCase):
                 'build/dependeasy/generated-package-scripts.json': {'obsolete': True},
                 'build/dependeasy/apple/host.json': {'schema': 1, 'targets': [{'name': 'fixtureApp'}]},
                 'build/dependeasy/release/fixture.json': {'schema': 1, 'product': 'fixture'},
-                'build/dependeasy/dagger-reference/pipeline.json': {'schema': 1, 'build': 'fixture', 'targets': []},
-                'dagger/build/dependeasy/dagger-reference/pipeline.json': {'schema': 1, 'build': 'fixture', 'targets': []},
-                'dagger/build/dependeasy/dagger-reference/other.json': {'unrelated': True},
                 'config/apple-host/Bootstrap.swift': 'fixture',
                 'config/apple-host/fixtureApp-Debug.xcconfig': 'fixture',
                 'config/apple-host/fixtureApp-Release.xcconfig': 'fixture',
@@ -858,7 +896,7 @@ class DryRunTransportTest(unittest.TestCase):
                 'build/dependeasy/apple/Signing.local.xcconfig': 'private',
             }
             decoys = {'build/dependeasy/generated-package-scripts.json', 'build/dependeasy/apple/signing-request.json',
-                      'build/dependeasy/apple/Signing.local.xcconfig', 'dagger/build/dependeasy/dagger-reference/other.json'}
+                      'build/dependeasy/apple/Signing.local.xcconfig'}
             declared = sorted(set(artifacts) - decoys)
             hosts = base / 'build/dependeasy/remote/hosts.json'
             hosts.parent.mkdir(parents=True)
@@ -886,7 +924,7 @@ class DryRunTransportTest(unittest.TestCase):
                 files = helper.pull('bestbuds', 'web-fixture', family='web', metadata=True)
             self.assertEqual(set(declared) | {'build/dependeasy/remote/hosts.json'}, set(files))
             self.assertEqual(artifacts['targets/worker/package.json'], json.loads((helper.ROOT / 'bestbuds/targets/worker/package.json').read_text()))
-            # Transport reads only hosts.json; the owning Dagger consumer validates its content.
+            # Transport reads only hosts.json; the owning consumer validates its content.
             for location in ('../escape.json', '/escape.json'):
                 policy['publicOutputs'][':publish'] = [location]
                 hosts.write_text(json.dumps(policy))
@@ -1056,7 +1094,58 @@ class WorkerSlotTest(unittest.TestCase):
         helper.STATE = helper.ROOT / '.remote-dev'
         (helper.STATE / 'logs').mkdir(parents=True)
         helper.CONFIG['worker_slots'] = slots
+        (helper.STATE / 'config.json').write_text(json.dumps(helper.CONFIG))
         return helper
+
+    def test_a_waiting_router_observes_an_added_lane_without_relaunch(self):
+        with TemporaryDirectory() as temporary:
+            helper = self.helper(temporary, slots=1)
+            def add_lane(_):
+                (helper.STATE / 'config.json').write_text(json.dumps(dict(helper.CONFIG, worker_slots=2)))
+            with (helper.STATE / 'worker-gradle.lock').open('a') as active:
+                fcntl.flock(active, fcntl.LOCK_EX)
+                with patch.object(helper, 'worker_admission', return_value=(True, 'fixture capacity')) as admission, \
+                     patch.object(helper, 'slot_build', return_value=0) as build, \
+                     patch.object(helper.time, 'sleep', side_effect=add_lane) as pause, \
+                     contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(0, helper.queued_worker_gradle('bestbuds', '.', ['help']))
+            self.assertEqual(1, helper.CONFIG['worker_slots'])
+            pause.assert_called_once_with(5)
+            admission.assert_called_once_with(1)
+            self.assertEqual(1, build.call_args.args[3])
+
+    def test_a_removed_lane_stops_new_admission_without_releasing_active_work(self):
+        with TemporaryDirectory() as temporary:
+            helper = self.helper(temporary, slots=2)
+            with (helper.STATE / 'worker-gradle.lock').open('a') as active:
+                fcntl.flock(active, fcntl.LOCK_EX)
+                with patch.object(helper, 'worker_admission', return_value=(True, 'fixture capacity')) as admission:
+                    claimed, _ = helper.claim_worker_slot()
+                    self.assertEqual(1, claimed[0])
+                    claimed[1].close()
+                    admission.reset_mock()
+                    (helper.STATE / 'config.json').write_text(json.dumps(dict(helper.CONFIG, worker_slots=1)))
+                    claimed, reason = helper.claim_worker_slot()
+                    self.assertIsNone(claimed)
+                    self.assertIn('occupied', reason)
+                    admission.assert_not_called()
+                    with (helper.STATE / 'worker-gradle.lock').open('a') as observed:
+                        with self.assertRaises(BlockingIOError):
+                            fcntl.flock(observed, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+    def test_explicit_lane_override_is_retained_and_invalid_current_counts_refuse_admission(self):
+        with TemporaryDirectory() as temporary:
+            helper = self.helper(temporary, slots=1)
+            (helper.STATE / 'config.json').write_text(json.dumps(dict(helper.CONFIG, worker_slots=4)))
+            with patch.object(helper, 'worker_admission') as admission:
+                with self.assertRaisesRegex(ValueError, 'between 1 and 3'):
+                    helper.claim_worker_slot()
+                admission.assert_not_called()
+            with patch.dict(os.environ, {'REMOTE_DEV_WORKER_SLOTS': '2'}):
+                self.assertEqual(2, helper.worker_slot_count())
+            with patch.dict(os.environ, {'REMOTE_DEV_WORKER_SLOTS': '4'}):
+                with self.assertRaisesRegex(ValueError, 'between 1 and 3'):
+                    helper.worker_slot_count()
 
     def test_a_second_job_runs_in_a_free_worker_slot_while_the_first_holds_the_worker(self):
         with TemporaryDirectory() as temporary:
@@ -1179,7 +1268,7 @@ class WorkerSlotTest(unittest.TestCase):
                  patch.object(helper, 'finish_build', return_value=0) as finish:
                 with helper.worker_slot(1, 'changed-files', prepare=False):
                     self.assertEqual(0, helper.build('reaktor', '.', ['help'], synchronize=False))
-            payload = json.loads(remote.call_args.kwargs['input'])
+            payload = json.loads(remote.call_args.kwargs['input'])['environment']
             command = remote.call_args.args[3]
             receipt = finish.call_args.args[0]
             self.assertEqual(slot + '/.remote-dev', payload['REMOTE_DEV_JOB_ROOT'])

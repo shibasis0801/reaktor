@@ -23,11 +23,6 @@ sealed interface KernelSpec {
         val outputEnvironment: String?, val library: FileSet, val api: FileSet, val java: ToolRef, val profiler: ToolRef, val run: Run) : KernelSpec
     @Serializable data class BuildModelExport(val build: String, val version: String, val directories: Map<String, String>,
         val declarations: FileSet, val includedModels: FileSet, val output: FileSet, val routing: FileSet) : KernelSpec
-    @Serializable data class DaggerPipeline(val build: String, val engineVersion: String,
-        val gradleProperties: Map<String, String>, val environment: Map<String, String>, val toolchain: DaggerToolchainContract,
-        val output: FileSet, val sharedDirectory: FileSet, val sharedMetadata: Map<String, String>) : KernelSpec
-    @Serializable data class ContainerNode(val node: NodeId?, val environment: Environment?,
-        val model: FileSet, val output: FileSet) : KernelSpec
     @Serializable data class PackageScripts(val targets: Map<String, PackageAlias>, val extraAliases: Map<String, PackageScriptInvocation>,
         val additionalAliases: Map<String, Map<String, PackageScriptInvocation>>, val output: FileSet,
         val packageContracts: Map<String, FileSet> = emptyMap(),
@@ -47,8 +42,6 @@ sealed interface KernelSpec {
     @Serializable data class WebResources(val sources: FileSet, val output: FileSet) : KernelSpec
     @Serializable data class KotlinPackage(val sources: FileSet, val destination: FileSet, val dependencies: FileSet, val receipt: FileSet) : KernelSpec
     @Serializable data class Prefab(val archive: FileSet, val checksum: String, val module: String, val output: FileSet) : KernelSpec
-    @Serializable data class PulumiSdk(val provider: String, val version: String, val server: String, val executable: String,
-        val tool: ToolRef, val output: FileSet) : KernelSpec
     @Serializable data class KotlinTemplate(val template: FileSet, val assets: Map<String, FileSet>, val output: FileSet) : KernelSpec
     @Serializable data class KotlinExportCatalog(val directories: FileSet, val output: FileSet) : KernelSpec
     @Serializable data class WorkerFleet(val delivery: Delivery, val workers: List<FleetWorker>,
@@ -123,7 +116,6 @@ sealed interface KernelSpec {
     @Serializable data class WranglerDeploy(val deployment: WorkerDeploySpec) : KernelSpec
     @Serializable data class WorkerSecrets(val secrets: WorkerSecretsSpec) : KernelSpec
     @Serializable data class DatabaseMigration(val migration: MigrationSpec, val tool: ToolRef) : KernelSpec
-    @Serializable data class PulumiStack(val infrastructure: PulumiStackSpec) : KernelSpec
     @Serializable data class ServerImageBuild(val image: ServerImageSpec) : KernelSpec
     @Serializable data class ServerImagePush(val image: ServerImageSpec, val built: String) : KernelSpec
     @Serializable data class ServerRollout(val deployment: ServerRolloutSpec, val published: String) : KernelSpec
@@ -144,8 +136,6 @@ sealed interface KernelSpec {
 fun KernelSpec.tools(): List<ToolRef> = when (this) {
     is KernelSpec.DarwinArchive -> if (verification) emptyList() else AppleArchiveTools.tools
     is KernelSpec.GradleInvocation -> listOf(tool)
-    is KernelSpec.PulumiSdk -> listOf(tool)
-    is KernelSpec.PulumiStack -> listOf(infrastructure.execution.tool)
     is KernelSpec.Profile -> listOf(java, profiler)
     is KernelSpec.JvmProgram -> listOfNotNull(java)
     is KernelSpec.JvmCommand -> listOfNotNull(java)
@@ -183,5 +173,5 @@ fun KernelSpec.tools(): List<ToolRef> = when (this) {
     is KernelSpec.ReleasePlan, is KernelSpec.SigningXcconfig,
     is KernelSpec.InstallTool, is KernelSpec.WorkerFleet, is KernelSpec.KotlinTemplate, is KernelSpec.KotlinExportCatalog,
     is KernelSpec.WebContract, is KernelSpec.WebResources, is KernelSpec.KotlinPackage, is KernelSpec.Prefab, is KernelSpec.BuildModelExport,
-    is KernelSpec.DaggerPipeline, is KernelSpec.ContainerNode, is KernelSpec.PackageScripts -> emptyList()
+    is KernelSpec.PackageScripts -> emptyList()
 }

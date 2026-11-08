@@ -262,13 +262,6 @@ object BuildModelReader {
                     put("migrationPlan", json.encodeToJsonElement(MigrationKernel.retained(owner, selected.id, spec.environment)))
                 put("deploymentReceipts", json.encodeToJsonElement(WorkerDeployKernel.receipts(owner, selected.id)))
             }
-            if (selected.kernel?.spec is KernelSpec.PulumiStack) {
-                val spec = selected.kernel.spec.infrastructure
-                val owner = root.resolve(model.builds.single { it.name == selected.id.build }.directory)
-                if (PulumiStackKernel.planFile(owner, selected.id, spec.environment).isFile)
-                    put("infrastructurePlan", json.encodeToJsonElement(PulumiStackKernel.retained(owner, selected.id, spec.environment)))
-                put("deploymentReceipts", json.encodeToJsonElement(WorkerDeployKernel.receipts(owner, selected.id)))
-            }
             put("edges", buildJsonArray { model.edges.filter { it.from == selected.id || it.to == selected.id }
                 .forEach { add(json.encodeToJsonElement(Edge.serializer(), it)) } })
             put("omissions", buildJsonArray { model.omissions.filter { it.node == null || it.node == selected.id }
@@ -658,9 +651,6 @@ object BuildModelReader {
     fun readReceipt(file: File): RunReceipt = json.decodeFromString<RunReceipt>(boundedText(file)).also {
         require(it.schema == 1) { "Unsupported Gradle receipt schema" }
         require(it.finishedAtEpochMillis >= it.startedAtEpochMillis) { "Invalid receipt duration" }
-    }
-    fun readPipeline(file: File): DaggerPipelineContract = json.decodeFromString<DaggerPipelineContract>(boundedText(file)).also {
-        require(it.schema == 2) { "Unsupported Dagger pipeline schema" }
     }
     fun readRequest(file: File): GradleRequest = json.decodeFromString<GradleRequest>(boundedText(file)).also {
         require(it.schema == 1) { "Unsupported Gradle request schema" }

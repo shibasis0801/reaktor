@@ -3,7 +3,6 @@ package dev.shibasis.reaktor.tooling
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 
 import com.sun.net.httpserver.HttpServer
-import dev.shibasis.reaktor.tooling.infra.*
 import kotlinx.coroutines.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -14,6 +13,11 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.*
+import dev.shibasis.reaktor.cloud.*
+import dev.shibasis.reaktor.cloud.cloudflare.*
+import dev.shibasis.reaktor.cloud.http.*
+import dev.shibasis.reaktor.cloud.kubernetes.*
+import dev.shibasis.reaktor.tooling.operation.*
 
 class NativeInfrastructureTest {
     @Test fun workerReadsRejectWrongAuthorityTargetsAndReceipts() {
@@ -37,7 +41,7 @@ class NativeInfrastructureTest {
     @Test fun workerWritesCannotBeExecutedUnderAReadApprovalPolicy() {
         val write=WorkerOperationDescriptor("formation.commit","circle-formation","write",30_000)
         val catalog=WorkerOperationCatalog(worker="circle-formation",environment="dev",operations=listOf(write))
-        catalog.requireOperation("dev",write.id,SafetyClass.ProductionReversibleWrite)
+        catalog.requireOperation("dev", write.id, SafetyClass.ProductionReversibleWrite.workerEffect())
         assertFails { catalog.requireRead("dev",write.id) }
         val root=Files.createTempDirectory("worker-write-plan").toFile()
         try {
@@ -46,7 +50,7 @@ class NativeInfrastructureTest {
                 expectedEffect=SafetyClass.ProductionReversibleWrite,inputFile=input.path,inputDigest="reviewed")
             val retained = Json.encodeToString(operation).replace("\"expectedEffect\":\"ProductionReversibleWrite\"", "\"expectedEffect\":\"Write\"")
             assertEquals(operation, Json.decodeFromString<InfrastructureOperation.WorkerCall>(retained))
-            assertFails { catalog.requireOperation("dev", write.id, SafetyClass.Destructive) }
+            assertFails { catalog.requireOperation("dev", write.id, SafetyClass.Destructive.workerEffect()) }
             assertFails { NativeExecutionRequest.create(operation.copy(expectedEffect = SafetyClass.UnknownRemoteEffect),root,TaskId("write"),SafetyPolicy(SafetyClass.Destructive),emptyMap(),1000) }
             assertFails { NativeExecutionRequest.create(operation,root,TaskId("write"),SafetyPolicy(SafetyClass.LiveRead),emptyMap(),1000) }
             val preview=NativeExecutionRequest.create(operation,root,TaskId("write"),SafetyPolicy(SafetyClass.NonProductionWrite),emptyMap(),1000)

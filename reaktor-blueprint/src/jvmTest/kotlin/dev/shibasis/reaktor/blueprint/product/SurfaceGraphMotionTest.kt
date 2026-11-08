@@ -47,6 +47,113 @@ import kotlin.test.assertTrue
 
 class SurfaceGraphMotionTest {
     @Test
+    fun cardFillsSurviveDetailChangesAndRefreshWithoutChangingTheTone() = runBlocking(Dispatchers.Swing) {
+        var fill by mutableStateOf<Color?>(null)
+        var face by mutableStateOf(dev.shibasis.reaktor.blueprint.BlueprintFace.Prose)
+        val card = Card("task", 80.0, 80.0, 320.0, 200.0, emptyList(), 0)
+        val layout = BlueprintLayout(Unit, mapOf(card.id to card), emptyList(), emptyList(), 480.0, 360.0)
+        val canvas = GraphCanvasState(.01..2.0)
+        val scene = ImageComposeScene(640, 480, Density(1f), coroutineContext = Dispatchers.Unconfined) {
+            BlueprintCanvas(layout, canvas, emptySet(), null,
+                linkStyle = { dev.shibasis.reaktor.blueprint.canvas.LinkStyle(Color.Magenta) },
+                frameLook = { BlueprintFrameLook(SurfaceGraphSymbol, "") },
+                cardLook = { BlueprintCardLook(Color.Magenta, SurfaceGraphSymbol, "", "", face = face, fill = fill) },
+                onCardClick = {}, onLinkClick = {}, onPaneClick = {}, modifier = Modifier.fillMaxSize(), initialFit = {})
+        }
+        var time = 0L
+        suspend fun pixel(): Int {
+            Snapshot.sendApplyNotifications()
+            repeat(2) {
+                time += 16_666_667L
+                scene.render(time).close()
+                delay(2)
+            }
+            time += 16_666_667L
+            val image = scene.render(time)
+            val pixels = ImageIO.read(ByteArrayInputStream(image.encodeToData(EncodedImageFormat.PNG)!!.bytes))
+            image.close()
+            return pixels.getRGB(320, 240)
+        }
+        try {
+            for (kind in listOf(dev.shibasis.reaktor.blueprint.BlueprintFace.Prose, dev.shibasis.reaktor.blueprint.BlueprintFace.Code)) {
+                face = kind
+                for (zoom in listOf(1.0, .5, .2, .05)) {
+                    canvas.restore(320.0 - 240.0 * zoom, 240.0 - 180.0 * zoom, zoom)
+                    fill = null
+                    val normal = pixel()
+                    for (color in listOf(Color(0xFF66532C), Color(0xFF493363), Color(0xFF294D3C), Color(0xFF414650))) {
+                        fill = color
+                        assertEquals(color.toArgb(), pixel(), "card fill lost at face=$kind, zoom=$zoom")
+                    }
+                    fill = null
+                    assertEquals(normal, pixel(), "default card fill did not return at face=$kind, zoom=$zoom")
+                }
+            }
+        } finally { scene.close() }
+    }
+
+    @Test
+    fun wiresRemainVisibleWhilePanningAndZoomingAcrossCachedWindows() = runBlocking(Dispatchers.Swing) {
+        wirePixels(dev.shibasis.reaktor.blueprint.canvas.LinkStyle(Color.Magenta, width = 40f, alpha = 1f), 1f,
+            listOf(1.0, .9, .8, .65, .4, .2, .1, .05, .1, .2, .4, .8, 1.0, 2.0, 4.0, 8.0, 16.0, 1.0),
+            listOf(0.0, 40.0, 100.0, 300.0, -100.0, -400.0, 2000.0, -2000.0, 0.0), listOf(0.0))
+    }
+
+    @Test
+    fun thinWiresStayVisibleAtEveryZoomAndPixelAlignment() = runBlocking(Dispatchers.Swing) {
+        val style = dev.shibasis.reaktor.blueprint.canvas.LinkStyle(Color.Magenta, width = 1.5f, alpha = .6f)
+        for (density in listOf(1f, 2f)) {
+            for (pen in listOf(style, style.copy(dash = 7f to 5f), style.copy(dash = 7f to 5f, flowing = true), style.copy(lifted = true))) {
+                wirePixels(pen, density, listOf(1.0, .2, .05, .01, 1.0), listOf(0.0, 500.0), listOf(0.0, .25, .5, .75))
+            }
+        }
+    }
+
+    private suspend fun wirePixels(style: dev.shibasis.reaktor.blueprint.canvas.LinkStyle, density: Float,
+                                   zooms: List<Double>, pans: List<Double>, phases: List<Double>) {
+        val cards = listOf(
+            Card("source", -100020.0, -40.0, 20.0, 80.0, emptyList(), 0),
+            Card("target", 100000.0, -40.0, 20.0, 80.0, emptyList(), 0),
+        ).associateBy { it.id }
+        val link = dev.shibasis.reaktor.blueprint.Link("wire", "source", "target", null, null,
+            dev.shibasis.reaktor.blueprint.LinkKind.Wire, listOf("wire"), listOf(-100000.0 to 0.0, 100000.0 to 0.0))
+        val layout = BlueprintLayout(Unit, cards, emptyList(), listOf(link), 200040.0, 80.0)
+        val canvas = GraphCanvasState(.002..16.0)
+        val scene = ImageComposeScene((640 * density).toInt(), (480 * density).toInt(), Density(density), coroutineContext = Dispatchers.Unconfined) {
+            BlueprintCanvas(layout, canvas, emptySet(), null,
+                linkStyle = { style }, frameLook = { BlueprintFrameLook(SurfaceGraphSymbol, "") }, cardLook = { null },
+                onCardClick = {}, onLinkClick = {}, onPaneClick = {}, modifier = Modifier.fillMaxSize(),
+                initialFit = {})
+        }
+        var time = 0L
+        suspend fun frame(): java.awt.image.BufferedImage {
+            Snapshot.sendApplyNotifications()
+            time += 16_666_667L
+            val image = scene.render(time)
+            val pixels = ImageIO.read(ByteArrayInputStream(image.encodeToData(EncodedImageFormat.PNG)!!.bytes))
+            image.close()
+            delay(2)
+            return pixels
+        }
+        try {
+            repeat(3) { frame() }
+            for (zoom in zooms) for (x in pans) for (phase in phases) {
+                canvas.restore(320.0 - x * zoom, 240.0 + phase / density, zoom)
+                val image = frame()
+                val bright = ((160 * density).toInt() until (480 * density).toInt()).count { px ->
+                    ((232 * density).toInt() until (248 * density).toInt()).any { py ->
+                        val rgb = image.getRGB(px, py)
+                        val green = rgb ushr 8 and 255
+                        (rgb ushr 16 and 255) - green > 20 && (rgb and 255) - green > 20
+                    }
+                }
+                assertTrue(bright > 100 * density,
+                    "wire missing at zoom=$zoom, world x=$x, pixel phase=$phase, density=$density, style=$style: $bright visible columns")
+            }
+        } finally { scene.close() }
+    }
+
+    @Test
     fun readOnlyBlueprintHooksKeepRowIdentityWithoutClickNavigationOrChangingPlacement() = runBlocking(Dispatchers.Swing) {
         val nodes = listOf(SurfaceGraphNode("source", "Source", "Book", scope = "group", rows = listOf(SurfaceGraphRow("unit", "Unit", "unit-key", aliases = listOf("unit-alias")))))
         val appearance = SurfaceGraphAppearance(Color.White, Color.White, Color.Black, Color.Gray, Color.Gray, Color.Blue)

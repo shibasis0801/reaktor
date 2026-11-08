@@ -206,4 +206,35 @@ class SpanPipelineTest {
     fun anEmptyBatchEncodesToAnEmptyDocumentRatherThanFailing() {
         assertEquals("""{"resourceSpans":[]}""", OtlpJsonSpans.encode(emptyList()))
     }
+
+    @Test
+    fun causalLinksAndSafeEventNamesReachOtlpWithoutPayloads() = runTest {
+        val transport = RecordingTransport()
+        val installation = createReaktorOpenTelemetry("svc", transport, backgroundScope)
+        val tracer = installation.openTelemetry.tracerProvider.getTracer("reaktor")
+        val producer = tracer.startSpan("produce")
+        val consumer = tracer.startSpan("consume") {
+            addLink(producer.spanContext) { setStringAttribute("body", "private link value") }
+            addEvent("navigation:/chat/private-id", timestamp = 1_760_000_000_000_000_123L)
+            addEvent("queue.receive") { setStringAttribute("body", "private event value") }
+            addEvent("private unregistered event")
+        }
+        producer.end()
+        consumer.end()
+        installation.flush()
+
+        val payload = transport.batches.single()
+        assertTrue("private" !in payload)
+        val spans = Json.parseToJsonElement(payload).jsonObject.getValue("resourceSpans").jsonArray.single()
+            .jsonObject.getValue("scopeSpans").jsonArray.single().jsonObject.getValue("spans").jsonArray
+        val encoded = spans.map { it.jsonObject }.single { it.getValue("name").jsonPrimitive.content == "consume" }
+        val link = encoded.getValue("links").jsonArray.single().jsonObject
+        assertEquals(producer.spanContext.traceId, link.getValue("traceId").jsonPrimitive.content)
+        assertEquals(producer.spanContext.spanId, link.getValue("spanId").jsonPrimitive.content)
+        val events = encoded.getValue("events").jsonArray.map { it.jsonObject }
+        assertEquals(listOf("graph.navigation", "queue.receive"), events.map { it.getValue("name").jsonPrimitive.content })
+        val time = events.first().getValue("timeUnixNano").jsonPrimitive
+        assertTrue(time.isString)
+        assertEquals("1760000000000000123", time.content)
+    }
 }

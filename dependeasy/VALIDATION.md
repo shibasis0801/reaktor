@@ -108,7 +108,7 @@ corrected. That run was stopped with exit 143 after the failures. The explicit
 Gradle-owned lock update passes: receipt `20261010-221341-bestbuds`, 161 tasks in
 14s, with the new lock copied successfully. The production qualification now
 checks design/app tests, Android debug, browser distribution, the Apple arm64 debug
-framework, current docs and generated graph/Dagger/package adapters. Receipt
+framework, current docs and generated graph/package adapters. Receipt
 `20261010-221844-bestbuds` completes Android debug, the Apple arm64 debug framework,
 the current documentation site, graph and adapter generation. Its 33 fresh JVM
 suites contain 264 tests with zero failures, errors or skips. The only failed task
@@ -360,7 +360,7 @@ generated-asset and final Graph Port adapter changes. Evidence:
 
 The BestBuds follow-up passes in `declarative-product-qualification-5.log`: server
 `bootJar`, packaged desktop database runtime probe, kernel/CLI/server tests,
-arm64 Debug framework, generated Dagger/aliases and graph. Its 534 selected tasks
+arm64 Debug framework, generated aliases and graph. Its 534 selected tasks
 complete in 6m 36s. The receipt's fresh XML contains 250 tests, zero failures and
 12 skips; reused reports are excluded. The full product suites remain a separate
 qualification. `declarative-qualified-test-results.json` records the run windows.
@@ -530,15 +530,10 @@ Both Macs have Java 25.0.2 and Xcode 26.6 / Swift 6.3.3. Java 25 runs builds and
 product JVMs; Android emits Java/Kotlin 21 bytecode. Dependeasy and the explicitly
 compatible framework tooling modules retain 21 bytecode while compiling with 25.
 Swift 6.4 is the recommended compiler in the contract; it has not replaced the
-compiler bundled with Xcode. The Linux Java 25 build image is pinned by OCI digest;
-its JDK patch level differs from the Macs, and apt repositories remain mutable.
+compiler bundled with Xcode.
 
 The normal wrappers serialize workspace synchronization, execution, and artifact
-transfer, and choose this Mac or M1 according to load. Container builds use Dagger
-through the worker Docker context. The Linux adapter now budgets a single 2 GiB
-Gradle/compiler process and one worker instead of inheriting the Mac compiler heap.
-Gradle file watching is disabled in ephemeral containers. The adapter persists
-the content-addressed pnpm store beside its shared Gradle and Kotlin/Native caches. The generated workspace and Linux JVM suites have exercised these choices in the worker Docker VM. Static TypeScript validation alone is insufficient.
+transfer, and choose this Mac or M1 according to load.
 
 ## Worker experiment reconciliation
 
@@ -564,7 +559,7 @@ Each result below refers to its named run, rather than old XML left in a build t
 
 | Check | Result | Evidence |
 | --- | --- | --- |
-| Dependeasy foundation and workspace | **31 tests / 17 suites pass**, 37 seconds | `dependeasy-owner-workspace-final-5.log`, `dependeasy-owner-workspace-results-final.json`; lazy DAG/artifacts, pnpm/SwiftPM/CMake, configuration-cache reuse, tool/source pins, bounded cleanup, runtime helpers, Dagger engine drift, generated aliases and delivery metadata, package inventory, included-build ownership, export-context preservation and generated web asset ordering/incrementality. All suites are fresh, dated 00:04–00:05 UTC |
+| Dependeasy foundation and workspace | **31 tests / 17 suites pass**, 37 seconds | `dependeasy-owner-workspace-final-5.log`, `dependeasy-owner-workspace-results-final.json`; lazy DAG/artifacts, pnpm/SwiftPM/CMake, configuration-cache reuse, tool/source pins, bounded cleanup, runtime helpers, generated aliases and delivery metadata, package inventory, included-build ownership, export-context preservation and generated web asset ordering/incrementality. All suites are fresh, dated 00:04–00:05 UTC |
 | BestBuds artifacts | **Pass**, 17m 7s | `bestbuds-artifacts-elegance-final.log`; debug/release APKs, release AAB, iOS arm64 release framework, desktop JAR, server JAR; `-Pbestbuds.devTools=false` |
 | BestBuds app and kernel JVM tests | **262 and 234 pass**, 11 kernel skips | `bestbuds-test-elegance-final.log`; Node and desktop qualification failed separately in this run |
 | BestBuds app Node tests | **286 tests / 35 suites pass** | `bestbuds-web-node-context-final-3.log`, `bestbuds-node-context-results-final.json`; fresh suites dated 23:30 UTC qualify per-file Coil/Skiko runtime resolution and actual Kotlin export dependency context |
@@ -577,21 +572,15 @@ Each result below refers to its named run, rather than old XML left in a build t
 | Hangar Build source | **Three tests pass on M1**, 1m 34s | `hangar-build-source-worker-final-2.log`, `hangar-build-source-worker-results-final.json`; fresh worker run `20261010-060231-bestbuds` qualifies synchronized source, declared schema, included-build scopes, task identity/deduplication and cross-build edges. The source/test package is `buildgraph`. Earlier Mac Android debug/lint also passes |
 | Fastlane launcher and release domains | **Version/lanes checks and 15 release tests pass** | `fastlane-owner-version-final.log` (2.237.0), `fastlane-domains-lanes-final.log`, `fastlane-domains-release-final-4.log` (101 assertions); shared frozen launcher/artifact helpers, production Gradle web entrypoint, exact SwiftPM uploader directory, symbol receipts and failure ordering |
 | JavaScript process and worker deployment | **Six tests pass**, 1.1 seconds | `javascript-process-owner-final.log`; literal environment parsing, ordered child-only environment files, exit/launch failure propagation, signal listener cleanup, Wrangler cancellation and immutable temporary configuration |
-| Worker graph/adapter transfer | **Collector/merge and transfer lifecycle fixtures pass** | `remote-workspace-outputs-fixture.log`, `remote-transfer-lifecycle-fixture.log`; graph reports transfer on failed builds, Dagger and generated alias reports transfer on success, cache/path exclusions remain enforced, alias merging preserves local authored edits, dependencies, metadata and permissions. Actual worker generation passes in 44 seconds. `worker-workspace-output-transfer-recovery-final.log` and receipt `20261010-045806-bestbuds` qualify transfer of 81,326 paths with no copy error, including graph/Dagger/alias outputs and relative export links. A temporary file-list lifetime bug was corrected and empty transfers now fail |
+| Worker graph/adapter transfer | **Collector/merge and transfer lifecycle fixtures pass** | `remote-workspace-outputs-fixture.log`, `remote-transfer-lifecycle-fixture.log`; graph reports transfer on failed builds, generated alias reports transfer on success, cache/path exclusions remain enforced, alias merging preserves local authored edits, dependencies, metadata and permissions. Actual worker generation passes in 44 seconds. `worker-workspace-output-transfer-recovery-final.log` and receipt `20261010-045806-bestbuds` qualify transfer of 81,326 paths with no copy error, including graph/alias outputs and relative export links. A temporary file-list lifetime bug was corrected and empty transfers now fail |
 | Packaged agent distribution transfer | **M1 build and scoped resume pass**, 13 seconds / 40 build tasks, 244 transferred paths | `remote-agent-distribution-worker-final-2.log`, `remote-agent-distribution-worker-resume-final-2.log`, `remote-agent-distribution-results-final.json`; receipt `20261010-061051-reaktor` returns exit 0 without copy error. All 240 delivered libraries match the worker snapshot by SHA-256, only one Conductor jar remains and the actual launcher selects Java 25.0.2. A stale library canary is removed and unlisted resumed-snapshot output never enters the checkout. `remote-agent-distribution-fixture.log` also covers mixed/all/JVM requests, preserved launchers, Android scoping, failed builds and unselected cached distributions |
 | Delivered Conductor package | **Copied-package Echo smoke passes**, zero model executions | `/Users/ovd/dev/.remote-dev/engineering-tools-invocation-20261010.json` and `engineering-tools-packaged-helper-20261010.json`; independently verified against delivered worker run `20261010-061051-reaktor`, outside the checkout. Help, info, submit/read/wait, replay, context, memory, runs and orderly owner shutdown pass, with one retained Echo run. The first invocation/startup slice is qualified; wider Gate 1, A2A and unified Hangar ownership remain pending |
 | Fresh BestBuds full root build | **Fails**, 53m 1s / 3756 tasks | `bestbuds-build-workspace-final-2.log`; eight engine failures, desktop behavior failures and the desktop MCP backend contract remain. It also exposed per-file Coil/Skiko Node resolution and generated deployment-alias discovery regressions; both build-layer fixes now pass targeted qualification. 2423 tasks executed, 356 from cache and 977 up-to-date |
-| Linux SDK provisioning | **Pass** on pinned amd64 image | `dagger-linux-framework-final-8.log`; current Android CLI installs pinned SDK/NDK/CMake packages; that run later lost the Gradle daemon |
 | Dependency boundaries | **Linux integration fixture passes** | `dependeasy-boundary-linux-final.log`; lazy resolution, project coordinates/module suffixes, configuration-cache reuse, forbidden dependencies fail. Included in the passing full Mac owner suite |
 | Packaged runtime helpers | **Two Linux tests pass**, 3m 4s | `dependeasy-packaged-runtime-linux-final.log`; executable launcher restoration, optional base archive, configuration-cache reuse, jar/access-flag application archive identity. Actual Mac DMG passes in `bestbuds-desktop-dmg-final.log` (3m 46s) |
-| Linux JVM container suite | **Pass**, 8m 22s / 209 executed tasks with Coil alignment | `dagger-linux-framework-final-13.log`; Reaktor core, graph, performance suites. Frozen pnpm installation completes in 4.8 seconds with all 465 packages reused. Run 11 lost its daemon during cold pnpm installation; the VM kernel confirmed an OOM kill. Run 12 corrected the compiler strategy through Gradle's project-property system and also passed |
 | Karakum generation | **Pass**, 523 nodes covered, zero uncovered | `karakum-cloudflare-final.log`; existing Cloudflare schema, TypeScript 6 compiler API, outputs isolated from production sources |
-| Dagger declarations | **Generated worker-VM workspace adapter suite passes**, 5m 37s | `dependeasy-workspace-linux-final-5.log`; workspace, included-build, export-context, pnpm and CMake fixtures. SwiftPM fixture explicitly skips when Swift is absent from the Linux SDK image; Mac SwiftPM qualification passes in the full owner suite. Final generation with cache restoration is recorded separately |
-| Dagger metadata and environment variants | **Two Linux tests pass**, 2m 53s | `dependeasy-generated-bindings-linux-final.log`; generated engine metadata, drift detection, declared environment variants, secret-only single-environment entrypoints, generated worker binding/transfer metadata and configuration-cache reuse |
-| Dagger cache restoration | **Two worker-VM fixtures pass**, 2m 55s; **Mac fixtures pass**, 5 seconds | `dependeasy-dagger-cache-layout-linux-final-2.log`, `dependeasy-dagger-cache-layout-final.log`; explicit build-cache restoration after deleting the reference output, generated metadata/drift checks and configuration-cache reuse. Reference sources and metadata now have disjoint output paths |
-| Workspace generation and drift verification | **Pass with configuration-cache reuse**, 389ms | `workspace-generation-delivery-final-8.log`; Dagger module/metadata, package aliases, included graph export and drift verification; one task executed and 28 up-to-date. Run 7 also restores the Dagger reference from the build cache. Checked-in generated aliases carry only task, effect, worker directory/identity and environment fields; the complete graph stays in its export |
+| Workspace generation and drift verification | **Pass with configuration-cache reuse**, 389ms | `workspace-generation-delivery-final-8.log`; package aliases, included graph export and drift verification; one task executed and 28 up-to-date. Checked-in generated aliases carry only task, effect, worker directory/identity and environment fields; the complete graph stays in its export |
 | Generated web assets | **Linux fixture passes**, 2m 51s; included in the passing full Mac suite | `dependeasy-web-generation-edge-linux-final-2.log`; producer precedes types/bundle, unchanged generated assets stay up-to-date, authored source changes rebuild consumers without reinstalling packages, configuration cache is reused. Empty parent directories do not invalidate source snapshots |
-| Generated Dagger TypeScript | **Pass** | `dagger-generated-typescript-final.log`; actual generated adapter and shared runtime compile with the pinned TypeScript toolchain |
 | Generated deployment discovery | **Nine Reaktor discovery/seal tests pass on M1**, 26 seconds | `reaktor-discovery-worker-source-final-2.log`, `reaktor-discovery-worker-source-results-final.json`; fresh worker run `20261010-060006-reaktor` qualifies synchronized source, generated worker bindings, definition seals, path/command rejection and production approval semantics. The helper lives in the source package `delivery` |
 | BestBuds generated deployment binding | **Targeted catalog E2E passes**, 1m 6s | `bestbuds-gradle-deploy-catalog-final-2.log`; Gradle-owned worker aliases bind both dev and production while retaining review/approval gates. This closes the additional deployment-discovery failure exposed by the full desktop suite |
 | Mixed build execution and graph export | **Two Linux fixtures pass**, 2m 51s | `dependeasy-graph-configuration-linux-final-2.log`; task dependency discovery now snapshots during selected-task configuration, avoiding mutable Gradle model access under execution locks. Included-build execution and export coexist with configuration-cache reuse. Mac fixtures also pass in `dependeasy-delivery-metadata-mac-final.log` (8 seconds); Reaktor and Manna full-root/export follow-ups also pass |
@@ -606,13 +595,11 @@ obsolete packages from changing workspace installation. Generated exports are no
 hand edited. Newly selected module manifests must be represented in the lockfile.
 
 A later worker-only discovery failure exposed source packages named `build`, which
-Git ignored and the worker/Dagger source filters treated as build output. The
+Git ignored and the worker source filters treated as build output. The
 generated deployment helper moved to `tooling.delivery`, and Hangar's reader and
 tests moved to `workbench.buildgraph`; all consumers were updated. The actual
 worker source inventory includes all three files (`build-source-inventory-final.log`).
-The fresh discovery and Hangar suites above pass. Both generated Dagger workspace
-captures also include the implementations in the worker Docker VM, recorded in
-`dagger-discovery-source-capture-final.log` and `dagger-hangar-source-capture-final.log`.
+The fresh discovery and Hangar suites above pass.
 This correction does not establish another full-root build qualification.
 
 Earlier native qualification built Hermes host tools, FlexBuffer/FFI CMake and
@@ -644,9 +631,9 @@ archives use the same explicit release DerivedData directory as the SwiftPM uplo
 BestBuds verification and delivery declarations are inline in the root Dependeasy
 block; the two applied scripts were removed. Root line counts include those
 declarations rather than hiding them in separately applied files.
-The focused `verifyDagger generatePackageScripts buildGraph` check passes in 16s
+A focused package-script and graph check passes in 16s
 (32 tasks, one executed and 31 up-to-date). All 406 exported targets and 2663 Gradle
-task records remain identical, as do the generated Dagger and deployment aliases.
+task records remain identical, as do the generated deployment aliases.
 Evidence: `bestbuds-inline-root-gradle.log` and `inline-root-results.json`.
 
 These comparisons include existing concurrent changes; they are not exclusively
@@ -756,14 +743,6 @@ including Pagefind, TypeScript and Vite. Evidence: `module-manna-build.log`,
 `module-manna-fresh-test-results.json`, `module-manna-web-graph-final.log` and worker
 receipt `20261010-104953-manna`.
 
-The generated Dagger `reaktor-verify` entrypoint passes in the worker Docker VM:
-209 selected Gradle tasks, all executed, with a 17m 50s Gradle run. The client and
-engine are pinned to 0.21.8; the host's default CLI is older and was not used for
-this qualification. This Linux runtime uses x86-64 for the Android tooling and
-therefore runs under emulation on M1. Evidence:
-`module-dagger-linux-verify-pinned.log`. Cold provisioning and emulation are part
-of this run; it is not a before/after performance comparison.
-
 Nine superseded successful local worker-output snapshots were removed after
 preserving current/recovery snapshots, all logs and failure receipts. Measured free
 space rose from 3,958,218,752 to 50,927,362,048 bytes during this cleanup. Source,
@@ -810,7 +789,7 @@ passes in qualification 15 (`manna-domain-full-build-15.log`, receipt
 39510 artifact/report paths. Its 487 fresh Kotlin tests in 93 suites have no
 failures, errors or skips; all 758 API tests and 796 browser tests pass, alongside
 production Vite bundling, Android packaging/lint and all four Apple framework
-links. Generated Dagger, package scripts, build graph and Kotlin export metadata
+links. Generated package scripts, build graph and Kotlin export metadata
 also pass. The newer common rhythm/history/credit extraction is being qualified
 separately in run 16. These checks do not qualify signing or device behavior.
 

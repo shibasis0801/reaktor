@@ -53,6 +53,7 @@ data class PlanNextRequest(
     @Describe("The authenticated agent key or session; cannot select for another agent") @Schema(nullable = false) val agent: String? = null,
     @Describe("An attached seat held by this agent") @Schema(nullable = false) val seat: String? = null,
     @Describe("Atomically take the candidate as a lease, renewed by authenticated activity") val take: Boolean = false,
+    @Describe("Only consider this item key in the named thread; the same readiness, seat and lease rules apply") @Schema(nullable = false) val item: String? = null,
 )
 
 @Serializable
@@ -61,11 +62,12 @@ data class PlanWriteRequest(
     @Describe("hangar:<conversation id>, claude:<session id>, codex:<session id> or agy:<conversation id>; your own session when left out") @Schema(nullable = false) val thread: String? = null,
     @Describe("The plan's name, the request in a few words") @Schema(nullable = false) val title: String? = null,
     @Describe("What done looks like") @Schema(nullable = false) val goal: String? = null,
-    @Describe("add {key, title, detail, kind, status, parent, after, refs, at, priority, reason, replacement}; update {item, title, detail, kind, parent, root, refs, at, priority, reason, replacement}; status {item, status: Todo | Doing | Done | Dropped, reason, replacement}. Dropped requires a nonblank reason; replacement names another item on the plan. Priority is Low, Normal (default), High or Urgent; connect {from, to}, where to waits on from; disconnect {from, to}; relate {from, to, label}, where label says what passes between them, such as reads or calls; unrelate {from, to}; remove {item}; retire-seat {seat, reason} (person only, current base required; refuses bound runs, sessions or work in progress and retains seat history). kind is Component, Task, Check or Decision. Each op is an object with its type, such as {type: \"status\", item: \"api\", status: \"Done\"}")
+    @Describe("add {key, title, detail, previews, kind, status, parent, after, refs, at, priority, reason, replacement}; update {item, title, detail, previews, kind, parent, root, refs, at, priority, reason, replacement}; detail is the shared Markdown note (up to 64000 characters). previews is a list of up to 20 {url, title} HTTP/HTTPS image URLs for the Results gallery (screenshots or diagrams, never websites); omit to keep existing previews, [] to clear them. status {item, status: Todo | Doing | Done | Dropped, reason, replacement, result}. When marking Done, include result {summary, files?} for work performed outside change.apply. Summarize what changed in up to 1000 characters and list up to 20 changed paths (500 characters each). The plan records the caller and time and keeps the latest report across status changes. Dropped requires a nonblank reason; replacement names another item on the plan. Priority is Low, Normal (default), High or Urgent; connect {from, to}, where to waits on from; disconnect {from, to}; relate {from, to, label}, where label says what passes between them, such as reads or calls; unrelate {from, to}; remove {item}; retire-seat {seat, reason} (person only, current base required; refuses bound runs, sessions or work in progress and retains seat history). kind is Component, Task, Check or Decision. Each op is an object with its type, such as {type: \"status\", item: \"api\", status: \"Done\"}")
     @Schema(openItems = true) val ops: List<JsonObject> = emptyList(),
     @Describe("The revision you read") @Schema(minimum = 0, nullable = false) val base: Long? = null,
     @Describe("Your seat when a person attached you to part of this plan") @Schema(nullable = false) val seat: String? = null,
     @Describe("A note to the others on this plan: kept in its log and delivered to them at their next step") @Schema(nullable = false) val message: String? = null,
+    @Describe("Workspace-relative Markdown document under plans/, such as plans/launch.md. Headings with {#item-key} link to matching DAG items. Omit to keep the link; empty string unlinks it. Changing an existing plan's link requires its current base revision.") @Schema(nullable = false) val documentPath: String? = null,
 )
 
 @Serializable

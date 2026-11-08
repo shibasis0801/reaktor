@@ -28,6 +28,11 @@ class Inbound(
 
 class Outbound(val status: Int, val headers: Map<String, String>, val body: String)
 
+sealed interface Opened {
+    class Refused(val outbound: Outbound) : Opened
+    class Streaming(val elements: kotlinx.coroutines.flow.Flow<String>) : Opened
+}
+
 private val HttpMethod.carriesBody: Boolean get() = this == HttpMethod.POST || this == HttpMethod.PUT || this == HttpMethod.PATCH
 
 fun <In> Route.encode(serializer: KSerializer<In>, request: In): Outgoing {

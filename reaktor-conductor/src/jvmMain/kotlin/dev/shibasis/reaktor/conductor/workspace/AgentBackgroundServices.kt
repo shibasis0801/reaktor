@@ -45,7 +45,8 @@ object AgentBackgroundServices {
     fun report(prune: Boolean, out: (String) -> Unit, home: File = File(System.getProperty("user.home")), loaded: Set<String> = loadedLabels(),
                bootout: (String) -> String? = ::bootout) {
         val agents = list(home, loaded)
-        if (agents.isEmpty()) return out("No Reaktor background owners are installed for this user.")
+        val host = AgentServiceHost.describe(home, AgentServiceHost.Label in loaded)?.also(out)
+        if (agents.isEmpty()) return out(if (host == null) "No Reaktor background owners are installed for this user." else "No per-folder owners are installed; the kernel hosts each workspace.")
         val flagged = flagged(agents, home)
         agents.forEach { agent ->
             val problem = agent.problem(home)?.let { "  remove: it ${it.phrase()}" }.orEmpty()
@@ -73,7 +74,7 @@ object AgentBackgroundServices {
             val process = ProcessBuilder("/bin/launchctl", "list").redirectErrorStream(true).start()
             val text = process.inputStream.bufferedReader().readText()
             process.waitFor(10, TimeUnit.SECONDS)
-            text.lineSequence().mapNotNull { it.split('\t').getOrNull(2)?.trim() }.filter { it.startsWith(Prefix) }.toSet()
+            text.lineSequence().mapNotNull { it.split('\t').getOrNull(2)?.trim() }.filter { it.startsWith(Prefix) || it == AgentServiceHost.Label }.toSet()
         }.getOrDefault(emptySet())
     }
 

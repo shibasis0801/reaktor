@@ -111,7 +111,7 @@ object AgentBackgroundService {
 """
     }
 
-    private fun run(command: List<String>): Pair<Int, String> {
+    internal fun run(command: List<String>): Pair<Int, String> {
         val output = Files.createTempFile("reaktor-service-", ".log").toFile()
         return try {
             val process = ProcessBuilder(command).redirectErrorStream(true).redirectOutput(output).start()

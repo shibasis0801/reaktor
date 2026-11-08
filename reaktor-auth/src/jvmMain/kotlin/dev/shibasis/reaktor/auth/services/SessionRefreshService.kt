@@ -27,6 +27,16 @@ import kotlin.time.Duration.Companion.seconds
 data class NewSession(val sessionId: String, val rawRefreshToken: String)
 data class RotatedSession(val session: Session, val rawRefreshToken: String)
 
+enum class RefreshDecision(val signal: String) {
+    Rotated("rotated"), Missing("missing"), Unknown("unknown"), Revoked("revoked"),
+    Expired("expired"), Reused("reused"), SessionMissing("session_missing"), AccessEnded("access_ended"),
+}
+
+sealed interface RefreshRotation {
+    data class Success(val value: RotatedSession) : RefreshRotation
+    data class Refused(val decision: RefreshDecision) : RefreshRotation
+}
+
 /**
  * Real session lifecycle + one-time-use refresh-token rotation with family reuse-detection (RFC 9700),
  * replacing the throwaway `UUID.randomUUID()` refresh. Refresh tokens are high-entropy, hashed at rest
@@ -113,16 +123,20 @@ class SessionRefreshService(
      * Rotate a refresh token. Returns the (session, new raw token) on success; null when invalid/expired.
      * If the presented token was already used (reuse/replay), the entire family is revoked and null is returned.
      */
-    fun rotate(rawRefresh: String, database: Database? = null): RotatedSession? = txn(database) {
+    fun rotate(rawRefresh: String, database: Database? = null): RotatedSession? =
+        (rotateWithDecision(rawRefresh, database) as? RefreshRotation.Success)?.value
+
+    fun rotateWithDecision(rawRefresh: String, database: Database? = null): RefreshRotation = txn(database) {
+        if (rawRefresh.isBlank()) return@txn RefreshRotation.Refused(RefreshDecision.Missing)
         val tokenHash = hash(rawRefresh)
         val token = RefreshTokens.selectAll()
             .where { RefreshTokens.tokenHash eq tokenHash }
             .map { RefreshTokens.toDto(it) }
-            .firstOrNull() ?: return@txn null
+            .firstOrNull() ?: return@txn RefreshRotation.Refused(RefreshDecision.Unknown)
 
         val now = Clock.System.now()
-        if (token.revokedAt != null) return@txn null
-        if (now > token.expiresAt) return@txn null
+        if (token.revokedAt != null) return@txn RefreshRotation.Refused(RefreshDecision.Revoked)
+        if (now > token.expiresAt) return@txn RefreshRotation.Refused(RefreshDecision.Expired)
 
         val firstUse = token.usedAt
         if (firstUse != null && now > firstUse + reuseGrace) {
@@ -130,7 +144,7 @@ class SessionRefreshService(
             RefreshTokens.update({ RefreshTokens.familyId eq UUID.fromString(token.familyId) }) {
                 it[RefreshTokens.revokedAt] = now
             }
-            return@txn null
+            return@txn RefreshRotation.Refused(RefreshDecision.Reused)
         }
 
         // Anchor the window at the FIRST use, so a burst of concurrent refreshes cannot
@@ -145,9 +159,9 @@ class SessionRefreshService(
         val session = Sessions.selectAll()
             .where { Sessions.id eq UUID.fromString(token.sessionId) }
             .map { Sessions.toDto(it) }
-            .firstOrNull() ?: return@txn null
-        if (now > session.expiresAt) return@txn null
-        if (!session.stillAllowed()) return@txn null
+            .firstOrNull() ?: return@txn RefreshRotation.Refused(RefreshDecision.SessionMissing)
+        if (now > session.expiresAt) return@txn RefreshRotation.Refused(RefreshDecision.Expired)
+        if (!session.stillAllowed()) return@txn RefreshRotation.Refused(RefreshDecision.AccessEnded)
 
         val raw = randomRefreshToken()
         RefreshTokens.insert {
@@ -159,7 +173,7 @@ class SessionRefreshService(
                 )
             )
         }
-        RotatedSession(session, raw)
+        RefreshRotation.Success(RotatedSession(session, raw))
     }
 
     fun activeSession(sessionId: String, database: Database? = null): Session? = txn(database) {

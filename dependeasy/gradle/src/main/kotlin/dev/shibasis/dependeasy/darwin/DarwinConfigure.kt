@@ -10,6 +10,7 @@ import org.gradle.kotlin.dsl.invoke
 import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 import org.jetbrains.kotlin.gradle.plugin.mpp.DefaultCInteropSettings
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import org.jetbrains.kotlin.gradle.plugin.mpp.TestExecutable
 
 class DarwinConfigure : Configuration<KotlinNativeTarget>() {
     internal var cinterops: NamedDomainObjectContainer<DefaultCInteropSettings>.() -> Unit = {}
@@ -35,6 +36,7 @@ fun KotlinMultiplatformExtension.darwin(configuration: DarwinConfigure.() -> Uni
             project.registerDarwinInterop(target, sdk, it, dependencies, build)
         }
         target.binaries.configureEach { freeCompilerArgs += "-Xoverride-konan-properties=minVersion.ios=${dev.shibasis.dependeasy.Versions.SDK.targetDarwin}" }
+        target.binaries.withType(TestExecutable::class.java).configureEach { linkerOpts("-lsqlite3") }
         options.targetModifier(target)
         target.compilations.getByName("main").cinterops { options.cinterops(this) }
     }

@@ -95,4 +95,23 @@ class PlanNextTest {
         assertNull(workspace.nextPlan(null, codex).candidate)
         assertTrue(workspace.nextPlan(null, codex).reason.contains("No ready item"))
     }
+
+    @Test fun aNativeHandoffTakesOnlyTheNamedReadyItem() = fixture { workspace ->
+        val thread = "hangar:shared"
+        val store = workspace.plans
+        store.write(thread, PlanPatch(title = "Shared", ops = listOf(
+            PlanOp.Add("Prerequisite", key = "first"),
+            PlanOp.Add("Handoff", key = "handoff", after = listOf("first")),
+            PlanOp.Add("Unrelated", key = "urgent", priority = PlanPriority.Urgent),
+        )), person)
+        assertNull(workspace.nextPlan(thread, codex, take = true, item = "handoff").candidate)
+        assertEquals("first", workspace.nextPlan(thread, claude, take = true, item = "first").candidate?.item?.id)
+        assertNull(workspace.nextPlan(thread, claude, take = true, item = "urgent").candidate)
+        store.write(thread, PlanPatch(ops = listOf(PlanOp.Status("first", PlanStatus.Done))), claude)
+        val handoff = workspace.nextPlan(thread, codex, take = true, item = "handoff").candidate?.item
+        assertEquals("handoff", handoff?.id)
+        assertEquals(codex.session, handoff?.lease?.by?.session)
+        assertNull(workspace.nextPlan(thread, claude, take = true, item = "handoff").candidate)
+        assertEquals(PlanStatus.Todo, store.plan(thread)?.item("urgent")?.status)
+    }
 }

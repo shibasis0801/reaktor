@@ -129,19 +129,20 @@ class TypedKernelExecutionTest {
         val spec = dev.shibasis.dependeasy.model.WorkerDeploySpec(
             dev.shibasis.dependeasy.model.NodeId("fixture", ":workers", "deployFixture"),
             dev.shibasis.dependeasy.model.Environment("dev"), dev.shibasis.dependeasy.model.ServiceRef("fixture-dev"),
-            dev.shibasis.dependeasy.model.ProcessExecution(config.parent, "pnpm", emptyList(), emptyList(),
+            dev.shibasis.dependeasy.model.ProcessExecution(config.parent, dev.shibasis.dependeasy.model.Wrangler.Command, emptyList(), emptyList(),
                 dev.shibasis.dependeasy.model.ToolRef("wrangler", "4.148.0"), emptyList(), emptyList()), "wrangler.json")
         val execute: (dev.shibasis.dependeasy.model.ProcessExecution) -> String = { execution ->
+            assertEquals(dev.shibasis.dependeasy.model.Wrangler.Command, execution.executable)
             val args = execution.arguments
             when {
-                args[2] == "deployments" -> listOf(
+                args[0] == "deployments" -> listOf(
                     """{"created_on":"2026-10-20T09:00:00Z","versions":[{"version_id":"00000000-0000-0000-0000-000000000000","percentage":100}]}""",
                     """{"created_on":"2026-10-21T09:00:00Z","versions":[{"version_id":"$live","percentage":100}]}""",
                 ).let { if (writes % 2 == 0) it else it.reversed() }.joinToString(",", "[", "]")
-                args[2] == "versions" -> """{"id":"$live","annotations":{"workers/message":"$message"},"resources":{"script_runtime":{"compatibility_date":"2026-10-01","compatibility_flags":[]},"bindings":[{"name":"PUBLIC","type":"plain_text","text":"private-value-not-recorded"},{"name":"SECRET","type":"secret_text"}]}}"""
+                args[0] == "versions" -> """{"id":"$live","annotations":{"workers/message":"$message"},"resources":{"script_runtime":{"compatibility_date":"2026-10-01","compatibility_flags":[]},"bindings":[{"name":"PUBLIC","type":"plain_text","text":"private-value-not-recorded"},{"name":"SECRET","type":"secret_text"}]}}"""
                 "--dry-run" in args -> { File(args[args.indexOf("--outdir") + 1]).apply { mkdirs(); resolve("entry.js").writeText("export default {}") }; "" }
-                args[2] == "deploy" -> { assertContains(args, "--no-bundle"); assertEquals("export default {}", File(args[3]).readText()); writes++; live = deployed; message = args[args.indexOf("--message") + 1]; "" }
-                args[2] == "rollback" -> { writes++; live = args[3]; "" }
+                args[0] == "deploy" -> { assertContains(args, "--no-bundle"); assertEquals("export default {}", File(args[1]).readText()); writes++; live = deployed; message = args[args.indexOf("--message") + 1]; "" }
+                args[0] == "rollback" -> { writes++; live = args[1]; "" }
                 else -> error("Unexpected command $args")
             }
         }

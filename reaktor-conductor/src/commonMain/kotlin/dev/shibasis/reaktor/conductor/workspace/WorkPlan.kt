@@ -39,6 +39,15 @@ data class PlanRelation(val to: String, val label: String)
 data class PlanPoint(val x: Double, val y: Double)
 
 @Serializable
+data class PlanPreview(val url: String, val title: String = "")
+
+@Serializable
+data class PlanCompletionReport(val summary: String, val files: List<String> = emptyList())
+
+@Serializable
+data class PlanCompletion(val summary: String, val files: List<String>, val by: BoardActor, val at: Long)
+
+@Serializable
 data class PlanItem(
     val id: String,
     val title: String,
@@ -59,7 +68,14 @@ data class PlanItem(
     val replacement: String? = null,
     val createdAt: Long = 0,
     val lease: PlanLease? = null,
+    val previews: List<PlanPreview> = emptyList(),
+    val completion: PlanCompletion? = null,
+    val workLogs: List<PlanWorkLog> = emptyList(),
 )
+
+/** An authoritative task claim interval; the end is exclusive. Contains no transcript content. */
+@Serializable
+data class PlanWorkLog(val session: String, val startedAt: Long, val endedAt: Long)
 
 @Serializable
 data class PlanSeat(
@@ -93,6 +109,7 @@ data class WorkPlan(
     val createdAt: Long,
     val updatedAt: Long,
     val changes: List<PlanChange> = emptyList(),
+    val documentPath: String? = null,
 ) {
     private val tree by lazy { PlanTree(items) }
 
@@ -177,6 +194,7 @@ sealed interface PlanOp {
         val priority: PlanPriority = PlanPriority.Normal,
         val reason: String = "",
         val replacement: String? = null,
+        val previews: List<PlanPreview> = emptyList(),
     ) : PlanOp
 
     @Serializable @SerialName("update")
@@ -192,10 +210,17 @@ sealed interface PlanOp {
         val priority: PlanPriority? = null,
         val reason: String? = null,
         val replacement: String? = null,
+        val previews: List<PlanPreview>? = null,
     ) : PlanOp
 
     @Serializable @SerialName("status")
-    data class Status(val item: String, val status: PlanStatus, val reason: String? = null, val replacement: String? = null) : PlanOp
+    data class Status(
+        val item: String,
+        val status: PlanStatus,
+        val reason: String? = null,
+        val replacement: String? = null,
+        val result: PlanCompletionReport? = null,
+    ) : PlanOp
 
     @Serializable @SerialName("connect")
     data class Connect(val from: String, val to: String) : PlanOp
@@ -224,6 +249,7 @@ data class PlanPatch(
     val base: Long? = null,
     val seat: String? = null,
     val message: String? = null,
+    val documentPath: String? = null,
 )
 
 @Serializable
@@ -242,7 +268,8 @@ object PlanBrief {
     const val Ops = "ops such as {type: \"add\", key: \"store\", kind: \"Component\", title: \"Plan store\", refs: [\"module:reaktor-conductor\", \"symbol:WorkPlanStore\"]}, " +
         "{type: \"add\", key: \"relations\", title, detail, parent: \"store\", after: [\"model\"], refs: [\"file:path\", \"graph:Name\", \"op:plan.write\", \"flow:F-AGENT-58\"]}, " +
         "{type: \"relate\", from: \"api\", to: \"store\", label: \"writes\"}, {type: \"status\", item, status: \"Doing\" | \"Done\" | \"Dropped\"}, " +
-        "{type: \"update\", item, title, detail, kind, parent, refs, priority: \"Low\" | \"Normal\" | \"High\" | \"Urgent\"} and {type: \"connect\", from, to}, where to waits on from"
+        "{type: \"update\", item, title, detail, previews: [{url, title}], kind, parent, refs, priority: \"Low\" | \"Normal\" | \"High\" | \"Urgent\"} and {type: \"connect\", from, to}, where to waits on from. " +
+        "detail is the shared Markdown note (up to 64000 characters): keep the most important human message here. Results uses previews: a list of up to 20 HTTP/HTTPS image URLs (screenshots, diagrams, PNG, JPEG, WebP or SVG), with optional titles. Point to image content, never a website or HTML page. Empty previews clears them; omit it to keep them. The task sidebar shows only decoded images in a scrolling gallery; non-image content is skipped. Task Logs uses the authenticated run association or owner-recorded claim windows; do not copy full transcripts into the note."
 
     const val Design = "Draw a detailed high-level design, not a to-do list: a Component item for each area the change touches, named after its module, graph, service or screen; " +
         "under each one (parent) the tasks that change it, a Check item for each test or flow that proves it and a Decision item for each choice the owner has to make; " +
@@ -250,24 +277,36 @@ object PlanBrief {
         "and give every item refs to the files, symbols, modules, graphs, operations and flows it touches, found with atlas_query rather than guessed. " +
         "A real change has 3 to 8 components and 15 to 60 items."
 
-    const val Upkeep = "Keep it current while you work: mark the item you are on Doing before you edit for it and Done or Dropped when it ends, since a component's status follows its parts; " +
-        "add the parts, checks and decisions you discover, and move refs when the work moves. An item another agent has Doing is theirs until they let it go; " +
+    const val Upkeep = "Keep it current while you work: take eligible work with plan.next (take=true, with thread and item for a named handoff) before editing, and mark it Done or Dropped when it ends, since a component's status follows its parts; " +
+        "Keep detail current with the most important human outcome. When marking Done, include result {summary, files} if useful to explain work performed outside change.apply. " +
+        "Add the parts, checks and decisions you discover, and move refs when the work moves. An item another agent has Doing is theirs until they let it go; " +
         "pass message with a write to tell the others on the plan something, and it reaches them at their next step. Choose the highest-priority ready item first: Urgent, High, Normal, then Low. Preserve planned history: close superseded items as Dropped with a nonblank reason and optional replacement item id; do not remove them."
+
+    const val Document = "When you write the design in plans/, pass documentPath: \"plans/<name>.md\" on plan.write and use explicit heading anchors. " +
+        "Declare docs-style frontmatter such as reaktor_graph: {version: 1, ports: [{id: api, anchor: api-design, profile: component}, {id: verify, anchor: proof, profile: check}], " +
+        "relations: [{id: verify-api, kind: requires, from: verify, to: <name>#api}]}. " +
+        "Each port.id is its DAG item key. Its anchor names a heading and can differ from that key, for example ## API {#api-design}. An empty anchor denotes the whole document. " +
+        "A requires relation means the source waits on the target. Preview graph imports in Hangar’s Plan view, resolve its errors, then apply explicitly. " +
+        "Documents without reaktor_graph link heading IDs that match DAG item keys."
 
     fun thread(thread: String): String =
         "Reaktor keeps a plan for this thread: the high-level design the owner watches and edits in Hangar as a DAG, a Kanban and a reaktor-graph joined to the code atlas, " +
             "and your running checklist. Draw it before your first change with the reaktor kernel tool: {operation: \"plan.write\", arguments: " +
             "{thread: \"$thread\", title: \"the request in a few words\", ops: [...]}} with $Ops. $Design $Upkeep Pass base, the plan revision you last read. " +
+            "$Document " +
+            "Place tasks on the existing system HLD with graph: references to canonical node or scope IDs, or op: references to declared operations. " +
             "Between steps read {operation: \"plan.read\", arguments: {thread: \"$thread\", since: <that revision>}}: news lists what the owner or other agents changed; follow it."
 
     fun seat(plan: WorkPlan, seat: PlanSeat, agent: String, note: String): String = buildString {
         appendLine("You are $agent, attached to part of the plan “${plan.title}” (thread ${plan.thread}) as seat ${seat.id}.")
         if (plan.goal.isNotBlank()) appendLine("Goal: ${plan.goal}")
+        plan.documentPath?.let { appendLine("Plan document: $it. Heading anchors match DAG item keys.") }
         appendLine("Plan revision: ${plan.revision}. Your items, with everything under them:")
         val covered = seat.items.flatMapTo(HashSet()) { plan.under(it) }
         plan.items.filter { it.id in covered }.forEach { item ->
             appendLine("- ${item.id} “${item.title}” (${item.kind}, ${plan.state(item.id)}, ${item.priority})")
-            if (item.detail.isNotBlank()) appendLine(item.detail)
+            if (item.detail.isNotBlank()) { appendLine("Note (shared Markdown context):"); appendLine(item.detail) }
+            item.previews.forEach { preview -> appendLine("Results media: ${preview.title.takeIf(String::isNotBlank)?.let { "$it — " }.orEmpty()}${preview.url}") }
             item.parent?.let { appendLine("Parent: $it") }
             if (item.after.isNotEmpty()) appendLine("Waits on: " + item.after.joinToString { id -> "$id (${plan.item(id)?.let { plan.state(it.id) } ?: "Unknown"})" })
             if (item.refs.isNotEmpty()) appendLine("Refs: " + item.refs.joinToString())
@@ -305,8 +344,18 @@ object PlanRules {
     const val MaxChanges = 200
     const val MaxRefs = 20
     const val MaxRelations = 20
+    const val MaxNote = 64_000
+    const val MaxPreviews = 20
+    const val MaxResultFiles = 20
+    const val MaxResultSummary = 1_000
+    const val MaxResultPath = 500
     val Key = Regex("[a-z][a-z0-9-]{0,39}")
     val Ref = Regex("(file|symbol|module|graph|op|flow|task|url|person|agent):\\S.{0,299}")
+
+    fun validDocumentPath(path: String): Boolean =
+        path.length <= 500 && path.startsWith("plans/") && path.endsWith(".md") &&
+            path.none { it.isISOControl() || it in "\\:#" } &&
+            path.split('/').all { it.isNotBlank() && it == it.trim() && it != "." && it != ".." }
 
     fun start(thread: String, patch: PlanPatch, by: BoardActor, now: Long): WorkPlan {
         require(BoardRefs.pattern.matches(thread)) { "$thread is not a thread: use hangar:, claude:, codex: or agy: with its id" }
@@ -401,6 +450,23 @@ object PlanRules {
             list.firstOrNull { !Ref.matches(it) }?.let { error("$it is not a link: use file:, symbol:, module:, graph:, op:, flow:, task:, url:, person: or agent:") }
         }
 
+        fun note(value: String): String = value.also { require(it.length <= MaxNote) { "A note is at most $MaxNote characters" } }
+
+        fun previews(values: List<PlanPreview>): List<PlanPreview> {
+            require(values.size <= MaxPreviews) { "An item has at most $MaxPreviews previews" }
+            return values.map { preview ->
+                val url = BoardText.bounded(preview.url, "A preview URL", 2_048)
+                val match = Regex("https?://([^/?#\\s]+)(?:[/?#][^\\s]*)?", RegexOption.IGNORE_CASE).matchEntire(url)
+                require(match != null && '\\' !in url && url.none { it.isISOControl() }) { "A preview needs an absolute HTTP or HTTPS URL" }
+                val authority = match.groupValues[1].lowercase()
+                val host = Regex("^(\\[[0-9a-f:]+\\]|[a-z0-9.-]+)(?::([0-9]{1,5}))?$").matchEntire(authority)
+                require(host != null) { "A preview URL needs a host without credentials" }
+                val port = host.groupValues[2]
+                require(port.isEmpty() || port.toInt() in 1..65535) { "A preview URL port must be between 1 and 65535" }
+                PlanPreview(url, BoardText.bounded(preview.title, "A preview title", 200))
+            }
+        }
+
         fun closing(status: PlanStatus, reason: String, replacement: String?, id: String): Pair<String, String?> {
             val why = BoardText.bounded(reason, "A closing reason", 1_000)
             require(status != PlanStatus.Dropped || why.isNotBlank()) { "Give a closing reason when dropping $id" }
@@ -432,12 +498,13 @@ object PlanRules {
                         val after = op.after.distinct().onEach { require(it in items) { "$it is not on the plan" } }
                         require(parent == null || !reaches(after, lineage(parent).toSet())) { "Waiting on ${after.joinToString()} under $parent would make a cycle" }
                         val title = BoardText.title(op.title)
-                        val detail = BoardText.bounded(op.detail, "A detail", 4_000)
+                        val detail = note(op.detail)
+                        val previews = previews(op.previews)
                         val links = refs(op.refs)
                         val id = key ?: generateSequence(next) { it + 1 }.map { "p$it" }.first { it !in items }.also { next = it.removePrefix("p").toInt() + 1 }
                         val (reason, replacement) = closing(op.status, op.reason, op.replacement, id)
                         items[id] = touch(PlanItem(id, title, detail, op.status, parent, after, links, at = op.at, kind = op.kind, priority = op.priority,
-                            reason = reason, replacement = replacement, createdAt = now))
+                            reason = reason, replacement = replacement, createdAt = now, previews = previews))
                         "Added $id “$title”"
                     }
                     is PlanOp.Update -> {
@@ -458,7 +525,8 @@ object PlanRules {
                             closing(item.status, op.reason ?: item.reason, op.replacement ?: item.replacement, item.id) else item.reason to item.replacement
                         val changed = item.copy(
                             title = op.title?.let(BoardText::title) ?: item.title,
-                            detail = op.detail?.let { BoardText.bounded(it, "A detail", 4_000) } ?: item.detail,
+                            detail = op.detail?.let(::note) ?: item.detail,
+                            previews = op.previews?.let(::previews) ?: item.previews,
                             parent = parent,
                             refs = op.refs?.let(::refs) ?: item.refs,
                             at = op.at ?: item.at,
@@ -487,10 +555,30 @@ object PlanRules {
                             by.kind == BoardActorKind.Agent && PlanIdentity.agent(by) != null -> PlanLease(by, now, now + PlanLease.DurationMillis)
                             else -> null
                         }
-                        val changed = item.copy(status = op.status, reason = reason, replacement = replacement, lease = lease)
+                        val result = op.result
+                        require(result == null || op.status == PlanStatus.Done) { "A completion report requires Done" }
+                        val completion = when (result) {
+                            null -> item.completion
+                            else -> {
+                                val text = BoardText.bounded(result.summary, "A completion summary", MaxResultSummary)
+                                require(text.isNotEmpty()) { "A completion summary is required" }
+                                require(result.files.size <= MaxResultFiles) { "A completion report lists at most $MaxResultFiles files" }
+                                val files = result.files.map { file ->
+                                    require(file.none { it.isISOControl() }) { "A reported file path cannot contain control characters" }
+                                    BoardText.bounded(file, "A reported file path", MaxResultPath).also {
+                                        require(it.isNotEmpty()) { "A reported file path is required" }
+                                    }
+                                }.distinct()
+                                val previous = item.completion
+                                if (previous != null && previous.by == by && previous.summary == text && previous.files == files) previous
+                                else PlanCompletion(text, files, by, now)
+                            }
+                        }
+                        val changed = item.copy(status = op.status, reason = reason, replacement = replacement, lease = lease, completion = completion)
                         if (changed == item) null else {
                             items[item.id] = touch(changed)
-                            "${item.id} → ${op.status.label}"
+                            if (item.status == op.status && completion != item.completion) "Recorded completion for ${item.id}"
+                            else "${item.id} → ${op.status.label}"
                         }
                     }
                     is PlanOp.Connect -> {
@@ -567,13 +655,24 @@ object PlanRules {
         }
         val title = patch.title?.let(BoardText::title)?.takeIf { it != plan.title }
         val goal = patch.goal?.let { BoardText.bounded(it, "A goal", 2_000) }?.takeIf { it != plan.goal }
+        var documentPath = plan.documentPath
+        patch.documentPath?.let { path ->
+            val nextPath = path.ifEmpty { null }
+            if (nextPath != documentPath) {
+                require(nextPath == null || validDocumentPath(nextPath)) { "Choose a Markdown document under plans/" }
+                require(by.kind == BoardActorKind.Person || by.same(plan.createdBy) || threadAgent) { "Only the plan's owner can change its document" }
+                require(plan.revision == 0L || patch.base == plan.revision) { "Read the current plan and pass its revision as base before changing its document" }
+                documentPath = nextPath
+                summary += if (nextPath == null) "Unlinked the plan document" else "Linked plan document $nextPath"
+            }
+        }
         if (title != null) summary += "Renamed the plan “$title”"
         if (goal != null) summary += "Changed the goal"
         patch.message?.replace(Regex("\\s+"), " ")?.trim()?.takeIf(String::isNotEmpty)?.let { summary += "Says: ${BoardText.bounded(it, "A message", 2_000)}" }
         val news = plan.news(patch.base ?: plan.revision, by)
         if (summary.isEmpty() && seats == plan.seats && items.values.toList() == plan.items) return PlanApplied(plan, refused, news)
         val changed = plan.copy(
-            title = title ?: plan.title, goal = goal ?: plan.goal, items = items.values.toList(), seats = seats,
+            title = title ?: plan.title, goal = goal ?: plan.goal, items = items.values.toList(), seats = seats, documentPath = documentPath,
             revision = revision, next = next, updatedAt = now,
             changes = if (summary.isEmpty()) plan.changes else (plan.changes + PlanChange(revision, now, by, summary)).takeLast(MaxChanges),
         )

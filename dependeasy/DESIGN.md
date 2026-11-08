@@ -16,7 +16,6 @@ flowchart TD
     Graph --> Native[CMake and native interop]
     Tools[Kotlin toolchain and source pins] --> API
     Graph --> Reports[Plans, identities, test and size reports]
-    Graph --> Dagger[Generated Dagger runner]
     Graph --> Hangar[Declared build graph in Hangar]
     Packages[Authored package.json commands] --> Reports
 ```
@@ -61,8 +60,7 @@ authority for both mobile and standalone CMake declarations.
 
 * **Toolchains:** Kotlin owns versions; Gradle, Node and pnpm downloads are checksummed;
   native revisions are pinned. Java 25 runs builds, with Android bytecode at 21.
-  Next: qualify compiler updates per target and make Linux OS package resolution less
-  dependent on mutable distribution repositories.
+  Next: qualify compiler updates per target.
 * **Graph:** Lazy nodes, typed artifacts, cycle checks, included-build ownership and
   schema-1 exports feed Hangar's Build source. Some plugin task closures cannot expand
   during declaration discovery; shell bodies remain explicitly opaque. Next: define observed
@@ -109,7 +107,7 @@ authority for both mobile and standalone CMake declarations.
   packaged launchers/class archives and bounded cleanup control repeated output.
   Compiler exports are excluded from source tracking. Metadata requests retain the
   selected platform's transfer scope. Next: measure cold/warm builds under controlled load.
-* **Runners/releases:** Load-based Mac/M1 routing, generated Dagger/manifest aliases,
+* **Runners/releases:** Load-based Mac/M1 routing, generated manifest aliases,
   worker binding order and shared command cancellation connect delivery declarations.
   Fastlane uses a frozen launcher and shared artifact helpers, with product release
   domains kept readable. Next: qualify credentialed releases and consolidate remaining
@@ -171,8 +169,8 @@ failed and scoped transfers do not reconcile that distribution. Extend the exist
 owned agent-library reconciliation with Compose's generated main/app directory.
 No new command, configuration, cache or dependency is required.
 Hangar's `desktopPackage` target uses its existing host-native Compose producer on
-Mac and Linux. Its declaration must be portable; Dagger still produces Linux
-artifacts through the same task, and Apple-only targets retain their macOS gate.
+Mac and Linux. Its declaration must be portable, and Apple-only targets retain their
+macOS gate.
 
 BestBuds' separate website must participate in this qualification alongside its
 Kotlin browser app. Acceptance builds its Kotlin exports before shared TypeScript
@@ -318,7 +316,6 @@ dependeasy {
         includedBuild("reaktor")
         target("verification") { tasks(":check"); effect = "verify" }
         external("iosRelease") { fastlane("ios", "build_release"); platform = "macos" }
-        dagger()
     }
 }
 ```
@@ -356,12 +353,8 @@ the frozen pnpm lockfile owns resolved packages. Kotlin owns toolchain versions.
 SwiftPM and Xcode retain their native package/link contracts. These are distinct
 domains, rather than competing copies of the same task list.
 
-`generateDagger` writes the Kotlin-owned engine pin and toolchain contract for the
-shared Dependeasy runner. The contract contains no target catalog. Inside the container,
-Kotlin resolves the requested node and environment from a fresh model, validates the
-host and named secrets, and supplies the command and result paths. Dagger runs the
-command and returns receipts and declared outputs. Local CI uses the same `pr` node
-as the CLI and Hangar; no GitHub Actions workflow, reference snapshot or verifier remains.
+Local CI runs the same `pr` node as the CLI and Hangar; no GitHub Actions workflow,
+reference snapshot or verifier remains.
 `generatePackageScripts` owns only explicitly generated deployment aliases; it preserves
 authored scripts and dependencies and excludes its own aliases from its input identity.
 It also emits target metadata for Reaktor's delivery binding and a bounded alias
@@ -475,8 +468,6 @@ Command-boundary fixture correction: the nested Node script consumes the web man
 Local Manna web qualification found a machine-dependent fixture: memoryD1 loads the git-ignored 0006_seed_baby_data.sql personal import on this Mac, while the worker has only schema migrations. Exclude that existing private import in the fixture loader. Budget: one existing filter and an ownership comment, no new API, migration manifest, option, dependency, product database change or weakened assertion. Acceptance: the unchanged complete signup/permission suite and all browser tests through the Gradle-owned web build, with the local import preserved.
 
 Composite scan acceptance: `:reaktor:build` and `:Manna:build` select only their root lifecycles. Add lazy module lifecycle selection to the existing BuildTarget, and compose one `buildAll` target in each existing workspace block. BestBuds joins the three full module scopes and existing production artifact/check targets. Export actual selected module task references, including tasks registered later; projects without the lifecycle contribute nothing. Budget: one composable public method, three target declarations and an owner TestKit regression. No scheduler, plugin application loop, lifecycle replacement, skipped checks or relaxed deadline. Qualify lazy selection, configuration-cache reuse, graph ownership and a full BestBuds composite scan.
-
-Pulumi SDK acceptance: the baseline scan fails because the local ambient CLI is 3.213.0 and lacks `gen-sdk --server`, while the worker CLI is 3.267.0. SDK generation must use one Kotlin-pinned, checksum-verified 3.268.0 executable through the existing InstallTool, without changing the provider or global installation. Budget: one version constant, four host checksums, one internal setup function and a host-selection helper shared with the JavaScript installer. No dependency, public tool option, alternate command or download mechanism. Qualify installation, actual Grafana Java generation/compilation and subsequent task reuse.
 
 CMake scan acceptance: the baseline Ninja graph contains six module scanners and one collation command for each six-source FlexBuffer Android ABI. Ordinary header-based C++ needs neither. Default CMAKE_CXX_SCAN_FOR_MODULES to OFF only when the caller has not specified it; explicit module file sets retain CMake's scanning rules. Remove forced verbose output from the shared CMake kernel and Android arguments. Budget: one conditional default and two deletions; no consumer flag, compiler standard change or runtime change. Qualify native/mobile builds, preserve header tracking, and retain before/after Ninja graphs. Report command reduction separately from build wall time; the broader final scan is not directly comparable to the partial baseline scope.
 

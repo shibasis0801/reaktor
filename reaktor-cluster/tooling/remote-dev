@@ -20,12 +20,22 @@ import time
 import uuid
 import signal
 import threading
+import build_control
 from hosts_contract import read_hosts_contract, bundle_directories
 from cluster_locations import state_root, workspace_root
 import remote_retention
 
-ROOT = Path(os.environ.get('REMOTE_DEV_WORKSPACE_ROOT', workspace_root(__file__))).resolve()
-STATE = state_root(workspace_root(__file__))
+try:
+    STATE = build_control.selected_state(sys.argv[1:], state_root(workspace_root(__file__)))
+except (OSError, ValueError) as error:
+    if sys.argv[1:2] != ['job-control']:
+        raise
+    print(json.dumps(build_control.failure(sys.argv[3] if len(sys.argv) > 3 else '', None, error)))
+    raise SystemExit(1)
+control_workspace = STATE.parent
+if control_workspace.name == 'other' and (control_workspace.parent / 'dev').is_dir():
+    control_workspace = control_workspace.parent / 'dev'
+ROOT = Path(os.environ.get('REMOTE_DEV_WORKSPACE_ROOT', control_workspace if '--state-root' in sys.argv else workspace_root(__file__))).resolve()
 CONFIG = json.loads((STATE / 'config.json').read_text())
 HOST = CONFIG['host']
 REMOTE = CONFIG['remote_root']
@@ -124,13 +134,18 @@ def declared_gradle_runtime(name, relative, args):
     return False
 
 
-def local_gradle(name, relative, args, log=None, on_line=None):
+def local_gradle(name, relative, args, log=None, on_line=None, local_slot=0):
     import workspace_storage
-    workspace_storage.automatic(sys.modules[__name__], held_locks={'local-gradle'})
+    global LAST_RUN_ID
+    workspace_storage.automatic(sys.modules[__name__], held_locks={'local-slot-1' if local_slot else 'local-gradle'})
     if args[:1] == ['--']:
         args = args[1:]
-    defaults = ['--console=plain', f'--max-workers={CONFIG.get("local_max_workers", 6)}', '-Dorg.gradle.daemon.idletimeout=300000',
-                *([] if CONFIG.get('local_watch_fs', True) else ['--no-watch-fs'])]
+    workers = CONFIG.get('local_max_workers', 6)
+    if local_slot:
+        workers = min(workers, 4)
+    idle_timeout = 60_000 if local_slot else 300_000
+    defaults = ['--console=plain', f'--max-workers={workers}', f'-Dorg.gradle.daemon.idletimeout={idle_timeout}',
+                *([] if not local_slot and CONFIG.get('local_watch_fs', True) else ['--no-watch-fs'])]
     supplied_options = {arg.partition('=')[0] for arg in args}
     if declared_gradle_runtime(name, relative, args):
         defaults.append('-Dorg.gradle.java.home=' + CONFIG['java_home'])
@@ -141,44 +156,56 @@ def local_gradle(name, relative, args, log=None, on_line=None):
     wrapper = directory / 'gradlew'
     if not wrapper.exists(): wrapper = ROOT / name / 'gradlew'
     run_id = datetime.datetime.now().strftime('%Y%m%d-%H%M%S') + '-' + uuid.uuid4().hex[:8] + '-' + name
+    LAST_RUN_ID = run_id
     log = log or STATE / 'logs' / (run_id + '.log')
     log.parent.mkdir(parents=True, exist_ok=True)
     command = [str(wrapper), *defaults, '--init-script',
                str(Path(__file__).resolve().parent / 'physical-devices.gradle'), *args]
-    env = dict(os.environ, REMOTE_DEV_WORKER='1', CMAKE_BUILD_PARALLEL_LEVEL='6')
+    env = dict(os.environ, REMOTE_DEV_WORKER='1', CMAKE_BUILD_PARALLEL_LEVEL=str(workers if local_slot else 6))
     env.update(cache_environment())
     if env.get('REMOTE_DEV_CACHE_URL'):
         command += ['--init-script', str(Path(__file__).resolve().parent / 'build-cache.gradle')]
-    receipt = {'run_id': run_id, 'project': name, 'worker': 'local', 'tasks': args, 'workspace_root': str(ROOT),
+    execution_id = uuid.uuid4().hex
+    job = STATE / 'jobs' / run_id
+    control = build_control.prepare(job, run_id, execution_id, ['/usr/bin/time', '-l', *command], directory)
+    control['host'] = 'local'
+    receipt = {'run_id': run_id, 'project': name, 'worker': 'local', 'local_slot': local_slot, 'tasks': args, 'workspace_root': str(ROOT),
                'started': datetime.datetime.now().isoformat(), 'log': str(log),
                'queue_seconds': time.monotonic() - QUEUED_AT, 'exit_code': None,
-               'owner': workspace_storage.run_owner()}
+               'owner': workspace_storage.run_owner(), 'execution_control': control,
+               'project_directory': str(directory.resolve()), 'phase': 'Executing', 'phase_host': 'local'}
     receipt['resourceScope'] = 'time -l covers the wrapper/client process; detached Gradle/Kotlin daemons are excluded'
     receipt_path = STATE / 'logs' / (run_id + '.json')
     receipt_path.parent.mkdir(parents=True, exist_ok=True)
-    receipt_path.write_text(json.dumps(receipt, indent=2) + '\n')
+    build_control.write_json(receipt_path, receipt)
     started = time.monotonic()
-    with log.open('w') as output:
-        process = subprocess.Popen(['/usr/bin/time', '-l', *command], cwd=directory, env=env,
-                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, start_new_session=True)
-        try:
-            for line in process.stdout:
-                line = re.sub(r'\b(?:gh[pousr]_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+)', '[REDACTED]', line)
-                output.write(line); output.flush()
-                print(line, end='', flush=True)
-                if on_line: on_line(line)
-            code = process.wait()
-        finally:
-            if process.poll() is None:
-                os.killpg(process.pid, signal.SIGINT)
-                try: process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    os.killpg(process.pid, signal.SIGKILL)
-                    process.wait()
-            process.stdout.close()
-    receipt.update(exit_code=code, execution_seconds=time.monotonic() - started,
-                   finished=datetime.datetime.now().isoformat())
-    receipt_path.write_text(json.dumps(receipt, indent=2) + '\n')
+    code = 130
+    try:
+        with log.open('w') as output:
+            process = subprocess.Popen([sys.executable, str(Path(build_control.__file__).resolve()), '_supervise', str(job)], cwd=directory, env=env,
+                                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, start_new_session=True)
+            try:
+                for line in process.stdout:
+                    line = re.sub(r'\b(?:gh[pousr]_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+)', '[REDACTED]', line)
+                    output.write(line); output.flush()
+                    print(line, end='', flush=True)
+                    if on_line: on_line(line)
+                code = process.wait()
+            finally:
+                if process.poll() is None:
+                    process.send_signal(signal.SIGTERM)
+                    try: process.wait(timeout=12)
+                    except subprocess.TimeoutExpired:
+                        print('Owned supervisor has not confirmed shutdown; execution state remains inspectable.', file=sys.stderr)
+                process.stdout.close()
+    finally:
+        execution = build_control.state(job, execution_id)
+        if execution.get('status') in build_control.TERMINAL:
+            receipt.update(exit_code=execution['exitCode'], execution_seconds=time.monotonic() - started,
+                           finished=execution['finished'], phase='Finished')
+            if execution['status'] == 'Cancelled':
+                receipt['cancelled'] = True
+            build_control.write_json(receipt_path, receipt)
     return code
 
 
@@ -223,6 +250,78 @@ def released_after_launch(lease, tasks):
     return watch
 
 
+def local_slot_count():
+    count = json.loads((STATE / 'config.json').read_text()).get('local_slots', 1)
+    if type(count) is not int or not 1 <= count <= 2:
+        raise ValueError('local_slots must be 1 or 2')
+    return count
+
+
+def isolated_verification(args, contract):
+    # Accept only declared verification tasks and options that can't change their workspace or effects.
+    allowed = {'--', '--console=plain', '--stacktrace', '--info', '--rerun-tasks', '--no-daemon'}
+    tasks = []
+    filter_expected = False
+    for arg in args:
+        if filter_expected:
+            if not re.fullmatch(r'[\w.*$-]+', arg):
+                return False
+            filter_expected = False
+        elif arg == '--tests' and tasks:
+            filter_expected = True
+        elif arg in allowed:
+            continue
+        elif re.fullmatch(r':?[\w-]+(?::[\w-]+)*', arg):
+            tasks.append(':' + arg.lstrip(':'))
+        else:
+            return False
+    return bool(tasks) and not filter_expected and all(
+        contract.get('taskFamilies', {}).get(task) == 'verification'
+        and contract.get('taskHosts', {}).get(task, {}).get('execution') in {None, 'Any'}
+        for task in tasks
+    )
+
+
+def additional_local_gradle(name, relative, args, reason):
+    import remote_build
+    global ROOT
+    if local_slot_count() < 2:
+        return None
+    with (STATE / 'local-slot-1.lock').open('a') as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return None
+        if local_slot_count() < 2:  # Respect a removal that raced with the lease.
+            return None
+        remote_retention.require_admission(STATE)
+        helper = sys.modules[__name__]
+        try:
+            remote_build.disk_admission(helper, 'local')
+            if (LOCAL_SLOTS / 'local-1').is_symlink():
+                raise ValueError('The additional local workspace is a symbolic link')
+            snapshot = remote_build.freeze(helper)
+            slot = remote_build.materialize(helper, snapshot, 'local-1')
+        except (OSError, ValueError, subprocess.SubprocessError) as error:
+            print(f'Additional local lane could not prepare an isolated workspace: {error}', flush=True)
+            return None
+        if LINE is not None:
+            LINE.unlink(missing_ok=True)
+        print(f'Building {name} on this Mac in lane 2: {reason}; workspace {slot}', flush=True)
+        original_root = ROOT
+        try:
+            ROOT = slot
+            code = local_gradle(name, relative, args, local_slot=1)
+            artifacts = STATE / 'artifacts' / LAST_RUN_ID
+            if code != 130:
+                remote_build.collect_local(helper, slot, artifacts, code == 0, 'verification', projects=[name])
+            if artifacts.is_dir():
+                print(f'Verification artifacts: {artifacts}', flush=True)
+            return code
+        finally:
+            ROOT = original_root
+
+
 def route_gradle(name, relative, args):
     contract = read_hosts_contract(selected_gradle_directory(name, relative, args))
     tasks = {':' + task.lstrip(':') for task in gradle_tasks(args, contract.get('taskOptions', {}))}
@@ -249,18 +348,27 @@ def route_gradle(name, relative, args):
         remote_build.stand_aside(LINE, not available)
         if available and not remote_build.first_in_line(LINE):
             available, reason = False, 'a build that asked earlier is waiting for this Mac'
-    with (STATE / 'local-gradle.lock').open('w') as lock:
+    primary_busy = False
+    with (STATE / 'local-gradle.lock').open('a') as lock:
         if available:
             try:
                 fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError:
-                available, reason = False, 'another local Gradle build is running'
-        if not available:
-            print(f'Routing to {HOST}: {reason}', flush=True)
-            return None
-        print(f'Building {name} on this Mac: {reason}', flush=True)
-        remote_retention.require_admission(STATE)
-        return local_gradle(name, relative, args)
+                primary_busy = True
+            else:
+                if LINE is not None:
+                    LINE.unlink(missing_ok=True)
+                print(f'Building {name} on this Mac: {reason}', flush=True)
+                remote_retention.require_admission(STATE)
+                return local_gradle(name, relative, args)
+    if primary_busy:
+        if selected is None and os.environ.get('REMOTE_DEV_CACHE') != 'write' and isolated_verification(args, contract):
+            result = additional_local_gradle(name, relative, args, reason)
+            if result is not None:
+                return result
+        reason = 'no eligible local build lane is available'
+    print(f'Routing to {HOST}: {reason}', flush=True)
+    return None
 
 
 def scheduled_gradle(name, relative, args):
@@ -323,7 +431,7 @@ def queued_worker_gradle(name, relative, args, local=lambda: None):
 
 
 def worker_slot_count():
-    count = int(os.environ.get('REMOTE_DEV_WORKER_SLOTS') or CONFIG.get('worker_slots', 2))
+    count = int(os.environ.get('REMOTE_DEV_WORKER_SLOTS') or json.loads((STATE / 'config.json').read_text()).get('worker_slots', 2))
     if not 1 <= count <= MAX_WORKER_SLOTS:
         raise ValueError(f'worker_slots must be between 1 and {MAX_WORKER_SLOTS}')
     return count
@@ -1020,10 +1128,15 @@ def build(name, relative, args, synchronize=True, frozen=False, verify=None, wor
     if (ROOT / name / '.git').exists():
         source_head = ssh(shlex.join(['git', '-C', f'{REMOTE}/{name}', 'rev-parse', 'HEAD']),
                           capture_output=True, text=True).stdout.strip()
+    execution_id = uuid.uuid4().hex
+    job = str(Path(REMOTE) / '.remote-dev/jobs' / run_id)
     receipt = {'project': name, 'worker': HOST, 'remote_path': f'{REMOTE}/{name}', 'source_head': source_head,
                'tasks': requested, 'remote_tasks': args, 'started': started, 'log': str(log),
                'run_id': run_id, 'exit_code': None, 'sync_seconds': synchronized_at - queued_at,
-               'queue_seconds': queued_at - QUEUED_AT, 'owner': workspace_storage.run_owner()}
+               'queue_seconds': queued_at - QUEUED_AT, 'owner': workspace_storage.run_owner(),
+               'project_directory': str((ROOT / name / relative).resolve()),
+               'phase': 'Executing', 'phase_host': HOST,
+               'execution_control': {'schemaVersion': 1, 'executionId': execution_id, 'host': HOST, 'jobDirectory': job}}
     receipt['remote_root'] = REMOTE
     receipt['workspace_root'] = str(ROOT)
     if SLOT is not None:
@@ -1043,13 +1156,18 @@ def build(name, relative, args, synchronize=True, frozen=False, verify=None, wor
     remote_python('''import subprocess,sys,json,os
 from pathlib import Path
 job=Path(sys.argv[1])/'.remote-dev/jobs'/sys.argv[2]
-job.mkdir(parents=True,exist_ok=False); job.chmod(0o700)
-environment=dict(os.environ,**json.load(sys.stdin))
+payload=json.load(sys.stdin)
+namespace={'__name__':'cluster_build_control'}
+exec(compile(payload['supervisor'],'<cluster-build-control>','exec'),namespace)
+namespace['prepare'](job,sys.argv[2],payload['executionId'],['/bin/zsh','-c',sys.argv[3]],sys.argv[1])
+script=job/'supervisor.py'; script.write_text(payload['supervisor']); script.chmod(0o600)
+environment=dict(os.environ,**payload['environment'])
 with (job/'output.log').open('wb') as output:
- process=subprocess.Popen(['/bin/zsh','-c',sys.argv[3]],stdout=output,stderr=subprocess.STDOUT,
+ process=subprocess.Popen(['/opt/homebrew/bin/python3',str(script),'_supervise',str(job)],stdout=output,stderr=subprocess.STDOUT,
                           stdin=subprocess.DEVNULL,start_new_session=True,env=environment)
 (job/'pid').write_text(str(process.pid))
-''', REMOTE, run_id, remote_command, input=json.dumps(env), text=True)
+''', REMOTE, run_id, remote_command, input=json.dumps({'environment': env, 'executionId': execution_id,
+                                                    'supervisor': Path(build_control.__file__).read_text()}), text=True)
     return finish_build(receipt, worker_lock)
 
 
@@ -1214,6 +1332,10 @@ def pull_xcode_resources(receipt, publish=True):
 def publish_build(receipt, worker_lock=None):
     run_id = receipt['run_id']
     path = STATE / 'logs' / (run_id + '.json')
+    if receipt.get('cancelled'):
+        return 130
+    receipt.update(phase='Publishing', phase_host='local')
+    build_control.write_json(path, receipt)
     if worker_lock is not None:
         fcntl.flock(worker_lock, fcntl.LOCK_UN)
     started = time.monotonic()
@@ -1245,6 +1367,7 @@ def publish_build(receipt, worker_lock=None):
     receipt.pop('pending_xcode', None)
     receipt.pop('unverified_outputs', None)
     receipt['finished'] = datetime.datetime.now().isoformat()
+    receipt.update(phase='Finished', phase_host='local')
     receipt['publication_seconds'] = time.monotonic() - started
     path.write_text(json.dumps(receipt, indent=2) + '\n')
     print(f'{receipt["project"]}: exit {receipt["exit_code"]}; receipt {path}', flush=True)
@@ -1265,11 +1388,19 @@ job=Path(sys.argv[1])/'.remote-dev/jobs'/sys.argv[2]; offset=int(sys.argv[3])
 with (job/'output.log').open('rb') as f:
  f.seek(offset); chunk=f.read(131072); offset=f.tell()
 code=int((job/'exitcode').read_text()) if (job/'exitcode').exists() else None
+control=json.loads((job/'control.json').read_text()) if sys.argv[4] and (job/'control.json').is_file() else None
+if sys.argv[4]:
+ if control is None: code=None
+ elif control.get('executionId')!=sys.argv[4]: raise ValueError('Worker execution identity changed')
+ elif control.get('status') not in {'Succeeded','Failed','Cancelled'}: code=None
+ else: code=control['exitCode']
+control_unknown=False
 if code is None:
  try:os.kill(int((job/'pid').read_text()),0)
- except ProcessLookupError:code=255
-print(json.dumps({'text':chunk.decode(errors='replace'),'offset':offset,'code':code,'started':job.stat().st_birthtime}))
-''', REMOTE, run_id, str(offset), capture_output=True, text=True)
+ except ProcessLookupError:code=255; control_unknown=bool(sys.argv[4])
+print(json.dumps({'text':chunk.decode(errors='replace'),'offset':offset,'code':code,'started':job.stat().st_birthtime,
+                  'cancelled':bool(control and control.get('status')=='Cancelled'),'control_unknown':control_unknown}))
+''', REMOTE, run_id, str(offset), receipt.get('execution_control', {}).get('executionId', ''), capture_output=True, text=True)
             data = json.loads(data.stdout)
             content = re.sub(r'\b(?:gh[pousr]_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+)',
                              '[REDACTED]', data['text'])
@@ -1281,6 +1412,17 @@ print(json.dumps({'text':chunk.decode(errors='replace'),'offset':offset,'code':c
                 time.sleep(3)
     receipt['execution_seconds'] = time.monotonic() - execution_started
     receipt['worker_started_epoch'] = data.get('started')
+    if data.get('control_unknown'):
+        receipt.update(control_error='Worker supervisor exited without confirming its execution outcome', phase='Unknown', phase_host=HOST)
+        build_control.write_json(STATE / 'logs' / (run_id + '.json'), receipt)
+        return 74
+    if data.get('cancelled'):
+        receipt.update(cancelled=True, exit_code=130, finished=datetime.datetime.now().isoformat(),
+                       phase='Finished', phase_host=HOST)
+        build_control.write_json(STATE / 'logs' / (run_id + '.json'), receipt)
+        return 130
+    receipt.update(phase='Collecting', phase_host='local')
+    build_control.write_json(STATE / 'logs' / (run_id + '.json'), receipt)
     since = receipt['worker_started_epoch'] if receipt.get('publication') == 'changed-files' else None
     collection_started = time.monotonic()
     copied = []
@@ -1391,6 +1533,11 @@ def _main():
     isolated.add_argument('tasks', nargs=argparse.REMAINDER)
     resume = commands.add_parser('resume')
     resume.add_argument('run_id')
+    controls = commands.add_parser('job-control', help='Inspect or stop one verified supervised routed execution')
+    controls.add_argument('action', choices=['inspect', 'stop', 'resume'])
+    controls.add_argument('run_id')
+    controls.add_argument('--execution')
+    controls.add_argument('--state-root', type=Path)
     suite = commands.add_parser('suite')
     suite.add_argument('tasks', nargs=argparse.REMAINDER)
     for verb in ['build', 'pull']:
@@ -1403,7 +1550,16 @@ def _main():
     docker = commands.add_parser('docker')
     docker.add_argument('args', nargs=argparse.REMAINDER)
     options = parser.parse_args()
-    if options.command not in {"status", "ports"}:
+    if options.command == 'job-control':
+        try:
+            result = build_control.execute(sys.modules[__name__], options.action, options.run_id, options.execution)
+            print(json.dumps(result))
+            return 0
+        except (OSError, ValueError, subprocess.SubprocessError) as error:
+            print(json.dumps(build_control.failure(options.run_id, options.execution, error)))
+            return 1
+    inventory = options.command == "mobile" and options.args[:1] == ["inventory"]
+    if options.command not in {"status", "ports"} and not inventory:
         remote_retention.require_admission(STATE)
     if options.command == 'mobile':
         import mobile_worker

@@ -51,6 +51,11 @@ class SessionSlot<K : Any>(
     var blueprint: GraphShape? = null
         private set
 
+    fun declare(shape: GraphShape): Unit = synchronized(lock) {
+        check(!closed && collector == null && current.value == null) { "Declare a session before it starts" }
+        blueprint = shape
+    }
+
     fun start(): Unit = synchronized(lock) {
         if (closed || collector?.isActive == true && failureState.value == null) return
         var firstEmission = collector == null

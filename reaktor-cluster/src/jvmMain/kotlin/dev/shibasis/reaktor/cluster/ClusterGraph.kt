@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.cluster
 
 import dev.shibasis.reaktor.graph.core.Graph
+import dev.shibasis.reaktor.graph.core.ShapeAttributes
 import dev.shibasis.reaktor.graph.core.node.BasicNode
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.di.KoinDependencyAdapter
@@ -23,7 +24,7 @@ class ClusterGraph(status: ClusterStatus, jobs: ClusterJobs? = null, tasks: Clus
         }
     }
 
-    val processes = status.hosts.flatMap { host -> host.processes?.processes.orEmpty().map { process ->
+    val processes = status.hosts.flatMap { host -> host.processes?.processes.orEmpty().filter { it.role != null }.map { process ->
         Node { graph -> ProcessNode(graph, host.id, process) }.also { node ->
             hosts[host.id]?.let { owner -> connect(node.host, owner.provider).getOrThrow() }
         }
@@ -45,32 +46,51 @@ class ClusterGraph(status: ClusterStatus, jobs: ClusterJobs? = null, tasks: Clus
     }
 }
 
-class HostNode(graph: Graph, val snapshot: Host) : BasicNode(graph) {
+class HostNode(graph: Graph, val snapshot: Host) : BasicNode(graph), ShapeAttributes {
     override val id = ClusterGraph.identity("cluster/host/${snapshot.id}")
     override val label = snapshot.id
     val provider = registerProvider("host", snapshot)
+    override val shapeAttributes get() = facts("state" to snapshot.state, "roles" to snapshot.roles.joinToString(), "truth" to snapshot.truth,
+        "cores" to snapshot.capacity?.cores?.toString(), "memory" to snapshot.capacity?.memoryBytes?.let(::size),
+        "memoryFree" to snapshot.capacity?.memoryFreePercent?.let { "${it.toInt()} %" }, "swap" to snapshot.capacity?.swapBytes?.let(::size),
+        "load" to snapshot.capacity?.load?.toString(), "problem" to snapshot.problem)
 }
 
-class SlotNode(graph: Graph, val snapshot: Slot) : BasicNode(graph) {
+class SlotNode(graph: Graph, val snapshot: Slot) : BasicNode(graph), ShapeAttributes {
     override val id = ClusterGraph.identity("cluster/host/${snapshot.host}/slot/${snapshot.index}")
     override val label = "${snapshot.host} slot ${snapshot.index}"
     val host = registerConsumer<Host>("host")
+    override val shapeAttributes get() = facts("lease" to snapshot.lease.state, "workers" to snapshot.workers.toString(),
+        "tree" to snapshot.tree, "job" to snapshot.job)
 }
 
-class ProcessNode(graph: Graph, hostId: String, val snapshot: HostProcess) : BasicNode(graph) {
+class ProcessNode(graph: Graph, hostId: String, val snapshot: HostProcess) : BasicNode(graph), ShapeAttributes {
     override val id = ClusterGraph.identity("cluster/host/$hostId/process/${snapshot.pid}")
-    override val label = "${snapshot.name} (${snapshot.pid})"
+    override val label = "${snapshot.roleLabel ?: snapshot.name} (${snapshot.pid})"
     val host = registerConsumer<Host>("host")
+    override val shapeAttributes get() = facts("pid" to snapshot.pid.toString(), "component" to snapshot.roleLabel, "executable" to snapshot.name,
+        "cpu" to snapshot.cpuPercent?.let { "$it %" }, "memory" to snapshot.memoryBytes?.let(::size))
 }
 
-class JobNode(graph: Graph, val snapshot: Job) : BasicNode(graph) {
+class JobNode(graph: Graph, val snapshot: Job) : BasicNode(graph), ShapeAttributes {
     override val id = ClusterGraph.identity("cluster/job/${snapshot.id}")
-    override val label = "${snapshot.project}: ${snapshot.tasks.joinToString()}"
+    override val label = snapshot.tasks.joinToString().ifEmpty { "${snapshot.state} build" }
+        .let { work -> if (snapshot.project == "Unknown") work else "${snapshot.project}: $work" }
     val host = registerConsumer<Host>("host")
+    override val shapeAttributes get() = facts("state" to snapshot.state, "phase" to snapshot.phase, "slot" to snapshot.slot?.toString(),
+        "seat" to snapshot.requester.seat, "planItem" to snapshot.requester.planItem, "executionHost" to snapshot.executionHost,
+        "blocker" to snapshot.blocker?.reason)
 }
 
-class TaskNode(graph: Graph, val snapshot: ClusterTask) : BasicNode(graph) {
+class TaskNode(graph: Graph, val snapshot: ClusterTask) : BasicNode(graph), ShapeAttributes {
     override val id = ClusterGraph.identity("cluster/task/${snapshot.id}")
     override val label = snapshot.title
     val host = registerConsumer<Host>("host")
+    override val shapeAttributes get() = facts("state" to snapshot.state, "provider" to snapshot.provider, "workspace" to snapshot.workspaceRoot,
+        "lastTool" to snapshot.lastTool, "failure" to snapshot.failure)
 }
+
+private fun facts(vararg pairs: Pair<String, String?>): Map<String, String> =
+    pairs.mapNotNull { (key, value) -> value?.takeIf { it.isNotBlank() }?.let { key to it } }.toMap()
+
+private fun size(bytes: Long): String = if (bytes >= 1L shl 30) String.format(java.util.Locale.ROOT, "%.1f GB", bytes / 1_073_741_824.0) else "${bytes shr 20} MB"

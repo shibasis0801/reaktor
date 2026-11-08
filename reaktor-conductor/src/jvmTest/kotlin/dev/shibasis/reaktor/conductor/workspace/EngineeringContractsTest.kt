@@ -33,15 +33,17 @@ class EngineeringContractsTest {
                 val properties = input.getValue("properties").jsonObject
                 val ops = properties.getValue("ops").jsonObject
                 val description = ops.getValue("description").jsonPrimitive.content
-                for (field in listOf("priority", "reason", "replacement")) kotlin.test.assertTrue(field in description)
-                JsonObject(input + ("properties" to JsonObject(properties + ("ops" to JsonObject(ops +
+                for (field in listOf("priority", "reason", "replacement", "detail", "previews")) kotlin.test.assertTrue(field in description)
+                assertEquals("string", properties.getValue("documentPath").jsonObject.getValue("type").jsonPrimitive.content)
+                kotlin.test.assertTrue(input.getValue("required").jsonArray.none { it.jsonPrimitive.content == "documentPath" })
+                JsonObject(input + ("properties" to JsonObject((properties - "documentPath") + ("ops" to JsonObject(ops +
                     ("description" to expected.getValue("input").jsonObject.getValue("properties").jsonObject.getValue("ops").jsonObject.getValue("description")))))))
             } else input
             assertEquals(expected.getValue("input"), comparable, "$id input")
             val output = call.response.descriptor.jsonSchema().takeIf { it.isNotEmpty() }
             val additions = when {
                 id == "atlas.query" -> setOf("memory")
-                id.startsWith("plan.") -> setOf("priority", "reason", "replacement", "lease", "agent", "profile", "profileRevision")
+                id.startsWith("plan.") -> setOf("priority", "reason", "replacement", "lease", "agent", "profile", "profileRevision", "previews", "completion", "documentPath")
                 else -> emptySet()
             }
             assertEquals(expected["output"], baselineOutput(expected["output"], output, additions), "$id output")
@@ -80,7 +82,10 @@ class EngineeringContractsTest {
         val api = PlansApi()
         assertEquals("ReadOnly", api.next.effect.name)
         assertEquals("ReadOnly", api.schedule.effect.name)
-        assertEquals(setOf("thread", "agent", "seat", "take"), api.next.request.descriptor.jsonSchema().getValue("properties").jsonObject.keys)
+        val nextInput = api.next.request.descriptor.jsonSchema()
+        assertEquals(setOf("thread", "agent", "seat", "take", "item"), nextInput.getValue("properties").jsonObject.keys)
+        assertEquals("string", nextInput.getValue("properties").jsonObject.getValue("item").jsonObject.getValue("type").jsonPrimitive.content)
+        kotlin.test.assertTrue((nextInput["required"] as? JsonArray).orEmpty().none { it.jsonPrimitive.content == "item" })
         assertEquals(setOf("thread"), api.schedule.request.descriptor.jsonSchema().getValue("properties").jsonObject.keys)
     }
 
@@ -95,5 +100,6 @@ class EngineeringContractsTest {
         }
         val request = OperationJson.decodeFromJsonElement(PlanWriteRequest.serializer(), JsonObject(emptyMap()))
         assertEquals(emptyList(), request.ops)
+        assertEquals(null, request.documentPath)
     }
 }

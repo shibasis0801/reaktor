@@ -60,6 +60,29 @@ object OtlpJsonSpans {
         put("startTimeUnixNano", data.startTimestamp.toString())
         data.endTimestamp?.let { put("endTimeUnixNano", it.toString()) }
         put("attributes", attributes(data.attributes))
+        val events = data.events.mapNotNull { event ->
+            val name = when (event.name) {
+                "queue.enqueue", "queue.receive", "mailbox.enqueue", "mailbox.receive" -> event.name
+                else -> when (event.name.substringBefore(':', "")) {
+                    "lifecycle" -> "graph.lifecycle"
+                    "navigation" -> "graph.navigation"
+                    "port" -> "graph.port"
+                    else -> null
+                }
+            } ?: return@mapNotNull null
+            buildJsonObject {
+                put("name", name)
+                put("timeUnixNano", event.timestamp.toString())
+            }
+        }
+        if (events.isNotEmpty()) put("events", JsonArray(events))
+        val links = data.links.filter { it.spanContext.isValid }.map { link ->
+            buildJsonObject {
+                put("traceId", link.spanContext.traceId)
+                put("spanId", link.spanContext.spanId)
+            }
+        }
+        if (links.isNotEmpty()) put("links", JsonArray(links))
         putJsonObject("status") {
             put("code", status(data.status.statusCode))
             data.status.description?.takeIf { it.isNotBlank() }?.let { put("message", it) }

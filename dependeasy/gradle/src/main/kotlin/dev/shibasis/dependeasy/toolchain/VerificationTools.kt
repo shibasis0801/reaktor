@@ -18,13 +18,6 @@ class VerificationTools private constructor(private val project: Project) {
             dev.shibasis.dependeasy.model.HostRequirement(execution = dev.shibasis.dependeasy.model.ExecutionHost.Local) else null)
         return InstalledTool(ToolHandle(name, version), project.objects.fileProperty().fileValue(directory.resolve(binary)), task, project.provider { emptyMap() })
     }
-    val dagger: InstalledTool by lazy { install("dagger", ToolchainVersions.Dagger,
-        "https://github.com/dagger/dagger/releases/download/v${ToolchainVersions.Dagger}/dagger_v${ToolchainVersions.Dagger}_${host.replace('-', '_')}.tar.gz",
-        mapOf("darwin-arm64" to "f3f37a831afd53d09bf9c9a9df63492c16ad43622e5c197d9815e82f334ef1c4",
-            "darwin-amd64" to "4759befe3fa951fd2ba05551306023df7e8c7fc9eff57bb823481803cb44b215",
-            "linux-amd64" to "53e226c7da8fb75171e58c35759d736d961ce8b3a12db0baa7b7107954fccc5a",
-            "linux-arm64" to "cd0df4885f2050082932b4abc5a6aad9a733f6aa4e7d8474740558517ffec4af").getValue(host),
-        null, "dagger", ToolArchive.TarGzip) }
     val karate: InstalledTool by lazy { install("karate", "2.0.0",
         "https://github.com/karatelabs/karate/releases/download/v2.0.0/karate-2.0.0.jar",
         "fcbd3fb0e66a848f509dfb5f355f5176c16a29a3d9c4ba2a7f47e042f293bc78", null, "karate.jar", ToolArchive.RawFile) }

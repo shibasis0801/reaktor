@@ -90,8 +90,18 @@ class DeviceToolsTest {
                             argv=sys.argv[3:]; assert argv[:2]==['python3','-c']
                             code=argv[2]; args=argv[3:]
                             if args[:2]==['list','devices']:
-                                value={'devices':[{'identifier':'phone','hardwareProperties':{'reality':'physical','udid':'phone-1'}}]}
+                                def device(identifier, kind, reality, tunnel):
+                                    return {'identifier':identifier,
+                                            'hardwareProperties':{'reality':reality,'deviceType':kind,'udid':identifier+'-1'},
+                                            'connectionProperties':{'tunnelState':tunnel}}
+                                devices=[device('cached-phone','iPhone','physical','unavailable'),
+                                         device('tablet','iPad','physical','connected'),
+                                         device('simulator','iPhone','simulated','connected')]
+                                if (root/'phone-present').exists():
+                                    devices.append(device('phone','iPhone','physical','disconnected'))
+                                value={'devices':devices}
                             elif args[:3]==['device','info','details']:
+                                assert args[3:]==['--device','phone'], args
                                 value={'hardwareProperties':{'udid':'phone-1'},
                                        'connectionProperties':{'pairingState':'paired','tunnelState':'connected','tunnelIPAddress':'::1'},
                                        'deviceProperties':{'developerModeStatus':'enabled','ddiServicesAvailable':True}}
@@ -116,7 +126,12 @@ class DeviceToolsTest {
                         """.trimIndent())
                     }
                     val node = graph.Node { DeviceConnectionNode(it, listOf("python3", worker.path, root.path, server.url("/").toString())) }
-                    val result = node.connect.impl.connect("ios", null)
+                    val absent = node.connect.impl.connect("ios", null)
+                    assertEquals(JsonPrimitive("blocked"), absent["state"])
+                    assertContains(absent.getValue("detail").toString(), "No matching physical ios phone")
+
+                    File(root, "phone-present").writeText("")
+                    val result = node.connect.impl.connect("ios", if (alreadyRunning) "phone-1" else null)
                     assertEquals(JsonPrimitive(true), result["ready"], result.toString())
                     assertEquals(1, requests.count { it.startsWith("/source?") })
                     val launches = File(root, "launches").takeIf(File::exists)?.readLines().orEmpty()

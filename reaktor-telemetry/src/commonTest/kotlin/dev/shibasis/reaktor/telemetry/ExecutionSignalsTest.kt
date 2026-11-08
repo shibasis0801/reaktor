@@ -4,11 +4,33 @@ import dev.shibasis.reaktor.service.ServiceExecutionPhase
 import dev.shibasis.reaktor.service.ServiceSpan
 import dev.shibasis.reaktor.telemetry.execution.ExecutionSignals
 import dev.shibasis.reaktor.telemetry.execution.SignalLevel
+import dev.shibasis.reaktor.telemetry.execution.SpanOutcome
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class ExecutionSignalsTest {
+    @Test fun queryPredicatesUseTheSameOutcomeAndProbeRules() {
+        val expected = mapOf(200 to SpanOutcome.Ok, 399 to SpanOutcome.Ok, 400 to SpanOutcome.Refused,
+            401 to SpanOutcome.Unauthorized, 402 to SpanOutcome.Refused, 403 to SpanOutcome.Unauthorized,
+            404 to SpanOutcome.NotFound, 405 to SpanOutcome.Refused, 498 to SpanOutcome.Refused,
+            499 to SpanOutcome.Cancelled, 500 to SpanOutcome.Failed, 999 to SpanOutcome.Failed)
+        expected.forEach { (status, outcome) -> assertEquals(outcome, SpanOutcome.of(status)) }
+        val patterns = SpanOutcome.entries.associateWith { Regex(it.prometheusStatusPattern()) }
+        (100..999).forEach { status ->
+            assertEquals(listOf(SpanOutcome.of(status)), patterns.filterValues { it.matches(status.toString()) }.keys.toList())
+        }
+        assertEquals("(status >= 500)", SpanOutcome.Failed.clickHousePredicate("status"))
+        assertEquals("(status = 499)", SpanOutcome.Cancelled.clickHousePredicate("status"))
+        assertEquals("(status = 401 OR status = 403)", SpanOutcome.Unauthorized.clickHousePredicate("status"))
+        assertEquals("(status = 404)", SpanOutcome.NotFound.clickHousePredicate("status"))
+        assertEquals("(status = 400 OR status = 402 OR status BETWEEN 405 AND 498)", SpanOutcome.Refused.clickHousePredicate("status"))
+        val probePattern = Regex(ExecutionSignals.prometheusProbeMethodPattern())
+        for (method in listOf("GET", "POST", "HEAD", "OPTIONS", "head", "OpTiOnS", "HEADX", "XHEAD", "OPTIONSX", "XOPTIONS", "")) {
+            assertEquals(ExecutionSignals.isProbe("$method.fetch"), probePattern.matches(method))
+        }
+    }
+
     @Test fun failuresOutrankRefusalStormsWhichOutrankBrokenCallersHealthAndProbes() {
         val storm = (0 until 30).map { index ->
             server("storm-$index", "chat", "GET.fetch", at = if (index < 6) index * 1_000L else 50_000L + index * 1_000L,

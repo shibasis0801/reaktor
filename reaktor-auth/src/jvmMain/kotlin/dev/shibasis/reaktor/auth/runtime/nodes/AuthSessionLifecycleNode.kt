@@ -32,6 +32,9 @@ class AuthSessionLifecycleNode(graph: Graph) : BasicNode(graph), AuthSessionLife
     override fun rotate(rawRefresh: String, environment: Environment): RotatedSession? =
         sessions.rotate(rawRefresh, adapter.databaseFor(environment))
 
+    override fun rotateWithDecision(rawRefresh: String, environment: Environment) =
+        sessions.rotateWithDecision(rawRefresh, adapter.databaseFor(environment))
+
     override fun revokeAllForPrincipal(principalId: String, environment: Environment): Int =
         sessions.revokeAllForPrincipal(principalId, adapter.databaseFor(environment))
 

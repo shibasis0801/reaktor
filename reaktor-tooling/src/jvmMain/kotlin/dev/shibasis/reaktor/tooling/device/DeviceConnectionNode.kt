@@ -73,7 +73,13 @@ class DeviceConnectionNode(graph: Graph, private val transport: List<String>) : 
                 check("automation", "UIAutomator2 returned a live hierarchy (${source.content.length} characters; UI content omitted)")
             } else {
                 val devices = (apple(listOf("list", "devices"))["devices"] as? JsonArray).orEmpty().map { it.jsonObject }
-                    .filter { (it["hardwareProperties"] as? JsonObject)?.text("reality") == "physical" }
+                    .filter {
+                        val hardware = it["hardwareProperties"] as? JsonObject ?: return@filter false
+                        val connection = it["connectionProperties"] as? JsonObject ?: return@filter false
+                        val tunnel = connection.text("tunnelState")
+                        hardware.text("reality") == "physical" && hardware.text("deviceType") == "iPhone" &&
+                            (tunnel == "connected" || tunnel == "disconnected")
+                    }
                 val found = devices.filter { selected == null || it.text("identifier") == selected || (it["hardwareProperties"] as? JsonObject)?.text("udid") == selected }
                 if (found.size != 1) return result("blocked", selection(platform, found.map { it.text("identifier") }))
                 val details = apple(listOf("device", "info", "details", "--device", found.single().text("identifier")))

@@ -9,11 +9,13 @@ import dev.shibasis.reaktor.tooling.operation.*
 import org.koin.dsl.koinApplication
 import dev.shibasis.reaktor.tooling.CallCaller
 import dev.shibasis.reaktor.tooling.SafetyClass
-import dev.shibasis.reaktor.tooling.api.CloudApiTools
-import dev.shibasis.reaktor.tooling.api.CloudApis
+import dev.shibasis.reaktor.tooling.operation.CloudApiTools
+import dev.shibasis.reaktor.cloud.api.CloudApis
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 import java.io.File
@@ -67,7 +69,7 @@ class CloudApiDoorTest {
         kernel = OperationKernel(graph, OperationAuthority(policy = DoorPolicy.Guarded, approvals = approvals,
             log = CallLog(directory.resolve("calls.jsonl"), CallCaller("codex"))))
         val catalog = kernel.catalog().filter { it.provider == "cloud" }
-        assertEquals(6, catalog.size)
+        assertEquals(7, catalog.size)
         assertEquals(SafetyClass.ProductionReversibleWrite, catalog.single { it.id.value == "cloud.api.write" }.effect)
         assertEquals(SafetyClass.Destructive, catalog.single { it.id.value == "cloud.api.delete" }.effect)
     }
@@ -94,7 +96,13 @@ class CloudApiDoorTest {
             put("operation", "cloudflare:worker-script-upload-worker-module")
             putJsonObject("arguments") { put("account_id", "acct"); put("script_name", "bot-service"); putJsonObject("body") { put("main_module", "index.js") } }
         }
-        val request = Invocation(OperationId("cloud.api.write"), upload, CallCaller("codex"), "fixture-upload")
+        val unplanned = Invocation(OperationId("cloud.api.write"), upload, CallCaller("codex"), "fixture-unplanned")
+        approvals.decide(assertIs<Outcome.ApprovalRequired>(kernel.invoke(unplanned)).approval, approve = true, by = "fixture-person")
+        assertTrue("Plan it with cloud.api.plan" in kernel.invoke(unplanned).text())
+        val plan = assertIs<Outcome.Completed>(call("cloud.api.plan", upload)).result.jsonObject
+        assertEquals("main_module", plan.getValue("changes").jsonArray.single().jsonObject.getValue("after").jsonObject.keys.single())
+        val planned = JsonObject(upload + ("arguments" to JsonObject(upload.getValue("arguments").jsonObject + ("plan" to plan.getValue("digest")))))
+        val request = Invocation(OperationId("cloud.api.write"), planned, CallCaller("codex"), "fixture-upload")
         val held = assertIs<Outcome.ApprovalRequired>(kernel.invoke(request))
         assertEquals(1, hits.size, "nothing changes on Cloudflare before a person approves")
 

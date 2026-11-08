@@ -2,7 +2,7 @@ package dev.shibasis.reaktor.tooling.device
 
 import dev.shibasis.reaktor.tooling.DevelopmentDevice
 import dev.shibasis.reaktor.tooling.DeviceTransport
-import dev.shibasis.reaktor.tooling.infra.InfrastructureOperation
+import dev.shibasis.reaktor.tooling.operation.InfrastructureOperation
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 

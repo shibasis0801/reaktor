@@ -1,6 +1,8 @@
 package dev.shibasis.dependeasy.model
 
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.NoSuchFileException
 import java.security.MessageDigest
 import java.time.Instant
 
@@ -15,9 +17,11 @@ object SourceIdentityKernel {
         }.sortedBy { it.first }
         val digest = MessageDigest.getInstance("SHA-256")
         entries.forEach { (path, file) ->
-            digest.update(path.toByteArray(Charsets.UTF_8))
-            digest.update(0.toByte())
-            file.inputStream().use { input ->
+            val input = try { Files.newInputStream(file.toPath()) }
+            catch (_: NoSuchFileException) { return@forEach }
+            input.use {
+                digest.update(path.toByteArray(Charsets.UTF_8))
+                digest.update(0.toByte())
                 val buffer = ByteArray(8192)
                 var size = input.read(buffer)
                 while (size >= 0) { digest.update(buffer, 0, size); size = input.read(buffer) }

@@ -58,7 +58,10 @@ internal fun Project.desktopApplication(spec: DesktopAppSpec) {
             packageName = spec.packageName
             packageVersion = spec.version
             spec.outputDirectory?.let { outputBaseDir.set(project.file(it)) }
-            modules(*spec.modules.map { it.moduleName }.toTypedArray())
+            when (spec.runtime.image) {
+                RuntimeImage.Declared -> modules(*spec.modules.map { it.moduleName }.toTypedArray())
+                RuntimeImage.Complete -> modules(*linkableModules(File(javaHome)).toTypedArray())
+            }
         }
         if (mac) jvmArgs("-Xdock:name=${nativeDistributions.packageName}")
         if (sharing.get().let { it.evidence.source != OptionSource.Default && it.value }) {
@@ -80,6 +83,16 @@ internal fun Project.desktopApplication(spec: DesktopAppSpec) {
     }
     val output = files(mainDistribution).builtBy(distributable)
     publishOutput(OutputKind.JvmDistribution, output)
+    if (mac) {
+        val install = tasks.register("install", InstallMacApplication::class.java) {
+            group = "distribution"
+            description = "Installs or updates ${spec.packageName}.app in ~/Applications. Quit the app before updating."
+            sourceDirectory.set(mainDistribution.map { it.dir("${spec.packageName}.app") })
+            destinationDirectory.set(File(option(BuildOption.systemProperty("user.home")).get(), "Applications/${spec.packageName}.app"))
+            dependsOn(distributable)
+        }
+        BuildWorkspace.get(project).reference(project, install, null, Run.onDesktopSession().host, "jvm")
+    }
     afterEvaluate {
         fun TaskProvider<out Task>.consumeEntry() {
             configure { declaration?.let { extensions.add(SourceSite::class.java, "dependeasyDeclaration", it) } }
@@ -127,3 +140,8 @@ internal fun Project.desktopApplication(spec: DesktopAppSpec) {
         }
     }
 }
+
+private val LinkerModules = setOf("jdk.jlink", "jdk.jpackage")
+
+private fun linkableModules(javaHome: File): List<String> = File(javaHome, "release").readLines()
+    .first { it.startsWith("MODULES=") }.substringAfter('=').trim('"').split(' ') - LinkerModules

@@ -217,7 +217,6 @@ How the old pieces map:
 | `javascript("companyWeb")`, `javascript("bestbudsWeb")`, `javascript("reaktorDocs"/"reaktorWeb")`, `browserBundle`, `appleHost {...}` | each target's own component project (WP13) |
 | `ArtifactSizeReport` registration, `SizeMetric`/`SizeBudget` lists, the budget script | `targets/appWeb` component `budgets(BestBudsWeb.Budgets)`; a dependeasy size-budget kernel; data in `buildlogic` |
 | `credentialContainmentSmoke` command node | `BestBudsChecks.CredentialContainment`, a check kernel invocation in `buildlogic`; the root says `check(...)` |
-| `dagger { option(DevTools, false) }` | the delivery declaration: CI runs `pr` and the delivery flow; the Dagger pipeline is generated from the story (WP22) |
 | `reaktorVerify`, `appChecks`, `jsChecks`, `architectureChecks`, `pr` | `val pr by verify(bestbuds) {...}`; the suites are declared by each part |
 | `portableChecks`, `desktopChecks`, `distributedChecks`, every `HostRequirement(...)` | host is declared once by the node that needs it (window tests need a desktop session); the planner groups by host; `Run` modifiers where the story chooses |
 | `workerBundle`, `desktopPackage`, `androidArtifacts`, `webArtifacts`, `iosFrameworks`, `buildAll` | each component publishes its artifacts; the root says `artifacts(bestbuds)` |

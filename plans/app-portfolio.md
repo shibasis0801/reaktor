@@ -24,7 +24,7 @@ Off the table — covered by existing products in the stack:
 | Knowledge maps, concept roadmaps, n8n-style executable flows | Manna |
 | Education / course / student domain | Manna |
 | Chat, messaging, social discovery, public events | BestBuds |
-| Observability, Grafana, Pulumi IaC | `reaktor-cloud` |
+| Observability, Grafana | `reaktor-cloud` |
 
 ---
 

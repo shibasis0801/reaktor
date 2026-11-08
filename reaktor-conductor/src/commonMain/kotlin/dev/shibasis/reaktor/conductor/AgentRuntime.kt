@@ -21,6 +21,7 @@ data class AgentRequest(
 
     companion object {
         const val RunVariable = "REAKTOR_AGENT_RUN_ID"
+        const val RunHeader = "Reaktor-Run"
     }
 }
 

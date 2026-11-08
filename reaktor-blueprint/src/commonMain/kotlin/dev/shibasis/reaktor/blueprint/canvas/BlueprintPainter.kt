@@ -530,7 +530,8 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         val look = looks.getOrNull(i) ?: return
         val faded = dim.getOrElse(i) { false }
         stroker.roundRect(x0, y0, x1, y1, cardRadius * z, tolerance)
-        stroker.fill(solid, fringe, lerp(colors.card, look.tone, if (faded) OverviewTint * FadedTint else OverviewTint).toArgb(), min(x1 - x0, y1 - y0))
+        val fill = look.fill ?: lerp(colors.card, look.tone, OverviewTint)
+        stroker.fill(solid, fringe, lerp(colors.card, fill, if (faded) FadedTint else 1f).toArgb(), min(x1 - x0, y1 - y0))
         stroker.outline(solid, max(z / 2, .5f), fringe, (look.outline ?: look.tone).toArgb(), if (look.selected) 1f else if (faded) .2f else .8f)
     }
 
@@ -696,7 +697,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         val look = looks.getOrNull(i) ?: return
         val w = cards[i].width.toFloat(); val h = cards[i].height.toFloat()
         val x = cardBox[i * 4]; val y = cardBox[i * 4 + 1]
-        drawRoundRect(cardBody(look.tone), Offset(x, y), Size(w, h), CornerRadius(MachineSignal.Radius.node.value))
+        drawRoundRect(cardBody(look), Offset(x, y), Size(w, h), CornerRadius(MachineSignal.Radius.node.value))
         drawBorder(look.selected, look.outline, x, y, w, h)
     }
 
@@ -706,7 +707,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         if (!mapDetail || slot != 0) return keys[at] == paints.getOrNull(i)?.key
         val look = looks.getOrNull(i) ?: return false
         val kept = keys[at] as? BlueprintCardLook ?: return false
-        return kept === look || kept.title == look.title && kept.tone == look.tone && kept.selected == look.selected && kept.outline == look.outline
+        return kept === look || kept.title == look.title && kept.tone == look.tone && kept.fill == look.fill && kept.selected == look.selected && kept.outline == look.outline
     }
 
     override fun record(i: Int, slot: Int, deadline: TimeSource.Monotonic.ValueTimeMark?) {
@@ -895,9 +896,9 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         addRoundRect(RoundRect(x, y, x + w, y + 26f, topLeftCornerRadius = CornerRadius(MachineSignal.Radius.node.value), topRightCornerRadius = CornerRadius(MachineSignal.Radius.node.value)))
     }
 
-    private fun cardBody(tone: Color) = lerp(colors.card, tone, CardTint)
+    private fun cardBody(look: BlueprintCardLook) = look.fill ?: lerp(colors.card, look.tone, CardTint)
 
-    private fun headerBrush(tone: Color, x: Float, w: Float) = Brush.horizontalGradient(listOf(lerp(colors.card, tone, CardTint * 2), cardBody(tone)), x, x + w)
+    private fun headerBrush(look: BlueprintCardLook, x: Float, w: Float) = Brush.horizontalGradient(listOf(look.fill ?: lerp(colors.card, look.tone, CardTint * 2), cardBody(look)), x, x + w)
 
     private fun measureMark(mark: BlueprintMark, meta: TextUnit = MachineSignal.Type.label): Measured = when (mark.kind) {
         BlueprintMark.Kind.Dot -> Measured(7f, 7f, null)
@@ -970,8 +971,8 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
 
     private fun DrawScope.drawDetail(card: Card, look: BlueprintCardLook, x: Float, y: Float, bodyHeight: Float, columns: List<Float>) {
         val w = card.width.toFloat(); val h = card.height.toFloat()
-        drawRoundRect(if (look.image != null) colors.card else cardBody(look.tone), Offset(x, y), Size(w, h), CornerRadius(MachineSignal.Radius.node.value))
-        if (look.image == null) drawPath(headerPath(x, y, w), headerBrush(look.tone, x, w))
+        drawRoundRect(if (look.image != null) look.fill ?: colors.card else cardBody(look), Offset(x, y), Size(w, h), CornerRadius(MachineSignal.Radius.node.value))
+        if (look.image == null) drawPath(headerPath(x, y, w), headerBrush(look, x, w))
         if (look.choice == null) icon(look.icon).draw(this, x + 8f, y + 6f, 14f, look.tone)
         val marks = codeMarks(look, w)
         val titleWidth = codeTitleWidth(look, w, marks)
@@ -1029,7 +1030,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
 
     private fun DrawScope.drawTitled(card: Card, look: BlueprintCardLook, name: String, x: Float, y: Float) {
         val w = card.width.toFloat(); val h = card.height.toFloat()
-        drawRoundRect(Brush.horizontalGradient(listOf(lerp(colors.card, look.tone, TitledTint), lerp(colors.card, look.tone, TitledTint * .6f)), x, x + w), Offset(x, y), Size(w, h), CornerRadius(MachineSignal.Radius.node.value))
+        drawRoundRect(Brush.horizontalGradient(listOf(look.fill ?: lerp(colors.card, look.tone, TitledTint), look.fill ?: lerp(colors.card, look.tone, TitledTint * .6f)), x, x + w), Offset(x, y), Size(w, h), CornerRadius(MachineSignal.Radius.node.value))
         drawBorder(look.selected || card.id == selected, look.outline, x, y, w, h)
         val room = h - TitledInset * 2; val line = titledStyle.lineHeight.value; val k = min(1f, room / line)
         val style = if (k < 1f) titledStyle.copy(fontSize = titledStyle.fontSize * k, lineHeight = titledStyle.lineHeight * k) else titledStyle
@@ -1043,10 +1044,10 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         drawRoundRect(edge, Offset(x + border / 2, y + border / 2), Size(w - border, h - border), CornerRadius(MachineSignal.Radius.node.value - border / 2), style = Stroke(border))
     }
 
-    private fun DrawScope.proseBody(tone: Color, x: Float, y: Float, w: Float, h: Float, tint: Float) {
+    private fun DrawScope.proseBody(look: BlueprintCardLook, x: Float, y: Float, w: Float, h: Float) {
         val outline = Path().apply { addRoundRect(RoundRect(x, y, x + w, y + h, CornerRadius(MachineSignal.Radius.node.value))) }
-        drawPath(outline, lerp(colors.card, tone, tint))
-        clipPath(outline) { drawRect(tone, Offset(x, y), Size(Stripe, h)) }
+        drawPath(outline, cardBody(look))
+        clipPath(outline) { drawRect(look.tone, Offset(x, y), Size(Stripe, h)) }
     }
 
     private fun proseTitleBottom(card: Card, look: BlueprintCardLook, height: Float): Float =
@@ -1075,7 +1076,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
 
     private fun DrawScope.drawProse(card: Card, look: BlueprintCardLook, x: Float, y: Float, bodyHeight: Float, columns: List<Float>) {
         val w = card.width.toFloat(); val h = card.height.toFloat()
-        proseBody(look.tone, x, y, w, h, CardTint)
+        proseBody(look, x, y, w, h)
         drawScreenshot(look.image, x, y, w, bodyHeight, look.muted)
         icon(look.icon).draw(this, x + MachineSignal.Space.s1.value, y + MachineSignal.Space.s2.value, MachineSignal.Editor.smallIconSize.value, look.tone)
         val left = x + ProseInset

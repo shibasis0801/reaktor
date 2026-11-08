@@ -182,21 +182,30 @@ class JavaScriptComponent internal constructor(private val project: Project, pri
     }
 
     internal fun migrations(node: NodeId): TaskProvider<dev.shibasis.dependeasy.cloudflare.D1Migration> =
-        commandKernel.register(dev.shibasis.dependeasy.cloudflare.D1Migration::class.java, "migrations", null, taskName = node.name).also {
+        wrangler(dev.shibasis.dependeasy.cloudflare.D1Migration::class.java, "migrations", node).also {
             it.configure { sourceFiles.setFrom(project.fileTree(directory.resolve("migrations"))) }
         }
 
     internal fun secrets(node: NodeId): TaskProvider<dev.shibasis.dependeasy.cloudflare.WorkerSecrets> =
-        commandKernel.register(dev.shibasis.dependeasy.cloudflare.WorkerSecrets::class.java, "secrets", null, taskName = node.name)
+        wrangler(dev.shibasis.dependeasy.cloudflare.WorkerSecrets::class.java, "secrets", node)
 
     internal fun deploy(node: NodeId, vararg producers: Any): TaskProvider<WranglerDeploy> =
-        commandKernel.register(WranglerDeploy::class.java, "deploy", null, taskName = node.name).also {
+        wrangler(WranglerDeploy::class.java, "deploy", node).also {
             it.configure {
                 val tasks = producers.map { if (it is NodeHandle) checkNotNull(it.task) else it }
                 dependsOn(tasks)
                 sourceFiles.from(tasks)
                 outputs.upToDateWhen { false }
             }
+        }
+
+    internal fun <T : ProcessTask> wrangler(type: Class<T>, suffix: String, node: NodeId?, vararg arguments: String): TaskProvider<T> =
+        commandKernel.register(type, suffix, null, *arguments, taskName = node?.name).also {
+            it.configure {
+                executable.set(Wrangler.Command)
+                toolVersion.set("kernel sidecar")
+            }
+            BuildWorkspace.get(project).reference(project, it, null, HostRequirement(execution = ExecutionHost.Local))
         }
 
     /** A typecheck and optional checks form one Gradle verification entrypoint. */

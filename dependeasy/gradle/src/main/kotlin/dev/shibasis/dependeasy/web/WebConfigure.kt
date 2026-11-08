@@ -74,15 +74,6 @@ fun KotlinMultiplatformExtension.web(
             }
         }
         generateTypeScriptDefinitions()
-        browser {
-            binaries.library()
-
-            testTask {
-                enabled = false
-                setDependsOn(emptyList<Any>())
-            }
-
-        }
         val packageName = configure.moduleName
         val customizePackage = configure.packageJsonCustomizer
         if (packageName != null || customizePackage != null) compilations["main"].packageJson {

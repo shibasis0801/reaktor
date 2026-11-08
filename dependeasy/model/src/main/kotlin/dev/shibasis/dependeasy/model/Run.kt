@@ -23,7 +23,6 @@ data class Run internal constructor(
         fun onLocal() = Run(HostRequirement(execution = ExecutionHost.Local))
         fun onPhones() = onLocal()
         fun onDesktopSession() = onLocal()
-        fun onLinux() = Run(HostRequirement(HostPlatform.Linux))
         fun onMac() = Run(HostRequirement(HostPlatform.Macos))
         fun timeout(duration: Duration) = Default.timeout(duration)
     }

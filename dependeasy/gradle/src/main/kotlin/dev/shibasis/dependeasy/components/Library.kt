@@ -12,7 +12,6 @@ import dev.shibasis.dependeasy.module.jvmClasspath
 import dev.shibasis.dependeasy.module.componentProgram
 import dev.shibasis.dependeasy.module.jvmExecution
 import dev.shibasis.dependeasy.module.jvmDistribution
-import dev.shibasis.dependeasy.codegen.pulumiSdk
 import dev.shibasis.dependeasy.codegen.kotlinObject
 import dev.shibasis.dependeasy.configuration.releaseRequirement
 import dev.shibasis.dependeasy.model.CompilationRef
@@ -44,6 +43,7 @@ import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
 import dev.shibasis.dependeasy.web.JavaScriptComponent
 import dev.shibasis.dependeasy.web.exportManifest
+import dev.shibasis.dependeasy.web.nodeProgram
 import dev.shibasis.dependeasy.web.sourcePackage
 import dev.shibasis.dependeasy.provenance.identity
 import dev.shibasis.dependeasy.benchmark.jvmBenchmarks
@@ -212,14 +212,6 @@ class LibraryScope internal constructor(private val project: Project, private va
         return NodeDeclaration { name -> declaration.declare(name).also(generatedProducers::add) }
     }
 
-    fun pulumiSdk(provider: String, version: String, server: String): KernelArtifact<org.gradle.api.file.RegularFile> {
-        require(LibraryTarget.Jvm in spec.targets) { "Pulumi SDKs need the Jvm target" }
-        val jar = project.pulumiSdk(provider, version, server)
-        val producer = project.node(jar)
-        generatedProducers.add(producer)
-        return KernelArtifact(jar.flatMap { it.archiveFile }, producer)
-    }
-
     fun program(compilation: CompilationRef = CompilationRef.Main, environment: ProgramEnvironment = ProgramEnvironment(),
         run: Run = Run.Default, sources: FileSet? = null, verify: Boolean = false): NodeDeclaration {
         require(LibraryTarget.Jvm in spec.targets) { "Programs need the Jvm target" }
@@ -236,6 +228,13 @@ class LibraryScope internal constructor(private val project: Project, private va
 
     fun distribution(program: NodeHandle, executable: String) =
         NodeDeclaration { name -> project.jvmDistribution(name, program, executable) }
+
+    fun nodeProgram(): NodeDeclaration {
+        require(LibraryTarget.Web in spec.targets && LibraryTarget.Jvm in spec.targets) {
+            "A Node program is started by its JVM client, so it needs the Web and Jvm targets"
+        }
+        return NodeDeclaration { name -> project.nodeProgram(name).also(generatedProducers::add) }
+    }
 
     fun classpath(output: String) = NodeDeclaration { name ->
         require(LibraryTarget.Jvm in spec.targets) { "A classpath report needs the Jvm target" }
@@ -425,6 +424,9 @@ class LibraryScope internal constructor(private val project: Project, private va
                     testDependencies { this@LibraryScope.dependencies.jvmTests.forEach { it(this) } }
                 }
             }
+        }
+        if (LibraryTarget.Android !in spec.targets) {
+            project.extensions.getByType<com.android.build.api.variant.LibraryAndroidComponentsExtension>().beforeVariants { it.enable = false }
         }
         spec.appleFrameworkExports?.let { module.framework(exports = it) }
         if (!spec.jvmNullChecks) {

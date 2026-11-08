@@ -120,7 +120,7 @@ class KernelClient internal constructor(private val connection: AgentWorkspaceCo
             }
         })
         val kernel = KernelApi()
-        private val apis = listOf(kernel, AtlasApi(), ChangesApi(), ChecksApi(), RunsApi(), PlansApi(), AgentPresenceApi())
+        private val apis = listOf(kernel, AtlasApi(), ChangesApi(), ChecksApi(), RunsApi(), PlansApi(), AgentPresenceApi(), KeepWorkingApi())
         val calls = linkedMapOf<OperationId, Consumer>()
         var available: Map<OperationId, String?> = emptyMap()
             private set

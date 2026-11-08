@@ -352,6 +352,7 @@ open class Graph(
         parentGraph?.disown(this)
         changed(GraphChange.Closed)
         structureListeners.value = emptyList()
+        concurrencyCapability.close()
         transition(Lifecycle.Destroying)
         owned.forEach { it.close() }
         ownedGraphs.value = emptyMap()
@@ -361,7 +362,6 @@ open class Graph(
         _navigationActivation.value = null
         captureNavigationContext = null
         dependencyCapability.close()
-        concurrencyCapability.close()
         lifecycleCapability.close()
     }
 

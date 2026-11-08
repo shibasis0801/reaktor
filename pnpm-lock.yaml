@@ -497,6 +497,47 @@ importers:
         specifier: 6.0.3
         version: 6.0.3
 
+  build/js/packages/reaktor-reaktor-cloud:
+    dependencies:
+      '@js-joda/core':
+        specifier: 3.2.0
+        version: 3.2.0
+      reaktor-core:
+        specifier: link:../../../../reaktor-core
+        version: link:../../../../reaktor-core
+      ws:
+        specifier: 8.18.0
+        version: 8.18.0
+    devDependencies:
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+
+  build/js/packages/reaktor-reaktor-cloud-test:
+    dependencies:
+      '@js-joda/core':
+        specifier: 3.2.0
+        version: 3.2.0
+      reaktor-core:
+        specifier: link:../../../../reaktor-core
+        version: link:../../../../reaktor-core
+      ws:
+        specifier: 8.18.0
+        version: 8.18.0
+    devDependencies:
+      kotlin-web-helpers:
+        specifier: 3.3.0
+        version: 3.3.0
+      mocha:
+        specifier: 11.7.6
+        version: 11.7.6
+      source-map-support:
+        specifier: 0.5.21
+        version: 0.5.21
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+
   build/js/packages/reaktor-reaktor-cloudflare:
     dependencies:
       '@js-joda/core':
@@ -2042,6 +2083,9 @@ importers:
       reaktor-core:
         specifier: link:../../../../reaktor-core
         version: link:../../../../reaktor-core
+      ws:
+        specifier: 8.18.0
+        version: 8.18.0
     devDependencies:
       typescript:
         specifier: 6.0.3
@@ -2055,6 +2099,9 @@ importers:
       reaktor-core:
         specifier: link:../../../../reaktor-core
         version: link:../../../../reaktor-core
+      ws:
+        specifier: 8.18.0
+        version: 8.18.0
     devDependencies:
       kotlin-web-helpers:
         specifier: 3.3.0
@@ -2526,6 +2573,15 @@ importers:
       typescript-native:
         specifier: npm:typescript@7.0.2
         version: typescript@7.0.2
+
+  reaktor-cloud/ts:
+    devDependencies:
+      karakum:
+        specifier: 1.0.0-alpha.112
+        version: 1.0.0-alpha.112(typescript@6.0.3)
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
 
   reaktor-cloudflare/ts:
     dependencies:

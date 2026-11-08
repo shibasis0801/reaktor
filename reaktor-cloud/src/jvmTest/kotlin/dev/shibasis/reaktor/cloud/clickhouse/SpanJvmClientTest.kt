@@ -1,0 +1,115 @@
+package dev.shibasis.reaktor.cloud.clickhouse
+
+import dev.shibasis.reaktor.cloud.kubernetes.ClusterService
+import kotlinx.serialization.json.*
+import kotlin.test.*
+import dev.shibasis.reaktor.cloud.InfrastructureSession
+
+class SpanJvmClientTest {
+    private data class Service(override val kubeconfig: String, override val namespace: String, override val service: String, override val port: Int) : ClusterService
+    private data class Spans(override val connection: ClusterService, override val database: String, override val windowMinutes: Int = 60,
+        override val limit: Int = 500, override val filter: SpanReadFilter = SpanReadFilter()) : SpanRequest
+
+    private val base = listOf("trace_id", "span_id", "parent_id", "phase", "island", "contract", "operation", "started_ms", "duration_ms", "status", "started_at")
+    private val op = Spans(Service("fixture", "reaktor", "clickhouse", 8123), "bestbuds_dev", windowMinutes = 15, limit = 10)
+
+    @Test fun oldSchemaReadsContinueWithExplicitMissingJoinColumns() = InfrastructureSession().use { session ->
+        val requests = mutableListOf<String>()
+        val output = SpanJvmClient(session).readReceipt(op) { sql ->
+            requests += sql
+            if (sql.startsWith("SELECT name")) base.joinToString("\n") { "{\"name\":\"$it\"}" } else "{}"
+        }
+        val receipt = Json.decodeFromString(SpanReadReceipt.serializer(), output)
+        assertEquals(base, receipt.columns)
+        assertEquals(15, receipt.windowMinutes)
+        assertTrue(requests.last().contains("'' AS application_session"))
+        assertTrue(requests.last().contains("'' AS port"))
+        assertTrue(requests.last().contains("'' AS edge"))
+        assertTrue(requests.last().contains("'' AS activation"))
+        assertTrue(requests.last().contains("FROM bestbuds_dev.service_spans"))
+        assertTrue(requests.last().contains("LIMIT 10"))
+        assertFalse(requests.any { it.contains("ALTER") })
+    }
+
+    @Test fun newSchemaPreservesQualifiedJoinIdentity() = InfrastructureSession().use { session ->
+        val columns = base + listOf("application_session", "environment", "build", "node", "graph_digest", "port", "edge", "activation", "application", "installation", "platform")
+        val requests = mutableListOf<String>()
+        val output = SpanJvmClient(session).readReceipt(op) { sql ->
+            requests += sql
+            if (sql.startsWith("SELECT name")) columns.joinToString("\n") { "{\"name\":\"$it\"}" }
+            else """{"application_session":"fixture-session","node":"message-node","graph_digest":"message-graph","port":"send-port","edge":"delivery-edge","activation":"phone-activation"}"""
+        }
+        val receipt = Json.decodeFromString(SpanReadReceipt.serializer(), output)
+        assertEquals(columns, receipt.columns)
+        assertEquals("fixture-session", receipt.rows.single().jsonObject["application_session"]!!.jsonPrimitive.content)
+        val row = receipt.rows.single().jsonObject
+        assertEquals("message-node", row.getValue("node").jsonPrimitive.content)
+        assertEquals("message-graph", row.getValue("graph_digest").jsonPrimitive.content)
+        assertEquals("send-port", row.getValue("port").jsonPrimitive.content)
+        assertEquals("delivery-edge", row.getValue("edge").jsonPrimitive.content)
+        assertEquals("phone-activation", row.getValue("activation").jsonPrimitive.content)
+        assertFalse(requests.last().contains("'' AS"))
+    }
+
+    @Test fun filtersRunBeforeTheLimitAndAreEncodedAsData() = InfrastructureSession().use { session ->
+        val filter = SpanReadFilter(trace = "1".repeat(32), session = "x' OR 1=1 --\\你好", build = "build-a", node = "node-a")
+        val requests = mutableListOf<String>()
+        val columns = base + listOf("application_session", "build", "node")
+        val output = SpanJvmClient(session).readReceipt(op.copy(filter = filter)) { sql ->
+            requests += sql
+            if (sql.startsWith("SELECT name")) columns.joinToString("\n") { "{\"name\":\"$it\"}" } else ""
+        }
+        val sql = requests.last()
+        assertTrue(sql.indexOf("trace_id = unhex(") < sql.indexOf("LIMIT"))
+        assertTrue(sql.contains("application_session = unhex("))
+        assertFalse(sql.contains(filter.session!!))
+        assertEquals(filter, Json.decodeFromString(SpanReadReceipt.serializer(), output).filter)
+    }
+
+    @Test fun missingFilterColumnsAndInvalidTraceNeverReadRows() = InfrastructureSession().use { session ->
+        var requests = 0
+        assertFailsWith<IllegalArgumentException> {
+            SpanJvmClient(session).readReceipt(op.copy(filter = SpanReadFilter(session = "session"))) {
+                requests++
+                base.joinToString("\n") { "{\"name\":\"$it\"}" }
+            }
+        }
+        assertEquals(1, requests)
+        assertFailsWith<IllegalArgumentException> {
+            SpanJvmClient(session).readReceipt(op.copy(filter = SpanReadFilter(trace = "bad"))) { requests++; "" }
+        }
+        assertEquals(1, requests)
+    }
+
+    @Test fun exactTopologyIsReadOnlyForDigestsInTheSelectedSpanPage() = InfrastructureSession().use { session ->
+        val digest = "a".repeat(64)
+        val requests = mutableListOf<String>()
+        val output = SpanJvmClient(session).readReceipt(op) { sql ->
+            requests += sql
+            when {
+                sql.startsWith("SELECT name") && "table = 'service_spans'" in sql -> (base + "graph_digest").joinToString("\n") { "{\"name\":\"$it\"}" }
+                sql.startsWith("SELECT name") -> listOf("application", "graph_digest", "definition", "recorded_at").joinToString("\n") { "{\"name\":\"$it\"}" }
+                "FROM bestbuds_dev.service_spans" in sql -> """{"graph_digest":"$digest"}"""
+                else -> """{"application":"bestbuds","graph_digest":"$digest","definition":"{}"}"""
+            }
+        }
+        val receipt = Json.decodeFromString(SpanReadReceipt.serializer(), output)
+        assertEquals(digest, receipt.graphDefinitions.single().jsonObject.getValue("graph_digest").jsonPrimitive.content)
+        assertTrue("graph_digest IN ('$digest')" in requests.last())
+        assertTrue("argMax(source.definition, source.recorded_at) AS definition" in requests.last())
+        assertTrue("FROM bestbuds_dev.graph_definitions AS source" in requests.last())
+        assertTrue("length(source.definition) <= 524288" in requests.last())
+        assertFalse("length(definition)" in requests.last())
+        assertTrue("LIMIT 8" in requests.last())
+        assertTrue(requests.none { "INSERT" in it || "ALTER" in it })
+    }
+
+    @Test fun missingBaseSchemaOrInvalidScopeFailsBeforeReadingRows() = InfrastructureSession().use { session ->
+        var requests = 0
+        assertFails { SpanJvmClient(session).readReceipt(op) { requests++; "{\"name\":\"trace_id\"}" } }
+        assertEquals(1, requests)
+        assertFailsWith<IllegalArgumentException> { SpanJvmClient(session).readReceipt(op.copy(database = "bestbuds; DROP TABLE")) { requests++; "" } }
+        assertFailsWith<IllegalArgumentException> { SpanJvmClient(session).readReceipt(op.copy(limit = 5_001)) { requests++; "" } }
+        assertEquals(1, requests)
+    }
+}

@@ -415,7 +415,7 @@ Preserve Atlas's compiler qualification, canonical target/exclusion rules, sourc
 | Node SDKs | Add concrete typed adapters as needed, with per-job credential and effect scope |
 | External MCP providers | Keep dedicated child processes, restricted environments, timeout/cancellation and existing lifecycle machinery; do not merge providers into the Node control process |
 | Excalidraw | Keep bundled React execution in the native WebView |
-| Pulumi, Dagger and builds | Keep JVM/recorded execution ownership and existing receipts |
+| Builds | Keep JVM/recorded execution ownership and existing receipts |
 
 #### Lifetime, updates and later recovery
 
@@ -852,7 +852,7 @@ Steps:
 4. Qualify one actual workspace index consumed by Atlas and Hangar with shell Node absent. Record control-call responsiveness and worker memory/concurrency while that index runs. Stop here to fix the working path before generalized recovery.
 5. Qualify explicit cancellation, Node failure and owner death with real child processes. Add bounded restart/backoff only after the working path passes. Reconcile uncertain effects through JVM receipts; reject obsolete-generation events/results.
 6. Move Radar lifetime from the Hangar window to an owner-managed resource shared by clients, retaining its existing recorded tunnel first. Qualify Kubernetes identity and lifetime before considering a packaged local Radar binary. This is owner extraction, not a required Node adapter.
-7. Add Lighthouse/browser and concrete Node SDK adapters when a real domain consumer needs them. Keep external MCP providers isolated, Excalidraw in its WebView, and builds/Pulumi/Dagger on their existing recorded paths.
+7. Add Lighthouse/browser and concrete Node SDK adapters when a real domain consumer needs them. Keep external MCP providers isolated, Excalidraw in its WebView, and builds on their existing recorded paths.
 8. Extend U5 activation for compatible sidecar-only bundles and coordinated breaking JVM/Node releases. Qualify the hosted bundle separately under U8 where used.
 
 Acceptance:

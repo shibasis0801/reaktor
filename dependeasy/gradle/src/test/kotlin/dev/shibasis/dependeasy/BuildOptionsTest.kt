@@ -63,6 +63,75 @@ class BuildOptionsTest {
         assertContains(run("checks", "-Pfixture.feature=true").build().output, "Reusing configuration cache")
     }
 
+    @Test fun `composite invocation options preserve provenance precedence and configuration cache`() {
+        fixture()
+        directory.resolve("settings.gradle.kts").appendText("\nincludeBuild(\"included\") { name = \"Manna\" }\n")
+        directory.resolve("build.gradle.kts").appendText("\ndependeasy.workspace { include(BuildHandle(\"Manna\", \"fixture\")) }\n")
+        directory.resolve("gradle.properties").writeText("dependeasy.environment=outer\nfixture.absent=outer-only\n")
+        val included = directory.resolve("included").apply { mkdir() }
+        included.resolve("settings.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.configuration.*
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.settings") }
+            rootProject.name = "Manna"
+            include(":workers")
+            val environment = resolve(BuildOption.property("dependeasy.environment")).orNull
+            println("included settings environment: ${'$'}{environment?.value} ${'$'}{environment?.evidence?.source}")
+            resolve(BuildOption.property("fixture.absent")).orNull
+        """.trimIndent())
+        included.resolve("build.gradle.kts").writeText("""
+            plugins { id("dev.shibasis.dependeasy.pipeline") }
+            group = "fixture"
+        """.trimIndent())
+        included.resolve("workers").mkdir()
+        included.resolve("workers/build.gradle.kts").writeText("""
+            import dev.shibasis.dependeasy.configuration.*
+            import dev.shibasis.dependeasy.model.*
+            plugins { id("dev.shibasis.dependeasy.pipeline") }
+            resolve(BuildOption.property("dependeasy.environment")).orNull
+            resolve(BuildOption.property("fixture.absent")).orNull
+            resolve(BuildOption.property("fixture.custom").copy(
+                resolutionOrder = listOf(OptionSource.LocalProperties, OptionSource.CommandLine))).get()
+        """.trimIndent())
+        included.resolve("gradle.properties").writeText("dependeasy.environment=included\n")
+        included.resolve("local.properties").writeText("dependeasy.environment=local\nfixture.custom=local-first\n")
+        val environment = System.getenv() + ("ORG_GRADLE_PROJECT_dependeasy.environment" to "environment")
+        fun options(root: File) = BuildModelReader.read(root).declarations
+            .filter { it.build == "Manna" }.mapNotNull { it.option }
+        fun assertEnvironment(value: String, source: OptionSource) {
+            val selected = options(directory).filter { it.name == "dependeasy.environment" }
+            assertEquals(setOf("settings", ":workers"), selected.map { it.scope }.toSet())
+            selected.forEach { assertEquals(value to source, it.value to it.source) }
+        }
+        val arguments = arrayOf("exportBuildModel", "-Pdependeasy.environment=prod", "-Pfixture.custom=cli",
+            "-Dorg.gradle.project.dependeasy.environment=system")
+        val first = run(*arguments).withEnvironment(environment).build()
+        assertContains(first.output, "included settings environment: prod CommandLine")
+        assertEnvironment("prod", OptionSource.CommandLine)
+        val commandLine = options(directory).toSet()
+        val custom = commandLine.single { it.name == "fixture.custom" }
+        assertEquals(":workers", custom.scope)
+        assertEquals("local-first" to OptionSource.LocalProperties, custom.value to custom.source)
+        val absent = commandLine.filter { it.name == "fixture.absent" }
+        assertEquals(setOf("settings", ":workers"), absent.map { it.scope }.toSet())
+        absent.forEach { assertEquals("<absent>" to OptionSource.Absent, it.value to it.source) }
+        assertContains(run(*arguments).withEnvironment(environment).build().output, "Reusing configuration cache")
+        assertEquals(commandLine, options(directory).toSet())
+        val changed = run("exportBuildModel", "-Pdependeasy.environment=dev", "-Pfixture.custom=cli",
+            "-Dorg.gradle.project.dependeasy.environment=system").withEnvironment(environment).build()
+        assertFalse(changed.output.contains("Reusing configuration cache"))
+        assertEnvironment("dev", OptionSource.CommandLine)
+        run("exportBuildModel", "-Dorg.gradle.project.dependeasy.environment=system").withEnvironment(environment).build()
+        assertEnvironment("system", OptionSource.SystemProperty)
+        run("exportBuildModel").withEnvironment(environment).build()
+        assertEnvironment("included", OptionSource.RootGradleProperties)
+        val noCommandLine = options(directory).toSet()
+        assertContains(run("exportBuildModel").withEnvironment(environment).build().output, "Reusing configuration cache")
+        assertEquals(noCommandLine, options(directory).toSet())
+        run(*arguments).withProjectDir(included).withEnvironment(environment).build()
+        assertEquals(commandLine, options(included).toSet())
+    }
+
     @Test fun `local default and typed requirements are enforced`() {
         fixture()
         assertContains(run("exportBuildModel").build().output, "settings option: false Default")

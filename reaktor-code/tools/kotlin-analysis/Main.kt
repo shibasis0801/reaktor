@@ -47,7 +47,7 @@ private const val version = "2.5.0-Beta2-59"
 private const val MaxModules = 2048
 private val Capabilities = buildJsonObject {
     put("provider", "kotlin-analysis-api/$version")
-    putJsonArray("ops") { add("capabilities"); add("resolve"); add("facts") }
+    putJsonArray("ops") { add("capabilities"); add("resolve"); add("facts"); add("release") }
     put("maxModules", MaxModules)
 }
 private fun hash(path: Path): String {
@@ -226,20 +226,19 @@ private class Warm(val digest: String, val disposable: com.intellij.openapi.Disp
     fun close() = Disposer.dispose(disposable)
 }
 
-private fun serve(root: Path) {
-    val protocol = java.io.PrintStream(java.io.FileOutputStream(java.io.FileDescriptor.out), true, Charsets.UTF_8)
-    System.setOut(System.err)
-    var warm: Warm? = null
-    val input = System.`in`.bufferedReader(Charsets.UTF_8)
-    try {
-        while (true) {
-            val line = input.readLine() ?: break
-            if (line.isBlank()) continue
-            val started = System.nanoTime()
-            val request = runCatching { Json.parseToJsonElement(line).jsonObject }.getOrNull()
-            val reply = if (request == null) buildJsonObject { put("error", "Unreadable request") }
-            else if (request["op"]?.jsonPrimitive?.contentOrNull == "capabilities") Capabilities
-            else runCatching {
+class Resolver(root: Path) : java.util.function.Function<String, String>, AutoCloseable {
+    private val root = root.toRealPath()
+    private var warm: Warm? = null
+
+    override fun apply(line: String): String {
+        val started = System.nanoTime()
+        val request = runCatching { Json.parseToJsonElement(line).jsonObject }.getOrNull()
+        val op = request?.get("op")?.jsonPrimitive?.contentOrNull
+        val reply = when {
+            request == null -> buildJsonObject { put("error", "Unreadable request") }
+            op == "capabilities" -> Capabilities
+            op == "release" -> buildJsonObject { put("released", warm != null) }.also { warm?.close(); warm = null }
+            else -> runCatching {
                 val digest = MessageDigest.getInstance("SHA-256").digest((request.getValue("modules").toString() + "\u0000" + request.string("jdkHome") + "\u0000" +
                     request["platform"] + "\u0000" + request["konanTarget"]).toByteArray())
                     .joinToString("") { "%02x".format(it) }
@@ -249,14 +248,26 @@ private fun serve(root: Path) {
                     warm = null
                     open(root, request, digest).also { warm = it }
                 }
-                val answer = if (request["op"]?.jsonPrimitive?.contentOrNull == "facts") facts(session, request) else resolve(session, request)
+                val answer = if (op == "facts") facts(session, request) else resolve(session, request)
                 JsonObject(answer + ("warm" to JsonPrimitive(reused != null)))
             }.getOrElse { failure -> buildJsonObject { put("error", (failure.message ?: failure.toString()).take(2000)) } }
-            protocol.println(JsonObject(reply + mapOf("id" to (request?.get("id") ?: JsonNull), "millis" to JsonPrimitive((System.nanoTime() - started) / 1_000_000))))
         }
-    } finally {
-        warm?.close()
-        disposeGlobalStandaloneApplicationServices()
+        return JsonObject(reply + mapOf("id" to (request?.get("id") ?: JsonNull), "millis" to JsonPrimitive((System.nanoTime() - started) / 1_000_000))).toString()
+    }
+
+    override fun close() {
+        try { warm?.close() } finally {
+            warm = null
+            disposeGlobalStandaloneApplicationServices()
+        }
+    }
+}
+
+private fun serve(root: Path) {
+    val protocol = java.io.PrintStream(java.io.FileOutputStream(java.io.FileDescriptor.out), true, Charsets.UTF_8)
+    System.setOut(System.err)
+    Resolver(root).use { resolver ->
+        System.`in`.bufferedReader(Charsets.UTF_8).lineSequence().filter(String::isNotBlank).forEach { protocol.println(resolver.apply(it)) }
     }
 }
 

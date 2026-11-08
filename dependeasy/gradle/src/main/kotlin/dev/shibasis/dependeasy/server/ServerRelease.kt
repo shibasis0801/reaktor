@@ -22,7 +22,8 @@ internal fun Project.serverRelease(name: String, archive: OutputHandle, reposito
     val site = declarationSite()
     val files = outputFiles(archive)
     val source = layout.file(providers.provider { files.singleFile })
-    val image = ServerImageSpec("", repository, "unix:///var/run/docker.sock", Versions.SDK.Java.asInt,
+    val dockerHost = providers.environmentVariable("DOCKER_HOST").orNull?.takeIf { it.startsWith("unix://") } ?: "unix:///var/run/docker.sock"
+    val image = ServerImageSpec("", repository, dockerHost, Versions.SDK.Java.asInt,
         ToolchainVersions.BuildpackBuilder, ToolchainVersions.BuildpackRunImage, ToolRef("spring-boot-buildpack-platform", GradlePlugins.SpringBoot))
     val build = tasks.register("${name}Image", BuildServerImage::class.java) {
         group = "delivery"

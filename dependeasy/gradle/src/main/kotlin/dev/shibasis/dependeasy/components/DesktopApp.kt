@@ -88,8 +88,8 @@ class DesktopAppScope internal constructor(private val project: Project) {
         bundles.add(project.node(bundle))
     }
 
-    fun runtime(initialHeap: Memory? = null, properties: List<BuildOption<*>> = emptyList()) {
-        runtime = DesktopRuntime(initialHeap, properties.associate { it.name to project.option(it).get().toString() })
+    fun runtime(initialHeap: Memory? = null, properties: List<BuildOption<*>> = emptyList(), image: RuntimeImage = RuntimeImage.Declared) {
+        runtime = DesktopRuntime(initialHeap, properties.associate { it.name to project.option(it).get().toString() }, image)
     }
 
     fun packagedRuntime(run: Run = Run.onDesktopSession()): NodeDeclaration {

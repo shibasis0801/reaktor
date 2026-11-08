@@ -8,8 +8,48 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 class ClusterRuntimeTest {
+    @OptIn(ExperimentalSerializationApi::class)
+    @Test fun jobsWireContractAcceptsOmittedNullableFieldsForQueuedAndRunningRows() {
+        val queued = Job("queue-1", "sample", listOf(":test"), "Queued", "Unknown",
+            requester = Requester(), receipt = "ticket", copyBack = "Pending")
+        val running = queued.copy(id = "build-1", state = "Running", host = "local",
+            queuedAt = 40, startedAt = 41, waitSeconds = 1.0)
+        val producer = Json { explicitNulls = false; encodeDefaults = true }
+        val queuedWire = producer.encodeToString(queued)
+        for (field in listOf("slot", "queuedAt", "startedAt", "finishedAt", "waitSeconds", "exitCode", "log")) {
+            assertTrue("\"$field\"" !in queuedWire, "$field must be omitted by the producer")
+        }
+        val source = ClusterJobs(42, listOf(queued, running), "Source")
+        assertEquals(source, Json.decodeFromString<ClusterJobs>(producer.encodeToString(source)))
+    }
+
+    @OptIn(ExperimentalSerializationApi::class)
+    @Test fun partialObservationsAndUnattributedTasksAcceptOmittedNullableFields() {
+        val status = ClusterStatus(42,
+            listOf(Host("local", roles = listOf("interactive"), state = "Reachable", capacity = Capacity(cores = 14),
+                observedAt = 42, truth = "Partial", processes = HostProcesses(42, listOf(HostProcess(101, "java")), "Partial"))),
+            listOf(Slot("local", 0, 12, "/workspace", Lease("lease", "Free"))),
+            listOf(Waiter("ticket", reason = "Waiting for capacity", truth = "Partial")),
+            Storage(listOf(StorageBudget("remote", truth = "Unknown")), truth = "Unknown"), "Partial")
+        val tasks = ClusterTasks(42, listOf(ClusterTask("native-1", "Read source", "Codex", "Running",
+            startedAt = 40, updatedAt = 41, truth = "Unknown")), "Partial")
+        val producer = Json { explicitNulls = false; encodeDefaults = true }
+        val statusWire = producer.encodeToString(status)
+        assertTrue("\"memoryBytes\"" !in statusWire)
+        assertTrue("\"cpuPercent\"" !in statusWire)
+        assertTrue("\"freeBytes\"" !in statusWire)
+        assertEquals(status, Json.decodeFromString<ClusterStatus>(statusWire))
+        val tasksWire = producer.encodeToString(tasks)
+        assertTrue("\"host\"" !in tasksWire)
+        assertEquals(tasks, Json.decodeFromString<ClusterTasks>(tasksWire))
+    }
+
     @Test fun processMetricsContainExecutableNamesAndBoundedCpuSortedRows() {
         val source = "REAKTOR_PROCESSES\n" + (1..70).joinToString("\n") { "$it $it.0 2048 /Applications/Tool With Spaces/tool" }
         val observed = HostProbe.parseProcesses(source, 42)
@@ -83,16 +123,23 @@ class ClusterRuntimeTest {
     }
 
     @Test fun workloadGraphWiresEachProcessAndJobToItsMachine() {
-        val process = HostProcess(101, "java", 12.5, 1024)
+        val daemon = HostProcess(101, "java", 12.5, 3L shl 30, role = "gradle-daemon")
+        val browser = HostProcess(102, "Google Chrome", 40.0, 1024)
         val host = Host("worker", "worker", listOf("build"), "Reachable", observedAt = 42, truth = "Fixture",
-            processes = HostProcesses(42, listOf(process), "Fixture"))
+            processes = HostProcesses(42, listOf(browser, daemon), "Fixture"))
         val job = Job("build-1", "sample", listOf(":test"), "Running", "worker", 0, Requester(), 40, 41, null, null, null, "receipt", null, "Pending")
+        val waiting = Job("ticket-2", "Unknown", emptyList(), "Queued", "worker", null, Requester(), 41, null, null, null, null, "", null, "Pending")
         val status = ClusterStatus(42, listOf(host), emptyList(), emptyList(), Storage(emptyList(), null, null, null, "Fixture"), "Fixture")
-        val graph = ClusterGraph(status, ClusterJobs(42, listOf(job), "Fixture"))
+        val graph = ClusterGraph(status, ClusterJobs(42, listOf(job, waiting), "Fixture"))
         try {
-            assertEquals(1, graph.processes.size)
-            assertEquals(1, graph.jobs.size)
-            assertEquals(2, graph.shape().wires.size)
+            assertEquals(listOf("Gradle daemon (101)"), graph.processes.map { it.label })
+            assertEquals(listOf("sample: :test", "Queued build"), graph.jobs.map { it.label })
+            val shape = graph.shape()
+            assertEquals(3, shape.wires.size)
+            val shown = shape.nodes.single { it.label == "Gradle daemon (101)" }.attributes
+            assertEquals("3.0 GB", shown["memory"])
+            assertEquals("Gradle daemon", shown["component"])
+            assertEquals("Running", shape.nodes.single { it.label == "sample: :test" }.attributes["state"])
         } finally { graph.close() }
     }
 

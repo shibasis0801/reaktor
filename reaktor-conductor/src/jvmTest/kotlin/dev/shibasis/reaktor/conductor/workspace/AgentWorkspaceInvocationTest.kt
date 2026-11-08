@@ -22,7 +22,30 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.*
 
 class AgentWorkspaceInvocationTest {
-    @Test fun nativeWorkspaceOnlyInjectsTheHostSuppliedMcpCommand() {
+    @Test fun pinnedOwnerRejectsAReplacementBeforeSendingAnyOperation() = runBlocking {
+        val root = Files.createTempDirectory("conductor-pinned-owner").toRealPath()
+        val directory = root.resolve("state")
+        try {
+            AgentWorkspaceConnection.open(root.toFile(), directory, runtimes = emptyMap(), discover = { ProviderCapability(it) }).use { owner ->
+                val original = Files.readString(directory.resolve("owner.json"))
+                AgentWorkspaceConnection.open(root.toFile(), directory, allowStart = false).use { client ->
+                    client.pinIncarnation(owner.incarnation)
+                    assertEquals(root.toString(), client.info().workspaceRoot)
+                    val replaced = ConductorJson.parseToJsonElement(original).jsonObject +
+                        ("incarnation" to JsonPrimitive("22222222-2222-2222-2222-222222222222"))
+                    Files.writeString(directory.resolve("owner.json"), JsonObject(replaced).toString())
+                    try {
+                        val failure = assertFailsWith<IllegalStateException> { client.info() }
+                        assertTrue("Workspace owner changed" in failure.message.orEmpty())
+                    } finally { Files.writeString(directory.resolve("owner.json"), original) }
+                    assertEquals(root.toString(), client.info().workspaceRoot)
+                }
+                assertEquals(root.toString(), owner.info().workspaceRoot)
+            }
+        } finally { root.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+    }
+
+    @Test fun nativeWorkspaceOnlyInjectsTheHostSuppliedMcpServer() {
         val root = Files.createTempDirectory("conductor-host-bridge").toRealPath()
         try {
             val absent = root.resolve("absent")
@@ -39,8 +62,8 @@ class AgentWorkspaceInvocationTest {
                 AgentWorkspaceConnection.open(root.toFile(), absent, allowStart = false, discover = { error("Must not probe a runtime") })
             }
             assertEquals(2L, Files.list(absent).use { it.count() })
-            for (command in listOf(null, listOf("fixture-bridge", "--workspace", root.toString()))) {
-                val directory = root.resolve(if (command == null) "standalone" else "hosted")
+            for (served in listOf(null, buildJsonObject { put("type", "http"); put("url", "http://127.0.0.1:9/mcp/fixture?seat=spawned") })) {
+                val directory = root.resolve(if (served == null) "standalone" else "hosted")
                 var owners = 0
                 AgentWorkspaceConnection.open(root.toFile(), directory, discover = { ProviderCapability(it) },
                     graphOwner = {
@@ -49,7 +72,7 @@ class AgentWorkspaceInvocationTest {
                         }
                         owners++
                         null
-                    }, harnessMcpCommand = command).use {
+                    }, harnessMcp = served).use {
                     val endpoint = Files.readAllBytes(directory.resolve("owner.json"))
                     val record = ConductorJson.parseToJsonElement(endpoint.decodeToString()).jsonObject
                     assertEquals(2, record.getValue("version").jsonPrimitive.int)
@@ -80,12 +103,8 @@ class AgentWorkspaceInvocationTest {
                     assertContentEquals(endpoint, Files.readAllBytes(directory.resolve("owner.json")))
                     assertEquals(leaseModified, Files.getLastModifiedTime(directory.resolve("owner.lock")))
                     val config = directory.resolve("harness-mcp.json")
-                    if (command == null) assertFalse(Files.exists(config)) else {
-                        val server = ConductorJson.parseToJsonElement(Files.readString(config)).jsonObject
-                            .getValue("mcpServers").jsonObject.getValue("reaktor").jsonObject
-                        assertEquals(command.first(), server.getValue("command").jsonPrimitive.content)
-                        assertEquals(command.drop(1), server.getValue("args").jsonArray.map { it.jsonPrimitive.content })
-                    }
+                    if (served == null) assertFalse(Files.exists(config))
+                    else assertEquals(served, ConductorJson.parseToJsonElement(Files.readString(config)).jsonObject.getValue("mcpServers").jsonObject.getValue("reaktor"))
                 }
             }
         } finally { root.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }

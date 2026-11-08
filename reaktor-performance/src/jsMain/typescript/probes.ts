@@ -54,6 +54,7 @@ export function installProbe(): void {
   if (scope.__reaktorProbe) return;
   const state = { events: [] as ProbeEvent[], longTasks: [] as Array<{ startTime: number; duration: number }>, animationFrames: [] as ProbeAnimationFrame[], paints: {} as Record<string, number>, lcp: 0, cls: 0, frames: [] as number[] };
   let sampling = false;
+  let frameHandle: number | null = null;
   const describe = (node: unknown): string => {
     const element = node as { tagName?: string; getAttribute?: (name: string) => string | null; className?: unknown } | null;
     if (!element || !element.tagName) return '';
@@ -89,9 +90,10 @@ export function installProbe(): void {
   observe('largest-contentful-paint', {}, entry => { state.lcp = entry.startTime; });
   observe('layout-shift', {}, entry => { if (!entry.hadRecentInput) state.cls += entry.value ?? 0; });
   const tick = (time: number) => {
+    frameHandle = null;
     if (!sampling) return;
     state.frames.push(time);
-    requestAnimationFrame(tick);
+    frameHandle = requestAnimationFrame(tick);
   };
   scope.__reaktorProbe = {
     state,
@@ -99,10 +101,12 @@ export function installProbe(): void {
       state.frames = [];
       if (sampling) return;
       sampling = true;
-      requestAnimationFrame(tick);
+      frameHandle = requestAnimationFrame(tick);
     },
     stopFrames() {
       sampling = false;
+      if (frameHandle !== null) cancelAnimationFrame(frameHandle);
+      frameHandle = null;
       return state.frames.slice();
     },
     snapshot(since: number) {

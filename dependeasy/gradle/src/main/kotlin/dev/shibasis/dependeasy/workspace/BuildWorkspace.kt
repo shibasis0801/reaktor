@@ -143,17 +143,6 @@ internal class BuildWorkspace(private val project: Project) {
         }
         project.objects.newInstance(GradleReceiptRegistration::class.java).register(project)
         reference(project, graph, OutputKind.GeneratedContract)
-        val container = project.tasks.register<dev.shibasis.dependeasy.dagger.PrepareContainerNode>(DaggerProtocol.PrepareTask) {
-            group = "dependeasy"
-            rootDirectory.set(project.layout.projectDirectory)
-            buildName.set(project.name)
-            modelFile.set(graph.flatMap { it.outputFile })
-            selectedNode.set(project.executionOption(BuildOption.property(DaggerProtocol.NodeOption)))
-            selectedEnvironment.set(project.executionOption(BuildOption.property(GradleProtocol.EnvironmentOption)))
-            availableSecrets.set(project.executionOption(BuildOption.property(DaggerProtocol.SecretsOption)).orElse(""))
-            outputFile.set(project.layout.projectDirectory.file(DaggerProtocol.InvocationFile))
-        }
-        reference(project, container, OutputKind.GeneratedContract)
         for ((name, planning) in listOf(GradleProtocol.PlanTask to true, GradleProtocol.RunTask to false)) {
             val root = project.layout.projectDirectory
             val invocation = project.tasks.register<GradleInvocationTask>(name) {
@@ -427,8 +416,7 @@ internal class BuildWorkspace(private val project: Project) {
                 val server = (spec as? KernelSpec.ServerRollout)?.deployment
                 val secrets = (spec as? KernelSpec.WorkerSecrets)?.secrets?.deployment
                 val migration = (spec as? KernelSpec.DatabaseMigration)?.migration
-                val infrastructure = (spec as? KernelSpec.PulumiStack)?.infrastructure
-                listOf(BuildModelReader.encode(Node(id, if (worker != null || server != null || secrets != null || migration != null || infrastructure != null) NodeKind.Deploy else NodeKind.Kernel, task.name,
+                listOf(BuildModelReader.encode(Node(id, if (worker != null || server != null || secrets != null || migration != null) NodeKind.Deploy else NodeKind.Kernel, task.name,
                     typed?.kernelEffect ?: if (producer.extensions.findByType(KernelSpec::class.java) is KernelSpec.JvmProgram) Effect.Develop
                     else if (kind == OutputKind.VerificationResults) Effect.Verify else Effect.Build,
                     taskHostRequirements[id] ?: typed?.kernelHost?.takeIf { it.platform != HostPlatform.Portable || it.execution != null } ?: suite?.run?.host ?: HostRequirement(kind?.platform ?: HostPlatform.Portable), declaration, kernelRef(producer, spec ?: producer.extensions.findByType(KernelSpec::class.java)),
@@ -436,9 +424,9 @@ internal class BuildWorkspace(private val project: Project) {
                     tools = producer.declaredTools(), options = producer.declaredOptions(),
                     runner = if (spec is KernelSpec.BrowserSuite || spec is KernelSpec.LighthouseAudit) Runner.Browser else Runner.Gradle,
                     artifactFamily = taskArtifactFamilies[id] ?: kind?.family, coverage = coverage[id],
-                    worker = fleetWorker?.ref, environments = fleetWorker?.deployments?.map { it.environment } ?: migration?.database?.availableEnvironments ?: infrastructure?.stack?.stacks?.keys?.toList() ?: listOfNotNull(server?.environment ?: secrets?.environment),
+                    worker = fleetWorker?.ref, environments = fleetWorker?.deployments?.map { it.environment } ?: migration?.database?.availableEnvironments ?: listOfNotNull(server?.environment ?: secrets?.environment),
                     bindings = worker?.bindings?.get()?.map(::ServiceRef) ?: listOfNotNull(server?.service ?: secrets?.service ?: (migration?.database as? DatabaseMigrations.ClickHouse)?.service),
-                      requiredSecrets = if (spec is KernelSpec.WranglerDeploy || secrets != null || migration?.database is DatabaseMigrations.D1) listOf("CLOUDFLARE_API_TOKEN") else infrastructure?.stack?.secretNames?.sorted().orEmpty())))
+                      requiredSecrets = if (spec is KernelSpec.WranglerDeploy || secrets != null || migration?.database is DatabaseMigrations.D1) listOf("CLOUDFLARE_API_TOKEN") else emptyList())))
             }
         }
         if (projection == null) graph.configure { nodes.addAll(facts) }

@@ -56,11 +56,13 @@ object AgentBundle {
         return if (directory < 0) command else command.filterIndexed { index, _ -> index != directory && index != directory + 1 }
     }
 
+    class Endpoint(val url: (String) -> String, val headersHelper: String? = null)
+
     /**
      * One entry per harness. The kernel used to need a second one; it is a provider behind this
      * server now, so an earlier install's `reaktor-graph` entry is retired here, if it is still ours.
      */
-    fun install(targets: Targets, command: List<String>): List<String> = locked(targets) {
+    fun install(targets: Targets, command: List<String>, endpoint: Endpoint? = null): List<String> = locked(targets) {
         require(command.isNotEmpty())
         val workspaceIndex = command.indexOfLast { it == "workspace" }
         require(workspaceIndex >= 0 && command.getOrNull(workspaceIndex + 1) == "mcp") { "Expected a workspace mcp launch command" }
@@ -80,11 +82,12 @@ object AgentBundle {
         // The seat says which harness is calling. It is written here, per harness, so a call can be attributed; it grants nothing.
         fun seated(seat: String) = command + listOf("--seat", seat)
         fun entry(argv: List<String>) = buildJsonObject { put("command", argv.first()); put("args", JsonArray(argv.drop(1).map(::JsonPrimitive))) }
+        fun http(seat: String, served: Endpoint) = buildJsonObject { put("type", "http"); put("url", served.url(seat)); served.headersHelper?.let { put("headersHelper", it) } }
 
-        val codexArgv = seated("codex")
+        val codexServer = endpoint?.let { "url = ${toml(it.url("codex"))}\n" }
+            ?: seated("codex").let { argv -> "command = ${toml(argv.first())}\nargs = [${argv.drop(1).joinToString(", ") { toml(it) }}]\n" }
         val key = "codex/$name"
-        val chunk = "\n# reaktor-bundle begin $name\n[mcp_servers.$name]\n" +
-            "command = ${toml(codexArgv.first())}\nargs = [${codexArgv.drop(1).joinToString(", ") { toml(it) }}]\ntool_timeout_sec = $CODEX_TOOL_SECONDS\n" +
+        val chunk = "\n# reaktor-bundle begin $name\n[mcp_servers.$name]\n" + codexServer + "tool_timeout_sec = $CODEX_TOOL_SECONDS\n" +
             "# reaktor-bundle end $name\n"
         val previous = (owned[key] as? JsonPrimitive)?.content
         when {
@@ -137,19 +140,19 @@ object AgentBundle {
 
         val agyServers = antigravity.servers()
         val agyKey = "antigravity/$name"
-        val agyEntry = entry(workspaceFollowingCommand(seated("gemini")))
+        val agyEntry = endpoint?.let { buildJsonObject { put("serverUrl", it.url("gemini")) } } ?: entry(workspaceFollowingCommand(seated("gemini")))
         if (name in agyServers && owned[agyKey] != agyServers[name]) messages += "$agyKey: collision; preserved unowned or modified entry"
         else {
             antigravity = JsonObject(antigravity + ("mcpServers" to JsonObject(agyServers + (name to agyEntry))))
             owned[agyKey] = agyEntry
             messages += "$agyKey: " + if (agyServers[name] == agyEntry) "already installed"
                 else if (name in agyServers) "updated owned entry"
-                else "installed for every Antigravity project in ${targets.antigravityConfig.path}; it serves the workspace agy is started in"
+                else "installed for every Antigravity project in ${targets.antigravityConfig.path}" + if (endpoint == null) "; it serves the workspace agy is started in" else ""
         }
 
         val servers = claude.servers()
         val claudeKey = "claude/$name"
-        val claudeEntry = entry(seated("claude-code"))
+        val claudeEntry = endpoint?.let { http("claude-code", it) } ?: entry(seated("claude-code"))
         if (name in servers && owned[claudeKey] != servers[name]) messages += "$claudeKey: collision; preserved unowned or modified entry"
         else {
             claude = JsonObject(claude + ("mcpServers" to JsonObject(servers + (name to claudeEntry))))

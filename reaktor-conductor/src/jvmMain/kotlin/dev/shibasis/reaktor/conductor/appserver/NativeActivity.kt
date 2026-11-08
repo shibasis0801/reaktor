@@ -3,6 +3,47 @@ package dev.shibasis.reaktor.conductor.appserver
 import dev.shibasis.reaktor.conductor.*
 import kotlinx.serialization.json.*
 
+internal fun codexHookActivity(agent: AgentId, run: JsonObject, completed: Boolean): AgentEvent.Activity? {
+    val aliases = mapOf("eventName" to "event_name", "sourcePath" to "source_path",
+        "handlerType" to "handler_type", "executionMode" to "execution_mode",
+        "statusMessage" to "status_message", "durationMs" to "duration_ms")
+    fun field(key: String) = run[key] ?: aliases[key]?.let(run::get)
+    fun text(key: String) = (field(key) as? JsonPrimitive)?.contentOrNull
+    val id = text("id") ?: return null
+    val event = text("eventName") ?: return null
+    val status = when (text("status")) {
+        "failed" -> ActivityStatus.Failed
+        "blocked" -> ActivityStatus.Waiting
+        "stopped" -> ActivityStatus.Interrupted
+        else -> if (completed) ActivityStatus.Completed else ActivityStatus.Started
+    }
+    val metadata = buildJsonObject {
+        listOf("source", "sourcePath", "handlerType", "executionMode").forEach { key ->
+            (field(key) as? JsonPrimitive)?.let { put(key, it) }
+        }
+    }
+    val result = buildJsonObject {
+        listOf("status", "statusMessage", "durationMs").forEach { key ->
+            (field(key) as? JsonPrimitive)?.let { put(key, it) }
+        }
+        putJsonArray("entries") {
+            (run["entries"] as? JsonArray).orEmpty().forEach { value ->
+                val entry = value as? JsonObject ?: return@forEach
+                addJsonObject {
+                    listOf("kind", "text").forEach { key ->
+                        (entry[key] as? JsonPrimitive)?.let { put(key, it) }
+                    }
+                }
+            }
+        }
+    }
+    val input = metadata.toString()
+    val output = result.toString()
+    return AgentEvent.Activity(agent, AgentActivityItem("hook:$id", ActivityKind.Control,
+        "Hook $event", status, input = input.take(6000), output = output.take(16000),
+        subjectRefs = listOfNotNull(text("sourcePath")), detailTruncated = input.length > 6000 || output.length > 16000))
+}
+
 internal fun codexActivity(agent: AgentId, item: JsonObject, completed: Boolean): AgentEvent.Activity? {
     fun text(key: String) = (item[key] as? JsonPrimitive)?.contentOrNull
     val type = text("type") ?: return null

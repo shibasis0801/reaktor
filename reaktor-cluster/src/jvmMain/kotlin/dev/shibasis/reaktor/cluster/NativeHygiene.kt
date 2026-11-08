@@ -36,7 +36,7 @@ class NativeHygiene(
         val problems = remote?.get("problems")?.jsonArray?.map { it.jsonPrimitive.content }?.toMutableList() ?: mutableListOf()
         if (response.output.length >= 65_536) problems += "Process source reached the capture limit; attribution is partial"
         val rows = response.output.lineSequence().mapNotNull(::parse).toList()
-        val leaseNames = if (host == "local") listOf("local-gradle.lock") else listOf("worker-gradle.lock", "worker-slot-1.lock", "worker-slot-2.lock")
+        val leaseNames = if (host == "local") listOf("local-gradle.lock", "local-slot-1.lock") else listOf("worker-gradle.lock", "worker-slot-1.lock", "worker-slot-2.lock")
         val leases = leaseNames.map { NativeLease.inspect(state.resolve(it)).state }
         val lease = if (leases.all { it == "Free" }) "Free" else if (leases.any { it == "Held" }) "Held" else "Unknown"
         fun candidate(row: Row) = row.arguments.substringAfterLast('/') == "java" || row.arguments.contains("Chrome") || row.arguments.contains("chromium", ignoreCase = true)
@@ -274,7 +274,7 @@ print(value)
     }
 
     override fun act(host: String, process: ManagedProcess, action: String): String {
-        val names = if (host == "local") listOf("local-gradle.lock") else listOf("worker-gradle.lock", "worker-slot-1.lock", "worker-slot-2.lock")
+        val names = if (host == "local") listOf("local-gradle.lock", "local-slot-1.lock") else listOf("worker-gradle.lock", "worker-slot-1.lock", "worker-slot-2.lock")
         val held = mutableListOf<NativeLease>()
         try {
             for (name in names) held += NativeLease.tryAcquire(state.resolve(name)) ?: return "Refused: a build lease became held"

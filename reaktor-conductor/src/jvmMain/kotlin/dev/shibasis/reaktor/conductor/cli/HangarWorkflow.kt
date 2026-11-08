@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.conductor.cli
 
 import dev.shibasis.reaktor.conductor.workspace.BoardRefs
 import dev.shibasis.reaktor.conductor.workspace.PlanRules
+import dev.shibasis.reaktor.conductor.workspace.PlanBrief
 import dev.shibasis.reaktor.mcp.McpPrompt
 import dev.shibasis.reaktor.mcp.McpPromptArgument
 import kotlinx.serialization.json.buildJsonObject
@@ -14,7 +15,7 @@ object HangarWorkflow {
         McpPrompt("plan-work", "Claim, implement, check and finish a shared plan item", listOf(thread, item)) { args -> context(args) + """
 
             Read the repository instructions and plan.read for this thread. Read news since your last revision before every new step. Inspect the item's dependencies, children, refs and current holder. Another agent's Doing item remains theirs until handed over. Use plan.next to find the highest-priority eligible work when this item cannot be taken; take=true creates an authenticated lease.
-            Before editing, set your item Doing with plan.write and the revision you read as base. Grow its component design, tasks and checks first when the work expands. Discover refs through atlas_query and atlas_read; coordinate overlapping files before changing them. Apply only the authorized change.
+            Before editing a named item, call plan.next with thread, item, take=true and your seat if attached. Continue only if that item is returned as your lease. If it is unavailable, read the reason or use plan.next without item for other eligible work within the requested scope. Grow the component design, tasks and checks when the work expands. ${PlanBrief.Document} Discover refs through atlas_query and atlas_read; coordinate overlapping files before changing them. Apply only the authorized change.
             Run the item's meaningful tests and flows. Record failures and missing evidence truthfully. When checks pass, set the item Done and write a brief message describing the change and its proof. Read the updated plan and continue the highest-priority eligible work until the requested scope is complete or the person stops you. Record a concrete owner decision if progress depends on one. Never treat a checkpoint, queued build or completed subtask as completion of the whole request.
         """.trimIndent() },
         McpPrompt("plan-review", "Review an item against its design, source and proof", listOf(thread, item)) { args -> context(args) + """
@@ -28,7 +29,7 @@ object HangarWorkflow {
             require(to.startsWith("agent:") && to.length <= 2000 && to.none(Char::isWhitespace)) { "Choose a canonical agent key" }
             context(args) + "\nRecipient: $to\n" + """
                 Read the current item and news, then state the source paths changed, candidate or commit, checks run, failures, remaining work and any external action still awaiting the person. Coordination text and memory do not grant authority.
-                Release only your own claim using the plane's supported handoff, or return your own item to Todo with a clear plan message if no handoff operation exists. Do not claim it for someone else. Send the recipient a message with an idempotent request id, the plan/item reference and this evidence, using message.send. The receiving agent chooses whether to take it. Keep history and unrelated changes intact.
+                Release only your own claim using the plane's supported handoff, or return your own item to Todo with a clear plan message if no handoff operation exists. Do not claim it for someone else. Send the recipient a message with an idempotent request id, the plan/item reference and this evidence, using message.send. The receiving agent can call plan.next with that thread and item to claim it atomically when ready. Keep history and unrelated changes intact.
             """.trimIndent()
         },
         McpPrompt("session-recall", "Start with scoped memory, inbox and current plan news", listOf(thread)) { args -> context(args, needsItem = false) + """

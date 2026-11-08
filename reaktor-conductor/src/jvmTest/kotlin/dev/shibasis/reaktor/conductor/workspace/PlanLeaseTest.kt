@@ -23,6 +23,86 @@ class PlanLeaseTest {
         try { test(root) } finally { Files.walk(root).use { it.sorted(Comparator.reverseOrder()).forEach(Files::delete) } }
     }
 
+    @Test fun bulkReleasePreservesEveryClosedLogWindowAcrossSaveBatches() = fixture { root ->
+        var now = 10L
+        val store = WorkPlanStore(root, clock = { now })
+        (0..PlanRules.MaxOps).chunked(PlanRules.MaxOps).forEach { ids ->
+            store.write(thread, PlanPatch(title = "Work", ops = ids.map { PlanOp.Add("Task $it", key = "task-$it") }), owner)
+        }
+        // Restored plans can contain multiple leases from the same historical session.
+        val seeded = assertNotNull(store.plan(thread)).let { plan ->
+            plan.copy(items = plan.items.map { it.copy(status = PlanStatus.Doing,
+                lease = PlanLease(a, 10, 10 + PlanLease.DurationMillis),
+                workLogs = listOf(PlanWorkLog("codex:a", 10, 10 + PlanLease.DurationMillis))) })
+        }
+        Files.writeString(root.resolve("hangar-lease.json"),
+            dev.shibasis.reaktor.conductor.ConductorJson.encodeToString(WorkPlan.serializer(), seeded))
+        now = 30
+        val restored = WorkPlanStore(root, clock = { now })
+        assertEquals(PlanRules.MaxOps + 1, restored.release(a.agent!!, "Session ended").size)
+        val persisted = assertNotNull(WorkPlanStore(root, clock = { now }).plan(thread))
+        assertTrue(persisted.items.all { it.status == PlanStatus.Todo && it.workLogs == listOf(PlanWorkLog("codex:a", 10, 30)) })
+    }
+
+    @Test fun taskLogsKeepExactClaimWindowsAcrossNativeHandoffsAndRestart() = fixture { root ->
+        var now = 10L
+        val store = WorkPlanStore(root, clock = { now })
+        store.write(thread, PlanPatch(title = "Work", ops = listOf(PlanOp.Add("Build", key = "build"))), owner)
+        val first = assertNotNull(store.next(thread, a, take = true) { profile }.candidate)
+        assertEquals(listOf(PlanWorkLog("codex:a", 10, 10 + PlanLease.DurationMillis)), first.item.workLogs)
+        now = 30
+        store.release(a.agent!!, "Hand off")
+        now = 40
+        val claude = BoardActor(BoardActorKind.Agent, "Claude", "claude:b", "agent:claude:b")
+        store.next(thread, claude, take = true) { profile }
+        now = 70
+        val done = store.write(thread, PlanPatch(ops = listOf(PlanOp.Status("build", PlanStatus.Done))), claude)
+        val expected = listOf(PlanWorkLog("codex:a", 10, 30), PlanWorkLog("claude:b", 40, 70))
+        assertEquals(expected, done.plan.item("build")?.workLogs)
+        assertEquals(expected, WorkPlanStore(root, clock = { now }).plan(thread)?.item("build")?.workLogs)
+        assertEquals(emptyList(), dev.shibasis.reaktor.conductor.ConductorJson.decodeFromString(
+            PlanItem.serializer(), """{"id":"legacy","title":"Legacy task"}""").workLogs)
+    }
+
+    @Test fun taskLogsRenewWithActivityAndStopAtActualQuietExpiry() = fixture { root ->
+        var now = 10L
+        val activity = HashMap<String, Long>()
+        val store = WorkPlanStore(root, clock = { now }, activity = activity::get)
+        store.write(thread, PlanPatch(title = "Work", ops = listOf(PlanOp.Add("Build", key = "build"))), owner)
+        store.next(thread, a, take = true) { profile }
+        now += PlanLease.DurationMillis - 1
+        activity[a.agent!!] = now
+        now += 2
+        val end = activity.getValue(a.agent!!) + PlanLease.DurationMillis
+        assertEquals(listOf(PlanWorkLog("codex:a", 10, end)), store.plan(thread)?.item("build")?.workLogs)
+        now = end + 500
+        val expired = assertNotNull(store.plan(thread)?.item("build"))
+        assertEquals(PlanStatus.Todo, expired.status)
+        assertEquals(listOf(PlanWorkLog("codex:a", 10, end)), expired.workLogs)
+        now += 1000
+        store.write(thread, PlanPatch(ops = listOf(PlanOp.Update("build", title = "Renamed"))), owner)
+        assertEquals(expired.workLogs, store.plan(thread)?.item("build")?.workLogs)
+    }
+
+    @Test fun taskLogRetentionIsBoundedAndStatusEditsDoNotInventClaims() = fixture { root ->
+        var now = 10L
+        val store = WorkPlanStore(root, clock = { now })
+        store.write(thread, PlanPatch(title = "Work", ops = listOf(PlanOp.Add("Build", key = "build"))), owner)
+        store.write(thread, PlanPatch(ops = listOf(PlanOp.Status("build", PlanStatus.Doing))), owner)
+        assertEquals(emptyList(), store.plan(thread)?.item("build")?.workLogs)
+        store.write(thread, PlanPatch(ops = listOf(PlanOp.Status("build", PlanStatus.Todo))), owner)
+        repeat(40) {
+            now = 100L + it * 10L
+            store.next(thread, a, take = true) { profile }
+            now += 5
+            store.release(a.agent!!, "Released")
+        }
+        val spans = assertNotNull(store.plan(thread)?.item("build")).workLogs
+        assertEquals(32, spans.size)
+        assertEquals(PlanWorkLog("codex:a", 180, 185), spans.first())
+        assertEquals(PlanWorkLog("codex:a", 490, 495), spans.last())
+    }
+
     @Test fun concurrentTakeHasOneWinnerAndRepeatedTakeKeepsTheLease() = fixture { root ->
         val store = WorkPlanStore(root, clock = { 10 })
         store.write(thread, PlanPatch(title = "Work", ops = listOf(PlanOp.Add("Build", key = "build"))), owner)

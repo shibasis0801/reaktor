@@ -3,8 +3,8 @@ package dev.shibasis.reaktor.auth
 import dev.shibasis.reaktor.tooling.auth.AuditFilter
 import dev.shibasis.reaktor.tooling.auth.AuthConsoleQueries
 import dev.shibasis.reaktor.tooling.auth.AuthTenancyQueries
-import dev.shibasis.reaktor.tooling.database.BoundQuery
-import dev.shibasis.reaktor.tooling.database.JdbcQueryParameters
+import dev.shibasis.reaktor.cloud.database.BoundQuery
+import dev.shibasis.reaktor.cloud.database.JdbcQueryParameters
 import org.junit.Assume.assumeTrue
 import org.postgresql.util.PSQLException
 import java.io.File

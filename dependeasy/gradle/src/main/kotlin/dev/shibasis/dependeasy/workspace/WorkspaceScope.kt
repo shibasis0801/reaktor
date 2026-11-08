@@ -136,10 +136,6 @@ class WorkspaceScope internal constructor(private val project: Project, private 
         return emit(declaration, NodeKind.ArtifactSet, role, project.declarationSite(), ArtifactSetKernel)
     }
 
-    fun infrastructure(stack: PulumiStack, program: OutputHandle? = null): NodeDeclaration = NodeDeclaration { name ->
-        project.pulumiInfrastructure(name, stack, program)
-    }
-
     fun migrate(database: DatabaseMigrations): NodeDeclaration = NodeDeclaration { name ->
         project.databaseMigration(name, database)
     }

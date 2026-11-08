@@ -8,8 +8,8 @@ import dev.shibasis.reaktor.conductor.AgentId
 import dev.shibasis.reaktor.conductor.AgentRequest
 import dev.shibasis.reaktor.conductor.AgentSpec
 import dev.shibasis.reaktor.conductor.RuntimeKind
-import dev.shibasis.reaktor.tooling.cloud.CloudflareAi
-import dev.shibasis.reaktor.tooling.cloud.CloudflareApiToken
+import dev.shibasis.reaktor.cloud.cloudflare.CloudflareAi
+import dev.shibasis.reaktor.cloud.cloudflare.CloudflareApiToken
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import java.io.File

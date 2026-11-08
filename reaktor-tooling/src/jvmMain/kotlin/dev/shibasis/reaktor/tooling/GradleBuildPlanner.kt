@@ -100,7 +100,7 @@ internal class GradleBuildPlanner {
         require(reviewedPlan == null || reviewedPlan == plan) { "Retained Gradle plan changed after review; run build.plan again" }
         require(plan.node == node.id && plan.modelDigest == request.modelDigest && plan.requestDigest == BuildModelReader.digest(contract))
         val executable = write(request.copy(expectedContextDigest = plan.contextDigest, deployments = plan.deployments,
-            serverDeployments = plan.serverDeployments, secrets = plan.secrets, migrations = plan.migrations, infrastructure = plan.infrastructure))
+            serverDeployments = plan.serverDeployments, secrets = plan.secrets, migrations = plan.migrations))
         val argv = listOf(wrapper, GradleProtocol.RunTask, "-P${GradleProtocol.RequestOption}=${executable.absolutePath}", "--console=plain") + properties
         return PreparedGradleBuild(argv, ProcessDefinitionSeal.capture(seal.files + executable + planFile, seal.directories),
             plan, listOf(ArtifactExpectation("gradle-result", "${GradleProtocol.ResultDirectory}/${executable.name}", true)),

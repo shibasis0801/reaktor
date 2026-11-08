@@ -11,6 +11,7 @@ directory. There is one source for each adapter.
 | --- | --- |
 | `remote-dev` | Load-based Gradle routing, worker slots, source synchronization, detached execution, output collection/publication and resume; Docker Compose and port forwarding |
 | `remote_build.py`, `gradle-lease` | Host leases, fair admission queue, frozen source snapshots and isolated execution receipts |
+| `build_control.py` | Private per-execution supervision, verified process identities and owned routed-build cancellation |
 | `hosts_contract.py` | Dependeasy's generated `build/dependeasy/remote/hosts.json` contract |
 | `workspace_storage.py`, `remote_retention.py`, `dev-storage`, `storage-limits.json` | Disk budgets, protected active data and expiring generated payloads |
 | `mobile_worker.py`, `setup-mobile-worker.py`, `mobile-device-hook.py`, `physical-devices.gradle` | Physical-device routing, tool setup, suite-owned iOS signing and simulator exclusion |
@@ -49,6 +50,39 @@ No adapter starts an emulator or simulator. Storage cleanup preserves source,
 credentials, open files and active jobs.
 Moved `~/other/{tmp,temp,.tmp}` and moved project temporary directories remain
 charged to the same combined temporary budget as the source workspace.
+
+## Routed-build controls
+
+New local and worker executions record `execution_control` in their retained
+router receipt before launch. Each execution has a private job directory,
+request, supervisor and process birth identity. Stop is offered only after the
+configured workspace, project, host, worker slot, directory, execution ID and live
+supervisor are verified. Older receipts remain inspectable with an explicit
+unsupported reason. Inspection does not run admission or storage cleanup.
+
+```sh
+remote-dev job-control inspect RUN_ID --state-root /absolute/path/to/.remote-dev
+remote-dev job-control stop RUN_ID --execution DISPLAYED_EXECUTION_ID --state-root /absolute/path/to/.remote-dev
+```
+
+These commands return one JSON object with `schemaVersion`, `runId`, `host`,
+`status`, `executionId` and `actions.stop` / `actions.resume`. Each action has
+`supported` and `reason`; mutations also return `message`. The state override
+must name an owned canonical directory with an owned regular `config.json`.
+Stop requires the execution ID returned by inspection and revalidates it before
+writing a private cancellation request. Only the supervisor signals its own
+unreaped child process group. A confirmed `Cancelled` outcome means that group
+has stopped; detached Gradle and Kotlin daemons remain outside the receipt's
+resource scope. Cancellation is recorded on the primary and worker, and cancelled
+outputs are not collected or published. Status can remain `Stopping` while the
+supervisor settles the execution; an unconfirmed outcome remains `Unknown`.
+
+The JSON `resume` action is currently unsupported. The existing Terminal command
+`remote-dev resume RUN_ID` retains its collection and publication recovery
+behavior for an eligible completed worker execution; it does not rerun tasks.
+Cancelled receipts cannot publish outputs. Existing worker runtime assets do not
+need updating for these controls: each new worker job receives its own private
+supervisor source without replacing any running job's files.
 
 ## Compatibility and verification
 

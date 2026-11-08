@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.conductor.appserver
 
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import dev.shibasis.reaktor.conductor.ActivityStatus
 import dev.shibasis.reaktor.conductor.AgentEvent
 import dev.shibasis.reaktor.conductor.AgentId
@@ -84,6 +85,40 @@ class CodexDesktopRoutingTest {
         assertTrue(":workspace permissions" in outcome.failure.orEmpty())
         assertEquals(ActivityStatus.Failed, events.filterIsInstance<AgentEvent.Activity>().single { it.item.id == "desktop-permissions" }.item.status)
         assertTrue(launched.any { it.take(2) == listOf("codex", "queue") && it.last().startsWith("Stop now") })
+    }
+
+
+    @Test fun desktopRolloutHooksKeepTheirDiagnostics() = runBlocking {
+        val home = Files.createTempDirectory("codex-hook-home").toFile()
+        try {
+            val thread = "01a19999-0000-7000-8000-000000000002"
+            val rollout = home.resolve("sessions/2026/11/07/rollout-2026-11-07T00-00-00-$thread.jsonl").apply {
+                parentFile.mkdirs()
+                writeText("""{"type":"session_meta","payload":{"id":"$thread"}}""" + "\n")
+            }
+            fun event(payload: String) = rollout.appendText("""{"type":"event_msg","payload":$payload}""" + "\n")
+            val request = AgentRequest(AgentSpec(AgentId("codex"), "Codex", RuntimeKind.Codex, "", tools = reader),
+                "Hook probe", home.path, resume = ProviderSession(RuntimeKind.Codex, thread))
+            val session = CodexDesktopSession(request, "codex", this, home, launch = { command ->
+                if (command.take(2) == listOf("codex", "queue")) {
+                    event("""{"type":"task_started","turn_id":"turn-1"}""")
+                    event("""{"type":"hook_started","turn_id":"turn-1","run":{"id":"desktop-stop","event_name":"stop","status":"running","source":"plugin","source_path":"/hooks/desktop.json","entries":[]}}""")
+                    event("""{"type":"hook_completed","turn_id":"turn-1","run":{"id":"desktop-stop","event_name":"stop","status":"failed","status_message":"Timed out","duration_ms":10000,"source":"plugin","source_path":"/hooks/desktop.json","entries":[{"kind":"error","text":"hook timed out after 10s"}]}}""")
+                    event("""{"type":"task_complete","last_agent_message":"Done."}""")
+                }
+                true
+            })
+            val events = withTimeout(10000) { session.events.toList() }
+            val hooks = events.filterIsInstance<AgentEvent.Activity>().map { it.item }.filter { it.id == "hook:desktop-stop" }
+            assertEquals(listOf(ActivityStatus.Started, ActivityStatus.Failed), hooks.map { it.status })
+            assertTrue(hooks.last().input.orEmpty().contains("/hooks/desktop.json"))
+            assertTrue(hooks.last().output.orEmpty().contains("hook timed out after 10s"))
+            assertTrue(hooks.last().output.orEmpty().contains("10000"))
+            assertEquals(listOf("/hooks/desktop.json"), hooks.last().subjectRefs)
+            assertTrue(events.filterIsInstance<AgentEvent.Finished>().single().outcome.ok)
+        } finally {
+            home.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")))
+        }
     }
 
     @Test fun appliedSettingsNameWhatFallsShort() {

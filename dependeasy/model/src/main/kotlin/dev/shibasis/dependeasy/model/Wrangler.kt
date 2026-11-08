@@ -1,9 +1,10 @@
 package dev.shibasis.dependeasy.model
 
 object Wrangler {
+    val Command: String get() = java.io.File(System.getProperty("user.home"), ".reaktor/kernel/sidecar/wrangler").path
+
     private fun command(spec: WorkerDeploySpec, arguments: List<String>) = spec.execution.copy(
-        arguments = listOf("exec", "wrangler") + arguments + listOf("--config", spec.configuration) +
-            spec.wranglerEnvironment?.let { listOf("--env", it) }.orEmpty())
+        arguments = arguments + listOf("--config", spec.configuration) + spec.wranglerEnvironment?.let { listOf("--env", it) }.orEmpty())
 
     fun dryRun(spec: WorkerDeploySpec, directory: String) = command(spec,
         listOf("deploy", "--dry-run", "--outdir", directory, "--minify"))

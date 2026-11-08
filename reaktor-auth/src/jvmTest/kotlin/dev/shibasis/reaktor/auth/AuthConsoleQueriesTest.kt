@@ -4,8 +4,8 @@ import dev.shibasis.reaktor.core.framework.EMPTY_JSON
 import dev.shibasis.reaktor.tooling.auth.AuditFilter
 import dev.shibasis.reaktor.tooling.auth.AuthConsoleQueries
 import dev.shibasis.reaktor.tooling.auth.SessionState
-import dev.shibasis.reaktor.tooling.database.BoundQuery
-import dev.shibasis.reaktor.tooling.database.JdbcQueryParameters
+import dev.shibasis.reaktor.cloud.database.BoundQuery
+import dev.shibasis.reaktor.cloud.database.JdbcQueryParameters
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import org.jetbrains.exposed.v1.jdbc.insert

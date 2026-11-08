@@ -65,7 +65,7 @@ class ClusterLocationsTest {
     }
 
     private inline fun temporary(block: (Path) -> Unit) {
-        val root = Files.createTempDirectory("cluster-locations-")
+        val root = Files.createTempDirectory("cluster-locations-").toRealPath()
         try { block(root) } finally { root.toFile().deleteRecursively() }
     }
 }

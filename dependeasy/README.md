@@ -2,8 +2,7 @@
 
 Dependeasy declares build artifacts and their dependencies. Gradle schedules them;
 Kotlin, pnpm/Vite, SwiftPM, and CMake keep ownership of compilation and dependency resolution.
-Gradle declares delivery entrypoints; the shared Dagger runner and product release
-tools invoke those declarations.
+Gradle declares delivery entrypoints; product release tools invoke those declarations.
 
 See [DESIGN.md](DESIGN.md) for the architecture, domain status, and remaining work.
 
@@ -102,10 +101,9 @@ An `after` edge only orders work; it does not say which files are consumed.
 
 | Package | Responsibility |
 | --- | --- |
-| `components` | Typed component declarations: `library`, `webApp`, `workerApp`, `workers`, `androidApp`, `appleApp`, `desktopApp`, `server`, `cli`, `daggerPipeline` |
+| `components` | Typed component declarations: `library`, `webApp`, `workerApp`, `workers`, `androidApp`, `appleApp`, `desktopApp`, `server`, `cli` |
 | `handles` | Typed handles for Reaktor modules, project outputs, nodes and artifacts |
 | `workspace` | Build entrypoints, included-build exports, package command inventory, generated aliases |
-| `dagger` | Kotlin-owned container toolchain and a shared model-resolved runner |
 | `fastlane` | Frozen Bundler launcher and shared filesystem/artifact helpers; product signing and release policy stay in product domains |
 | `cloudflare` | Worker fleet dependencies and immutable Wrangler configuration merging |
 | `plugins` | Entry points, compiler bundles and the small declaration API |
@@ -288,14 +286,6 @@ workspace {
 }
 ```
 
-The pipeline component declares `daggerPipeline()` in its own build file.
-
-`generateDagger` writes the engine pin and toolchain contract. The shared runner resolves
-its requested node and explicit environment from a fresh Kotlin build model inside
-the container. Adding a node does not change `dagger/pipeline.json`; there is no
-reference snapshot or drift-verification task. Kotlin checks host requirements and
-required secret names. Dagger returns the run receipts and declared outputs as a directory.
-
 Local CI starts through `reaktor build run pr` in each repository. No GitHub Actions
 workflow is required. `exportBuildModel` imports active package scripts directly from
 authored manifests. Generated aliases point back to Gradle. Manifest dependencies stay
@@ -309,9 +299,8 @@ Generation reads the declared targets without executing them, so frontend builds
 refresh their aliases without recursively building or installing the workspace.
 Their generated target metadata carries worker directories and environment tiers,
 so Hangar can inspect and bind delivery without parsing a shell selector.
-Mac and physical-device entrypoints remain visible in the graph. The Kotlin container
-resolver refuses them with a host requirement; the native local gate runs them on
-their declared host. External recipes remain metadata and runner commands. See [DESIGN.md](DESIGN.md) for the export contract.
+Mac and physical-device entrypoints remain visible in the graph, and each runs on its
+declared host. External recipes remain metadata and runner commands. See [DESIGN.md](DESIGN.md) for the export contract.
 
 Fastlane uses the product's locked Gemfile through the shared launcher. Product
 lanes invoke Gradle delivery entrypoints for web publishing, so they inherit the
@@ -331,8 +320,7 @@ the same process helper also launches Wrangler and forwards cancellation before
 temporary configuration is removed.
 
 Worker artifact transfer carries the exported model back for local Hangar and preserves
-relative Kotlin export links. Generated Dagger source and metadata transfer on
-success, without its SDK or dependency caches.
+relative Kotlin export links.
 The generated alias report merges only owned scripts and metadata into the local
 manifest, preserving authored edits and dependencies made while a worker ran.
 

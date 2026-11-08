@@ -2,7 +2,7 @@ package dev.shibasis.reaktor.conductor.memory
 
 import dev.shibasis.reaktor.conductor.ContextEntry
 import dev.shibasis.reaktor.conductor.workspace.AgentRunRecord
-import dev.shibasis.reaktor.tooling.cloud.AiGatewayClient
+import dev.shibasis.reaktor.cloud.cloudflare.AiGatewayClient
 import java.io.File
 
 class MemorySession(private val api: MemoryApi, private val root: File) {

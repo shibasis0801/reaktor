@@ -39,6 +39,10 @@ internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<Mcp
             val page = tasks(AgentTasksPage(0, workspace.list(it.long("limit", 20).toInt(), it.long("offset", 0).toInt()))).jsonObject
             buildJsonObject { put("runs", page.getValue("runs")) }
         },
+        McpTool("agent_active", "Read every currently running task owned by this workspace, including tasks outside the recent index.", emptyObjectSchema(), true, true) {
+            val page = tasks(AgentTasksPage(0, workspace.listActive())).jsonObject
+            buildJsonObject { put("runs", page.getValue("runs")) }
+        },
         McpTool("agent_tasks_wait", "Wait for the workspace task revision to change, then return the current search page. Use its revision on the next wait.",
             objectSchema(mapOf("revision" to buildJsonObject { put("type", "integer"); put("minimum", 0) },
                 "query" to stringSchema("Task search"), "offset" to buildJsonObject { put("type", "integer"); put("minimum", 0); put("maximum", 200) },
@@ -89,6 +93,16 @@ internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<Mcp
             result(workspace.submit(ConductorJson.decodeFromJsonElement(AgentSubmission.serializer(), it)))
         },
         McpTool("agent_run", "Read bounded output, status, usage and provider identity for one run.", runSchema, true, true) { result(workspace.get(it.string("runId"))) },
+        McpTool("agent_control", "Read current stop and restart eligibility for this exact run without exposing its retained request.", runSchema, true, true) {
+            AgentWorkspaceJson.encodeToJsonElement(AgentRunControl.serializer(), workspace.control(it.string("runId")))
+        },
+        McpTool("agent_restart", "Start a terminal standalone task again from its verified original request, in a fresh conversation and provider session. Rechecks current admission and permissions; incurs native model usage. Reuse the new requestId only for identical retries.",
+            objectSchema(mapOf("runId" to stringSchema("Exact terminal run id"),
+                "expectedRevision" to buildJsonObject { put("type", "integer"); put("minimum", 1) },
+                "requestId" to stringSchema("New idempotency key for this restart")), listOf("runId", "expectedRevision", "requestId")),
+            readOnly = false, idempotent = true, destructive = true, openWorld = true) {
+            result(workspace.restart(it.string("runId"), it.getValue("expectedRevision").jsonPrimitive.long, it.string("requestId")))
+        },
         McpTool("agent_children", "Read bounded peer task summaries with individually reported usage and remaining delegation capacity. Missing usage stays unknown.", runSchema, true, true) {
             val children = workspace.children(it.string("runId"))
             buildJsonObject {
@@ -133,8 +147,9 @@ internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<Mcp
             try { runBlocking { result(workspace.awaitChange(it.string("runId"), it.long("afterRevision", 0), it.long("timeoutMillis", 30000))) } }
             finally { waits.release() }
         },
-        McpTool("agent_cancel", "Interrupt this exact run and wait for its owned harness to stop. Never targets a newer run.", runSchema, false, true) {
-            runBlocking { result(workspace.cancel(it.string("runId"))) }
+        McpTool("agent_cancel", "Interrupt this exact run and wait for its owned harness to stop. An optional reviewed revision refuses a stale stop.",
+            objectSchema(mapOf("runId" to stringSchema("Exact run id"), "expectedRevision" to buildJsonObject { put("type", "integer"); put("minimum", 1) }), listOf("runId")), false, true) {
+            runBlocking { result(workspace.cancel(it.string("runId"), it["expectedRevision"]?.jsonPrimitive?.long)) }
         },
         McpTool("agent_attach", "Re-attach to a run after a disconnect: its current state, whether it is still executing, which participants can be answered, and what it is blocked on. Observation only — this never takes the execution lease or dispatches work.",
             runSchema, readOnly = true, idempotent = true) {

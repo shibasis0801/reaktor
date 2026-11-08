@@ -58,7 +58,8 @@ private fun <T : Any> resolve(providers: ProviderFactory, root: Directory, gradl
     parameters.option.set(option)
     parameters.root.set(root)
     parameters.userHome.set(gradle.gradleUserHomeDir)
-    parameters.commandLine.set(gradle.startParameter.projectProperties.filterKeys { it == option.name })
+    val invocation = generateSequence(gradle) { it.parent }.last()
+    parameters.commandLine.set(invocation.startParameter.projectProperties.filterKeys { it == option.name })
 }.map { it as ResolvedOption<T> }
 
 abstract class BuildOptionSource : ValueSource<ResolvedOption<Any>, BuildOptionSource.Parameters>, org.gradle.api.Describable {

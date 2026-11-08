@@ -255,7 +255,13 @@ class GraphServiceTraceTest {
     }
 
     @Test fun graphContextOverheadHasABoundedDirectionalBurst() = runTest {
-        val spans = SpanBuffer()
+        val capacity = 1_024
+        val warmupIterations = 2_000
+        val sampleRounds = 6
+        // Repeated overflow stays bounded within the JS test runner's deadline.
+        val iterationsPerRound = 1_000
+        val expectedAccepted = warmupIterations.toLong() + sampleRounds * iterationsPerRound
+        val spans = SpanBuffer(capacity)
         val sdk = createOpenTelemetry { tracerProvider {
             resource(mapOf(ResourceKeys.ServiceName to "reaktor-client")); export { ClientServiceSpanProcessor(spans) }
         } }
@@ -264,20 +270,21 @@ class GraphServiceTraceTest {
             defaults = TelemetryFacet(TracePolicy.Off, PortSemantics.Request)))
         val observed = wire("observed", PortTelemetryInterceptor(tracer, defaults = defaults,
             openTelemetry = sdk, callAttributes = { resources }))
-        repeat(2_000) { baseline.suspended { sendLater("warmup") }; observed.suspended { sendLater("warmup") } }
+        repeat(warmupIterations) { baseline.suspended { sendLater("warmup") }; observed.suspended { sendLater("warmup") } }
         val baselineMillis = mutableListOf<Double>()
         val observedMillis = mutableListOf<Double>()
-        repeat(6) {
+        repeat(sampleRounds) {
             var started = TimeSource.Monotonic.markNow()
-            repeat(10_000) { baseline.suspended { sendLater("sample") } }
+            repeat(iterationsPerRound) { baseline.suspended { sendLater("sample") } }
             baselineMillis += started.elapsedNow().inWholeMicroseconds / 1000.0
             started = TimeSource.Monotonic.markNow()
-            repeat(10_000) { observed.suspended { sendLater("sample") } }
+            repeat(iterationsPerRound) { observed.suspended { sendLater("sample") } }
             observedMillis += started.elapsedNow().inWholeMicroseconds / 1000.0
-            }
-        assertEquals(62_000L, spans.pending.toLong() + spans.dropped)
-        assertEquals(1_024, spans.pending)
-        println("REAKTOR_GRAPH_SERVICE_BENCHMARK baseline_ms=$baselineMillis observed_ms=$observedMillis iterations_per_round=10000 accepted=62000 retained=${spans.pending} dropped=${spans.dropped}")
+        }
+        assertEquals(expectedAccepted, spans.pending.toLong() + spans.dropped)
+        assertEquals(capacity, spans.pending)
+        assertEquals(expectedAccepted - capacity, spans.dropped)
+        println("REAKTOR_GRAPH_SERVICE_BENCHMARK baseline_ms=$baselineMillis observed_ms=$observedMillis iterations_per_round=$iterationsPerRound accepted=$expectedAccepted retained=${spans.pending} dropped=${spans.dropped}")
     }
 
     @Test fun cancellationKeepsItsOutcomeAndEndsTheGraphSpan() = runTest {

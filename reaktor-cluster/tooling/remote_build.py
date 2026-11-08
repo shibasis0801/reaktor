@@ -309,11 +309,11 @@ for repository,head in manifest['repositories'].items():
 ''', helper.REMOTE, remote)
 
 
-def collect_local(helper, slot, destination, successful, family):
+def collect_local(helper, slot, destination, successful, family, projects=None):
     output_roots = {'reports', 'test-results', 'hangar-flows', 'hangar-shards', 'dependeasy'}
     if successful and family not in {'metadata', 'verification'}:
         output_roots.update({'outputs', 'libs', 'classes', 'resources', 'processedResources', 'compose', 'distributions', 'bin', 'xcode-frameworks', 'XCFrameworks'})
-    for name in helper.PROJECTS:
+    for name in helper.PROJECTS if projects is None else projects:
         base = slot / name
         for directory, dirs, files in os.walk(base):
             dirs[:] = [entry for entry in dirs if entry not in helper.EXCLUDED - {'build', 'reports'}]
@@ -369,7 +369,7 @@ def isolated_build(helper, identity, host, project, args, run_id=None):
                 receipt['java'] = (java.stderr + java.stdout).strip()
                 receipt['gradleWrapper'] = file_identity(slot / project / 'gradle/wrapper/gradle-wrapper.properties')
                 receipt['adapterDigest'] = digest({filename: file_identity(Path(__file__).parent / filename)
-                                                  for filename in ('remote-dev', 'remote_build.py', 'hosts_contract.py', 'physical-devices.gradle', 'build-cache.gradle')})
+                                                  for filename in ('remote-dev', 'remote_build.py', 'build_control.py', 'hosts_contract.py', 'physical-devices.gradle', 'build-cache.gradle')})
                 receipt['cachePolicy'] = os.environ.get('REMOTE_DEV_CACHE', 'off')
                 helper.ROOT = slot
                 if host == 'worker':
@@ -389,6 +389,9 @@ script=(source/'run-gradle').read_text().replace('job="$worker_state/jobs/', 'jo
                 try:
                     if host == 'local':
                         code = helper.local_gradle(project, Path('.'), args, log)
+                        receipt['transportReceipt'] = str(helper.STATE / 'logs' / (helper.LAST_RUN_ID + '.json'))
+                        if json.loads(Path(receipt['transportReceipt']).read_text()).get('cancelled'):
+                            raise KeyboardInterrupt('Owned local execution cancellation confirmed')
                         artifact_root = evidence / 'artifacts'
                         hosts = helper.read_hosts_contract(slot / project)
                         family = helper.artifact_family(args, hosts.get('taskFamilies', {}), hosts.get('taskOptions', {}))
@@ -399,6 +402,10 @@ script=(source/'run-gradle').read_text().replace('job="$worker_state/jobs/', 'jo
                         with log.open('w') as output, contextlib.redirect_stdout(output):
                             code = helper.build(project, Path('.'), args, frozen=True,
                                                 verify=lambda: verify_worker(helper, identity))
+                        receipt['transportReceipt'] = str(helper.STATE / 'logs' / (helper.LAST_RUN_ID + '.json'))
+                        if json.loads(Path(receipt['transportReceipt']).read_text()).get('cancelled'):
+                            receipt['workerMayContinue'] = False
+                            raise KeyboardInterrupt('Owned worker execution cancellation confirmed')
                         verify_worker(helper, identity)
                         receipt['workerInputsUnchanged'] = True
                         artifact_root = helper.STATE / 'artifacts' / helper.LAST_RUN_ID
@@ -443,7 +450,7 @@ script=(source/'run-gradle').read_text().replace('job="$worker_state/jobs/', 'jo
                        error=str(error) or type(error).__name__, exit_code=130 if isinstance(error, KeyboardInterrupt) else 74)
         if host == 'worker' and helper.LAST_RUN_ID:
             receipt['transportReceipt'] = str(helper.STATE / 'logs' / (helper.LAST_RUN_ID + '.json'))
-            receipt['workerMayContinue'] = True
+            receipt.setdefault('workerMayContinue', True)
         save()
         raise
     print(f'{host} {project}: {receipt["status"]}; {evidence / "receipt.json"}', flush=True)

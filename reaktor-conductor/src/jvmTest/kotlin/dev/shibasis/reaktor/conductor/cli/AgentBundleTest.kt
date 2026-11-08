@@ -230,6 +230,25 @@ class AgentBundleTest {
         } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
+    @Test fun aKernelEndpointIsInstalledAsHttpEntriesForEveryHarness() {
+        val home = Files.createTempDirectory("bundle-home").toFile()
+        val root = Files.createTempDirectory("bundle-root").toFile()
+        try {
+            val targets = AgentBundle.targets(root, home)
+            AgentBundle.install(targets, command, AgentBundle.Endpoint({ seat -> "http://127.0.0.1:9318/mcp/ws?seat=$seat" }, "/home/mcp-headers"))
+            fun server(file: java.io.File) = Json.parseToJsonElement(file.readText()).jsonObject.getValue("mcpServers").jsonObject.getValue("reaktor")
+            assertEquals(buildJsonObject { put("type", "http"); put("url", "http://127.0.0.1:9318/mcp/ws?seat=claude-code"); put("headersHelper", "/home/mcp-headers") },
+                server(targets.claudeProjectConfig))
+            assertEquals(buildJsonObject { put("serverUrl", "http://127.0.0.1:9318/mcp/ws?seat=gemini") }, server(targets.antigravityConfig))
+            val codex = targets.codexConfig.readText()
+            assertTrue(codex.contains("[mcp_servers.reaktor]\nurl = \"http://127.0.0.1:9318/mcp/ws?seat=codex\"\ntool_timeout_sec = 300\n"), codex)
+            assertFalse(codex.contains("command ="), codex)
+            assertTrue(AgentBundle.status(targets).let { it.codex && it.claude && it.antigravity })
+            AgentBundle.uninstall(targets)
+            assertFalse(AgentBundle.status(targets).let { it.codex || it.claude || it.antigravity })
+        } finally { home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+    }
+
     @Test fun aSharedAntigravityFileWeDidNotCreateSurvivesUninstall() {
         val home = Files.createTempDirectory("bundle-home").toFile()
         val root = Files.createTempDirectory("bundle-root").toFile()

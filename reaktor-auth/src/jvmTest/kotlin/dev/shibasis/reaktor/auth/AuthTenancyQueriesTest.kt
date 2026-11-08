@@ -4,8 +4,8 @@ import dev.shibasis.reaktor.auth.db.roleScope
 import dev.shibasis.reaktor.core.framework.EMPTY_JSON
 import dev.shibasis.reaktor.tooling.auth.AuthTenancyQueries
 import dev.shibasis.reaktor.tooling.auth.GrantScope
-import dev.shibasis.reaktor.tooling.database.BoundQuery
-import dev.shibasis.reaktor.tooling.database.JdbcQueryParameters
+import dev.shibasis.reaktor.cloud.database.BoundQuery
+import dev.shibasis.reaktor.cloud.database.JdbcQueryParameters
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.v1.jdbc.insert

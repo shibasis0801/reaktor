@@ -4,6 +4,7 @@ import dev.shibasis.dependeasy.model.BuildOption
 import dev.shibasis.dependeasy.configuration.option
 import dev.shibasis.dependeasy.components.componentRole
 import dev.shibasis.dependeasy.web.JavaScriptComponent
+import dev.shibasis.dependeasy.web.PackageCommand
 import dev.shibasis.dependeasy.verification.karateSuite
 import dev.shibasis.dependeasy.workspace.BuildWorkspace
 import dev.shibasis.dependeasy.workspace.WorkspaceNodeTask
@@ -23,7 +24,8 @@ class WorkerFleet internal constructor(
     private val prerequisites: List<OutputHandle>,
     private val contracts: WorkerContractTests?,
 ) {
-    private data class Declaration(val worker: FleetWorker, val directory: File, val prerequisites: List<OutputHandle>, val typescript: List<String>, val site: SourceSite?)
+    private data class Declaration(val worker: FleetWorker, val directory: File, val prerequisites: List<OutputHandle>, val typescript: List<String>,
+        val secretSources: Map<Environment, List<String>>, val site: SourceSite?)
     private val workers = linkedMapOf<String, Declaration>()
     private var observation: WorkerObservability? = null
     private val secretSources = linkedMapOf<Environment, List<String>>()
@@ -44,9 +46,11 @@ class WorkerFleet internal constructor(
     }
     private val environments get() = delivery.environments
     private val environmentOption = BuildOption.string(GradleProtocol.EnvironmentOption)
-    fun worker(ref: WorkerRef, deployments: List<WorkerDeployment>, vararg prerequisites: OutputHandle, typescript: List<String> = emptyList()) {
+    fun worker(ref: WorkerRef, deployments: List<WorkerDeployment>, vararg prerequisites: OutputHandle,
+        typescript: List<String> = emptyList(), secretSources: Map<Environment, List<String>> = emptyMap()) {
         require(!File(ref.directory).isAbsolute) { "Worker directories must be relative" }
-        require(workers.put(ref.name, Declaration(FleetWorker(ref, NodeId(project.rootProject.name, project.path, "deploy${ref.name.replaceFirstChar(Char::uppercaseChar)}"), deployments.toList()), project.rootProject.file(ref.directory), prerequisites.toList(), typescript.toList(), project.declarationSite())) == null) { "Duplicate worker: ${ref.name}" }
+        require(secretSources.keys.all { environment -> deployments.any { it.environment == environment } }) { "Secret sources need a declared Worker deployment" }
+        require(workers.put(ref.name, Declaration(FleetWorker(ref, NodeId(project.rootProject.name, project.path, "deploy${ref.name.replaceFirstChar(Char::uppercaseChar)}"), deployments.toList()), project.rootProject.file(ref.directory), prerequisites.toList(), typescript.toList(), secretSources.mapValues { it.value.toList() }, project.declarationSite())) == null) { "Duplicate worker: ${ref.name}" }
     }
 
     internal fun register(workspace: BuildWorkspace): NodeHandle {
@@ -99,7 +103,7 @@ class WorkerFleet internal constructor(
                 this.bindings.set(WorkerFleetKernel.bindings(fleetSpec, declaration.worker, selected).map { it.second.name })
                 declaration.site?.let { extensions.add(SourceSite::class.java, "declarationSite", it) }
             }
-            val logs = component.command("logs", null, "exec", "wrangler", "tail")
+            val logs = component.wrangler(PackageCommand::class.java, "logs", null, "tail")
             logs.configure {
                 arguments.addAll("--config", paths.getValue(selected.name))
                 dependsOn(generate)
@@ -113,7 +117,7 @@ class WorkerFleet internal constructor(
                     this.declaration.set(BuildModelReader.json.encodeToString(declaration.worker))
                     environmentName.set(selected.name)
                     configuration.set(paths.getValue(selected.name))
-                    sourcePaths.set(secretSources[selected].orEmpty())
+                    sourcePaths.set(secretSources[selected].orEmpty() + declaration.secretSources[selected].orEmpty())
                     sourceFiles.from(generate.map { it.finalConfigurations })
                     dependsOn(generate)
                     declaration.site?.let { extensions.add(SourceSite::class.java, "declarationSite", it) }
@@ -204,7 +208,7 @@ class WorkerFleet internal constructor(
         }
         project.tasks.named(org.gradle.language.base.plugins.LifecycleBasePlugin.ASSEMBLE_TASK_NAME) { dependsOn(generate) }
         return workspace.aggregate(project, "deployWorkers", NodeKind.Deploy,
-            records.filter { selectedEnvironment.name in it.configurations }.map { nodes.getValue(it.name) }, Run.onLinux().onWorker()).also {
+            records.filter { selectedEnvironment.name in it.configurations }.map { nodes.getValue(it.name) }).also {
             project.componentRole(Workspace.Deploy, it)
             workspace.alias(project.rootDir, "deployWorkers", it)
         }

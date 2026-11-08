@@ -8,14 +8,14 @@ from cluster_locations import state_root, workspace_root
 
 
 ASSETS = (
-    'remote-dev', 'remote_build.py', 'remote_retention.py', 'hosts_contract.py',
+    'remote-dev', 'remote_build.py', 'remote_retention.py', 'hosts_contract.py', 'build_control.py',
     'workspace_storage.py', 'mobile_worker.py', 'atlas-worker.py', 'gradle-lease',
     'dev-storage', 'run-gradle', 'physical-devices.gradle', 'build-cache.gradle',
     'storage-limits.json', 'setup-mobile-worker.py', 'mobile-device-hook.py',
     'setup-build-cache.py', 'cluster_locations.py',
     'test_remote_router.py', 'test_remote_build.py', 'test_remote_retention.py',
     'test_workspace_storage.py', 'test_mobile_worker.py', 'test_atlas_worker.py',
-    'test_gradle_lease.py', 'test_noindex_roots.py', 'test_cluster_locations.py',
+    'test_gradle_lease.py', 'test_noindex_roots.py', 'test_cluster_locations.py', 'test_build_control.py',
 )
 
 

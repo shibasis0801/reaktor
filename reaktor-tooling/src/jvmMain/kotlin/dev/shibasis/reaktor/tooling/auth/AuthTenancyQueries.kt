@@ -1,6 +1,6 @@
 package dev.shibasis.reaktor.tooling.auth
 
-import dev.shibasis.reaktor.tooling.database.BoundQuery
+import dev.shibasis.reaktor.cloud.database.BoundQuery
 
 data class GrantScope(val tenantId: String? = null, val contextId: String? = null)
 

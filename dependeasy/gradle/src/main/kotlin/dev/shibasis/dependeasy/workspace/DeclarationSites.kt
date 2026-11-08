@@ -71,10 +71,8 @@ internal fun kernelRef(task: Task, spec: KernelSpec? = (task as? dev.shibasis.de
         is dev.shibasis.dependeasy.web.KotlinPackageExport -> dev.shibasis.dependeasy.model.KotlinPackageKernel::class.java
         is dev.shibasis.dependeasy.tasks.KotlinCMakeTask -> dev.shibasis.dependeasy.model.CMakeBuildKernel::class.java
         is dev.shibasis.dependeasy.tasks.ExtractPrefabTask -> dev.shibasis.dependeasy.model.PrefabKernel::class.java
-        is dev.shibasis.dependeasy.codegen.PulumiSdkTask -> dev.shibasis.dependeasy.model.PulumiSdkKernel::class.java
         is ExportBuildModelTask, is ExportBuildNodesTask -> dev.shibasis.dependeasy.model.BuildModelKernel::class.java
         is PackageScriptsTask -> dev.shibasis.dependeasy.model.PackageScriptsKernel::class.java
-        is dev.shibasis.dependeasy.dagger.GenerateDaggerTask, is dev.shibasis.dependeasy.dagger.PrepareContainerNode -> dev.shibasis.dependeasy.model.DaggerKernel::class.java
         is dev.shibasis.dependeasy.web.TypeScriptCheck, is dev.shibasis.dependeasy.web.ViteBundle,
         is dev.shibasis.dependeasy.web.KarakumBindings, is dev.shibasis.dependeasy.web.NodeGenerator,
         is dev.shibasis.dependeasy.web.PnpmInstallTask -> dev.shibasis.dependeasy.model.JavaScriptKernel::class.java
@@ -86,7 +84,6 @@ internal fun kernelRef(task: Task, spec: KernelSpec? = (task as? dev.shibasis.de
         is dev.shibasis.dependeasy.verification.LighthouseAudit -> dev.shibasis.dependeasy.model.LighthouseKernel::class.java
         is dev.shibasis.dependeasy.web.WranglerDeploy -> dev.shibasis.dependeasy.model.WorkerDeployKernel::class.java
         is dev.shibasis.dependeasy.cloudflare.WorkerSecrets -> dev.shibasis.dependeasy.model.WorkerSecretsKernel::class.java
-        is PulumiInfrastructure -> dev.shibasis.dependeasy.model.PulumiStackKernel::class.java
         is DatabaseMigration -> if (task.spec.database is dev.shibasis.dependeasy.model.DatabaseMigrations.ClickHouse)
             dev.shibasis.dependeasy.model.ClickHouseMigrationKernel::class.java else dev.shibasis.dependeasy.model.MigrationKernel::class.java
         is dev.shibasis.dependeasy.cloudflare.D1Migration -> dev.shibasis.dependeasy.model.D1MigrationKernel::class.java
@@ -140,8 +137,6 @@ private fun KernelSpec.relativeTo(root: File): KernelSpec {
         is KernelSpec.WorkerFleet -> this
         is KernelSpec.BuildModelExport -> copy(declarations = files(declarations), includedModels = files(includedModels), output = files(output), routing = files(routing))
         is KernelSpec.PackageScripts -> copy(output = files(output), packageContracts = packageContracts.mapValues { files(it.value) })
-        is KernelSpec.DaggerPipeline -> copy(output = files(output), sharedDirectory = files(sharedDirectory))
-        is KernelSpec.ContainerNode -> copy(model = files(model), output = files(output))
         is KernelSpec.WebContract -> copy(directory = path(directory), manifests = files(manifests), wrappers = files(wrappers),
             runtime = files(runtime), baseConfiguration = files(baseConfiguration), output = files(output),
             typeScriptConfiguration = files(typeScriptConfiguration), sourceManifests = files(sourceManifests),
@@ -150,7 +145,6 @@ private fun KernelSpec.relativeTo(root: File): KernelSpec {
         is KernelSpec.WebResources -> copy(sources = files(sources), output = files(output))
         is KernelSpec.KotlinPackage -> copy(sources = files(sources), destination = files(destination), dependencies = files(dependencies), receipt = files(receipt))
         is KernelSpec.Prefab -> copy(archive = files(archive), output = files(output))
-        is KernelSpec.PulumiSdk -> copy(executable = path(executable), output = files(output))
         is KernelSpec.KotlinTemplate -> copy(template = template.copy(paths = template.paths.map(::path)),
             assets = assets.mapValues { it.value.copy(paths = it.value.paths.map(::path)) }, output = output.copy(paths = output.paths.map(::path)))
         is KernelSpec.KotlinExportCatalog -> copy(output = output.copy(paths = output.paths.map(::path)))
@@ -175,8 +169,6 @@ private fun KernelSpec.relativeTo(root: File): KernelSpec {
         is KernelSpec.KarakumBindings -> copy(execution = execution(execution), configuration = path(configuration))
         is KernelSpec.WorkerTypes -> copy(execution = execution(execution), configuration = path(configuration))
         is KernelSpec.WranglerDeploy -> copy(deployment = deployment.copy(execution = execution(deployment.execution), configuration = path(deployment.configuration)))
-        is KernelSpec.PulumiStack -> copy(infrastructure = infrastructure.copy(execution = execution(infrastructure.execution),
-            programDirectory = infrastructure.programDirectory?.let(::path)))
         is KernelSpec.WorkerSecrets -> copy(secrets = secrets.copy(deployment = secrets.deployment.copy(
             execution = execution(secrets.deployment.execution), configuration = path(secrets.deployment.configuration))))
         is KernelSpec.ServerImageBuild -> copy(image = image.copy(jar = path(image.jar)))

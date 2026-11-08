@@ -17,6 +17,8 @@ import dev.shibasis.reaktor.auth.runtime.DEFAULT_TOKEN_AUDIENCE
 import dev.shibasis.reaktor.auth.services.NewSession
 import dev.shibasis.reaktor.service.Environment
 import dev.shibasis.reaktor.auth.services.RotatedSession
+import dev.shibasis.reaktor.auth.services.RefreshDecision
+import dev.shibasis.reaktor.auth.services.RefreshRotation
 import dev.shibasis.reaktor.auth.services.ServiceTokenResult
 import dev.shibasis.reaktor.service.Request
 import kotlinx.serialization.json.JsonArray
@@ -94,6 +96,8 @@ interface AuthSessionLifecycle {
     ): NewSession
 
     fun rotate(rawRefresh: String, environment: Environment = Environment.PROD): RotatedSession?
+    fun rotateWithDecision(rawRefresh: String, environment: Environment = Environment.PROD): RefreshRotation =
+        rotate(rawRefresh, environment)?.let { RefreshRotation.Success(it) } ?: RefreshRotation.Refused(RefreshDecision.Unknown)
     fun revokeAllForPrincipal(principalId: String, environment: Environment = Environment.PROD): Int
     fun revokeByRefreshToken(rawRefresh: String, environment: Environment = Environment.PROD): Boolean
 }

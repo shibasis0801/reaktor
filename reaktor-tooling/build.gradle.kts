@@ -12,6 +12,7 @@ library(namespace = "dev.shibasis.reaktor.tooling", targets = Targets.All) {
         common {
             api(Reaktor.Code)
             api(Reaktor.Core)
+            api(Reaktor.Cloud)
             commonCoroutines()
             commonSerialization(protobuf = false)
         }
@@ -21,8 +22,6 @@ library(namespace = "dev.shibasis.reaktor.tooling", targets = Targets.All) {
             api(Versions.Tooling.DependeasyModel)
             implementation(Versions.Tooling.SnakeYaml)
             implementation(Versions.Tooling.Lsp)
-            implementation(Versions.Tooling.KubernetesClient)
-            implementation(Versions.Google.Auth)
             implementation(Versions.Data.Postgres)
             implementation(Versions.Data.Neo4j)
             implementation(Versions.Data.SQLiteJdbc)

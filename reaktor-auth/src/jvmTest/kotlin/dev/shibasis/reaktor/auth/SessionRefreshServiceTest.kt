@@ -3,6 +3,8 @@ package dev.shibasis.reaktor.auth
 import dev.shibasis.reaktor.auth.kernel.MembershipStatus
 import dev.shibasis.reaktor.auth.kernel.PrincipalStatus
 import dev.shibasis.reaktor.auth.services.SessionRefreshService
+import dev.shibasis.reaktor.auth.services.RefreshDecision
+import dev.shibasis.reaktor.auth.services.RefreshRotation
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -49,9 +51,9 @@ class SessionRefreshServiceTest {
         assertNotNull(successor)
 
         // Replay the already-used ORIGINAL token → theft signal → family revoked.
-        assertNull(strict.rotate(created.rawRefreshToken), "a replayed token is rejected")
+        assertEquals(RefreshRotation.Refused(RefreshDecision.Reused), strict.rotateWithDecision(created.rawRefreshToken))
         // The legitimately-issued successor is now dead too (the whole family was revoked).
-        assertNull(strict.rotate(successor.rawRefreshToken), "reuse revokes the entire family")
+        assertEquals(RefreshRotation.Refused(RefreshDecision.Revoked), strict.rotateWithDecision(successor.rawRefreshToken))
     }
 
     @Test
@@ -93,7 +95,9 @@ class SessionRefreshServiceTest {
     @Test
     fun unknownRefreshTokenIsRejected() {
         AuthDbFixture.seedUser() // ensure schema/seed path is exercised
-        assertNull(sessions.rotate("rkr_this-token-was-never-issued"))
+        assertEquals(RefreshRotation.Refused(RefreshDecision.Unknown),
+            sessions.rotateWithDecision("rkr_this-token-was-never-issued"))
+        assertEquals(RefreshRotation.Refused(RefreshDecision.Missing), sessions.rotateWithDecision(""))
     }
 
     @Test

@@ -70,6 +70,53 @@ class AgentWorkspaceTest {
         } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
+    @Test fun planTaskAssociationsSurviveSnapshotsAndOnlyRestoreFromVerifiedRequests() = runBlocking {
+        val root = Files.createTempDirectory("agent-plan-logs").toFile()
+        val directory = root.toPath().resolve("state")
+        val codex = Harness(RuntimeKind.Codex)
+        val claude = Harness(RuntimeKind.ClaudeCode)
+        val runtimes = mapOf(codex.kind to codex, claude.kind to claude)
+        val stoppedScope = CoroutineScope(SupervisorJob().also { it.cancel() } + Dispatchers.IO)
+        val codexItem = "plan:hangar:task-logs#codex-work"
+        val claudeItem = "plan:hangar:task-logs#claude-work"
+        try {
+            val runs = AgentWorkspace(root, directory, runtimes, scope = stoppedScope, maxActive = 4,
+                background = false, discover = { ProviderCapability(it) }).use { workspace ->
+                val applied = workspace.plans.write("hangar:task-logs", PlanPatch(ops = listOf(
+                    PlanOp.Add("Codex work", key = "codex-work"),
+                    PlanOp.Add("Claude work", key = "claude-work"),
+                )), BoardActor(BoardActorKind.Person, "Owner"))
+                assertTrue(applied.refused.isEmpty())
+                val runs = listOf(
+                    workspace.submit(AgentSubmission("codex-plan", codex.kind, "Codex task", planItem = codexItem)),
+                    workspace.submit(AgentSubmission("claude-plan", claude.kind, "Claude task", planItem = claudeItem)),
+                    workspace.submit(AgentSubmission("plain-plan", codex.kind, "Unassigned task")),
+                )
+                val expected = runs.map { it.id }.zip(listOf(codexItem, claudeItem, null)).toMap()
+                assertEquals(expected, runs.associate { it.id to it.planItem })
+                assertEquals(expected, workspace.list().associate { it.id to it.planItem })
+                assertEquals(expected, workspace.tasksPage().runs.associate { it.id to it.planItem })
+                runs
+            }
+            val legacyRun = directory.resolve("runs/${runs[0].id}.json")
+            val legacyBody = ConductorJson.parseToJsonElement(Files.readString(legacyRun)).jsonObject
+            Files.writeString(legacyRun, JsonObject(legacyBody - "planItem").toString())
+            val alteredRequest = directory.resolve("requests/${runs[1].id}.json")
+            val alteredBody = ConductorJson.parseToJsonElement(Files.readString(alteredRequest)).jsonObject
+            Files.writeString(alteredRequest, JsonObject(alteredBody + ("planItem" to JsonPrimitive(codexItem))).toString())
+            AgentWorkspace(root, directory, runtimes, scope = stoppedScope, background = false,
+                discover = { ProviderCapability(it) }).use { workspace ->
+                val expected = mapOf(runs[0].id to codexItem, runs[1].id to null, runs[2].id to null)
+                assertEquals(expected, runs.associate { it.id to workspace.get(it.id).planItem })
+                assertEquals(expected, workspace.list().associate { it.id to it.planItem })
+                assertEquals(expected, workspace.tasksPage().runs.associate { it.id to it.planItem })
+                assertEquals(codexItem, workspace.planItemForRun(runs[0].id))
+                assertFailsWith<IllegalArgumentException> { workspace.planItemForRun(runs[1].id) }
+            }
+            assertTrue(codex.requests.isEmpty() && claude.requests.isEmpty())
+        } finally { root.deleteTreeSafely(within = root.parentFile) }
+    }
+
     @Test fun aSeatedRunKeepsTheProfileRevisionItRanWithAfterTheWorkspaceReopens() = runBlocking {
         val root = Files.createTempDirectory("agent-root").toFile()
         val directory = Files.createTempDirectory("agent-state")
@@ -460,6 +507,187 @@ class AgentWorkspaceTest {
         } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
+    @Test fun reviewedStopRefusesStaleOrMalformedRevisionsWithoutInterruptingTheRun() = runBlocking {
+        val root = Files.createTempDirectory("agent-root").toFile()
+        val directory = Files.createTempDirectory("agent-state")
+        val harness = Harness(RuntimeKind.Codex)
+        try {
+            AgentWorkspaceConnection.open(root, directory, mapOf(harness.kind to harness)).use { owner ->
+                val run = owner.submit(AgentSubmission("reviewed-stop", harness.kind, "BLOCK_UNTIL_CANCEL"))
+                withTimeout(10000) { harness.started.await() }
+                val control = owner.control(run.id)
+                assertTrue(control.canStop)
+                assertFalse(control.canRestart)
+                assertNotNull(control.restartReason)
+                assertFailsWith<IllegalStateException> { owner.restart(run.id, control.revision, "running-restart") }
+                assertFailsWith<IllegalStateException> { owner.cancel(run.id, control.revision - 1) }
+                assertFailsWith<IllegalStateException> {
+                    owner.call("agent_cancel", buildJsonObject { put("runId", run.id); put("expectedRevision", "invalid") })
+                }
+                assertEquals(AgentRunStatus.Running, owner.get(run.id).status)
+                assertEquals(AgentRunStatus.Interrupted, owner.cancel(run.id, control.revision).status)
+                assertFalse(owner.control(run.id).canStop)
+                assertEquals(AgentRunStatus.Interrupted, owner.cancel(run.id).status)
+                assertTrue(owner.listActive().isEmpty())
+            }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+    }
+
+    @Test fun restartBeginsAFreshConversationAndSessionAndDeduplicatesItsNewRequest() = runBlocking {
+        val root = Files.createTempDirectory("agent-root").toFile()
+        val directory = Files.createTempDirectory("agent-state")
+        val harness = Harness(RuntimeKind.Codex)
+        try {
+            AgentWorkspaceConnection.open(root, directory, mapOf(harness.kind to harness)).use { owner ->
+                val original = terminal(owner, owner.submit(AgentSubmission("restart-original", harness.kind, "Original task",
+                    continues = ProviderSession(harness.kind, "original-native-session"))))
+                val control = owner.control(original.id)
+                assertTrue(control.canRestart)
+                assertFalse(control.canStop)
+                assertFailsWith<IllegalStateException> { owner.restart(original.id, control.revision - 1, "stale-restart") }
+                assertFailsWith<IllegalStateException> { owner.restart(original.id, control.revision, "restart-original") }
+                val restarted = terminal(owner, owner.restart(original.id, control.revision, "fresh-restart"))
+                assertNotEquals(original.id, restarted.id)
+                assertNotEquals(original.threadId, restarted.threadId)
+                assertNull(restarted.forkedFrom)
+                assertEquals("original-native-session", harness.requests.first().resume?.sessionId)
+                assertNull(harness.requests.last().resume)
+                assertTrue(harness.requests.last().prompt.contains("Original task"))
+                assertEquals(restarted.id, owner.restart(original.id, control.revision, "fresh-restart").id)
+                assertEquals(2, harness.requests.size)
+                assertEquals(original.revision, owner.get(original.id).revision)
+                owner.call("agent_entitlement_set", buildJsonObject {
+                    put("entitlement", Entitlement.Codex.name); put("paused", true); put("reason", "Operator paused"); put("expectedRevision", 0)
+                })
+                assertFailsWith<IllegalStateException> { owner.restart(original.id, control.revision, "paused-restart") }
+                assertEquals(2, harness.requests.size)
+                assertEquals(restarted.id, owner.restart(original.id, control.revision, "fresh-restart").id)
+            }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+    }
+
+    @Test fun restartRetryReturnsItsAdmittedAttemptAfterTheOriginalRevisionChanges() = runBlocking {
+        val root = Files.createTempDirectory("agent-root").toFile()
+        val directory = Files.createTempDirectory("agent-state")
+        val harness = Harness(RuntimeKind.Codex)
+        try {
+            lateinit var original: AgentRunRecord
+            lateinit var restarted: AgentRunRecord
+            AgentWorkspaceConnection.open(root, directory, mapOf(harness.kind to harness)).use { owner ->
+                original = terminal(owner, owner.submit(AgentSubmission("retry-original", harness.kind, "Original request")))
+                restarted = terminal(owner, owner.restart(original.id, original.revision, "retry-attempt"))
+                terminal(owner, owner.submit(AgentSubmission("conflicting-request", harness.kind, "Different request")))
+            }
+            val changed = original.copy(revision = original.revision + 1, updatedAt = original.updatedAt + 1)
+            Files.writeString(directory.resolve("runs/${original.id}.json"), ConductorJson.encodeToString(AgentRunRecord.serializer(), changed))
+            AgentWorkspaceConnection.open(root, directory, mapOf(harness.kind to harness)).use { owner ->
+                assertEquals(changed.revision, owner.get(original.id).revision)
+                assertEquals(restarted.id, owner.restart(original.id, original.revision, "retry-attempt").id)
+                assertFailsWith<IllegalStateException> { owner.restart(original.id, original.revision, "fresh-stale-attempt") }
+                val conflict = assertFailsWith<IllegalStateException> { owner.restart(original.id, changed.revision, "conflicting-request") }
+                assertTrue(conflict.message.orEmpty().contains("different submission"))
+                Files.writeString(directory.resolve("requests/${original.id}.json"), "{}")
+                assertFailsWith<IllegalStateException> { owner.restart(original.id, original.revision, "retry-attempt") }
+                assertEquals(3, harness.requests.size)
+            }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+    }
+
+    @Test fun restartingAWorkflowRunsEveryStageAgainWithoutReusingItsCheckpoint() = runBlocking {
+        val root = Files.createTempDirectory("agent-root").toFile()
+        val directory = Files.createTempDirectory("agent-state")
+        val harness = Harness(RuntimeKind.Codex)
+        val first = AgentSpec(AgentId("restart-first"), "First", harness.kind, "")
+        val second = first.copy(id = AgentId("restart-second"), name = "Second")
+        val workflow = WorkflowDefinition("restart-flow", "Restart workflow", listOf(first, second), listOf(
+            WorkflowStage("first", "First stage", first.id, "First instruction"),
+            WorkflowStage("second", "Second stage", second.id, "Second instruction"),
+        ), listOf(WorkflowEdge("first", "second")))
+        try {
+            AgentWorkspaceConnection.open(root, directory, mapOf(harness.kind to harness)).use { owner ->
+                val original = terminal(owner, owner.submit(AgentSubmission("workflow-original", harness.kind, "Complete both stages", workflow = workflow)))
+                assertEquals(AgentRunStatus.Completed, original.status)
+                assertNotNull(original.workflowProgress)
+                assertEquals(listOf(first.id, second.id), harness.requests.map { it.agent.id })
+                val restarted = terminal(owner, owner.restart(original.id, original.revision, "workflow-restart"))
+                assertEquals(AgentRunStatus.Completed, restarted.status)
+                assertNotEquals(original.threadId, restarted.threadId)
+                assertEquals(listOf(first.id, second.id, first.id, second.id), harness.requests.map { it.agent.id })
+                assertTrue(harness.requests.all { it.resume == null })
+            }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+    }
+
+    @Test fun restartKeepsSchedulerAuthorityAndRequiresTheVerifiedRetainedRequest() {
+        val root = Files.createTempDirectory("agent-root").toFile()
+        val directory = Files.createTempDirectory("agent-state")
+        val harness = Harness(RuntimeKind.Codex)
+        try {
+            AgentWorkspace(root, directory, mapOf(harness.kind to harness)).use { workspace ->
+                fun retained(key: String, request: AgentSubmission): AgentRunRecord {
+                    val body = ConductorJson.encodeToString(AgentSubmission.serializer(), request)
+                    val run = AgentRunRecord(digest(key), java.util.UUID.randomUUID().toString(), harness.kind, digest(body),
+                        "Retained task", status = AgentRunStatus.Completed, startedAt = 1, updatedAt = 1)
+                    Files.writeString(directory.resolve("requests/${run.id}.json"), body)
+                    Files.writeString(directory.resolve("runs/${run.id}.json"), ConductorJson.encodeToString(AgentRunRecord.serializer(), run))
+                    return run
+                }
+                val original = AgentSubmission("fixture", harness.kind, "PRIVATE_RETAINED_PROMPT")
+                listOf(
+                    original.copy(requestId = "graph-bound", task = AgentTaskTarget("graph", "task", 1)) to "task graph",
+                    original.copy(requestId = "message-bound", message = AgentMessageTarget("graph", "message", "run")) to "task owner",
+                    original.copy(requestId = "plan-bound", planItem = "plan-item") to "plan item",
+                    original.copy(requestId = "peer-bound", parentRunId = "parent") to "parent",
+                ).forEach { (request, reason) ->
+                    val run = retained(request.requestId, request)
+                    val control = workspace.control(run.id)
+                    assertFalse(control.canRestart)
+                    assertTrue(control.restartReason.orEmpty().contains(reason))
+                    assertFalse(ConductorJson.encodeToString(AgentRunControl.serializer(), control).contains(original.prompt))
+                    assertFailsWith<IllegalArgumentException> { workspace.restart(run.id, control.revision, "restart-${request.requestId}") }
+                }
+                listOf("missing", "tampered", "oversized").forEach { key ->
+                    val run = retained(key, original.copy(requestId = key))
+                    val path = directory.resolve("requests/${run.id}.json")
+                    when (key) {
+                        "missing" -> Files.delete(path)
+                        "tampered" -> Files.writeString(path, ConductorJson.encodeToString(AgentSubmission.serializer(), original.copy(requestId = key, prompt = "Changed")))
+                        else -> Files.writeString(path, " ".repeat(1_048_577))
+                    }
+                    val control = workspace.control(run.id)
+                    assertFalse(control.canRestart)
+                    assertEquals("The verified original request is unavailable.", control.restartReason)
+                    assertFailsWith<IllegalArgumentException> { workspace.restart(run.id, control.revision, "restart-$key") }
+                }
+                assertTrue(harness.requests.isEmpty())
+            }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+    }
+
+    @Test fun activeReadIncludesOldRunningTasksAfterTheyLeaveTheBoundedRecentIndex() = runBlocking {
+        val root = Files.createTempDirectory("agent-root").toFile()
+        val directory = Files.createTempDirectory("agent-state")
+        val harness = Harness(RuntimeKind.Codex)
+        try {
+            AgentWorkspaceConnection.open(root, directory, mapOf(harness.kind to harness)).use { owner ->
+                val old = owner.submit(AgentSubmission("old-active", harness.kind, "BLOCK_UNTIL_CANCEL"))
+                withTimeout(10000) { harness.started.await() }
+                repeat(201) { terminal(owner, owner.submit(AgentSubmission("recent-$it", harness.kind, "Quick task $it"))) }
+                val recent = (0..3).flatMap { owner.list(50, it * 50) }
+                assertEquals(200, recent.size)
+                assertFalse(recent.any { it.id == old.id })
+                val active = owner.listActive()
+                assertEquals(listOf(old.id), active.map { it.id })
+                assertEquals(AgentRunStatus.Running, active.single().status)
+                assertEquals("", active.single().output)
+                assertNull(active.single().context)
+                assertTrue(active.single().pending.isEmpty())
+                owner.cancel(old.id)
+                assertTrue(owner.listActive().isEmpty())
+            }
+        } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
+    }
+
     @Test fun effectfulEndpointRequiresBearerAndAdvertisesEffects() {
         val root = Files.createTempDirectory("agent-root").toFile()
         val directory = Files.createTempDirectory("agent-state")
@@ -478,6 +706,10 @@ class AgentWorkspaceTest {
                     assertTrue(tools.getValue("agent_submit").getValue("idempotentHint").jsonPrimitive.boolean)
                     assertFalse(tools.getValue("agent_cancel").getValue("readOnlyHint").jsonPrimitive.boolean)
                     assertTrue(tools.getValue("agent_run").getValue("readOnlyHint").jsonPrimitive.boolean)
+                    assertTrue(tools.getValue("agent_active").getValue("readOnlyHint").jsonPrimitive.boolean)
+                    assertTrue(tools.getValue("agent_control").getValue("readOnlyHint").jsonPrimitive.boolean)
+                    assertFalse(tools.getValue("agent_restart").getValue("readOnlyHint").jsonPrimitive.boolean)
+                    assertTrue(tools.getValue("agent_restart").getValue("idempotentHint").jsonPrimitive.boolean)
                 }
             }
         } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }

@@ -157,12 +157,12 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
         }
     }
 
-    private fun members() = store.members(graphId).associateBy { it.id }
+    private fun taskMembers() = store.members(graphId).associateBy { it.id }
 
     private suspend fun evaluate() {
         limitWake?.cancel()
         limitWake = null
-        var members = members()
+        var members = taskMembers()
         scope.rebuild(members)
         val graph = store.graph(graphId)
         members.values.filter { scope.actor(it.id)?.obsolete == true || it.graph?.state == TaskState.Cancelled || graph.status == TaskGraphStatus.Cancelled }.forEach { task ->
@@ -177,7 +177,7 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
                     note = "Resuming after the provider's reported reset"))
             }
         }
-        members = members()
+        members = taskMembers()
         members.values.filter { it.graph?.state == TaskState.Running && it.graph.seat?.lead != true && it.graph.kind in Dispatched }.forEach { task ->
             scope.actor(task.id)?.takeIf { !it.busy }?.trySend(TaskMessage.Start)
         }
@@ -188,7 +188,7 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
             val skipped = members.values.filter { TaskGraphRules.readiness(it, members) == TaskGraphRules.Readiness.Skip }
             if (skipped.isEmpty()) break
             skipped.forEach { task -> store.advance(graphId, task.id) { value, plan -> value.copy(graph = plan.copy(state = TaskState.Skipped, note = "None of the tasks it depends on led here")) } }
-            members = members()
+            members = taskMembers()
         }
         TaskGraphRules.finished(members)?.let { status ->
             val failed = members.values.filter { it.graph?.state == TaskState.Failed }.joinToString { it.id }
@@ -241,7 +241,7 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
                 }
             }
         }
-        members = members()
+        members = taskMembers()
         members.values.filter { it.graph?.state == TaskState.Limited }.mapNotNull { it.graph?.resumeAtReset }.minOrNull()?.let { reset ->
             limitWake = scope.coroutineScope.launch {
                 delay((reset - System.currentTimeMillis()).coerceAtLeast(1))
@@ -302,7 +302,7 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
     }
 
     private fun repair(review: BoardTask) {
-        val members = members()
+        val members = taskMembers()
         val plan = requireNotNull(review.graph)
         if (members.values.any { member -> member.graph?.dependsOn?.any { it.task == review.id && it.condition == TaskCondition.Repair } == true }) return
         val graph = store.graph(graphId)

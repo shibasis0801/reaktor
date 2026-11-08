@@ -95,15 +95,60 @@ def gradle(helper, name, relative, args):
         return helper.slot_build(name, relative, args, 0, lock)
 
 
+def read_inventory(host):
+    """Observe native transport records without connecting, pairing or launching devices."""
+    import json
+    import os
+    import subprocess
+    import tempfile
+
+    def capture(command, json_output=False):
+        with tempfile.TemporaryDirectory(prefix='reaktor-device-inventory-') as directory:
+            output_path = os.path.join(directory, 'devices.json')
+            if json_output:
+                command = [*command, '--json-output', output_path]
+            try:
+                with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
+                    result = subprocess.run(command, stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr,
+                                            timeout=8, env=dict(os.environ, LC_ALL='C'))
+                    if result.returncode:
+                        return {'exitCode': result.returncode, 'problem': 'Native device probe failed'}
+                    if json_output:
+                        with open(output_path, 'rb') as source:
+                            contents = source.read(24_577)
+                    else:
+                        stdout.seek(0)
+                        contents = stdout.read(24_577)
+                    if len(contents) > 24_576:
+                        return {'exitCode': 1, 'problem': 'Device capture limit reached'}
+                    if json_output:
+                        return {'exitCode': 0, 'data': json.loads(contents)}
+                    return {'exitCode': 0, 'output': contents.decode('utf-8', errors='replace')}
+            except subprocess.TimeoutExpired:
+                return {'exitCode': 124, 'problem': 'Native device probe timed out'}
+            except (OSError, ValueError):
+                return {'exitCode': 1, 'problem': 'Native device observation unavailable'}
+
+    observation = {'host': host, 'adb': capture(['adb', 'devices', '-l']),
+                   'devicectl': capture(['xcrun', 'devicectl', 'list', 'devices', '--timeout', '5'], json_output=True)}
+    print(json.dumps(observation, separators=(',', ':')), flush=True)
+
+
 def main(helper, args):
     import argparse
     parser = argparse.ArgumentParser(description='Control phones attached to m1-worker')
-    parser.add_argument('command', choices=['doctor', 'devices', 'connect', 'exec', 'gradle', 'adb', 'ios', 'push'])
+    parser.add_argument('command', choices=['doctor', 'devices', 'inventory', 'connect', 'exec', 'gradle', 'adb', 'ios', 'push'])
     parser.add_argument('args', nargs=argparse.REMAINDER)
     options = parser.parse_args(args)
     rest = options.args
     if rest[:1] == ['--']:
         rest = rest[1:]
+    if options.command == 'inventory':
+        if rest and rest != ['--state-root', str(helper.STATE)]:
+            parser.error('inventory accepts only the configured --state-root')
+        import inspect
+        code = inspect.getsource(read_inventory) + '\nread_inventory(' + repr(helper.HOST) + ')\n'
+        return main(helper, ['exec', 'python3', '-c', code])
     if options.command == 'gradle':
         if not rest or rest[0] not in helper.PROJECTS:
             parser.error('gradle needs a configured project followed by Gradle arguments')

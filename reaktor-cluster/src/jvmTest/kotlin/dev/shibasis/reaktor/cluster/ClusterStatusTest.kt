@@ -46,6 +46,29 @@ class ClusterStatusTest {
         assertEquals(2.5, host.capacity?.load)
     }
 
+    @Test fun reaktorProcessesKeepTheirRoleWhetherOrNotTheyAreBusy() {
+        val probed = output + """
+
+            REAKTOR_ROLES
+              4100  51.0 5000000 hangar-host java
+              4200   0.0  300000 kotlin-daemon java
+              4300   0.1   30000 mcp-relay java
+              4400   0.0   20000 tooling:remote-dev Python
+            not a role row
+
+            REAKTOR_PROCESSES
+              4100  51.0 5000000 /Users/me/Hangar.app/Contents/runtime/Contents/Home/bin/java
+              900   12.0  400000 /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+        """.trimIndent()
+        val host = HostProbe.parse("local", null, listOf("build"), probed, at)
+        assertEquals(14, host.capacity?.cores)
+        val processes = requireNotNull(host.processes).processes
+        assertEquals(listOf(4100L, 900L, 4200L, 4300L, 4400L), processes.map { it.pid })
+        assertEquals(listOf("Hangar host", null, "Kotlin daemon", "MCP relay", "Build router"), processes.map { it.roleLabel })
+        assertEquals(300_000L * 1024, processes.single { it.pid == 4200L }.memoryBytes)
+        assertEquals("Live", host.processes?.truth)
+    }
+
     @Test fun unreachableAndIncompleteHostsNeverInventCapacity() {
         val failed = HostProbe(ClusterCommands { _, _ -> CommandResult(255, "unavailable") }, { at }).read("worker", "worker")
         assertEquals("Failed", failed.truth)
@@ -96,6 +119,28 @@ class ClusterStatusTest {
         val states = reader(root).jobs(since = 0).jobs.associate { it.id to it.state }
         assertEquals("Finished", states["finished"])
         assertEquals("Abandoned", states["dead-owner"])
+    }
+
+    @Test fun jobsKeepGradleOptionValuesAndExcludedTasksOutOfTaskTitles() = temporary { root ->
+        val cases = listOf(
+            listOf(":reaktorDesktop:windowTest", "--tests", "ai.bestbuds.reaktor.workbench.cloud.ClusterDevicesWindowTest",
+                "-x", ":reaktorDesktop:hangarFlows", "-x", ":reaktorDesktop:test") to listOf(":reaktorDesktop:windowTest"),
+            listOf(":sample:test", "--tests", ":not:a:task", "--tests", "fixture.OtherTest", ":sample:check")
+                to listOf(":sample:test", ":sample:check"),
+            listOf("--exclude-task", ":sample:excluded", "check", "-x", ":sample:test") to listOf("check"),
+            listOf(":sample:test", "--tests=fixture.OneTest", "--exclude-task=:sample:excluded", ":sample:check")
+                to listOf(":sample:test", ":sample:check"),
+            listOf("--tests", "fixture.OneTest", ":sample:test", "--tests", "fixture.TwoTest") to listOf(":sample:test"),
+            listOf(":sample:test", "--exclude-task") to listOf(":sample:test")
+        )
+        cases.forEachIndexed { index, (arguments, expected) ->
+            val id = "args-$index"
+            receipt(root, id, exit = 0, tasks = arguments)
+            val path = root.resolve("logs/$id.json")
+            val source = Files.readString(path)
+            assertEquals(expected, reader(root).jobs(since = 0).jobs.single { it.id == id }.tasks, arguments.toString())
+            assertEquals(source, Files.readString(path))
+        }
     }
 
     @Test fun receiptsDistinguishRunningFinishedAbandonedAndUnknownOwners() = temporary { root ->
@@ -248,12 +293,13 @@ class ClusterStatusTest {
         }.toString())
     }
 
-    private fun receipt(root: Path, id: String, pid: Int? = null, exit: Int? = null) {
+    private fun receipt(root: Path, id: String, pid: Int? = null, exit: Int? = null,
+                        tasks: List<String> = listOf(":sample:test")) {
         val logs = Files.createDirectories(root.resolve("logs"))
         Files.writeString(logs.resolve("$id.json"), buildJsonObject {
             put("run_id", id); put("project", "sample"); put("worker", "worker"); put("worker_slot", 1)
             put("started", "2026-10-31T20:00:00Z"); put("queue_seconds", 2)
-            put("tasks", buildJsonArray { add(kotlinx.serialization.json.JsonPrimitive(":sample:test")) })
+            put("tasks", buildJsonArray { tasks.forEach { add(kotlinx.serialization.json.JsonPrimitive(it)) } })
             if (pid != null) put("owner", buildJsonObject { put("pid", pid); put("started", "fixture start") })
             if (exit != null) { put("exit_code", exit); put("finished", "2026-10-31T20:01:00Z") }
         }.toString())

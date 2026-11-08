@@ -332,8 +332,9 @@ class StorageTest {
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
     private fun locateTools(): Path = generateSequence(Path.of(System.getProperty("user.dir"))) { it.parent }
-        .map { it.resolve("tools") }.firstOrNull { Files.isRegularFile(it.resolve("workspace_storage.py")) }
-        ?: Path.of(System.getProperty("user.home"), "dev/tools").also { require(Files.isRegularFile(it.resolve("workspace_storage.py"))) }
+        .flatMap { base -> listOf(base.resolve("tooling"), base.resolve("reaktor-cluster/tooling"), base.resolve("reaktor/reaktor-cluster/tooling")).asSequence() }
+        .firstOrNull { Files.isRegularFile(it.resolve("workspace_storage.py")) }
+        ?: Path.of(System.getProperty("user.home"), "dev/reaktor/reaktor-cluster/tooling").also { require(Files.isRegularFile(it.resolve("workspace_storage.py"))) }
     private fun fixture(block: (Path, Path, Path) -> Unit) {
         val temp = Files.createTempDirectory("cluster-storage-").toRealPath()
         try {

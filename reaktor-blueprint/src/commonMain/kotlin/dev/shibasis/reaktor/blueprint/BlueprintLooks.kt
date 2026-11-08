@@ -70,6 +70,7 @@ data class BlueprintCardLook(
     val rows: List<BlueprintRowLook> = emptyList(),
     val titleContent: (@Composable (TextStyle) -> Unit)? = null,
     val markContent: Map<BlueprintMark, @Composable () -> Unit> = emptyMap(),
+    val fill: Color? = null,
 ) {
     internal val hasHeaderContent: Boolean get() = titleContent != null || markContent.isNotEmpty()
     val drawsControls: Boolean get() = hasHeaderContent || choice != null || actions.isNotEmpty() || pins.any { it?.choice != null } || rows.any { it.onClick != null || it.content.choice != null }

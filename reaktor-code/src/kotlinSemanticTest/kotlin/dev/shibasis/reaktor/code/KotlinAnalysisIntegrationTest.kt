@@ -111,7 +111,7 @@ class KotlinAnalysisIntegrationTest {
         } finally { Files.walk(root).use { files -> files.sorted(Comparator.reverseOrder()).forEach(Files::delete) } }
     }
 
-    @Test fun aServedSessionResolvesEachUseAcrossModulesFollowsOverridesAndStaysWarmUntilASourceChanges() {
+    @Test fun aServedSessionResolvesEachUseAcrossModulesFollowsOverridesStaysWarmUntilASourceChangesAndReleasesWhenAsked() {
         val root = Files.createTempDirectory("code-kotlin-serve-").toRealPath()
         try {
             val helper = unpack(root.resolve("helper"))
@@ -162,7 +162,7 @@ class KotlinAnalysisIntegrationTest {
                 }
                 fun verdicts(reply: JsonObject) = reply.getValue("decisions").jsonArray.map { it.jsonObject.getValue("verdict").jsonPrimitive.content }
                 val capabilities = send(buildJsonObject { put("id", 0); put("op", "capabilities") })
-                assertEquals(listOf("capabilities", "resolve", "facts"), capabilities.getValue("ops").jsonArray.map { it.jsonPrimitive.content })
+                assertEquals(listOf("capabilities", "resolve", "facts", "release"), capabilities.getValue("ops").jsonArray.map { it.jsonPrimitive.content })
                 assertTrue(capabilities.getValue("maxModules").jsonPrimitive.int >= 1024, "$capabilities")
                 val first = ask(1)
                 assertNull(first["error"], "$first")
@@ -175,6 +175,10 @@ class KotlinAnalysisIntegrationTest {
                 val second = ask(2)
                 assertTrue(second.getValue("warm").jsonPrimitive.boolean)
                 assertEquals(verdicts(first), verdicts(second))
+                assertTrue(send(buildJsonObject { put("id", 5); put("op", "release") }).getValue("released").jsonPrimitive.boolean)
+                val reopened = ask(6)
+                assertFalse(reopened.getValue("warm").jsonPrimitive.boolean, "a released session opens again on the next request")
+                assertEquals(verdicts(first), verdicts(reopened))
                 val changed = use.replace("other.answer()", "other.answer() + 0")
                 Files.writeString(root.resolve("app/Use.kt"), changed)
                 val third = ask(3, changed)

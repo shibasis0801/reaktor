@@ -192,6 +192,18 @@ data class AgentRunRecord(
     val budget: AgentBudgetProgress = AgentBudgetProgress(),
     val profile: String? = null,
     val profileRevision: Long? = null,
+    val planItem: String? = null,
+)
+
+@Serializable
+data class AgentRunControl(
+    val runId: String,
+    val revision: Long,
+    val status: AgentRunStatus,
+    val canStop: Boolean,
+    val canRestart: Boolean,
+    val stopReason: String? = null,
+    val restartReason: String? = null,
 )
 
 @Serializable

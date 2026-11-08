@@ -1,8 +1,8 @@
 package dev.shibasis.reaktor.tooling.auth
 
-import dev.shibasis.reaktor.tooling.database.BoundQuery
-import dev.shibasis.reaktor.tooling.database.BoundQueryParameter
-import dev.shibasis.reaktor.tooling.database.QueryParameterType
+import dev.shibasis.reaktor.cloud.database.BoundQuery
+import dev.shibasis.reaktor.cloud.database.BoundQueryParameter
+import dev.shibasis.reaktor.cloud.database.QueryParameterType
 import java.util.UUID
 
 data class AuditFilter(

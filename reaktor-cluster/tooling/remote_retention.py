@@ -164,7 +164,7 @@ def idle_locks(state, wait=False, held_locks=()):
     while True:
         with contextlib.ExitStack() as locks:
             blocked = None
-            for name in ('graph-activity', 'workspace', 'local-gradle', 'worker-gradle', 'worker-slot-1', 'worker-slot-2', 'capture'):
+            for name in ('graph-activity', 'workspace', 'local-gradle', 'local-slot-1', 'worker-gradle', 'worker-slot-1', 'worker-slot-2', 'capture'):
                 if name in held_locks:
                     continue
                 lock = locks.enter_context((state / (name + '.lock')).open('a'))

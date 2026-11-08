@@ -11,6 +11,7 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonElement
 import kotlin.time.Clock
@@ -82,7 +83,32 @@ class Served<S : Service>(val service: S) {
         }
     }
 
-    private fun Call<*, *>.answer(reply: Reply): Outbound = service.wire.reply(reply, response.descriptor).let { worded ->
+    @Suppress("UNCHECKED_CAST")
+    suspend fun open(operation: Operation<*, *>, inbound: Inbound): Opened {
+        val stream = operation as? Stream<Any?, Any?>
+            ?: return Opened.Refused(failure(405, "${operation.id} is a ${operation.family.name.lowercase()}, not a stream"))
+        val request = try {
+            stream.binding.decode(stream.request, inbound)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (unreadable: Throwable) {
+            return Opened.Refused(stream.answer(Reply.of(400, "The request for ${stream.id} did not parse: ${unreadable.message ?: "malformed"}")))
+        }
+        return try {
+            val own = answering(stream)
+            val exchange = incoming<Any?, Flow<Any?>>(Family.Stream, own, request, Metadata(inbound.headers), inbound.attributes)
+            val opened = withContext(exchange.call + ExchangeScope(exchange)) {
+                chain().proceed(exchange) { current -> own(current.request) }
+            }
+            Opened.Streaming(opened.map { element -> service.wire.encode(stream.response, element) })
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Throwable) {
+            Opened.Refused(stream.answer(failure.reply(stream.id)))
+        }
+    }
+
+    private fun Operation<*, *>.answer(reply: Reply): Outbound = service.wire.reply(reply, response.descriptor).let { worded ->
         Outbound(worded.status, worded.headers() + (ContentType to Json), json.encodeToString(JsonElement.serializer(), worded.body))
     }
 

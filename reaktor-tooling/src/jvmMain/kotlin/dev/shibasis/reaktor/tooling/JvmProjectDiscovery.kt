@@ -98,7 +98,6 @@ class DiscoveredJvmWorkspace internal constructor(
 private fun List<String>.sensitiveArgumentValues(): Set<String> {
     val arguments = this
     return buildSet {
-    addAll(arguments.pulumiConfigSetSecretValues())
     arguments.forEachIndexed { index, argument ->
         val normalized = argument.lowercase().replace('_', '-').trimStart('-')
         val isSensitiveFlag = listOf("token", "password", "secret", "api-key", "private-key", "credential")
@@ -107,17 +106,8 @@ private fun List<String>.sensitiveArgumentValues(): Set<String> {
             argument.substringAfter('=', missingDelimiterValue = "").takeIf(String::isNotBlank)?.let(::add)
             arguments.getOrNull(index + 1)?.takeUnless { it == "--" }?.takeIf(String::isNotBlank)?.let(::add)
         }
-        if (argument == "--secret" && arguments.pulumiConfigSetSecretValues().isEmpty())
-            arguments.getOrNull(index - 1)?.takeIf(String::isNotBlank)?.let(::add)
     }
     }
-}
-
-private fun List<String>.pulumiConfigSetSecretValues(): Set<String> {
-    val config = indexOf("config")
-    val set = indexOf("set")
-    if (config < 0 || set < 0 || none { it == "--secret" || it.startsWith("--secret=") }) return emptySet()
-    return drop(set + 1).filterTo(linkedSetOf()) { it.isNotBlank() && it != "--" }
 }
 
 internal data class JvmTaskBinding(

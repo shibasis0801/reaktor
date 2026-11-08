@@ -275,38 +275,38 @@ class GradlePlanningTest {
                 import json,sys,pathlib,sqlite3
                 args=sys.argv[1:]
                 state=pathlib.Path('state.json'); value=json.loads(state.read_text())
-                if args[2]=='d1':
+                if args[0]=='d1':
                     db=sqlite3.connect('fixture.db'); db.row_factory=sqlite3.Row
-                    if args[3]=='execute':
+                    if args[1]=='execute':
                         rows=[dict(row) for row in db.execute(args[args.index('--command')+1])]
                         print(json.dumps([{'success':True,'results':rows}]))
                     else:
-                        assert args[3:5]==['migrations','apply']
+                        assert args[1:3]==['migrations','apply']
                         db.executescript("CREATE TABLE IF NOT EXISTS d1_migrations (id INTEGER PRIMARY KEY, name TEXT UNIQUE);")
                         for file in sorted(pathlib.Path('migrations').glob('*.sql')):
                             if not db.execute('SELECT 1 FROM d1_migrations WHERE name=?',[file.name]).fetchall():
                                 db.executescript(file.read_text())
                                 db.execute('INSERT INTO d1_migrations(name) VALUES (?)',[file.name]);db.commit()
                     db.close()
-                elif args[2]=='secret':
-                    if args[3]=='list': print(json.dumps([{'name':name} for name in value['secrets']]))
+                elif args[0]=='secret':
+                    if args[1]=='list': print(json.dumps([{'name':name} for name in value['secrets']]))
                     else:
-                        assert args[3]=='bulk'
+                        assert args[1]=='bulk'
                         payload=json.load(sys.stdin)
                         assert payload=={'CLIENT_SECRET':'$secretCanary','RETIRED':None}
                         value['secrets']=sorted((set(value['secrets']) | {name for name,text in payload.items() if text is not None}) - {name for name,text in payload.items() if text is None})
                         value['writes']+=1
                         state.write_text(json.dumps(value))
                         print('$secretCanary')
-                elif args[2]=='deployments': print(json.dumps([{'versions':[{'version_id':value['version'],'percentage':100}]}]))
-                elif args[2]=='versions': print(json.dumps({'id':value['version'],'annotations':{'workers/message':value['message']},'resources':{'script_runtime':{'compatibility_date':'2026-10-01','compatibility_flags':[]},'bindings':[]}}))
+                elif args[0]=='deployments': print(json.dumps([{'versions':[{'version_id':value['version'],'percentage':100}]}]))
+                elif args[0]=='versions': print(json.dumps({'id':value['version'],'annotations':{'workers/message':value['message']},'resources':{'script_runtime':{'compatibility_date':'2026-10-01','compatibility_flags':[]},'bindings':[]}}))
                 elif '--dry-run' in args:
                     bundle=pathlib.Path(args[args.index('--outdir')+1]); bundle.mkdir(parents=True,exist_ok=True)
                     (bundle/'entry.js').write_text('export default {}')
                 else:
-                    assert args[2] in ['deploy','rollback']
-                    if args[2]=='deploy': assert '--no-bundle' in args and pathlib.Path(args[3]).read_text()=='export default {}'
-                    value['version']='$deployed' if args[2]=='deploy' else args[3]
+                    assert args[0] in ['deploy','rollback']
+                    if args[0]=='deploy': assert '--no-bundle' in args and pathlib.Path(args[1]).read_text()=='export default {}'
+                    value['version']='$deployed' if args[0]=='deploy' else args[1]
                     value['message']=args[args.index('--message')+1]; value['writes']+=1
                     state.write_text(json.dumps(value))
             """.trimIndent())
@@ -578,112 +578,6 @@ class GradlePlanningTest {
         assertEquals("sql-applied", receipt.phase)
         assertEquals(ServiceRef("clickhouse"), receipt.service)
         assertTrue(BuildModelReader.nodeDetails(directory, node.id.toString()).containsKey("migrationPlan"))
-    }
-
-
-    @Test fun `Pulumi binding previews and applies only the sealed stack plan`() {
-        directory.resolve("settings.gradle.kts").writeText("rootProject.name = \"pulumiFixture\"")
-        directory.resolve("config/pulumi.env").apply {
-            parentFile.mkdirs(); writeText("FIXTURE_PULUMI_SECRET=private-fixture-marker\n")
-        }
-        directory.resolve("program").mkdirs()
-        directory.resolve("program/Pulumi.yaml").writeText("name: fixture\nruntime: yaml\nresources: {}\n")
-        directory.resolve("pulumi").apply {
-            writeText("""
-                #!/usr/bin/env python3
-                import sys,json,pathlib,os
-                assert os.environ['FIXTURE_PULUMI_SECRET']=='private-fixture-marker'
-                assert pathlib.Path(os.environ['REAKTOR_WORKSPACE_ROOT']).resolve()==pathlib.Path(__file__).resolve().parent
-                args=sys.argv[1:]; root=pathlib.Path(__file__).parent
-                state=root/'state.json'
-                count=int(state.read_text()) if state.exists() else 0
-                if args==['version']: print('v3.268.0'); sys.exit(0)
-                assert args[args.index('--stack')+1]=='fixture'
-                if args[:2]==['stack','export']:
-                    print(json.dumps({'deployment':{'version':count}}))
-                elif args[:2]==['stack','history']:
-                    print((root/'history.json').read_text())
-                elif args[0]=='preview':
-                    config=json.loads(pathlib.Path(args[args.index('--config-file')+1]).read_text())
-                    assert config=={'config':{'fixture:region':'local'}}
-                    pathlib.Path(args[args.index('--save-plan')+1]).write_text(json.dumps({'version':count}))
-                    print(json.dumps({'changeSummary':{'same':1}}))
-                elif args[0]=='up':
-                    saved=json.loads(pathlib.Path(args[args.index('--plan')+1]).read_text())
-                    assert saved['version']==count
-                    state.write_text(str(count+1))
-                    message=args[args.index('--message')+1]
-                    (root/'history.json').write_text(json.dumps([{'kind':'update','result':'succeeded','version':count+1,'message':message}]))
-                else: raise AssertionError('unexpected command')
-            """.trimIndent())
-            setExecutable(true)
-        }
-        val stack = PulumiStack("program", directory.resolve("backend").toPath().toUri().toString(),
-            mapOf(Environment("dev") to "fixture"),
-            mapOf(Environment("dev") to buildJsonObject { put("fixture:region", "local") }), FileSet(listOf("program/Pulumi.yaml")),
-            secretNames = setOf("FIXTURE_PULUMI_SECRET"), secretSources = listOf("config/pulumi.env"))
-        val spec = PulumiStackSpec(NodeId("pulumiFixture", ":", "infra"), Environment("dev"), stack,
-            ProcessExecution(directory.resolve("program").absolutePath, directory.resolve("pulumi").absolutePath,
-                emptyList(), listOf("PATH", "HOME", "FIXTURE_PULUMI_SECRET"), ToolRef("pulumi", "3.268.0"), stack.sources.paths, emptyList()))
-        val json = BuildModelReader.json
-        val metadata = java.util.Properties().apply {
-            GradlePlanningTest::class.java.classLoader.getResourceAsStream("plugin-under-test-metadata.properties")!!.use(::load)
-        }
-        val files = metadata.getProperty("implementation-classpath").split(File.pathSeparator)
-            .joinToString(",") { json.encodeToString(kotlinx.serialization.serializer<String>(), it) }
-        val stackJson = json.encodeToString(kotlinx.serialization.serializer<String>(), json.encodeToString(PulumiStack.serializer(), stack))
-        val declaration = json.encodeToString(kotlinx.serialization.serializer<String>(), json.encodeToString(PulumiStackSpec.serializer(), spec))
-        directory.resolve("build.gradle.kts").writeText("""
-            import dev.shibasis.dependeasy.model.*
-            import dev.shibasis.dependeasy.workspace.PulumiInfrastructure
-            buildscript { dependencies { classpath(files($files)) } }
-            apply<dev.shibasis.dependeasy.plugins.PipelinePlugin>()
-            extensions.getByType<dev.shibasis.dependeasy.plugins.DependeasyExtension>().workspace {
-                val infra by infrastructure(BuildModelReader.json.decodeFromString<PulumiStack>($stackJson))
-            }
-            tasks.named<PulumiInfrastructure>("infra") { declaration.set($declaration) }
-            tasks.named("pulumiSetup") { enabled = false }
-        """.trimIndent())
-        fun git(vararg args: String) {
-            assertEquals(0, ProcessBuilder("git", *args).directory(directory).redirectErrorStream(true).start().let {
-                it.inputStream.readBytes(); it.waitFor()
-            })
-        }
-        git("init", "--quiet")
-        git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.test", "commit", "--allow-empty", "--quiet", "-m", "fixture")
-        fun bridge(vararg tasks: String) = GradleRunner.create().withProjectDir(directory)
-            .withArguments(*tasks, "--configuration-cache", "--stacktrace").build()
-        bridge("exportBuildModel")
-        val model = BuildModelReader.read(directory)
-        val node = model.nodes.single { it.id.name == "infra" }
-        assertEquals("PulumiStackKernel", node.kernel?.className?.substringAfterLast('.'))
-        assertFalse(BuildModelReader.encode(model).contains("private-fixture-marker"))
-        assertEquals(spec, assertIs<KernelSpec.PulumiStack>(node.kernel?.spec).infrastructure)
-        assertEquals(NodeKind.Deploy, node.kind)
-        assertTrue(node.inputs.flatMap { it.declarations }.any { it.identity == "program/Pulumi.yaml" })
-        fun contract(request: GradleRequest): Pair<String, String> {
-            val text = json.encodeToString(GradleRequest.serializer(), request) + "\n"
-            val digest = BuildModelReader.digest(text)
-            val file = directory.resolve("${GradleProtocol.RequestDirectory}/$digest.json").apply { parentFile.mkdirs(); writeText(text) }
-            return digest to "-P${GradleProtocol.RequestOption}=${file.absolutePath}"
-        }
-        val request = GradleRequest(node = node.id, declaredAt = node.declaredAt,
-            modelDigest = BuildModelReader.digest(BuildModelReader.encode(model)), arguments = listOf("--configuration-cache"))
-        val (digest, option) = contract(request)
-        bridge(GradleProtocol.PlanTask, option)
-        val plan = BuildModelReader.readPlan(directory.resolve("${GradleProtocol.PlanDirectory}/$digest.json"))
-        assertEquals(mapOf("same" to 1), plan.infrastructure.single().changes)
-        assertFalse(directory.resolve("state.json").exists())
-        val repeat = bridge(GradleProtocol.PlanTask, option)
-        assertContains(repeat.output, "Reusing configuration cache")
-        val (_, execution) = contract(request.copy(expectedContextDigest = plan.contextDigest, infrastructure = plan.infrastructure))
-        bridge(GradleProtocol.RunTask, execution)
-        assertEquals("1", directory.resolve("state.json").readText())
-        val receipt = WorkerDeployKernel.receipts(directory, node.id).single { it.action == "pulumi-apply" }
-        assertEquals(ReceiptStatus.Succeeded, receipt.result)
-        assertEquals("update-verified", receipt.phase)
-        assertEquals("fixture:1", receipt.remoteVersion)
-        assertTrue(BuildModelReader.nodeDetails(directory, node.id.toString()).containsKey("infrastructurePlan"))
     }
 
 }

@@ -41,6 +41,10 @@ import dev.shibasis.reaktor.graph.di.dependency
 import dev.shibasis.reaktor.portgraph.port.consumes
 import dev.shibasis.reaktor.portgraph.port.provides
 
+import dev.shibasis.reaktor.auth.services.RefreshDecision
+import dev.shibasis.reaktor.auth.services.RefreshRotation
+import dev.shibasis.reaktor.service.contract.decision
+
 class AuthSessionNode(
     graph: Graph,
 ) : BasicNode(graph), AuthSessions {
@@ -55,6 +59,7 @@ class AuthSessionNode(
     override suspend fun refresh(request: RefreshRequest): RefreshResponse {
         val refreshToken = request.refreshToken.trim().ifEmpty { request.bearerToken().orEmpty() }
         if (refreshToken.isEmpty()) {
+            decision("auth.refresh", RefreshDecision.Missing.signal)
             auditPort.suspended {
                 auditFailure(
                     request = request,
@@ -65,8 +70,9 @@ class AuthSessionNode(
             }
             return RefreshResponse(statusCode = StatusCode.UNAUTHORIZED)
         }
-        val rotated = sessionLifecyclePort { rotate(refreshToken, request.environment) }
-        if (rotated == null) {
+        val rotation = sessionLifecyclePort { rotateWithDecision(refreshToken, request.environment) }
+        if (rotation is RefreshRotation.Refused) {
+            decision("auth.refresh", rotation.decision.signal)
             auditPort.suspended {
                 auditFailure(
                     request = request,
@@ -77,6 +83,8 @@ class AuthSessionNode(
             }
             return RefreshResponse(statusCode = StatusCode.UNAUTHORIZED)
         }
+        val rotated = (rotation as RefreshRotation.Success).value
+        decision("auth.refresh", RefreshDecision.Rotated.signal)
 
         val principal = principalDirectoryPort.suspended {
             getPrincipal(request, rotated.session.principalId.uuid())
@@ -141,6 +149,7 @@ class AuthSessionNode(
     override suspend fun logout(request: LogoutRequest): LogoutResponse {
         val refreshToken = request.refreshToken.trim().ifEmpty { request.bearerToken().orEmpty() }
         val ok = refreshToken.isNotEmpty() && sessionLifecyclePort { revokeByRefreshToken(refreshToken, request.environment) }
+        decision("auth.revoke", if (ok) "revoked" else if (refreshToken.isEmpty()) "missing" else "unknown")
         auditPort.suspended {
             if (ok) {
                 auditSuccess(

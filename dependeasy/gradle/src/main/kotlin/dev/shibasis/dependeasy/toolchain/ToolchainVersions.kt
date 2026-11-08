@@ -1,7 +1,6 @@
 package dev.shibasis.dependeasy.toolchain
 
 object ToolchainVersions {
-    const val JavaBuildImage = "eclipse-temurin:25-jdk@sha256:8c0a84ea11c8f6ed52600fc19f1040121f2a162998e9f50a5faebbbad9172dcc"
     const val Java = GradlePlugins.CompilerJava
     const val AndroidJava = 21
     const val SpringBoot = GradlePlugins.SpringBoot
@@ -27,13 +26,10 @@ object ToolchainVersions {
     const val AsyncProfiler = "4.3"
     const val Jmh = "1.37"
     const val Gradle = "9.7.0"
-    const val GradleSha256 = "84fbba45c7f4c64abc77460e1c00f541e9f960e3c7ed2538f1ede19eacd873ae"
 
     const val AndroidCompileSdk = 37
     const val AndroidSdkPlatform = "37.0"
     const val AndroidBuildTools = "37.0.0"
-    const val AndroidCli = "1.0.16625370"
-    const val AndroidCliSha256 = "0e56633db6aa75c6c6e8be89a1e4cb6d985258173d3f9d0c0ce5ee9a9d3b8165"
     const val Ndk = "30.0.16248370"
     const val Cmake = "4.0.3"
     const val Ninja = "1.13.1"
@@ -51,8 +47,4 @@ object ToolchainVersions {
     const val Node = "24.21.0"
     const val NodeMinimum = "22.12.0"
     const val Pnpm = "12.10.1"
-    const val Dagger = "0.21.8"
-    const val Pulumi = "3.268.0"
-    const val AlloyChart = "1.12.1"
-    const val KubeStateMetricsChart = "8.4.2"
 }

@@ -705,6 +705,8 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         if (end - first < 4 || pen.alpha <= 0f) return
         if (keep) { tints[i] = pen.rgb; alphas[i] = pen.alpha; flows[i] = pen.flowing; leads[i] = pen.lead }
         val unit = if (scaled) z else 1f
+        // Subpixel strokes vanish at some pixel alignments while the camera pans.
+        val width = if (scaled && pen.width > 0f) max(pen.width * unit, 1f / density) else pen.width * unit
         stroker.clear()
         when {
             pen.straight -> { stroker.point(points[first] * z - wl, points[first + 1] * z - wt); stroker.point(points[end - 2] * z - wl, points[end - 1] * z - wt) }
@@ -717,7 +719,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         if (pen.glow ushr 24 != 0) stroker.stroke(solid, (pen.width + pen.glowWidth) * unit / 2, fringe, pen.glow, pen.alpha * .35f, round = pen.round)
         val mesh = if (pen.on <= 0f) solid else if (pen.round) dash(pen.on + pen.width, max(pen.off - pen.width, 1f), pen.flowing) else dash(pen.on, pen.off, pen.flowing)
         main = mesh; mainFrom = mesh.indexCount
-        stroker.stroke(mesh, pen.width * unit / 2, fringe, pen.rgb, pen.alpha, round = pen.round && mesh === solid, dashed = mesh !== solid)
+        stroker.stroke(mesh, width / 2, fringe, pen.rgb, pen.alpha, round = pen.round && mesh === solid, dashed = mesh !== solid)
         if (pen.head <= 0f) return
         val length = pen.head * unit / z
         if (links[i].reversed) arrow(points[first], points[first + 1], atan2(points[first + 1] - points[first + 3], points[first] - points[first + 2]), length, z, fringe, pen.rgb, pen.alpha, pen.spread)

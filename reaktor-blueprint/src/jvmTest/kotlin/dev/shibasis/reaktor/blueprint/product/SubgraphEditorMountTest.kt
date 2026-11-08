@@ -189,10 +189,36 @@ class SubgraphEditorMountTest {
         }
     }
 
+    @Test fun bindingNamedWiresRequireExplicitInternalPortMetadata() {
+        val type = "RouteSignal"
+        val provider = NodeShape("provider", "root", "Provider", "ProviderKind", NodeKind.Service,
+            ports = listOf(PortShape("navBinding", type, true, PortWiring.Connected)))
+        val consumer = NodeShape("consumer", "root", "Consumer", "ConsumerKind", NodeKind.Service,
+            ports = listOf(PortShape("routeBinding", type, false, PortWiring.Connected)))
+        val binding = WireShape(consumer.id, "routeBinding", provider.id, "navBinding", type, "binding-definition", "binding-wire")
+        val declared = GraphShape(listOf(ScopeShape("root", "Root")), listOf(provider, consumer), listOf(binding), emptyList(), "binding-source")
+        val undeclared = declared.copy(nodes = declared.nodes.map { it.copy(ports = emptyList()) })
+        for (source in listOf(undeclared, declared)) {
+            val view = dev.shibasis.reaktor.blueprint.graph.AppGraph(source)
+            assertEquals(listOf(binding.id), view.wires.map { it.id }, "Binding names alone must not hide a wire")
+            assertEquals(provider.id, view.wires.single().provider)
+            assertEquals(consumer.id, view.wires.single().consumer)
+        }
+        for (endpoint in declared.nodes.map { it.id }) {
+            val internal = declared.copy(nodes = declared.nodes.map { node ->
+                if (node.id == endpoint) node.copy(ports = node.ports.map { it.copy(internal = true) }) else node
+            })
+            assertTrue(dev.shibasis.reaktor.blueprint.graph.AppGraph(internal).wires.isEmpty(),
+                "An explicit internal binding at either endpoint must be hidden")
+        }
+    }
+
     @Test fun authoritativeRouteSelectionAndSavedExclusionKeepRawTypedGeometry() = runBlocking(Dispatchers.Swing) {
         val type = "PayloadValue"
         val producer = NodeShape("producer", "inner", "Producer", "ProducerKind", NodeKind.Service, attachedTo = "start-route",
-            ports = listOf(PortShape("supply", type, true, PortWiring.Connected)), attributes = mapOf("fact" to "Recorded source"))
+            ports = listOf(PortShape("supply", type, true, PortWiring.Connected),
+                PortShape("routeBinding", "RouteSignal", false, PortWiring.Connected, internal = true)),
+            attributes = mapOf("fact" to "Recorded source"))
         val member = NodeShape("member", "inner", "Member", "MemberKind", NodeKind.Interactor,
             ports = listOf(PortShape("receive", type, false, PortWiring.Connected), PortShape("forward", type, true, PortWiring.Connected)),
             attributes = mapOf("fact" to "Recorded processing"))
@@ -201,7 +227,9 @@ class SubgraphEditorMountTest {
         val first = WireShape(member.id, "receive", producer.id, "supply", type, "first-definition", "first-wire")
         val second = WireShape(sink.id, "store", member.id, "forward", type, "second-definition", "second-wire")
         val start = NodeShape("start-route", "inner", "Start route", "StartRoute", NodeKind.Route,
-            ports = listOf(PortShape("supply", type, true, PortWiring.Connected)), attributes = mapOf("fact" to "Recorded route source"))
+            ports = listOf(PortShape("supply", type, true, PortWiring.Connected),
+                PortShape("navBinding", "RouteSignal", true, PortWiring.Connected, internal = true)),
+            attributes = mapOf("fact" to "Recorded route source"))
         val end = NodeShape("end-route", "outer", "End route", "EndRoute", NodeKind.Route, attributes = mapOf("fact" to "Recorded route destination"))
         val projected = WireShape(sink.id, "store", start.id, "supply", type, "projected-definition", "projected-wire")
         val binding = WireShape(producer.id, "routeBinding", start.id, "navBinding", "RouteSignal", "binding-definition", "binding-wire")

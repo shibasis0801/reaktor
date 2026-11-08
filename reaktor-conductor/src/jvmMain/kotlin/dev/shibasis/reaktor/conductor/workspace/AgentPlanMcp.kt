@@ -51,23 +51,26 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
             val read = workspace.plans.read(args.thread(reader), reader = reader)
             AgentWorkspaceJson.encodeToJsonElement(PlanScheduleReport.serializer(), PlanAnalysis.report(read.plan))
         },
-        McpTool("agent_plan_next", "The next ready item ordered by inherited priority, work unblocked and age. take=true atomically claims an activity-renewed lease.",
+        McpTool("agent_plan_next", "The next ready item ordered by inherited priority, work unblocked and age. Name thread and item to consider a specific handoff. take=true atomically claims an activity-renewed lease.",
             withActor(api.next.request.descriptor.jsonSchema()), false, false) { args ->
-            args.only("thread", "agent", "seat", "by", "take")
+            args.only("thread", "agent", "seat", "by", "take", "item")
             val actor = args.actor() ?: error("by is required")
-            AgentWorkspaceJson.encodeToJsonElement(PlanNext.serializer(), workspace.nextPlan(args.text("thread"), actor, args.text("seat"), args.text("agent"), args["take"]?.jsonPrimitive?.booleanOrNull == true))
+            AgentWorkspaceJson.encodeToJsonElement(PlanNext.serializer(), workspace.nextPlan(args.text("thread"), actor, args.text("seat"), args.text("agent"),
+                take = args["take"]?.jsonPrimitive?.booleanOrNull == true, item = args.text("item")))
         },
         McpTool("agent_plan_write", "Draw or change a thread's plan; the first write starts it and names it with title. " +
             "Pass base, the revision you read: an op on an item someone else changed after it is refused for that item only, and news lists their changes. " +
             "An attached agent passes its seat and stays inside its items. refs link Reaktor with file:, symbol:, module:, graph:, op:, flow:, task: or url:. " +
+            "Set documentPath to the plan Markdown file under plans/; headings with {#item-key} link to DAG items. " +
             "The answer lists what applied, what was refused and why, and the new revision.",
             withActor(api.write.request.descriptor.jsonSchema()),
             readOnly = false, idempotent = false) { args ->
-            args.only("thread", "title", "goal", "ops", "base", "seat", "message", "by")
+            args.only("thread", "title", "goal", "ops", "base", "seat", "message", "documentPath", "by")
             val writer = args.actor() ?: error("by is required: who makes this change")
             val patch = PlanPatch(
                 ops = AgentWorkspaceJson.decodeFromJsonElement(ListSerializer(PlanOp.serializer()), PlanJson.statuses(args["ops"] ?: JsonArray(emptyList()))),
                 title = args.text("title"), goal = args.text("goal"), base = args.long("base"), seat = args.text("seat"), message = args.text("message"),
+                documentPath = args.text("documentPath"),
             )
             val applied = workspace.plans.write(args.thread(writer), patch, writer)
             buildJsonObject {

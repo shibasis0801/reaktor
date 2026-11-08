@@ -45,6 +45,64 @@ class WorkPlanTest {
         assertEquals(PlanStatus.Doing, WorkPlanStore(made.last()).plan("claude:s1")?.item("tools")?.status)
     }
 
+    @Test fun aDocumentLinkPersistsAndRequiresTheOwnersCurrentRevision() {
+        val path = directory("plan-document")
+        val store = WorkPlanStore(path)
+        val thread = "claude:s1"
+        val document = "plans/hangar/agent work.md"
+        val first = store.write(thread, PlanPatch(title = "Shared plan", documentPath = document,
+            ops = listOf(PlanOp.Add("API", key = "api"))), claude).plan
+        assertEquals(document, WorkPlanStore(path).plan(thread)?.documentPath)
+        assertTrue(first.changes.last().summary.any { it.contains(document) })
+        assertFailsWith<IllegalArgumentException> {
+            store.write(thread, PlanPatch(base = first.revision, documentPath = "plans/../outside.md"), person)
+        }
+        assertFailsWith<IllegalArgumentException> {
+            store.write(thread, PlanPatch(base = first.revision, documentPath = ""), codex)
+        }
+        assertFailsWith<IllegalArgumentException> {
+            store.write(thread, PlanPatch(base = first.revision - 1, documentPath = ""), claude)
+        }
+        val cleared = store.write(thread, PlanPatch(base = first.revision, documentPath = ""), person).plan
+        assertNull(cleared.documentPath)
+        assertEquals(first.items, cleared.items)
+    }
+
+    @Test fun aCompletionReportKeepsItsAuthorAndTimeUntilSuperseded() {
+        val path = directory("plan-completion")
+        val clock = AtomicLong(1_000)
+        val store = WorkPlanStore(path, clock = clock::get)
+        val thread = "claude:s1"
+        assertNull(draw(store).plan.item("model")?.completion)
+        val report = PlanCompletionReport("  Added the parser  ", listOf(" src/Plan.kt ", "src/Plan.kt"))
+        clock.set(2_000)
+        val finished = store.write(thread, PlanPatch(ops = listOf(PlanOp.Status("model", PlanStatus.Done, result = report))), claude)
+        assertEquals(emptyList(), finished.refused)
+        val completion = PlanCompletion("Added the parser", listOf("src/Plan.kt"), claude, 2_000)
+        assertEquals(completion, WorkPlanStore(path).plan(thread)?.item("model")?.completion)
+
+        clock.set(3_000)
+        val edited = store.write(thread, PlanPatch(ops = listOf(
+            PlanOp.Update("model", title = "Parser"),
+            PlanOp.Status("model", PlanStatus.Done),
+        )), person)
+        assertEquals(completion, edited.plan.item("model")?.completion)
+        val refused = store.write(thread, PlanPatch(ops = listOf(
+            PlanOp.Status("model", PlanStatus.Doing, result = report),
+            PlanOp.Status("model", PlanStatus.Done, result = PlanCompletionReport(" ")),
+            PlanOp.Status("model", PlanStatus.Done, result = PlanCompletionReport("Reported files", listOf("src/Bad\nPath.kt"))),
+        )), person)
+        assertEquals(listOf(0, 1, 2), refused.refused.map { it.op })
+        assertEquals(completion, refused.plan.item("model")?.completion)
+        val reopened = store.write(thread, PlanPatch(ops = listOf(PlanOp.Status("model", PlanStatus.Todo))), person)
+        assertEquals(completion, reopened.plan.item("model")?.completion)
+        clock.set(4_000)
+        val finishedAgain = store.write(thread, PlanPatch(ops = listOf(
+            PlanOp.Status("model", PlanStatus.Done, result = PlanCompletionReport("Adjusted the parser")),
+        )), person)
+        assertEquals(PlanCompletion("Adjusted the parser", emptyList(), person, 4_000), finishedAgain.plan.item("model")?.completion)
+    }
+
     @Test fun aStaleWriteIsRefusedOnlyForTheItemSomeoneElseChanged() {
         val store = WorkPlanStore(directory("plan-stale"))
         draw(store)

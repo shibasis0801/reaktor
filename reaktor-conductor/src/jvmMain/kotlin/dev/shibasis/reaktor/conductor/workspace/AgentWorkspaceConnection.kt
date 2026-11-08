@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.conductor.*
 import dev.shibasis.reaktor.conductor.appserver.AgentRuntimes
+import dev.shibasis.reaktor.io.network.middleware
 import dev.shibasis.reaktor.conductor.cli.CliCapabilities
 import dev.shibasis.reaktor.conductor.cli.AgentBundle
 import dev.shibasis.reaktor.conductor.cli.ClaudeCodeRuntime
@@ -51,6 +52,7 @@ class AgentWorkspaceConnection private constructor(
     val hybridConnector: HybridConnector? = null,
 ) : AutoCloseable {
     private val closed = AtomicBoolean()
+    @Volatile private var pinnedIncarnation: String? = null
     @Volatile private var protocolVersion = REAKTOR_MCP_PROTOCOL_VERSION
     private val http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build()
     val url: String get() = if (remote == null) "http://127.0.0.1:${endpoint.port}/mcp" else "ssh workspace"
@@ -58,7 +60,8 @@ class AgentWorkspaceConnection private constructor(
     val incarnation: String get() { refreshEndpoint(); return endpoint.incarnation }
     private val kernelClient = lazy { KernelClient(this) }
     private val contractHttp = lazy {
-        dev.shibasis.reaktor.io.network.http.config {
+        io.ktor.client.HttpClient(io.ktor.client.engine.okhttp.OkHttp) {
+            middleware()
             install(io.ktor.client.plugins.logging.Logging) { level = io.ktor.client.plugins.logging.LogLevel.NONE }
         }
     }
@@ -94,6 +97,13 @@ class AgentWorkspaceConnection private constructor(
     suspend fun get(id: String): AgentRunRecord = decode(call("agent_run", buildJsonObject { put("runId", id) }))
     suspend fun list(limit: Int = 20, offset: Int = 0): List<AgentRunRecord> = ConductorJson.decodeFromJsonElement(ListSerializer(AgentRunRecord.serializer()),
         call("agent_runs", buildJsonObject { put("limit", limit); put("offset", offset) }).jsonObject.getValue("runs"))
+    suspend fun listActive(): List<AgentRunRecord> = ConductorJson.decodeFromJsonElement(ListSerializer(AgentRunRecord.serializer()),
+        call("agent_active").jsonObject.getValue("runs"))
+    suspend fun control(id: String): AgentRunControl = ConductorJson.decodeFromJsonElement(AgentRunControl.serializer(),
+        call("agent_control", buildJsonObject { put("runId", id) }))
+    suspend fun restart(id: String, expectedRevision: Long, requestId: String): AgentRunRecord = decode(call("agent_restart", buildJsonObject {
+        put("runId", id); put("expectedRevision", expectedRevision); put("requestId", requestId)
+    }))
     suspend fun tasks(query: String = "", offset: Int = 0): AgentTasksPage = ConductorJson.decodeFromJsonElement(AgentTasksPage.serializer(),
         call("agent_tasks_wait", buildJsonObject { put("revision", 0); put("query", query); put("offset", offset); put("limit", 50); put("timeoutMillis", 0) }))
     suspend fun waitTasks(revision: Long, query: String = ""): AgentTasksPage = ConductorJson.decodeFromJsonElement(AgentTasksPage.serializer(),
@@ -101,7 +111,9 @@ class AgentWorkspaceConnection private constructor(
     suspend fun wait(id: String, afterRevision: Long, timeoutMillis: Long = 30000): AgentRunRecord = decode(call("agent_wait", buildJsonObject {
         put("runId", id); put("afterRevision", afterRevision); put("timeoutMillis", timeoutMillis)
     }))
-    suspend fun cancel(id: String): AgentRunRecord = decode(call("agent_cancel", buildJsonObject { put("runId", id) }))
+    suspend fun cancel(id: String, expectedRevision: Long? = null): AgentRunRecord = decode(call("agent_cancel", buildJsonObject {
+        put("runId", id); expectedRevision?.let { put("expectedRevision", it) }
+    }))
 
     /** Re-attaches to a run after a disconnect. Observation only; never takes the execution lease. */
     suspend fun attach(runId: String): AgentAttachment = ConductorJson.decodeFromJsonElement(
@@ -236,11 +248,19 @@ class AgentWorkspaceConnection private constructor(
 
     suspend fun exchange(message: String, patience: Duration = Patience): JsonElement? = request(message, "/mcp", patience)
 
+    fun pinIncarnation(expected: String): AgentWorkspaceConnection {
+        require(expected.isNotBlank()) { "An owner incarnation is required" }
+        check(pinnedIncarnation == null || pinnedIncarnation == expected) { "Connection is already pinned to another owner" }
+        pinnedIncarnation = expected
+        refreshEndpoint()
+        return this
+    }
+
     private fun refreshEndpoint() {
         check(!closed.get()) { "Connection is closed" }
-        if (!ownsService && Files.exists(discoveryFile)) {
-            endpoint = readEndpoint(discoveryFile, endpoint.workspaceRoot)
-        }
+        val observed = if (!ownsService && Files.exists(discoveryFile)) readEndpoint(discoveryFile, endpoint.workspaceRoot) else endpoint
+        check(pinnedIncarnation == null || observed.incarnation == pinnedIncarnation) { "Workspace owner changed. Refresh the task and review the action again." }
+        endpoint = observed
     }
 
     private suspend fun request(message: String, path: String, patience: Duration): JsonElement? = withContext(Dispatchers.IO) {
@@ -283,6 +303,10 @@ class AgentWorkspaceConnection private constructor(
         fun remote(profile: AgentRemoteProfile): AgentWorkspaceConnection = AgentWorkspaceConnection(
             AgentEndpoint(version = 2, workspaceRoot = profile.workspaceRoot, port = 0, token = "",
                 processId = 0, incarnation = "", catalogDigest = "", hostKind = "service"), Path.of("."), false, remote = AgentRemoteWorkspace(profile))
+        private val Owned: MutableSet<Path> = java.util.concurrent.ConcurrentHashMap.newKeySet()
+
+        private fun owns(directory: Path): Boolean = directory.toAbsolutePath().normalize() in Owned
+
         fun defaultDirectory(root: File): Path = Path.of(System.getProperty("user.home"), ".reaktor", "agents", digest(root.canonicalPath))
 
         /** A published record is a reason to attach and validate, never to create a replacement owner. */
@@ -321,16 +345,20 @@ class AgentWorkspaceConnection private constructor(
                  hybridConnector: Boolean = false,
                  plus: Boolean = false,
                  kernelRead: (suspend (String, JsonObject) -> JsonElement)? = null,
-                 harnessMcpCommand: List<String>? = null,
+                 harnessMcp: JsonObject? = null,
                  scopeModules: (List<String>) -> List<String> = { emptyList() }): AgentWorkspaceConnection {
             require(root.isDirectory)
             require(hostKind in setOf("service", "hangar")) { "Unknown workspace owner host" }
-            require(harnessMcpCommand == null || harnessMcpCommand.isNotEmpty()) { "Harness MCP command needs an executable" }
+            require(harnessMcp == null || "command" in harnessMcp || "url" in harnessMcp) { "A harness MCP server needs a command or a url" }
             val discovery = directory.resolve("owner.json")
+            if (owns(directory)) {
+                repeat(100) { if (!Files.exists(discovery)) Thread.sleep(20) }
+                return AgentWorkspaceConnection(readEndpoint(discovery, root.canonicalPath), discovery, false)
+            }
             if (!allowStart) {
                 require(Files.isRegularFile(discovery) && Files.isRegularFile(directory.resolve("owner.lock"))) { "No workspace owner is running" }
-                FileChannel.open(directory.resolve("owner.lock"), WRITE).use { channel ->
-                    val lock = try { channel.tryLock() } catch (_: OverlappingFileLockException) { null }
+                FileChannel.open(directory.resolve("owner.lock"), READ).use { channel ->
+                    val lock = try { channel.tryLock(0, Long.MAX_VALUE, true) } catch (_: OverlappingFileLockException) { null }
                     if (lock != null) {
                         lock.release()
                         error("No workspace owner is running")
@@ -347,6 +375,7 @@ class AgentWorkspaceConnection private constructor(
                 repeat(100) { if (!Files.exists(discovery)) Thread.sleep(20) }
                 return AgentWorkspaceConnection(readEndpoint(discovery, root.canonicalPath), discovery, false)
             }
+            Owned.add(directory.toAbsolutePath().normalize())
             var executor: SupervisedProcessExecutor? = null
             var workspace: AgentWorkspace? = null
             var server: LoopbackMcpServer? = null
@@ -363,11 +392,8 @@ class AgentWorkspaceConnection private constructor(
                 else Files.deleteIfExists(graphDiscovery)
                 val batch = if (runtimes == null) AgentRuntimes.batch(SupervisedProcessExecutor().also { executor = it }) else emptyMap()
                 val configured = runtimes ?: AgentRuntimes.interactive(runtimeScope)
-                val mcpConfig = if (runtimes == null && harnessMcpCommand != null) directory.resolve("harness-mcp.json").also { path ->
-                    val command = harnessMcpCommand
-                    atomicWrite(path, buildJsonObject { putJsonObject("mcpServers") {
-                        putJsonObject(AgentBundle.SERVER_NAME) { put("command", command.first()); put("args", JsonArray(command.drop(1).map(::JsonPrimitive))) }
-                    } }.toString())
+                val mcpConfig = if (runtimes == null && harnessMcp != null) directory.resolve("harness-mcp.json").also { path ->
+                    atomicWrite(path, buildJsonObject { putJsonObject("mcpServers") { put(AgentBundle.SERVER_NAME, harnessMcp) } }.toString())
                 }.toString() else null
                 val hostedWorkspace = AgentWorkspace(root.canonicalFile, directory, configured, discover = discover, batchRuntimes = batch,
                     harnessMcpConfig = mcpConfig, background = background, workflowCheck = workflowCheck, externalBusy = externalBusy, kernelRead = kernelRead, scopeModules = scopeModules).also { workspace = it }
@@ -407,11 +433,11 @@ class AgentWorkspaceConnection private constructor(
                     finally { try { hostedServer.close(); operationBinding?.close(); registry.close() }
                     finally { try { if (background) hostedWorkspace.suspendAndClose() else hostedWorkspace.close() }
                     finally { try { runtimeScope.cancel(); executor?.close(); Files.deleteIfExists(discovery); Files.deleteIfExists(graphDiscovery) }
-                    finally { ownerLock.release(); channel.close() } } } }
+                    finally { Owned.remove(directory.toAbsolutePath().normalize()); ownerLock.release(); channel.close() } } } }
                 })
             } catch (failure: Throwable) {
                 try { server?.close(); operationBinding?.close(); operations?.close(); workspace?.close(); runtimeScope.cancel(); executor?.close() }
-                finally { ownerLock.release(); channel.close() }
+                finally { Owned.remove(directory.toAbsolutePath().normalize()); ownerLock.release(); channel.close() }
                 throw failure
             }
         }

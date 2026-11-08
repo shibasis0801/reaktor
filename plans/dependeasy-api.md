@@ -217,7 +217,7 @@ workers(delivery = BestBudsDelivery) {
 
 ## 5. Inside dependeasy: one capability, five layers
 
-Every capability (Kotlin library, web app, worker fleet, Apple app, image rollout, Pulumi stack, and so on) lives in one package with the same five layers. Command-click walks through them in this order.
+Every capability (Kotlin library, web app, worker fleet, Apple app, image rollout, migration, and so on) lives in one package with the same five layers. Command-click walks through them in this order.
 
 | Layer | What it is | Rule |
 |---|---|---|

@@ -411,8 +411,6 @@ class WebContractsTest {
         val remoteAudit = model.nodes.single { it.id.name == "remoteAudit" }
         val remoteSpec = assertIs<KernelSpec.LighthouseAudit>(remoteAudit.kernel?.spec)
         assertEquals(Runner.Browser, remoteAudit.runner)
-        assertEquals(Runner.Browser, DaggerKernel.resolve(KernelSpec.ContainerNode(remoteAudit.id, Environment("dev"),
-            FileSet(emptyList()), FileSet(emptyList())), model, emptySet()).runner)
         assertEquals(listOf("exec", "reaktor-lighthouse", "--target", "fixture-live", "--url", "https://example.test/",
             "--preset", "desktop", "--runs", "5", "--assert", "--out", "build/reports/remote.json"),
             remoteSpec.execution.arguments)

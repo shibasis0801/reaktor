@@ -1,7 +1,7 @@
 package dev.shibasis.reaktor.tooling
 
-import dev.shibasis.reaktor.tooling.infra.ProviderHttpFailure
-import dev.shibasis.reaktor.tooling.infra.readIslandShapes
+import dev.shibasis.reaktor.cloud.http.ProviderHttpFailure
+import dev.shibasis.reaktor.tooling.operation.readIslandShapes
 import kotlinx.serialization.json.Json
 import java.net.http.HttpTimeoutException
 import java.util.concurrent.ExecutionException

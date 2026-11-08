@@ -215,6 +215,8 @@ internal class CodexDesktopSession(
                                     turn = payload["turn_id"]?.jsonPrimitive?.contentOrNull
                                     turn?.let { emit(AgentEvent.TurnStarted(agent, it)) }
                                 }
+                                "hook_started", "hook_completed" -> codexHookActivity(agent, payload.objectOrEmpty("run"),
+                                    payload["type"]?.jsonPrimitive?.contentOrNull == "hook_completed")?.let { emit(it) }
                                 "item_completed" -> {
                                     val item = payload["item"] as? JsonObject
                                     if (item?.get("type")?.jsonPrimitive?.contentOrNull == "agentMessage")
@@ -465,6 +467,9 @@ private class CodexAppServerSession(
                             if (next != child) send(AgentEvent.Activity(agent, AgentActivityItem("native:$origin", ActivityKind.Agent,
                                 next.name ?: origin, if (next.turnId != null) ActivityStatus.Started else ActivityStatus.Completed,
                                 parentId = child.parentId, nativeAgents = listOf(next))))
+                            if (message.method in listOf("hook/started", "hook/completed")) codexHookActivity(agent, message.params.objectOrEmpty("run"), message.method == "hook/completed")?.let {
+                                send(it.copy(item = it.item.copy(parentId = "native:$origin")))
+                            }
                             if (message.method in listOf("item/started", "item/completed")) codexActivity(agent, message.params.objectOrEmpty("item"), message.method == "item/completed")?.let {
                                 it.item.nativeAgents.forEach { descendant -> children.compute(descendant.id) { _, prior -> descendant.copy(parentId = origin, turnId = prior?.turnId) } }
                                 send(it.copy(item = it.item.copy(parentId = "native:$origin")))
@@ -533,6 +538,8 @@ private class CodexAppServerSession(
                                 else -> Unit
                             }
                         }
+
+                        "hook/started", "hook/completed" -> codexHookActivity(agent, message.params.objectOrEmpty("run"), message.method == "hook/completed")?.let { send(it) }
 
                         "turn/plan/updated" -> send(AgentEvent.Activity(agent, AgentActivityItem(
                             "plan-${turn ?: "current"}", ActivityKind.Plan, "Execution plan", output = message.params.toString())))

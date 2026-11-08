@@ -1,0 +1,19 @@
+{
+    "name": "dev-shibasis-reaktor-cloud-wrangler",
+    "version": "1.0.0",
+    "description": "",
+    "private": true,
+    "scripts": {
+        "bindings": "../../gradlew :reaktor-cloud:karakumBindings"
+    },
+    "devDependencies": {
+        "karakum": "1.0.0-alpha.112",
+        "typescript": "6.0.3"
+    },
+    "packageManager": "pnpm@12.10.1",
+    "dependeasy": {
+        "generatedScripts": [
+            "bindings"
+        ]
+    }
+}

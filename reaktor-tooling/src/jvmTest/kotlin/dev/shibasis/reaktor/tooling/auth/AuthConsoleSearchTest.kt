@@ -1,8 +1,8 @@
 package dev.shibasis.reaktor.tooling.auth
 
-import dev.shibasis.reaktor.tooling.database.BoundQuery
-import dev.shibasis.reaktor.tooling.database.QueryParameterType
-import dev.shibasis.reaktor.tooling.database.SqlReadStatement
+import dev.shibasis.reaktor.cloud.database.BoundQuery
+import dev.shibasis.reaktor.cloud.database.QueryParameterType
+import dev.shibasis.reaktor.cloud.database.SqlReadStatement
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

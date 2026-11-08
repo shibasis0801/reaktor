@@ -197,6 +197,8 @@ object ResultGate {
         Regex("(?i)\\b(bearer)\\s+[A-Za-z0-9._~+/-]{32,}=*"),
     )
 
+    fun containsCredential(text: String): Boolean = SECRETS.any { it.containsMatchIn(text) }
+
     class Gated(val result: JsonObject, val redactions: Int, val truncated: Boolean)
 
     fun apply(result: JsonObject, maxChars: Int): Gated {

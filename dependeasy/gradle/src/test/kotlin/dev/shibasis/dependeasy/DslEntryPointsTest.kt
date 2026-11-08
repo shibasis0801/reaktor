@@ -7,6 +7,7 @@ import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.io.TempDir
 import java.io.File
+import java.util.Properties
 import kotlin.test.*
 
 class DslEntryPointsTest {
@@ -17,10 +18,26 @@ class DslEntryPointsTest {
         writeText(content.trimIndent())
     }
 
+    private fun configureAndroidSdk() {
+        val configured = sequenceOf("ANDROID_HOME", "ANDROID_SDK_ROOT")
+            .mapNotNull { System.getenv(it)?.takeIf(String::isNotBlank) }.firstOrNull()
+        val sdk = configured?.let(::File) ?: generateSequence(File(System.getProperty("user.dir")).canonicalFile) { it.parentFile }
+            .mapNotNull { root ->
+                val source = root.resolve("local.properties")
+                if (!source.isFile) return@mapNotNull null
+                Properties().apply { source.inputStream().use { load(it) } }
+                    .getProperty("sdk.dir")?.takeIf(String::isNotBlank)?.let(root::resolve)
+            }.firstOrNull() ?: error("Android SDK is required for the Android unit-test fixture")
+        check(sdk.isDirectory) { "Configured Android SDK directory does not exist" }
+        val properties = Properties().apply { setProperty("sdk.dir", sdk.canonicalPath) }
+        directory.resolve("local.properties").outputStream().use { properties.store(it, null) }
+    }
+
     private fun run(vararg tasks: String) = GradleRunner.create().withProjectDir(directory).withPluginClasspath()
         .withArguments(*tasks, "--configuration-cache", "--no-watch-fs", "--stacktrace", "--info").forwardOutput().build()
 
     @Test fun `library scopes preserve targets dependencies and published graph outputs`() {
+        configureAndroidSdk()
         write("gradle.properties", "android.builtInKotlin=false\nandroid.newDsl=false\nandroid.useAndroidX=true")
         write("settings.gradle.kts", "rootProject.name = \"libraryFixture\"; enableFeaturePreview(\"TYPESAFE_PROJECT_ACCESSORS\"); include(\"library\", \"dependency\", \"legacy\", \"nested\")")
         write("build.gradle.kts", """
@@ -820,14 +837,9 @@ class DslEntryPointsTest {
 
     @Test fun `native desktop browser and benchmark declarations configure without executing their tools`() {
         write("gradle.properties", "android.builtInKotlin=false\nandroid.newDsl=false\nandroid.useAndroidX=true")
-        write("settings.gradle.kts", "rootProject.name = \"componentFixture\"; include(\"desktop\", \"browser\", \"pipeline\")")
+        write("settings.gradle.kts", "rootProject.name = \"componentFixture\"; include(\"desktop\", \"browser\")")
         write("build.gradle.kts", """
             plugins { id("dev.shibasis.dependeasy.workspace") }
-        """)
-        write("pipeline/build.gradle.kts", """
-            import dev.shibasis.dependeasy.components.daggerPipeline
-            plugins { id("dev.shibasis.dependeasy.pipeline") }
-            daggerPipeline()
         """)
         write("desktop/build.gradle.kts", """
             import dev.shibasis.dependeasy.analysis.kotlinAnalysis
@@ -954,7 +966,6 @@ class DslEntryPointsTest {
             assertTrue(model.edges.any { it is dev.shibasis.dependeasy.model.Edge.Consumes && it.from == from && it.to == to })
             assertTrue(model.edges.any { it is dev.shibasis.dependeasy.model.Edge.After && it.from == from && it.to == to })
         }
-        assertTrue(model.nodes.any { it.id.name == "generateDagger" })
         assertTrue(model.nodes.any { it.id.project == ":browser" && it.id.name == "browserBundle" })
         assertTrue(model.edges.any { it is Edge.Consumes && it.from == NodeId("componentFixture", ":browser", "componentBuild") && it.to == NodeId("componentFixture", ":browser", "outputModuleBuild") })
         assertTrue(model.edges.any { it is Edge.Includes && it.from == NodeId("componentFixture", ":browser", "outputWorkspaceCompletionBuild") && it.to == NodeId("componentFixture", ":browser", "componentBuild") })

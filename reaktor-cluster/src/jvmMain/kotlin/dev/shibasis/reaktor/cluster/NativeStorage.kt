@@ -384,11 +384,11 @@ class NativeStorage(
 
     companion object {
         private val hex = Regex("[0-9a-f]{64}")
-        private val locks = listOf("workspace", "local-gradle", "worker-gradle", "worker-slot-1", "worker-slot-2", "capture", "graph-activity")
+        private val locks = listOf("workspace", "local-gradle", "local-slot-1", "worker-gradle", "worker-slot-1", "worker-slot-2", "capture", "graph-activity")
         private val baseGenerated = setOf("build", ".gradle", ".kotlin", ".cxx", "node_modules")
         private val generated = baseGenerated + setOf(".github_modules", "Pods", "DerivedData", "xcode-derived", "SourcePackages", "ModuleCache.noindex", "Intermediates.noindex", "Index.noindex", "SDKStatCaches.noindex", ".build")
         private val prefixes = listOf("tmp", ".tmp", "included", "konan_temp", "gradle", "kotlin", "jansi", "reaktor", "bestbuds", "manna", "gymbuddy", "nexergy", "hangar", "claude-", "codex-", "webmcp", "chromium-webmcp", "pnpm-verify")
-        private val protectedNames = setOf("config.json", "config", ".env", "dev-auth-fixtures.json", "dev-auth-fixtures.dev.json", "docker-migration", "build-cache", "workspace.lock", "local-gradle.lock", "worker-gradle.lock", "worker-slot-1.lock", "worker-slot-2.lock", "publications.sqlite3", "capture.lock", "storage.lock", "graph-activity.lock", "storage-budget.json", "retention.json", "storage-cleanup-20261013.json", "cleanup-20261003.json", "config.toml", "kubeconfig", "id_rsa", "id_ed25519", "credentials", ".netrc", ".npmrc", ".pgpass", "e2ee-candidate-20261029")
+        private val protectedNames = setOf("config.json", "config", ".env", "dev-auth-fixtures.json", "dev-auth-fixtures.dev.json", "docker-migration", "build-cache", "workspace.lock", "local-gradle.lock", "local-slot-1.lock", "worker-gradle.lock", "worker-slot-1.lock", "worker-slot-2.lock", "publications.sqlite3", "capture.lock", "storage.lock", "graph-activity.lock", "storage-budget.json", "retention.json", "storage-cleanup-20261013.json", "cleanup-20261003.json", "config.toml", "kubeconfig", "id_rsa", "id_ed25519", "credentials", ".netrc", ".npmrc", ".pgpass", "e2ee-candidate-20261029")
         private val secretSuffixes = setOf(".key", ".keystore", ".jks", ".p12", ".p8", ".mobileprovision", ".pem", ".env")
     }
 }

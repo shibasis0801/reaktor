@@ -1,9 +1,9 @@
 package dev.shibasis.reaktor.tooling
 
-import dev.shibasis.reaktor.tooling.infra.InfrastructureSession
-import dev.shibasis.reaktor.tooling.infra.MissingCredential
-import dev.shibasis.reaktor.tooling.infra.ServiceTokenClient
-import dev.shibasis.reaktor.tooling.infra.ServiceTokenSource
+import dev.shibasis.reaktor.cloud.InfrastructureSession
+import dev.shibasis.reaktor.cloud.http.MissingCredential
+import dev.shibasis.reaktor.cloud.http.ServiceTokenClient
+import dev.shibasis.reaktor.tooling.operation.ServiceTokenSource
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import java.nio.file.Files
 import kotlin.test.*

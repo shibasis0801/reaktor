@@ -119,7 +119,7 @@ class AgentWorkspace(
         direct ?: recent.asSequence().mapNotNull { records[it] ?: load(it) }.firstOrNull { ref in runRefs(it) }
     }
 
-    fun nextPlan(thread: String?, by: BoardActor, seat: String? = null, agent: String? = null, take: Boolean = false): PlanNext {
+    fun nextPlan(thread: String?, by: BoardActor, seat: String? = null, agent: String? = null, take: Boolean = false, item: String? = null): PlanNext {
         val actor = planIdentity(by)
         require(actor.kind == BoardActorKind.Person || actor.agent != null) { "A named agent session is required" }
         require(agent == null || agent == actor.agent || agent == actor.session) { "plan.next selects work for the authenticated agent only" }
@@ -136,7 +136,7 @@ class AgentWorkspace(
         }?.takeIf { it.resetsAtEpochMillis == null || it.resetsAtEpochMillis > System.currentTimeMillis() }
         if (limit != null) return PlanNext(reason = limit.code, quota = "Provider reported a usage limit" + limit.resetsAtEpochMillis?.let { "; resets at $it" }.orEmpty())
         val configured = if (actor.kind == BoardActorKind.Agent) identity(by).profile else null
-        return plans.next(thread, actor, seat, take) { id -> configured?.takeIf { it.id == id } ?: profiles.read(id) }
+        return plans.next(thread, actor, seat, take, item) { id -> configured?.takeIf { it.id == id } ?: profiles.read(id) }
     }
 
     fun attachPlan(thread: String, items: List<String>, profile: String, note: String, by: BoardActor): PlanAttached {
@@ -168,14 +168,17 @@ class AgentWorkspace(
     @Volatile internal var graphs: TaskGraphRuntime? = null
     internal suspend fun readKernel(name: String, arguments: JsonObject): JsonElement =
         requireNotNull(kernelRead) { "This host has no kernel check reader" }.invoke(name, arguments)
-    internal fun submission(id: String): AgentSubmission = synchronized(lock) {
-        val saved = get(id)
+    internal fun submission(id: String): AgentSubmission = synchronized(lock) { retainedSubmission(id, get(id)) }
+
+    private fun retainedSubmission(id: String, saved: AgentRunRecord): AgentSubmission {
         val file = directory.resolve("requests/$id.json")
         require(Files.size(file) <= 1_048_576)
-        ConductorJson.decodeFromString(AgentSubmission.serializer(), Files.readString(file)).also { request ->
+        return ConductorJson.decodeFromString(AgentSubmission.serializer(), Files.readString(file)).also { request ->
             require(digest(ConductorJson.encodeToString(AgentSubmission.serializer(), request)) == saved.requestFingerprint)
         }
     }
+    fun planItemForRun(id: String): String? = submission(id).planItem
+
     private fun requireEntitlements(request: AgentSubmission) = entitlements.requireAdmitted(request.workflow?.participants?.map { it.runtime }
         ?: (listOfNotNull(request.provider, request.partner?.provider) + if (request.councilHybrid) listOf(RuntimeKind.ChatGptGemini) else emptyList()))
     private val runtimes = withHybrid(runtimes)
@@ -788,6 +791,7 @@ class AgentWorkspace(
             context = request.context,
             parentRunId = request.parentRunId,
             profile = request.resolvedSeat?.seat?.profile, profileRevision = request.resolvedSeat?.profileRevision,
+            planItem = request.planItem,
             transport = if (useBatch(request)) AgentTransport.Batch else if ((runtimes[request.provider] as? InteractiveAgentRuntime)?.interactive?.usable == true) AgentTransport.Interactive else AgentTransport.Batch,
             effort = request.effort?.let { EffortRecord(requested = it, resolved = it) } ?: EffortRecord.none)
         registerKeepWorking(record, request, keepWorkingPlan)
@@ -869,6 +873,49 @@ class AgentWorkspace(
         if (finishing != null) runBlocking { withTimeout(10000) { finishing.join() } }
     }
 
+    private fun restartRefusal(saved: AgentRunRecord, request: AgentSubmission?): String? = when {
+        saved.status == AgentRunStatus.Running -> "Stop this run before restarting it."
+        saved.recovery != AgentRecovery.None -> "Resume or stop this run's retained recovery before restarting it."
+        closed -> "Workspace is closed."
+        draining -> "Workspace is draining for a service upgrade."
+        request == null -> "The verified original request is unavailable."
+        request.task != null -> "Restart this task through its task graph."
+        request.message != null -> "Retry this task message through its task owner."
+        request.planItem != null -> "Restart this run through its plan item."
+        request.parentRunId != null -> "Restart this peer task through its parent."
+        else -> null
+    }
+
+    fun control(id: String): AgentRunControl = synchronized(lock) {
+        val saved = get(id)
+        val canStop = saved.status == AgentRunStatus.Running || saved.recovery != AgentRecovery.None
+        val request = runCatching { submission(id) }.getOrNull()
+        val restartReason = restartRefusal(saved, request)
+        AgentRunControl(id, saved.revision, saved.status, canStop, restartReason == null,
+            stopReason = if (canStop) null else "This run has already stopped.", restartReason = restartReason)
+    }
+
+    fun restart(id: String, expectedRevision: Long, requestId: String): AgentRunRecord {
+        settleTerminal(id)
+        return synchronized(lock) {
+            val saved = get(id)
+            val nextId = digest(requestId)
+            require(nextId != id) { "Restart requires a new request id" }
+            val request = runCatching { submission(id) }.getOrNull()
+            val next = request?.copy(requestId = requestId, threadId = null, continues = null)
+            (records[nextId] ?: load(nextId))?.let { existing ->
+                require(next != null && existing.requestFingerprint == digest(ConductorJson.encodeToString(AgentSubmission.serializer(), next))) {
+                    "Restart request id already belongs to a different submission"
+                }
+                return@synchronized recover(existing)
+            }
+            require(saved.revision == expectedRevision) { "Run changed; inspect it before restarting" }
+            val refusal = restartRefusal(saved, request)
+            require(refusal == null) { refusal.orEmpty() }
+            admit(requireNotNull(next))
+        }
+    }
+
     fun resume(id: String, expectedRevision: Long? = null): AgentRunRecord {
         settleTerminal(id)
         return synchronized(lock) {
@@ -944,6 +991,10 @@ class AgentWorkspace(
 
     fun get(id: String): AgentRunRecord = synchronized(lock) {
         recover(records[id] ?: load(id) ?: error("Run not found"))
+    }
+
+    fun listActive(): List<AgentRunRecord> = synchronized(lock) {
+        active.keys.mapNotNull { records[it] }.filter { it.status == AgentRunStatus.Running }.sortedByDescending { it.startedAt }
     }
 
     fun list(limit: Int = 20, offset: Int = 0): List<AgentRunRecord> = synchronized(lock) {
@@ -1126,9 +1177,10 @@ class AgentWorkspace(
         runs.forEach { cancel(it) }
     }
 
-    suspend fun cancel(id: String): AgentRunRecord {
+    suspend fun cancel(id: String, expectedRevision: Long? = null): AgentRunRecord {
         val job = synchronized(lock) {
             val saved = get(id)
+            require(expectedRevision == null || saved.revision == expectedRevision) { "Run changed; inspect it before stopping" }
             if (saved.status != AgentRunStatus.Running && saved.recovery == AgentRecovery.None) return saved
             update(id, true) { it.copy(status = AgentRunStatus.Interrupted, recovery = AgentRecovery.None, recoveryReason = null, failure = "Stopped by the user", pendingHandoff = null,
                 pending = emptyList(), participants = it.participants.mapValues { (_, participant) -> participant.copy(
@@ -1438,7 +1490,10 @@ class AgentWorkspace(
         return directory.resolve("threads/$id.json")
     }
     private fun load(id: String): AgentRunRecord? = runPath(id).let { path ->
-        if (Files.exists(path)) ConductorJson.decodeFromString(AgentRunRecord.serializer(), Files.readString(path)) else null
+        if (Files.exists(path)) ConductorJson.decodeFromString(AgentRunRecord.serializer(), Files.readString(path)).let { record ->
+            val planItem = runCatching { retainedSubmission(id, record).planItem }.getOrNull()
+            if (record.planItem == planItem) record else record.copy(planItem = planItem)
+        } else null
     }
     private fun persist(record: AgentRunRecord) = atomicWrite(runPath(record.id), ConductorJson.encodeToString(AgentRunRecord.serializer(), record))
 

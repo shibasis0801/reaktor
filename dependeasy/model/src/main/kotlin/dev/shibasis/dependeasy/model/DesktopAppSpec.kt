@@ -19,7 +19,10 @@ enum class JdkModule(val moduleName: String) {
 val Int.megabytes get() = Memory(this)
 
 @Serializable
-data class DesktopRuntime(val initialHeap: Memory? = null, val properties: Map<String, String> = emptyMap())
+enum class RuntimeImage { Declared, Complete }
+
+@Serializable
+data class DesktopRuntime(val initialHeap: Memory? = null, val properties: Map<String, String> = emptyMap(), val image: RuntimeImage = RuntimeImage.Declared)
 
 @Serializable
 data class DesktopAppSpec(

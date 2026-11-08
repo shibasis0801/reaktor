@@ -47,8 +47,8 @@ object KeepWorkingPolicy {
     fun reason(plan: String, work: List<PlanItem>): String {
         val names = work.take(4).joinToString("; ") { "${it.id} “${it.title.take(100)}”" }
         return "[keep-working] Plan $plan still has work you can do. Next: $names. " +
-            "Continue in this turn. Finish the items you hold, then claim the next ready item through plan.write before editing and carry it through its checks. " +
-            "A queued or running check is not completion: wait for it or work another available item. " +
+            "Continue in this turn. Finish the item you hold, then use plan.next with thread=$plan and take=true to claim eligible work before editing. Include your seat if attached. " +
+            "Carry each item through its checks. A queued or running check is not completion: wait for its result. " +
             "Keep the shared plan current. End when the owner stops you or no eligible work remains; explain any owner decision in a plan message."
     }
 }

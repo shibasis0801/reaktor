@@ -52,7 +52,7 @@ flowchart TB
   end
   subgraph execution["Execution and delivery"]
     gradle["CHECKED: Gradle task closure and scheduling"]
-    router["PARTIAL: Mac, m1-worker and Dagger; frozen source and JVM copy-back checked"]
+    router["PARTIAL: Mac and m1-worker; frozen source and JVM copy-back checked"]
     storage["CHECKED: Storage scan 35.7% faster; 102 router/storage tests"]
     native["CHECKED: Shared Kotlin kernels and native compilers/tools"]
     worker["CHECKED: Cloudflare dev apply, rollback and receipt joins"]

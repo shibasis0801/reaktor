@@ -5,21 +5,50 @@ import dev.shibasis.reaktor.service.ServiceSpan
 import kotlin.math.ceil
 import kotlin.math.roundToLong
 
-enum class SpanOutcome {
-    Ok, Cancelled, Unauthorized, NotFound, Refused, Failed;
+enum class SpanOutcome(private vararg val statuses: IntRange) {
+    Ok,
+    Cancelled(499..499),
+    Unauthorized(401..401, 403..403),
+    NotFound(404..404),
+    Refused(400..400, 402..402, 405..498),
+    Failed(500..Int.MAX_VALUE);
 
     val refusal: Boolean get() = this in setOf(Unauthorized, NotFound, Refused)
     val problem: Boolean get() = this == Failed || refusal
 
-    companion object {
-        fun of(status: Int): SpanOutcome = when {
-            status == 499 -> Cancelled
-            status == 401 || status == 403 -> Unauthorized
-            status == 404 -> NotFound
-            status in 400..498 -> Refused
-            status >= 500 -> Failed
-            else -> Ok
+    /** A ClickHouse predicate for an integer status column. */
+    fun clickHousePredicate(column: String): String {
+        require(column.matches(Regex("[A-Za-z_][A-Za-z0-9_]*")))
+        if (this == Ok) return "NOT (" + classified.joinToString(" OR ") { it.clickHousePredicate(column) } + ")"
+        return statuses.joinToString(" OR ", prefix = "(", postfix = ")") { range ->
+            when {
+                range.first == range.last -> "$column = ${range.first}"
+                range.last == Int.MAX_VALUE -> "$column >= ${range.first}"
+                else -> "$column BETWEEN ${range.first} AND ${range.last}"
+            }
         }
+    }
+
+    /** An anchored-by-Prometheus status label pattern for three-digit HTTP status codes. */
+    fun prometheusStatusPattern(): String = (1..9).flatMap { hundreds ->
+        val codes = (hundreds * 100 until (hundreds + 1) * 100).filter { of(it) == this }
+        if (codes.size == 100) listOf("$hundreds[0-9]{2}")
+        else codes.groupBy { it / 10 }.map { (prefix, matching) ->
+            val digits = matching.map { it % 10 }
+            when (digits.size) {
+                1 -> "$prefix${digits.single()}"
+                10 -> "$prefix[0-9]"
+                else -> "$prefix[${digits.joinToString("")}]"
+            }
+        }
+    }.joinToString("|")
+
+    companion object {
+        private val classified = entries.filter { it != Ok }
+        private val firstClassifiedStatus = classified.minOf { outcome -> outcome.statuses.minOf(IntRange::first) }
+
+        fun of(status: Int): SpanOutcome = if (status < firstClassifiedStatus) Ok else
+            classified.firstOrNull { outcome -> outcome.statuses.any { status in it } } ?: Ok
     }
 }
 
@@ -32,7 +61,7 @@ data class SignalKey(
     val operation: String,
     val node: String,
 ) {
-    val probe: Boolean get() = operation.substringBefore('.').uppercase() in setOf("HEAD", "OPTIONS")
+    val probe: Boolean get() = ExecutionSignals.isProbe(operation)
     val id: String get() = listOf(island, phase.name, contract, operation, node).joinToString("|")
 }
 
@@ -82,6 +111,19 @@ object ExecutionSignals {
     const val RisingCalls = 10
     private const val SteadyCalls = 5
     private const val ExampleTraces = 8
+    private val probeMethods = listOf("HEAD", "OPTIONS")
+
+    fun isProbe(operation: String): Boolean = operation.substringBefore('.').uppercase() in probeMethods
+
+    fun clickHouseProbePredicate(column: String): String {
+        require(column.matches(Regex("[A-Za-z_][A-Za-z0-9_]*")))
+        val methods = probeMethods.joinToString(", ") { "'$it'" }
+        return "upperUTF8(splitByChar('.', $column)[1]) IN ($methods)"
+    }
+
+    fun prometheusProbeMethodPattern(): String = probeMethods.joinToString("|", prefix = "(", postfix = ")") { method ->
+        method.map { "[$it${it.lowercaseChar()}]" }.joinToString("")
+    }
 
     fun of(spans: List<ServiceSpan>, slowMillis: Double = SlowMillis): SignalReport {
         val valid = spans.filter { it.traceId.isNotBlank() && it.spanId.isNotBlank() && it.durationMillis.isFinite() }
@@ -135,7 +177,7 @@ object ExecutionSignals {
 
     private fun finding(signal: ExecutionSignal, level: SignalLevel, slowMillis: Double): String {
         val parts = buildList {
-            if (signal.failed > 0) add("${signal.failed} of ${calls(signal.calls)} failed with ${statuses(signal) { it >= 500 }}")
+            if (signal.failed > 0) add("${signal.failed} of ${calls(signal.calls)} failed with ${statuses(signal) { SpanOutcome.of(it) == SpanOutcome.Failed }}")
             if (signal.refused > 0) add("${signal.refused} of ${calls(signal.calls)} refused with ${statuses(signal) { SpanOutcome.of(it).refusal }}")
             makers(signal)?.let(::add)
             signal.p95Millis?.takeIf { it >= slowMillis }?.let { add("p95 ${millis(it)}") }
