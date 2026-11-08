@@ -148,7 +148,7 @@ class PlanEvolutionTest {
         val seat = PlanSeat("s1", "codex", listOf("work"), person, 1)
         val brief = PlanBrief.seat(plan, seat, "Codex", "")
         assertTrue("## Why\nHuman context" in brief)
-        assertTrue("Preview: Result — http://localhost:3000" in brief)
+        assertTrue("Results media: Result — http://localhost:3000" in brief)
         assertTrue("previews" in brief)
     }
 }

@@ -26,6 +26,7 @@ class LocalModelRuntimeTest {
     private lateinit var server: HttpServer
     private lateinit var root: File
     private val bodies = mutableListOf<String>()
+    private val authorizations = mutableListOf<String?>()
     private var models = """{"object":"list","data":[{"id":"qwen3.6:35b-a3b","object":"model"},{"id":"qwen3.8:27b-mlx","object":"model"}]}"""
     private var replies: List<String> = emptyList()
     private var loaded = """{"models":[]}"""
@@ -35,6 +36,7 @@ class LocalModelRuntimeTest {
         File(root, "modules/Tabs.kt").apply { parentFile.mkdirs() }.writeText("class Tabs\nfun draft() = 1\n")
         server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
         server.createContext("/v1/models") { exchange ->
+            authorizations += exchange.requestHeaders.getFirst("authorization")
             val bytes = models.toByteArray()
             exchange.sendResponseHeaders(200, bytes.size.toLong())
             exchange.responseBody.use { it.write(bytes) }
@@ -46,6 +48,7 @@ class LocalModelRuntimeTest {
         }
         server.createContext("/v1/chat/completions") { exchange ->
             bodies += exchange.requestBody.readBytes().decodeToString()
+            authorizations += exchange.requestHeaders.getFirst("authorization")
             val bytes = replies[bodies.size - 1].toByteArray()
             exchange.sendResponseHeaders(200, bytes.size.toLong())
             exchange.responseBody.use { it.write(bytes) }
@@ -104,6 +107,24 @@ class LocalModelRuntimeTest {
         assertEquals(false, outcome.ok)
         assertTrue(outcome.failure.orEmpty().startsWith("Stopped before the conversation outgrew qwen3.6:35b-a3b's 4096-token context"), outcome.failure)
         assertEquals(1, bodies.size)
+    }
+
+    @Test fun aKeyFromTheEnvironmentIsSentAsABearerTokenAndNoKeyMeansNoHeader() = runBlocking {
+        replies = listOf("""{"choices":[{"message":{"role":"assistant","content":"Done."}}],"usage":{}}""", """{"choices":[{"message":{"role":"assistant","content":"Done."}}],"usage":{}}""")
+        val keyed = LocalModelServer.fromEnvironment(mapOf("REAKTOR_LOCAL_MODEL_URL" to local.base.toString(), "REAKTOR_LOCAL_MODEL_KEY" to " fixture-key "))
+        assertTrue((LocalModelRuntime({ keyed }).run(request()).toList().last() as AgentEvent.Finished).outcome.ok)
+        assertEquals<List<String?>>(listOf("Bearer fixture-key", "Bearer fixture-key"), authorizations)
+        authorizations.clear()
+        assertTrue((LocalModelRuntime({ local }).run(request()).toList().last() as AgentEvent.Finished).outcome.ok)
+        assertEquals<List<String?>>(listOf(null, null), authorizations)
+    }
+
+    @Test fun plainHttpOffThisMachineIsNamedInTheCapability() {
+        assertEquals(false, local.exposed)
+        assertEquals(false, LocalModelServer(URI("https://models.example")).exposed)
+        val remote = LocalModelServer(URI("http://192.0.2.1:1"))
+        assertTrue(remote.exposed)
+        assertTrue(remote.capability().notes.any { it.startsWith("Repository text goes to 192.0.2.1 over unencrypted HTTP") })
     }
 
     @Test fun aNamedModelIsUsedAsIs() = runBlocking {
