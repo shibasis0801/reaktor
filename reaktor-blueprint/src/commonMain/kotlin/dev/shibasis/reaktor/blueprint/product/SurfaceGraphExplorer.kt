@@ -270,7 +270,7 @@ internal class SurfaceGraphExplorerPresentation<K>(
                     selected = selected == row.id || selected in row.aliases,
                     marks = row.badges.map { BlueprintMark(it.text, it.background, BlueprintMark.Kind.Badge) }))
             },
-            face = if (node.rows.isEmpty()) BlueprintFace.Prose else BlueprintFace.Code,
+            face = node.shownFace,
             progress = node.progress.takeIf { it > 0f },
             outline = if (node.id in highlighted || node.owner in highlighted) appearance.selected else null,
             actions = if (node.opens && open != null) listOf(BlueprintCardAction("open", "Open ${node.title}", SurfaceGraphOpenSymbol) { open(node.id) }) else emptyList())

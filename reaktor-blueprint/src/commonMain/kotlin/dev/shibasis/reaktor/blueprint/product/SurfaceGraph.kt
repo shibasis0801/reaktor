@@ -39,7 +39,9 @@ data class SurfaceGraphRow(val id: String, val title: String, val key: String = 
 data class SurfaceGraphNode(val id: String, val title: String, val subtitle: String, val scope: String = "", val color: Color? = null,
     val rows: List<SurfaceGraphRow> = emptyList(), val folded: Int = 0, val owner: String = id, val farTitle: String = title, val foldedLabel: String = "units", val symbol: String = "book", val lane: Int = 0,
     val badges: List<SurfaceGraphBadge> = emptyList(), val progress: Float = 0f, val activity: Color? = null, val counts: List<SurfaceGraphCount> = emptyList(),
-    val opens: Boolean = false, val icon: ImageVector? = null, val eyebrow: String? = null, val agent: BlueprintAgent? = null)
+    val opens: Boolean = false, val icon: ImageVector? = null, val eyebrow: String? = null, val agent: BlueprintAgent? = null, val face: BlueprintFace? = null) {
+    val shownFace: BlueprintFace get() = face ?: if (rows.isEmpty()) BlueprintFace.Prose else BlueprintFace.Code
+}
 fun SurfaceGraphNode.pins() = rows.mapIndexed { i, row -> Pin(row.key, "", false, BlueprintEngine.HeaderHeight + i * BlueprintEngine.RowHeight + BlueprintEngine.RowHeight / 2, PortWiring.Connected, row.id, row.aliases) }
 enum class SurfaceGraphMark { Done, Session, Note }
 data class SurfaceGraphCount(val text: String, val mark: SurfaceGraphMark? = null)
@@ -125,6 +127,6 @@ internal fun SurfaceGraphSimple.look(id: String, appearance: SurfaceGraphAppeara
             BlueprintPinLook(if (pin.provides) row.output ?: tone else row.input ?: tone, row.title, appearance.text, row.completed,
                 marks = row.badges.map { BlueprintMark(it.text, it.background, BlueprintMark.Kind.Badge) })
         } },
-        face = if (node.rows.isEmpty()) BlueprintFace.Prose else BlueprintFace.Code,
+        face = node.shownFace,
         progress = node.progress.takeIf { it > 0f }, eyebrow = node.eyebrow, agent = node.agent)
 }

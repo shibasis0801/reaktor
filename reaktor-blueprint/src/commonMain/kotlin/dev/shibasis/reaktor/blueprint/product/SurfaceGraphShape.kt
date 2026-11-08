@@ -57,7 +57,7 @@ internal class SurfaceGraphSimple(private val source: List<SurfaceGraphNode>, li
         WireShape(to, port(to, input), from, port(from, output), SurfaceGraphDocument.LinkType, link.id).also { sourceLinks[it.id] = link }
     }
     private val shape = document.shape.copy(nodes = document.shape.nodes.map { node ->
-        node.copy(attributes = node.attributes + if (nodes.getValue(node.id).rows.isEmpty()) mapOf(BlueprintFace.Key to BlueprintFace.Prose.name) else emptyMap(),
+        node.copy(attributes = node.attributes + if (nodes.getValue(node.id).shownFace == BlueprintFace.Prose) mapOf(BlueprintFace.Key to BlueprintFace.Prose.name) else emptyMap(),
             ports = node.ports + extra[node.id].orEmpty().map { PortShape(it.key, it.type, it.provides, it.wiring, internal = true) })
     }, wires = wires)
     private fun pins(node: NodeShape) = document.pins(node) + extra[node.id].orEmpty()
@@ -184,7 +184,7 @@ class SurfaceGraphDocument(
         attributes = buildMap {
             if (node.subtitle.isNotEmpty()) put("subtitle", node.subtitle)
             if (node.owner != node.id) put("owner", node.owner)
-            put(dev.shibasis.reaktor.blueprint.BlueprintFace.Key, if (node.rows.isEmpty()) "Prose" else "Code")
+            put(dev.shibasis.reaktor.blueprint.BlueprintFace.Key, node.shownFace.name)
         })
 
     private fun nodeOf(shape: NodeShape): SurfaceGraphNode {
