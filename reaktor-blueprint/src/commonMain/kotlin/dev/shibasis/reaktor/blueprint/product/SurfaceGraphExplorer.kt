@@ -94,10 +94,11 @@ class SurfaceGraphExplorerState : GraphCanvasState(0.002..16.0, GraphLevels(.2, 
 @Composable
 fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraphLink>, selectedId: String?, appearance: SurfaceGraphAppearance,
     state: SurfaceGraphExplorerState, onSelect: (String) -> Unit, modifier: Modifier = Modifier, layout: BlueprintLayout<*>? = null, resourceLinks: Boolean = true, chapterLinks: Boolean = true, areaCorridors: Boolean = true, highlighted: Set<String> = emptySet(), onClear: () -> Unit = {}, key: Any? = null, groups: List<SurfaceGraphGroup> = emptyList(), editor: GraphEditor? = null,
-    onOpen: ((String) -> Boolean)? = null, topInset: Dp = 48.dp, onFollow: ((String) -> Unit)? = null, startInset: Dp = 0.dp) {
+    onOpen: ((String) -> Boolean)? = null, topInset: Dp = 48.dp, onFollow: ((String) -> Unit)? = null, startInset: Dp = 0.dp,
+    shownFamilies: Set<String> = emptySet()) {
     if (layout != null && editor == null) {
         SurfaceGraphDeclaredExplorer(nodes, links, selectedId, appearance, state, onSelect, modifier, layout,
-            resourceLinks, chapterLinks, areaCorridors, highlighted, onClear, key, groups, onOpen, topInset, onFollow, startInset)
+            resourceLinks, chapterLinks, areaCorridors, highlighted, onClear, key, groups, onOpen, topInset, onFollow, startInset, shownFamilies)
         return
     }
     val fallback = remember(nodes, links, appearance, layout != null) {
@@ -183,7 +184,7 @@ fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraph
             linkStyle = { link ->
                 val edge = source(link)
                 val lit = edge?.let { it.from == selectedId || it.to == selectedId || owner(it.from) == owner(selectedId) || owner(it.to) == owner(selectedId) } == true
-                val visible = lit || if (link.family == "chapter") chapterLinks else resourceLinks
+                val visible = lit || link.family in shownFamilies || if (link.family == "chapter") chapterLinks else resourceLinks
                 Blueprint.link(if (visible) edge?.color ?: tone else Color.Transparent, highlighting = selectedId != null || highlighted.isNotEmpty(), lit = lit,
                     cross = link.cross, dash = edge?.dash ?: if (edge?.proposed == true || link.family == "optional") 6f to 4f else null)
             },
@@ -281,7 +282,7 @@ private fun <K> SurfaceGraphDeclaredExplorer(
     state: SurfaceGraphExplorerState, onSelect: (String) -> Unit, modifier: Modifier, layout: BlueprintLayout<K>,
     resourceLinks: Boolean, chapterLinks: Boolean, areaCorridors: Boolean, highlighted: Set<String>, onClear: () -> Unit,
     key: Any?, groups: List<SurfaceGraphGroup>, onOpen: ((String) -> Boolean)?, topInset: Dp, onFollow: ((String) -> Unit)?,
-    startInset: Dp,
+    startInset: Dp, shownFamilies: Set<String>,
 ) {
     val presentation = remember(layout, nodes, links, groups) { SurfaceGraphExplorerPresentation(layout, nodes, links, groups) }
     val cards = remember(layout) { layout.cards.values.toList() }
@@ -310,7 +311,7 @@ private fun <K> SurfaceGraphDeclaredExplorer(
                 val touching = selectedId != null && edge?.let { it.from == selectedId || it.to == selectedId || presentation.owner(it.from) == presentation.owner(selectedId) || presentation.owner(it.to) == presentation.owner(selectedId) } == true
                 val within = shown.size > 1 && link.family != "chapter" && edge != null && presentation.owner(edge.from) in shown && presentation.owner(edge.to) in shown
                 val lit = touching || within
-                val visible = lit || if (link.family == "chapter") chapterLinks else resourceLinks
+                val visible = lit || link.family in shownFamilies || if (link.family == "chapter") chapterLinks else resourceLinks
                 Blueprint.link(if (visible) edge?.color ?: appearance.selected else Color.Transparent,
                     highlighting = selectedId != null || highlighted.isNotEmpty(), lit = lit, cross = link.cross,
                     dash = edge?.dash ?: if (edge?.proposed == true || link.family == "optional") 6f to 4f else null)
