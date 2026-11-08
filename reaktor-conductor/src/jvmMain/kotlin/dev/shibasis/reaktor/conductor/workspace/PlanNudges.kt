@@ -13,7 +13,7 @@ class PlanNudges(inbox: Path) {
     @Synchronized fun check(sessions: List<HarnessSession>, plans: Map<String, WorkPlan>, now: Long): List<PlanReminder> =
         sessions.filter { it.runtime in Reached && it.live(now) }.mapNotNull { session ->
             val thread = BoardRefs.session(session.runtime, session.id)
-            val reminder = of(thread, plans[thread], session, now) ?: return@mapNotNull null
+            val reminder = of(thread, plans[thread], session, now, briefed = (thread to Draw) in sent) ?: return@mapNotNull null
             if (sent.any { (key, at) -> key.first == thread && now - at < QuietMillis } || reminder.kind == Flat && (thread to Flat) in sent) return@mapNotNull null
             sent[thread to reminder.kind] = now
             inbox.write(thread, reminder.text + "\n")
@@ -32,10 +32,15 @@ class PlanNudges(inbox: Path) {
         private const val StaleMillis = 30 * 60_000L
         private val Elsewhere = listOf("/.claude/", "/.reaktor/", "/private/tmp/", "/tmp/")
 
-        fun of(thread: String, plan: WorkPlan?, session: HarnessSession, now: Long): PlanReminder? {
+        fun of(thread: String, plan: WorkPlan?, session: HarnessSession, now: Long, briefed: Boolean = false): PlanReminder? {
             val edited = session.steps.filter { step -> step.file?.let { file -> Elsewhere.none { it in "/$file" } } == true }
-            if (plan == null) return if (edited.isEmpty() || now - (session.startedAt ?: now) < DrawMillis) null
-                else PlanReminder(thread, Draw, "Hangar: this thread has no plan yet and you have edited ${count(edited.mapNotNull { it.file }.distinct().size)}. ${PlanBrief.thread(thread)}")
+            if (plan == null) {
+                if (edited.isEmpty() || now - (session.startedAt ?: now) < DrawMillis) return null
+                val files = count(edited.mapNotNull { it.file }.distinct().size)
+                return PlanReminder(thread, Draw, if (briefed) "Hangar: this thread still has no plan and you have edited $files. " +
+                    "Draw one with plan.write {thread: \"$thread\", title, ops}; the first reminder in this thread has the full guide."
+                    else "Hangar: this thread has no plan yet and you have edited $files. ${PlanBrief.thread(thread)}")
+            }
             if (plan.items.size >= 4 && plan.components().isEmpty()) return PlanReminder(thread, Flat,
                 "Hangar: your plan “${plan.title}” is a flat list of ${plan.items.size} items. ${PlanBrief.Design} Redraw it with plan.write {base: ${plan.revision}} " +
                     "and keep its statuses: add the components, move items under them with {type: \"update\", item, parent}, and relate the components.")

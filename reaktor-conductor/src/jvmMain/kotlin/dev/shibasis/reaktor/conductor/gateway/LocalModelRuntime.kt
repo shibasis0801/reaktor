@@ -27,6 +27,14 @@ class LocalModelServer(val base: URI, private val http: HttpClient = HttpClient.
             .mapNotNull { ((it as? JsonObject)?.get("id") as? JsonPrimitive)?.contentOrNull }
     }
 
+    fun window(model: String): Int? {
+        val response = http.send(HttpRequest.newBuilder(base.resolve("/api/ps")).timeout(Duration.ofSeconds(5)).GET().build(), HttpResponse.BodyHandlers.ofString())
+        if (response.statusCode() != 200) return null
+        return (Json.parseToJsonElement(response.body()).jsonObject["models"] as? JsonArray).orEmpty().mapNotNull { it as? JsonObject }
+            .firstOrNull { (it["name"] as? JsonPrimitive)?.contentOrNull == model || (it["model"] as? JsonPrimitive)?.contentOrNull == model }
+            ?.let { (it["context_length"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() }
+    }
+
     suspend fun complete(body: JsonObject): AiCompletion = withContext(Dispatchers.IO) {
         val started = System.currentTimeMillis()
         val request = HttpRequest.newBuilder(base.resolve("/v1/chat/completions")).timeout(Duration.ofMinutes(10))
@@ -43,7 +51,7 @@ class LocalModelServer(val base: URI, private val http: HttpClient = HttpClient.
             error(absent())
         }
         val model = served.firstOrNull() ?: error("The local model server at $base serves no models. Load or pull a model into it.")
-        return ChatRoute("Local server $base", model) { body, _ -> complete(body) }
+        return ChatRoute("Local server $base", model, window = { name -> withContext(Dispatchers.IO) { window(name) } }) { body, _ -> complete(body) }
     }
 
     fun capability(): ProviderCapability {

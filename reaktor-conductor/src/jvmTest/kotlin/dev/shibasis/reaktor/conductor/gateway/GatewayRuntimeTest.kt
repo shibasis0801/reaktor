@@ -67,7 +67,7 @@ class GatewayRuntimeTest {
         )
         val events = runtime("reaktor").run(request()).toList()
 
-        assertEquals(listOf("Started", "Reasoning", "ToolUse", "Delta", "Finished"), events.map { it::class.simpleName })
+        assertEquals(listOf("Started", "Reasoning", "ToolUse", "Activity", "Activity", "Delta", "Finished"), events.map { it::class.simpleName })
         assertEquals("modules/Tabs.kt", (events[2] as AgentEvent.ToolUse).detail)
         val outcome = (events.last() as AgentEvent.Finished).outcome
         assertTrue(outcome.ok)

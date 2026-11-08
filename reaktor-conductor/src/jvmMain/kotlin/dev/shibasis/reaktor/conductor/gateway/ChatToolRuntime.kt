@@ -1,6 +1,9 @@
 package dev.shibasis.reaktor.conductor.gateway
 
 import dev.shibasis.reaktor.cloud.cloudflare.AiCompletion
+import dev.shibasis.reaktor.conductor.ActivityKind
+import dev.shibasis.reaktor.conductor.ActivityStatus
+import dev.shibasis.reaktor.conductor.AgentActivityItem
 import dev.shibasis.reaktor.conductor.AgentEvent
 import dev.shibasis.reaktor.conductor.AgentId
 import dev.shibasis.reaktor.conductor.AgentOutcome
@@ -39,6 +42,7 @@ import java.io.File
 class ChatRoute(
     val label: String,
     val defaultModel: String,
+    val window: suspend (model: String) -> Int? = { null },
     val complete: suspend (body: JsonObject, metadata: Map<String, String>) -> AiCompletion,
 )
 
@@ -64,6 +68,8 @@ class ChatToolRuntime(
         var output = 0L
         var neurons = 0.0
         val logs = mutableListOf<String>()
+        var window: Int? = null
+        var reported = 0L
         fun outcome(text: String, failure: String? = null) = AgentOutcome(
             agent = agent, text = text, ok = failure == null, failure = failure,
             usage = AgentUsage(inputTokens = input, outputTokens = output, durationMillis = clock() - started),
@@ -78,6 +84,12 @@ class ChatToolRuntime(
             if (clock() - started > request.agent.budget.timeoutMillis) {
                 return@flow emit(AgentEvent.Finished(agent, outcome("", "Stopped at the ${request.agent.budget.timeoutMillis / 1000} s budget before an answer")))
             }
+            window?.let { limit ->
+                val estimate = maxOf(reported, messages.sumOf { it.toString().length } / CharsPerToken.toLong())
+                if (estimate > limit * WindowShare) return@flow emit(AgentEvent.Finished(agent, outcome("",
+                    "Stopped before the conversation outgrew $model's $limit-token context (about $estimate tokens so far). " +
+                        "Ask a narrower question, or raise the server's context length.")))
+            }
             val completion = try {
                 route.complete(body(model, messages, request.agent), metadata(request, root))
             } catch (failure: Exception) {
@@ -85,7 +97,9 @@ class ChatToolRuntime(
             }
             completion.logId?.let(logs::add)
             val usage = completion.body["usage"] as? JsonObject
-            input += usage.long("prompt_tokens")
+            reported = usage.long("prompt_tokens")
+            input += reported
+            if (window == null) window = runCatching { route.window(model) }.getOrNull()
             output += usage.long("completion_tokens")
             neurons += (usage?.get("neurons") as? JsonPrimitive)?.doubleOrNull ?: 0.0
             val choice = (completion.body["choices"] as? JsonArray)?.firstOrNull() as? JsonObject
@@ -110,11 +124,16 @@ class ChatToolRuntime(
                 val arguments = (function?.get("arguments") as? JsonObject) ?: runCatching {
                     Json.parseToJsonElement(function.text("arguments") ?: "{}").jsonObject
                 }.getOrDefault(JsonObject(emptyMap()))
+                val id = call.text("id") ?: "call-$index"
                 emit(AgentEvent.ToolUse(agent, name, arguments.text("path") ?: arguments.text("query")))
-                val result = withContext(Dispatchers.IO) { runCatching { tool(reader, name, arguments) }.getOrElse { "Refused: ${it.message}" } }
+                emit(AgentEvent.Activity(agent, AgentActivityItem(id, ActivityKind.Tool, name, ActivityStatus.Started, input = arguments.toString().take(ActivityChars))))
+                val run = withContext(Dispatchers.IO) { runCatching { tool(reader, name, arguments) } }
+                val result = run.getOrElse { "Refused: ${it.message}" }
+                emit(AgentEvent.Activity(agent, AgentActivityItem(id, ActivityKind.Tool, name,
+                    if (run.isSuccess) ActivityStatus.Completed else ActivityStatus.Failed, output = result.take(ActivityChars), detailTruncated = result.length > ActivityChars)))
                 messages += buildJsonObject {
                     put("role", "tool")
-                    put("tool_call_id", call.text("id") ?: "call-$index")
+                    put("tool_call_id", id)
                     put("content", result)
                 }
             }
@@ -163,6 +182,9 @@ class ChatToolRuntime(
 
     private companion object {
         const val MaxSteps = 16
+        const val CharsPerToken = 3
+        const val WindowShare = 0.85
+        const val ActivityChars = 2_000
 
         val Tools = buildJsonArray {
             addJsonObject { function("read_file", "Read a file of this repository with line numbers.") {

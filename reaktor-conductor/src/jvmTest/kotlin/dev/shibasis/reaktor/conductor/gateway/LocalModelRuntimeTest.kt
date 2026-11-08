@@ -1,6 +1,8 @@
 package dev.shibasis.reaktor.conductor.gateway
 
 import com.sun.net.httpserver.HttpServer
+import dev.shibasis.reaktor.conductor.ActivityKind
+import dev.shibasis.reaktor.conductor.ActivityStatus
 import dev.shibasis.reaktor.conductor.AgentEvent
 import dev.shibasis.reaktor.conductor.AgentId
 import dev.shibasis.reaktor.conductor.AgentRequest
@@ -26,6 +28,7 @@ class LocalModelRuntimeTest {
     private val bodies = mutableListOf<String>()
     private var models = """{"object":"list","data":[{"id":"qwen3.6:35b-a3b","object":"model"},{"id":"qwen3.8:27b-mlx","object":"model"}]}"""
     private var replies: List<String> = emptyList()
+    private var loaded = """{"models":[]}"""
 
     @BeforeTest fun serve() {
         root = Files.createTempDirectory("local-workspace").toFile()
@@ -33,6 +36,11 @@ class LocalModelRuntimeTest {
         server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
         server.createContext("/v1/models") { exchange ->
             val bytes = models.toByteArray()
+            exchange.sendResponseHeaders(200, bytes.size.toLong())
+            exchange.responseBody.use { it.write(bytes) }
+        }
+        server.createContext("/api/ps") { exchange ->
+            val bytes = loaded.toByteArray()
             exchange.sendResponseHeaders(200, bytes.size.toLong())
             exchange.responseBody.use { it.write(bytes) }
         }
@@ -65,7 +73,14 @@ class LocalModelRuntimeTest {
         )
         val events = LocalModelRuntime({ local }).run(request()).toList()
 
-        assertEquals(listOf("Started", "Reasoning", "ToolUse", "Delta", "Finished"), events.map { it::class.simpleName })
+        assertEquals(listOf("Started", "Reasoning", "ToolUse", "Activity", "Activity", "Delta", "Finished"), events.map { it::class.simpleName })
+        val started = events[3] as AgentEvent.Activity
+        val finished = events[4] as AgentEvent.Activity
+        assertEquals(listOf("call_a", "call_a"), listOf(started.item.id, finished.item.id))
+        assertEquals(listOf(ActivityStatus.Started, ActivityStatus.Completed), listOf(started.item.status, finished.item.status))
+        assertEquals(ActivityKind.Tool, finished.item.kind)
+        assertTrue("\"path\":\"modules/Tabs.kt\"" in started.item.input.orEmpty())
+        assertTrue("fun draft() = 1" in finished.item.output.orEmpty())
         val outcome = (events.last() as AgentEvent.Finished).outcome
         assertTrue(outcome.ok)
         assertEquals("Drafts live in modules/Tabs.kt line 2.", outcome.text)
@@ -76,6 +91,19 @@ class LocalModelRuntimeTest {
         assertTrue("\"model\":\"qwen3.6:35b-a3b\"" in bodies[0])
         assertTrue("2\\tfun draft() = 1" in bodies[1])
         assertTrue("\"tool_call_id\":\"call_a\"" in bodies[1])
+    }
+
+    @Test fun aConversationThatWouldOutgrowTheLoadedContextStopsBeforeTheServerTruncatesIt() = runBlocking {
+        File(root, "modules/Big.kt").writeText((1..400).joinToString("\n") { "val line$it = \"${"x".repeat(60)}\"" })
+        loaded = """{"models":[{"name":"qwen3.6:35b-a3b","model":"qwen3.6:35b-a3b","context_length":4096}]}"""
+        replies = listOf(
+            """{"choices":[{"message":{"role":"assistant","content":"","tool_calls":[{"id":"call_a","type":"function","function":{"name":"read_file","arguments":"{\"path\":\"modules/Big.kt\",\"limit\":600}"}}]}}],"usage":{"prompt_tokens":900,"completion_tokens":20}}""",
+            """{"choices":[{"message":{"role":"assistant","content":"Never sent."}}],"usage":{}}""",
+        )
+        val outcome = (LocalModelRuntime({ local }).run(request()).toList().last() as AgentEvent.Finished).outcome
+        assertEquals(false, outcome.ok)
+        assertTrue(outcome.failure.orEmpty().startsWith("Stopped before the conversation outgrew qwen3.6:35b-a3b's 4096-token context"), outcome.failure)
+        assertEquals(1, bodies.size)
     }
 
     @Test fun aNamedModelIsUsedAsIs() = runBlocking {
