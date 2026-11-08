@@ -1,25 +1,26 @@
 package dev.shibasis.reaktor.blueprint.product
 
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.CacheDrawScope
+import androidx.compose.ui.draw.DrawResult
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -28,6 +29,7 @@ import dev.shibasis.reaktor.blueprint.BlueprintLayout
 import dev.shibasis.reaktor.blueprint.Bounds
 import dev.shibasis.reaktor.blueprint.canvas.Area
 import dev.shibasis.reaktor.blueprint.canvas.GraphCanvasState
+import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
 
@@ -49,6 +51,49 @@ private class MinimapFrame(val extent: Area) {
     fun world(at: Offset) = Pair(extent.x + (at.x - left) / scale, extent.y + (at.y - top) / scale)
 }
 
+private class MinimapPainter(
+    val layout: BlueprintLayout<*>,
+    val frame: MinimapFrame,
+    val state: GraphCanvasState,
+    val appearance: SurfaceGraphAppearance,
+    val tones: Map<String, Color>,
+    val selected: String?,
+) {
+    fun paint(scope: CacheDrawScope): DrawResult = with(scope) {
+        frame.fit(size.width, size.height)
+        val picture = ImageBitmap(ceil(size.width).toInt().coerceAtLeast(1), ceil(size.height).toInt().coerceAtLeast(1))
+        val corner = CornerRadius(8.dp.toPx())
+        val edge = 1.dp.toPx()
+        CanvasDrawScope().draw(this, layoutDirection, Canvas(picture), size) {
+            drawRoundRect(appearance.card, cornerRadius = corner)
+            layout.frames.filter { it.parent == null }.forEach { drawRect(appearance.text.copy(alpha = .06f), frame.at(it.x, it.y), frame.extent(it.width, it.height)) }
+            layout.cards.values.groupBy { tones[it.id] ?: appearance.muted }.forEach { (tone, cards) ->
+                drawPath(Path().apply { cards.forEach { card -> addRect(Rect(frame.at(card.x, card.y), frame.extent(card.width, card.height))) } }, tone.copy(alpha = .75f))
+            }
+            selected?.let { layout.cards[it] }?.let { card ->
+                val box = frame.extent(card.width, card.height)
+                drawRect(appearance.selected, frame.at(card.x, card.y), Size(max(box.width, 4f), max(box.height, 4f)))
+            }
+            drawRoundRect(appearance.line, topLeft = Offset(edge / 2, edge / 2), size = Size(size.width - edge, size.height - edge), cornerRadius = corner, style = Stroke(edge))
+        }
+        val seenStroke = Stroke(1.5.dp.toPx())
+        onDrawBehind {
+            drawImage(picture)
+            val seen = state.seen() ?: return@onDrawBehind
+            if (frame.scale <= 0) return@onDrawBehind
+            clipRect(edge, edge, size.width - edge, size.height - edge) {
+                drawRect(appearance.selected, frame.at(seen.x, seen.y), frame.extent(seen.width, seen.height), style = seenStroke)
+            }
+        }
+    }
+
+    fun aim(at: Offset) {
+        if (frame.scale <= 0) return
+        val (x, y) = frame.world(at)
+        state.look(x, y, state.zoom)
+    }
+}
+
 @Composable
 fun SurfaceGraphMinimap(layout: BlueprintLayout<*>, state: GraphCanvasState, appearance: SurfaceGraphAppearance, modifier: Modifier = Modifier,
     tones: Map<String, Color> = emptyMap(), selected: String? = null) {
@@ -59,35 +104,13 @@ fun SurfaceGraphMinimap(layout: BlueprintLayout<*>, state: GraphCanvasState, app
             MinimapFrame(Area(left, top, max(boxes.maxOf { it.x + it.width } - left, 1.0), max(boxes.maxOf { it.y + it.height } - top, 1.0)))
         }
     } ?: return
-    val shape = RoundedCornerShape(8.dp)
-    fun aim(at: Offset) {
-        if (frame.scale <= 0) return
-        val (x, y) = frame.world(at)
-        state.look(x, y, state.zoom)
-    }
-    Box(modifier.size(MinimapWidth.dp, MinimapHeight.dp).clip(shape).background(appearance.card).border(1.dp, appearance.line, shape)
+    val painter = remember(frame, state, appearance, tones, selected) { MinimapPainter(layout, frame, state, appearance, tones, selected) }
+    val paint = remember(painter) { { scope: CacheDrawScope -> painter.paint(scope) } }
+    Box(modifier.size(MinimapWidth.dp, MinimapHeight.dp)
         .semantics { contentDescription = "Minimap" }
-        .pointerInput(state, frame) { detectTapGestures { aim(it) } }
-        .pointerInput(state, frame) { detectDragGestures { change, _ -> change.consume(); aim(change.position) } }
-        .drawWithCache {
-            frame.fit(size.width, size.height)
-            val areas = layout.frames.filter { it.parent == null }
-            val paths = layout.cards.values.groupBy { tones[it.id] ?: appearance.muted }.mapValues { (_, cards) ->
-                Path().apply { cards.forEach { card -> addRect(Rect(frame.at(card.x, card.y), frame.extent(card.width, card.height))) } }
-            }
-            val chosen = selected?.let { layout.cards[it] }
-            onDrawBehind {
-                areas.forEach { drawRect(appearance.text.copy(alpha = .06f), frame.at(it.x, it.y), frame.extent(it.width, it.height)) }
-                paths.forEach { (tone, path) -> drawPath(path, tone.copy(alpha = .75f)) }
-                chosen?.let { drawRect(appearance.selected, frame.at(it.x, it.y), frame.extent(it.width, it.height).let { box -> Size(max(box.width, 4f), max(box.height, 4f)) }) }
-            }
-        }) {
-        Canvas(Modifier.fillMaxSize()) {
-            val seen = state.seen() ?: return@Canvas
-            if (frame.scale <= 0) return@Canvas
-            drawRect(appearance.selected, frame.at(seen.x, seen.y), frame.extent(seen.width, seen.height), style = Stroke(1.5.dp.toPx()))
-        }
-    }
+        .pointerInput(painter) { detectTapGestures { painter.aim(it) } }
+        .pointerInput(painter) { detectDragGestures { change, _ -> change.consume(); painter.aim(change.position) } }
+        .drawWithCache(paint))
 }
 
 private const val MinimapWidth = 208
