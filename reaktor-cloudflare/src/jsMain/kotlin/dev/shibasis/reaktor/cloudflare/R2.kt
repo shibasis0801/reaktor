@@ -219,6 +219,22 @@ class R2Bucket internal constructor(
     }
 
     @JsExport.Ignore
+    suspend fun put(
+        key: String,
+        value: String,
+        contentType: String?,
+        metadata: Map<String, String>,
+    ): R2Object =
+        bindingWrite(bindingName, "put") {
+            R2Object(
+                raw.asDynamic()
+                    .put(key, value, putOptions(contentType, metadata))
+                    .unsafeCast<kotlin.js.Promise<RawR2Object>>()
+                    .await(),
+            )
+        }
+
+    @JsExport.Ignore
     suspend fun putText(key: String, value: String) {
         put(key, value)
     }
@@ -275,12 +291,13 @@ class R2Bucket internal constructor(
         getText(key)?.let(dev.shibasis.reaktor.core.framework.json::decodeFromString)
 
     @JsExport.Ignore
-    suspend fun list(prefix: String? = null, limit: Int? = null, cursor: String? = null, delimiter: String? = null): R2ListResult {
+    suspend fun list(prefix: String? = null, limit: Int? = null, cursor: String? = null, delimiter: String? = null, metadata: Boolean = false): R2ListResult {
         val options: dynamic = js("({})")
         if (prefix != null) options.prefix = prefix
         if (limit != null) options.limit = limit
         if (cursor != null) options.cursor = cursor
         if (delimiter != null) options.delimiter = delimiter
+        if (metadata) options.include = arrayOf("httpMetadata", "customMetadata")
         val result: RawR2Objects = bindingRead(bindingName, "list") { raw.list(options).await() }
         val objects = result.objects.map { R2Object(it) }
         return R2ListResult(objects, result.truncated, result.cursor, (result.asDynamic().delimitedPrefixes as? Array<String>)?.toList().orEmpty())

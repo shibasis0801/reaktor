@@ -3,6 +3,7 @@
 package dev.shibasis.reaktor.surface.compose.react
 
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalFontFamilyResolver
 import androidx.compose.ui.window.ComposeViewport
 import androidx.compose.ui.window.LocalComposeWindow
 import org.w3c.dom.HTMLElement
@@ -54,6 +55,8 @@ fun useComposeRegion(host: RefObject<*>, content: @Composable () -> Unit): Boole
         region.addEventListener("focusout", typed, true)
         ComposeViewport(region) {
             val window = LocalComposeWindow.current
+            val fonts = LocalFontFamilyResolver.current
+            remember(fonts) { fonts.resolve(KeyGlyphs) }
             SideEffect {
                 if (live) { dispose = { window?.dispose() }; setReady(true) }
                 else kotlinx.browser.window.setTimeout({ window?.dispose(); region.remove() }, 0)

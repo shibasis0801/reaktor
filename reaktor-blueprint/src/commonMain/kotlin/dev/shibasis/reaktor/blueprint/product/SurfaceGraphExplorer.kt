@@ -139,10 +139,11 @@ fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraph
     fun jump(id: String) {
         select(id)
     }
-    val fitKey = editor?.let { (key ?: laid.key).hashCode() }
+    val fitScene = editor?.let { key ?: laid.key }
+    val fitKey = fitScene?.hashCode()
     LaunchedEffect(cards, laid.frames, key, state.flow.canvasSize, density) {
         state.frames = laid.frames
-        state.place(cards, nodes, fitKey ?: key)
+        state.place(cards, nodes, fitScene ?: key)
     }
     SideEffect {
         state.density(density)
@@ -202,7 +203,7 @@ fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraph
             onFrameClick = { frame -> looks.firstOrNull { it.key == frame.key }?.owner?.let(select) },
             onFrameOpen = {},
             mapLayers = true, mapDetail = true,
-            fitKey = fitKey, fitScene = fitKey, initialFit = fitKey?.let { { state.fit() } }, startInset = startInset, topInset = topInset)
+            fitKey = fitKey, fitScene = fitScene, initialFit = fitKey?.let { { state.fit() } }, startInset = startInset, topInset = topInset)
     }
     MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact,
         mode = if (appearance.canvas.luminance() > .5f) MachineSignalMode.Light else MachineSignalMode.Dark) {

@@ -142,18 +142,82 @@ object BlueprintEngine {
         return points
     }
 
-    private fun crosses(a: Pair<Double, Double>, b: Pair<Double, Double>, box: Bounds): Boolean {
-        if (a == b) return a.first > box.x && a.first < box.x + box.width && a.second > box.y && a.second < box.y + box.height
+    private fun crosses(a: Pair<Double, Double>, b: Pair<Double, Double>, box: Bounds): Boolean = crosses(a.first, a.second, b.first, b.second, box)
+
+    private fun crosses(ax: Double, ay: Double, bx: Double, by: Double, box: Bounds): Boolean {
+        if (ax == bx && ay == by) return ax > box.x && ax < box.x + box.width && ay > box.y && ay < box.y + box.height
         var lo = 0.0
         var hi = 1.0
-        fun clip(start: Double, delta: Double, low: Double, high: Double): Boolean {
-            if (abs(delta) < 1e-9) return start > low && start < high
-            val one = (low - start) / delta
-            val two = (high - start) / delta
+        val dx = bx - ax
+        if (abs(dx) < 1e-9) { if (!(ax > box.x && ax < box.x + box.width)) return false }
+        else {
+            val one = (box.x - ax) / dx
+            val two = (box.x + box.width - ax) / dx
             lo = maxOf(lo, minOf(one, two)); hi = minOf(hi, maxOf(one, two))
-            return lo < hi - 1e-9
+            if (!(lo < hi - 1e-9)) return false
         }
-        return clip(a.first, b.first - a.first, box.x, box.x + box.width) && clip(a.second, b.second - a.second, box.y, box.y + box.height) && lo < 1.0 && hi > 0.0
+        val dy = by - ay
+        if (abs(dy) < 1e-9) { if (!(ay > box.y && ay < box.y + box.height)) return false }
+        else {
+            val one = (box.y - ay) / dy
+            val two = (box.y + box.height - ay) / dy
+            lo = maxOf(lo, minOf(one, two)); hi = minOf(hi, maxOf(one, two))
+            if (!(lo < hi - 1e-9)) return false
+        }
+        return lo < 1.0 && hi > 0.0
+    }
+
+    private fun DoubleArray.above(value: Double): Int {
+        var low = 0
+        var high = size
+        while (low < high) { val middle = (low + high) ushr 1; if (this[middle] > value) high = middle else low = middle + 1 }
+        return low
+    }
+
+    private fun DoubleArray.reaching(value: Double): Int {
+        var low = 0
+        var high = size
+        while (low < high) { val middle = (low + high) ushr 1; if (this[middle] >= value) high = middle else low = middle + 1 }
+        return low
+    }
+
+    private class Frontier {
+        private var cells = IntArray(256)
+        private var scores = DoubleArray(256)
+        var size = 0
+            private set
+        var score = 0.0
+            private set
+
+        fun push(cell: Int, value: Double) {
+            if (size == cells.size) { cells = cells.copyOf(size * 2); scores = scores.copyOf(size * 2) }
+            var child = size++
+            while (child > 0) {
+                val parent = (child - 1) / 2
+                if (scores[parent] <= value) break
+                cells[child] = cells[parent]; scores[child] = scores[parent]; child = parent
+            }
+            cells[child] = cell; scores[child] = value
+        }
+
+        fun pop(): Int {
+            val first = cells[0]
+            score = scores[0]
+            size--
+            if (size > 0) {
+                val lastCell = cells[size]
+                val lastScore = scores[size]
+                var parent = 0
+                while (parent * 2 + 1 < size) {
+                    var child = parent * 2 + 1
+                    if (child + 1 < size && scores[child + 1] < scores[child]) child++
+                    if (lastScore <= scores[child]) break
+                    cells[parent] = cells[child]; scores[parent] = scores[child]; parent = child
+                }
+                cells[parent] = lastCell; scores[parent] = lastScore
+            }
+            return first
+        }
     }
 
     internal fun openRoute(from: Pair<Double, Double>, to: Pair<Double, Double>, boxes: List<Bounds>): List<Pair<Double, Double>> {
@@ -162,55 +226,46 @@ object BlueprintEngine {
         val xs = (boxes.flatMap { listOf(it.x - margin, it.x + it.width + margin) } + listOf(from.first, to.first)).distinct().sorted()
         val ys = (boxes.flatMap { listOf(it.y - margin, it.y + it.height + margin) } + listOf(from.second, to.second)).distinct().sorted()
         val columns = xs.size
-        fun index(point: Pair<Double, Double>) = ys.binarySearch(point.second) * columns + xs.binarySearch(point.first)
-        fun point(at: Int) = xs[at % columns] to ys[at / columns]
-        fun distance(a: Pair<Double, Double>, b: Pair<Double, Double>) = abs(a.first - b.first) + abs(a.second - b.second)
-        val start = index(from); val end = index(to)
-        val costs = DoubleArray(columns * ys.size) { Double.POSITIVE_INFINITY }
+        val rows = ys.size
+        val across = xs.toDoubleArray()
+        val down = ys.toDoubleArray()
+        val sideways = BooleanArray(columns * rows)
+        val upright = BooleanArray(columns * rows)
+        for (box in boxes) {
+            val left = across.above(box.x)
+            val right = across.reaching(box.x + box.width)
+            val top = down.above(box.y)
+            val bottom = down.reaching(box.y + box.height)
+            for (y in top until bottom) for (x in maxOf(left - 1, 0) until minOf(right, columns - 1))
+                if (!sideways[y * columns + x] && crosses(across[x], down[y], across[x + 1], down[y], box)) sideways[y * columns + x] = true
+            for (x in left until right) for (y in maxOf(top - 1, 0) until minOf(bottom, rows - 1))
+                if (!upright[y * columns + x] && crosses(across[x], down[y], across[x], down[y + 1], box)) upright[y * columns + x] = true
+        }
+        val start = ys.binarySearch(from.second) * columns + xs.binarySearch(from.first)
+        val end = ys.binarySearch(to.second) * columns + xs.binarySearch(to.first)
+        val (tx, ty) = to
+        val costs = DoubleArray(columns * rows) { Double.POSITIVE_INFINITY }
         val prior = IntArray(costs.size) { -1 }
-        val queue = ArrayList<Pair<Int, Double>>()
-        fun push(at: Int, score: Double) {
-            queue += at to score
-            var child = queue.lastIndex
-            while (child > 0) {
-                val parent = (child - 1) / 2
-                if (queue[parent].second <= score) break
-                queue[child] = queue[parent]; child = parent
-            }
-            queue[child] = at to score
+        val frontier = Frontier()
+        fun relax(at: Int, neighbor: Int, ax: Double, ay: Double, bx: Double, by: Double, blocked: Boolean) {
+            val cost = costs[at] + (abs(ax - bx) + abs(ay - by))
+            if (cost >= costs[neighbor] || blocked) return
+            costs[neighbor] = cost; prior[neighbor] = at; frontier.push(neighbor, cost + (abs(bx - tx) + abs(by - ty)))
         }
-        fun pop(): Pair<Int, Double> {
-            val first = queue[0]; val last = queue.removeAt(queue.lastIndex)
-            if (queue.isNotEmpty()) {
-                var parent = 0
-                while (parent * 2 + 1 < queue.size) {
-                    var child = parent * 2 + 1
-                    if (child + 1 < queue.size && queue[child + 1].second < queue[child].second) child++
-                    if (last.second <= queue[child].second) break
-                    queue[parent] = queue[child]; parent = child
-                }
-                queue[parent] = last
-            }
-            return first
-        }
-        costs[start] = 0.0; push(start, distance(from, to))
-        while (queue.isNotEmpty()) {
-            val (at, score) = pop()
-            val a = point(at)
-            if (score > costs[at] + distance(a, to) + 1e-6) continue
-            if (at == end) break
+        costs[start] = 0.0; frontier.push(start, abs(from.first - tx) + abs(from.second - ty))
+        while (frontier.size > 0) {
+            val at = frontier.pop()
             val x = at % columns; val y = at / columns
-            val next = listOfNotNull((at - 1).takeIf { x > 0 }, (at + 1).takeIf { x + 1 < columns },
-                (at - columns).takeIf { y > 0 }, (at + columns).takeIf { y + 1 < ys.size })
-            for (neighbor in next) {
-                val b = point(neighbor)
-                val cost = costs[at] + distance(a, b)
-                if (cost >= costs[neighbor] || boxes.any { crosses(a, b, it) }) continue
-                costs[neighbor] = cost; prior[neighbor] = at; push(neighbor, cost + distance(b, to))
-            }
+            val ax = across[x]; val ay = down[y]
+            if (frontier.score > costs[at] + (abs(ax - tx) + abs(ay - ty)) + 1e-6) continue
+            if (at == end) break
+            if (x > 0) relax(at, at - 1, ax, ay, across[x - 1], ay, sideways[y * columns + x - 1])
+            if (x + 1 < columns) relax(at, at + 1, ax, ay, across[x + 1], ay, sideways[y * columns + x])
+            if (y > 0) relax(at, at - columns, ax, ay, ax, down[y - 1], upright[(y - 1) * columns + x])
+            if (y + 1 < rows) relax(at, at + columns, ax, ay, ax, down[y + 1], upright[y * columns + x])
         }
         require(costs[end].isFinite()) { "No local route avoids the fixed outside cards" }
-        val path = generateSequence(end) { prior[it].takeIf { previous -> previous >= 0 } }.map(::point).toList().asReversed()
+        val path = generateSequence(end) { prior[it].takeIf { previous -> previous >= 0 } }.map { across[it % columns] to down[it / columns] }.toList().asReversed()
         return stitch(listOf(path))
     }
 
