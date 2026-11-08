@@ -327,8 +327,14 @@ internal class TaskCoordinator(private val scope: TaskGraphScope) : ActorNode<Co
                     note = "Integration repair could not be scheduled: ${failure.message}")) }
                 return
             }
-        } else store.advance(graphId, builder.id) { value, current -> value.copy(graph = current.copy(state = TaskState.Pending,
-            repairOf = review.id, readySince = null, note = "Repair requested by ${review.id}: ${plan.outcome?.summary.orEmpty().take(1000)}")) }
+        } else store.advance(graphId, builder.id) { value, current ->
+            val rung = current.seat?.escalated((current.resolvedSeat?.seat ?: current.seat)?.access)
+            val request = "Repair requested by ${review.id}: ${plan.outcome?.summary.orEmpty().take(1000)}"
+            value.copy(graph = current.copy(state = TaskState.Pending, repairOf = review.id, readySince = null,
+                seat = rung ?: current.seat, resolvedSeat = if (rung == null) current.resolvedSeat else null,
+                note = rung?.let { "Escalated to ${it.describe()}. $request" } ?: request),
+                history = if (rung == null) value.history else (value.history + BoardEvent(System.currentTimeMillis(), scope.by, "Escalated to ${rung.describe()}")).takeLast(50))
+        }
         val pending = ArrayDeque(plan.dependsOn.map { it.task })
         val seen = mutableSetOf<String>()
         while (pending.isNotEmpty()) {

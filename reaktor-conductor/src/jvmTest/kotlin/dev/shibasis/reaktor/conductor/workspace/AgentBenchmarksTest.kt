@@ -80,6 +80,21 @@ class AgentBenchmarksTest {
         assertTrue(workspace.list().isEmpty())
     }
 
+    @Test fun aSlotLadderIsPinnedWhenProposedAndOnlyItsRungsDispatch() = fixture { workspace, root, _ ->
+        write(root, scenario(root))
+        val entry = workspace.benchmarks.catalog().scenarios.single()
+        val slots = TaskGraphTemplates.slots(entry.scenario.draft)
+        fun laddered(rung: TaskSeat) = listOf(AgentBenchConfiguration("laddered", slots.mapValues { (_, seat) -> seat.copy(escalate = listOf(rung)) }))
+        assertFailsWith<IllegalArgumentException> { workspace.benchmarks.propose("sample", entry.revision, laddered(TaskSeat(RuntimeKind.Codex)), 1, agent) }
+        val task = workspace.benchmarks.propose("sample", entry.revision, laddered(TaskSeat(RuntimeKind.Codex, "strong-model")), 1, agent).single().tasks.first()
+        val plan = requireNotNull(task.graph)
+        val seat = requireNotNull(plan.seat)
+        assertEquals(listOf(TaskSeat(RuntimeKind.Codex, "strong-model", access = TaskAccess.Write)), seat.escalate)
+        val rung = requireNotNull(seat.escalated(TaskAccess.Write))
+        assertEquals("strong-model", workspace.benchmarks.resolve(task.copy(graph = plan.copy(seat = rung)))?.seat?.model)
+        assertFailsWith<IllegalArgumentException> { workspace.benchmarks.resolve(task.copy(graph = plan.copy(seat = rung.copy(model = "other-model")))) }
+    }
+
     @Test fun pinnedInstructionsSurviveProfileEditsAndChangedSeatsAreRefused() = fixture { workspace, root, _ ->
         val profile = workspace.profiles.save(AgentProfile("benchmark-writer", "Writer", RuntimeKind.Codex,
             model = "fixture-model", instructions = "Original instructions", access = TaskAccess.Write), person)

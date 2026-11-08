@@ -20,6 +20,7 @@ enum class RuntimeKind {
     Gemini,
     ChatGptGemini,
     Gateway,
+    Local,
 
     /** Deterministic, no-subprocess runtime. Used by tests and by offline dry runs. */
     Echo,

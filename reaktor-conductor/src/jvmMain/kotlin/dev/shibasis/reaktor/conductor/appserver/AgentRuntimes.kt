@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.conductor.appserver
 
 import dev.shibasis.reaktor.conductor.gateway.GatewayRuntime
+import dev.shibasis.reaktor.conductor.gateway.LocalModelRuntime
 import dev.shibasis.reaktor.conductor.AgentRuntime
 import dev.shibasis.reaktor.conductor.RuntimeKind
 import dev.shibasis.reaktor.conductor.cli.ClaudeCodeRuntime
@@ -27,6 +28,7 @@ object AgentRuntimes {
         RuntimeKind.ClaudeCode to ClaudeCodeRuntime(executor),
         RuntimeKind.Gemini to AntigravityRuntime(executor),
         RuntimeKind.Gateway to GatewayRuntime(),
+        RuntimeKind.Local to LocalModelRuntime(),
     )
 
     fun interactive(
@@ -36,5 +38,6 @@ object AgentRuntimes {
         RuntimeKind.ClaudeCode to ClaudeCodeSessionRuntime(scope = scope),
         RuntimeKind.Gemini to AntigravitySessionRuntime(scope = scope),
         RuntimeKind.Gateway to GatewayRuntime(),
+        RuntimeKind.Local to LocalModelRuntime(),
     )
 }

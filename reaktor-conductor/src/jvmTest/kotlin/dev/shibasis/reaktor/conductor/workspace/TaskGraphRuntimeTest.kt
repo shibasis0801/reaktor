@@ -680,6 +680,33 @@ class TaskGraphRuntimeTest {
         }
     }
 
+    @Test fun aRepairMovesTheWriterUpItsLadderAndTheNextAttemptRunsOnTheStrongerSeat() {
+        val codex = Scripted(RuntimeKind.Codex, listOf("Built", "Repaired on the stronger seat"))
+        val claude = Scripted(RuntimeKind.ClaudeCode, listOf(
+            "{\"verdict\":\"repair\",\"summary\":\"Empty input crashes the parser\",\"candidate\":\"{{candidate}}\",\"findings\":[]}",
+            "{\"verdict\":\"pass\",\"summary\":\"Verified\",\"candidate\":\"{{candidate}}\",\"findings\":[]}"))
+        workspace(codex, claude) { connection, _, _ ->
+            val proposed = connection.proposeTaskGraph(TaskGraphDraft("Laddered repair", tasks = listOf(
+                TaskGraphOp.Add("Build", key = "build", seat = TaskSeat(RuntimeKind.Codex, model = "small", access = TaskAccess.Write,
+                    escalate = listOf(TaskSeat(RuntimeKind.Codex, model = "large")))),
+                TaskGraphOp.Add("Review", key = "review", seat = TaskSeat(RuntimeKind.ClaudeCode), contract = WorkflowContract.Decision,
+                    dependsOn = listOf(TaskDependency("build"))),
+                TaskGraphOp.Add("Accept", kind = TaskKind.Gate, dependsOn = listOf(TaskDependency("review", TaskCondition.Pass))),
+            )), person)
+            connection.startTaskGraph("G1", proposed.graph.revision, person)
+            val view = connection.until("G1") { it.task("Accept").graph?.state == TaskState.Waiting }
+            assertEquals(listOf("small", "large"), codex.requests.map { it.agent.model })
+            assertTrue(codex.requests.all { it.agent.tools.allowWrites })
+            assertTrue("Empty input crashes the parser" in codex.requests[1].prompt)
+            val build = requireNotNull(view.task("Build").graph)
+            assertEquals(TaskSeat(RuntimeKind.Codex, model = "large", access = TaskAccess.Write), build.seat)
+            assertEquals("large", build.resolvedSeat?.seat?.model)
+            assertEquals(2, build.attempt)
+            assertTrue(view.task("Build").history.any { it.change == "Escalated to Codex · large · write" })
+            assertEquals("pass", view.task("Review").graph?.outcome?.verdict)
+        }
+    }
+
     @Test fun repairReusesTheWritingTaskAndCandidateCheckoutBeforeThePersonGate() {
         val codex = Scripted(RuntimeKind.Codex, listOf("Built the parser in Source.kt", "Handled empty input"))
         val claude = Scripted(RuntimeKind.ClaudeCode, listOf(

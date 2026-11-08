@@ -62,11 +62,14 @@ class AgentBenchmarks internal constructor(
                 require(config.id.matches(Id) && (config.estimatedTokens == null || config.estimatedTokens > 0))
                 val slots = TaskGraphTemplates.slots(entry.scenario.draft)
                 require(config.slots.keys == slots.keys) { "Bind every scenario profile slot exactly once" }
+                fun native(seat: TaskSeat) = workspace.resolveSeat(seat).also { value ->
+                    require(!value.seat.lead && value.seat.agent in setOf(RuntimeKind.Codex, RuntimeKind.ClaudeCode) &&
+                        !value.seat.model.isNullOrBlank()) { "Benchmark seats require a native provider and explicit model" }
+                }
                 val pinned = config.slots.mapValues { (_, seat) ->
-                    workspace.resolveSeat(seat).also { value ->
-                        require(!value.seat.lead && value.seat.agent in setOf(RuntimeKind.Codex, RuntimeKind.ClaudeCode) &&
-                            !value.seat.model.isNullOrBlank()) { "Benchmark seats require a native provider and explicit model" }
-                    }
+                    native(seat).let { value -> value.copy(seat = value.seat.copy(escalate = seat.escalate.map { rung ->
+                        native(rung.copy(access = rung.access ?: value.seat.access)).seat
+                    })) }
                 }
                 val draft = TaskGraphTemplates.bind(entry.scenario.draft, pinned.mapValues { it.value.seat })
                 TaskGraphTemplates.validate(draft) { workspace.resolveSeat(it).seat }
@@ -87,7 +90,11 @@ class AgentBenchmarks internal constructor(
         val view = workspace.board.view(plan.id)
         val benchmark = view.graph.benchmark ?: return workspace.resolveSeat(seat)
         require(benchmark.ownerBuild == ownerBuild()) { "Benchmark owner build changed; propose a new run before dispatch" }
-        return requireNotNull(benchmark.seats.values.firstOrNull { it.seat == seat }) { "Seat is outside the pinned benchmark configuration" }
+        benchmark.seats.values.firstOrNull { it.seat == seat }?.let { return it }
+        val rung = seat.copy(escalate = emptyList())
+        require(benchmark.seats.values.any { pinned -> pinned.seat.escalate.dropWhile { it != rung }.let { it.isNotEmpty() && it.drop(1) == seat.escalate } }) {
+            "Seat is outside the pinned benchmark configuration" }
+        return workspace.resolveSeat(seat)
     }
 
     suspend fun measure(graph: String): AgentBenchResult {

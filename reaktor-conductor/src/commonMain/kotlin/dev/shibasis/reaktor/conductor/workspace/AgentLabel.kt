@@ -69,6 +69,7 @@ object AgentLabel {
         RuntimeKind.Gemini -> "gemini"
         RuntimeKind.ChatGptGemini -> "chatgpt+gemini"
         RuntimeKind.Gateway -> "gateway"
+        RuntimeKind.Local -> "local"
         RuntimeKind.Echo -> "echo"
     }
 

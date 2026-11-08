@@ -3,7 +3,7 @@ package dev.shibasis.reaktor.conductor
 import kotlinx.serialization.Serializable
 
 @Serializable
-enum class Entitlement { ChatGptChat, Codex, ClaudeSubscription, GoogleAgent, GeminiCli, GeminiApp, OpenAiApi, AnthropicApi, GoogleApi, CloudflareAi }
+enum class Entitlement { ChatGptChat, Codex, ClaudeSubscription, GoogleAgent, GeminiCli, GeminiApp, OpenAiApi, AnthropicApi, GoogleApi, CloudflareAi, LocalModel }
 
 @Serializable
 data class EntitlementAdmission(val entitlement: Entitlement, val paused: Boolean = false, val reason: String = "",
@@ -20,5 +20,7 @@ fun RuntimeKind.entitlements(): List<AgentEntitlement> = when (this) {
     RuntimeKind.ChatGptGemini -> listOf(AgentEntitlement(Entitlement.ChatGptChat, "Planner and reviewer", "Human handoff", "Operator-supplied ChatGPT response; entitlement and usage cannot be verified.")) + RuntimeKind.Gemini.entitlements()
     RuntimeKind.Gateway -> listOf(AgentEntitlement(Entitlement.CloudflareAi, "Agent", "Cloudflare AI REST",
         "The workspace's Cloudflare account. Workers AI models bill per neuron; third-party models need AI Gateway credits."))
+    RuntimeKind.Local -> listOf(AgentEntitlement(Entitlement.LocalModel, "Agent", "OpenAI-compatible chat API",
+        "A model server on this machine. It spends no subscription or account; its cost is this machine's memory and time."))
     RuntimeKind.Echo -> emptyList()
 }

@@ -245,7 +245,15 @@ object TaskGraphRules {
         seat.effort?.let { require(it.length in 1..32) { "An effort is a short provider token" } }
         require(seat.lenses.isEmpty() || !seat.lead && seat.access != TaskAccess.Write && seat.lenses.size in 2..6) { "A read-only panel has two to six lens profiles" }
         require(seat.lenses.distinct().size == seat.lenses.size && seat.lenses.all { it.matches(Regex("[a-z][a-z0-9-]{0,63}")) }) { "Use distinct lens profile ids" }
+        require(seat.escalate.isEmpty() || !seat.lead && seat.lenses.isEmpty() && seat.escalate.size <= MaxRungs) { "A ladder belongs to an agent seat without lenses and has at most $MaxRungs rungs" }
+        seat.escalate.forEach { rung ->
+            require(!rung.lead && rung.lenses.isEmpty() && rung.escalate.isEmpty()) { "A rung is an agent or profile seat with no lenses and no ladder of its own" }
+            require(rung.access == null || seat.access == null || rung.access == seat.access) { "A rung keeps its seat's access" }
+            validSeat(rung)
+        }
     }
+
+    const val MaxRungs = 3
 }
 
 class TaskGraphEditing(
@@ -385,7 +393,8 @@ class TaskGraphEditing(
         TaskGraphRules.validSeat(op.seat)
         val effective = op.seat?.let(resolveSeat)
         if (op.kind == TaskKind.Check) require(!op.check.isNullOrBlank()) { "A Check task names the check it runs" }
-        if (!caller.person) outside += (listOfNotNull(effective) + op.seat?.lenses.orEmpty().map { resolveSeat(TaskSeat(profile = it, access = TaskAccess.Read)) }).flatMap { TaskGraphRules.outside(it, op.scope, envelope) }
+        val ladder = op.seat?.let { seat -> rungs(seat, requireNotNull(effective)) }.orEmpty()
+        if (!caller.person) outside += (listOfNotNull(effective) + ladder + op.seat?.lenses.orEmpty().map { resolveSeat(TaskSeat(profile = it, access = TaskAccess.Read)) }).flatMap { TaskGraphRules.outside(it, op.scope, envelope) }
         op.key?.let { require(it.matches(KeyPattern)) { "A key is 1 to 40 letters, digits, dashes or underscores" }; require(it !in keys) { "The key $it is used twice" } }
         val id = allocate()
         val task = BoardTask(
@@ -573,6 +582,12 @@ class TaskGraphEditing(
         undo += TaskGraphOp.Connect(from.id, to.id, existing.condition, existing.required)
     }
 
+    private fun rungs(seat: TaskSeat, effective: TaskSeat): List<TaskSeat> = seat.escalate.map { rung ->
+        resolveSeat(rung.copy(access = rung.access ?: effective.access)).also {
+            require(it.access == effective.access) { "A rung keeps its seat's access" }
+        }
+    }
+
     private fun seat(op: TaskGraphOp.Seat) {
         val task = task(op.task)
         val plan = plan(task)
@@ -580,7 +595,8 @@ class TaskGraphEditing(
         val effective = resolveSeat(op.seat)
         if (!caller.person && !caller.lead) refuse("Only a person or the lead changes who does a task")
         require(plan.state == TaskState.Pending) { "${task.id} has started; stop it before giving it to someone else" }
-        if (!caller.person) outside += (listOf(effective) + op.seat.lenses.map { resolveSeat(TaskSeat(profile = it, access = TaskAccess.Read)) }).flatMap { TaskGraphRules.outside(it, task.scope, envelope) }
+        val ladder = rungs(op.seat, effective)
+        if (!caller.person) outside += (listOf(effective) + ladder + op.seat.lenses.map { resolveSeat(TaskSeat(profile = it, access = TaskAccess.Read)) }).flatMap { TaskGraphRules.outside(it, task.scope, envelope) }
         if (plan.seat == op.seat) return
         put(task.copy(graph = plan.copy(seat = op.seat)))
         summary += "${task.id} goes to ${op.seat.describe()}"
@@ -636,4 +652,5 @@ class TaskGraphEditing(
     }
 }
 
-fun TaskSeat.describe(): String = if (lead) "the lead session" else listOfNotNull(profile?.let { "profile:$it" }, agent?.name, model, effort, access?.name?.lowercase(), lenses.takeIf { it.isNotEmpty() }?.joinToString(prefix = "panel: ")).joinToString(" · ")
+fun TaskSeat.describe(): String = if (lead) "the lead session" else listOfNotNull(profile?.let { "profile:$it" }, agent?.name, model, effort, access?.name?.lowercase(), lenses.takeIf { it.isNotEmpty() }?.joinToString(prefix = "panel: "),
+    escalate.takeIf { it.isNotEmpty() }?.joinToString(prefix = "then ", separator = ", then ") { it.describe() }).joinToString(" · ")
