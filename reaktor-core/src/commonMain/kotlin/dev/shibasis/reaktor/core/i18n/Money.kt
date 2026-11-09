@@ -33,6 +33,12 @@ data class Money(val minor: Long, val currency: String) : Comparable<Money> {
 
     fun abs(): Money = if (minor < 0) -this else this
 
+    /**
+     * The amount as a plain decimal in major units, `-1234.50`: a full stop, no grouping, no
+     * symbol, every minor digit. For files and machines (CSV, JSON); people get [NumberFormats].
+     */
+    fun decimalString(): String = decimalText(minor, Currencies.minorDigits(currency))
+
     /** Orders amounts of one currency. Comparing two currencies is a mistake, so it throws. */
     override fun compareTo(other: Money): Int = minor.compareTo(sameCurrency(other).minor)
 

@@ -53,5 +53,8 @@ class MoneyTest {
         assertEquals("-0.05", decimalText(-5, 2))
         assertEquals("1234", decimalText(1234, 0))
         assertEquals("-92233720368547758.08", decimalText(Long.MIN_VALUE, 2))
+        assertEquals("1234.50", Money(123450, "INR").decimalString())
+        assertEquals("1234", Money(1234, "JPY").decimalString())
+        assertEquals("-1.234", Money(-1234, "KWD").decimalString())
     }
 }
