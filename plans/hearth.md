@@ -622,4 +622,16 @@ chapters first (`hearth@4fd4387`, `hearth@8a81460`).
 - **Still to do in Phase 3:** browsing from Android Auto, CarPlay (needs an Apple entitlement), and
   the desktop and web apps.
 
+**9 November 2026: on reaktor's `shibasis/newDesign`, and the November house style.**
+- **Build:** Hearth now builds against this branch (Gradle 9.7, Kotlin 2.4, AGP 9;
+  `hearth@cdd8967`, mirroring GymBuddy).
+- **Design:** re-checked against the house-style rules on machine-made looks. Section labels are
+  sentence case, and Settings uses the platform's own controls (reaktor-ui `PlatformSwitch` /
+  `PlatformChoice`, `b8f718a6`). Settings opens on Downloads, and the em dashes are gone from the
+  copy (`hearth@d090b97`).
+- **Open:** `hearth-worker` doesn't build here. `WorkerAuthService` (`main@44c66281`) wasn't
+  carried over, and on this branch reaktor-cloudflare must stay free of reaktor-auth. The
+  sign-in contract (`AuthService` and its requests) needs a headless home first, such as
+  reaktor-auth-core.
+
 Related: [app-portfolio.md](app-portfolio.md) · [lector.md](lector.md) · [cairn.md](cairn.md)
