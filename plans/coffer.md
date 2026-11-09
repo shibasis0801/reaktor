@@ -278,11 +278,12 @@ understood" count rises on the Settings row and the Ledger's one card says so ("
 changed. 3 need a look."). A capture keeps the rule id and version that read it, so a fixed rule can
 re-read the captures it missed.
 
-**Fixtures.** `modules/app/src/commonTest/resources/alerts/<sender>/*.txt`, one alert per file,
-with a header stating the expected outcome and fields. Personal details are made up; the format is
-real. Phase 0 covers five formats; each comes from published examples of that bank's alerts, and
-each fixture says so, because none has yet been checked against the owner's own phone. The owner
-adds real, redacted alerts during the checkpoint.
+**Fixtures.** `modules/app/src/commonTest/kotlin/ai/coffer/app/capture/Fixtures.kt`: one entry
+per alert, with its sender, text and expected outcome and fields, kept as Kotlin so the same list
+runs on every target (a resource file has no common reader). Personal details are made up; the
+format is real. Phase 0 covers five banks; each format comes from published examples of that
+bank's alerts, and the file says so, because none has yet been checked against the owner's own
+phone. The owner adds real, redacted alerts during the checkpoint.
 
 ### 4.3 Dedupe: one payment, several alerts
 
@@ -367,13 +368,14 @@ A form model with Compose bindings, package `dev.shibasis.reaktor.ui.forms`. No 
 ### 4.7 Scale: range reads into `reaktor-db`, measured with `reaktor-performance`
 
 The object table's primary key is `(store_name, key)`, so a key range within a store is an index
-scan. `ObjectDatabase` gains:
+scan. `ObjectDatabase` gains (built, `b2b5b082`):
 
 ```kotlin
-suspend fun <T : Any> getRange(store: String, from: String?, until: String?, limit: Int,
-                               descending: Boolean, type: KClass<T>, serializer: KSerializer<T>): List<StoredObject<T>>
-suspend fun count(store: String, from: String? = null, until: String? = null): Long
+suspend fun <T : Any> getRange(store: String, type: KClass<T>, serializer: KSerializer<T>,
+                               from: String?, until: String?, limit: Int, descending: Boolean): List<StoredObject<T>>
 ```
+
+A `count` was planned beside it and left out until something needs it.
 
 with a default in the base class (getAll, filter, sort) so every backend keeps working, and a SQL
 override. Coffer's entry keys sort by time (`<epoch ms, 13 digits>-<id>`), so "this month" and "the
@@ -459,7 +461,7 @@ apply(op)       → read the object, set that field if op.hlc > its version, wri
 | `reaktor-io` | template matcher, `text/` | **new files** |
 | `reaktor-core` | `Money`, `Currencies`, `NumberFormats`, `parseMoney` in `i18n/` | **new files** |
 | `reaktor-ui` | `forms/`; `contrastRatio`; `Announce` | **new files** |
-| `reaktor-db` | `getRange`, `count`; `Migrations`; Phase 2: per-field sync | **change** |
+| `reaktor-db` | `getRange`; `Migrations`; Phase 2: per-field sync | **change** |
 | `reaktor-graph` | `ProcessGraph` | reuse (Hearth) |
 | `reaktor-io` | `ShareAdapter` for the CSV | reuse |
 | `reaktor-performance` | `ReaktorPerformanceHarness` for the dataset budgets | reuse, first honest workload |
@@ -574,9 +576,14 @@ blue-black register ink, which is closer to the finance-app median and would be 
 - **Prominent disclosure** before the access screen (§4.1), and a privacy policy URL, which Play
   requires for an app reading this class of data even with no server.
 - **Android 13+ restricted settings.** On a sideloaded install, Android can block granting
-  notification access until the user allows restricted settings in App info. The owner's checkpoint
-  build may hit this; whether `adb install` is exempt is a **check** for Phase 0. Play installs are
-  not affected.
+  notification access until the user allows restricted settings in App info. Checked in Phase 0 on
+  API 36: a build installed with `adb install` is not restricted; the switch in Settings is enabled
+  and the grant goes through. An APK opened from a browser or a file manager is the case that is
+  restricted, and the owner's checkpoint build should be installed with adb. Play installs are not
+  affected.
+- **What Android tells the person.** The system's own grant dialog says the app "can read your
+  notifications, including personal information such as contacts, messages, and photos." Coffer's
+  disclosure has to say, before that, how much less it does.
 - **If the gate picks the SMS route:** the Permissions Declaration Form under "SMS-based money
   management", a review, the listing describing SMS reading as the core feature, and the rule that
   non-financial SMS never leaves the device. The exception is temporary by Google's own wording.
@@ -588,7 +595,7 @@ blue-black register ink, which is closer to the finance-app median and would be 
 **Phase 0: spike (Android emulator).**
 - Framework: `reaktor-notification-listener` (Android listener, filter-before-copy, no-op actuals,
   tests); the template matcher in `reaktor-io`; `Money`, `NumberFormats`, `parseMoney` in
-  `reaktor-core`; `getRange` / `count` in `reaktor-db`. Common code tested on JVM, JS and the iOS
+  `reaktor-core`; `getRange` in `reaktor-db`. Common code tested on JVM, JS and the iOS
   simulator.
 - App: the repo stood up (§9), `DESIGN.md` draft, colour tokens and the contrast test (house-style's
   new-app order), the session graph, Capture, five sender formats with fixtures, and one Ledger list.
@@ -628,9 +635,29 @@ desktop and web shells, more banks.
 
 Updated as Phase 0 lands. Same columns as hearth.md §7.
 
+Everything below was copied from Hearth (`hearth@60f56d0`), the most recent app on this branch.
+
 | # | File | What was copied, and what had to change by hand |
 |---|---|---|
-| — | *(Phase 0 fills this)* | |
+| 1 | `settings.gradle.kts` | Hearth's whole, with the worker include dropped and `reaktor-notification-listener` added to the `dependencySubstitution` list. **The list is hand-kept and drifts**: every new reaktor module means an edit here in every app that uses it. |
+| 2 | `build.gradle.kts` | Verbatim, including the pnpm workspace setup Coffer does not need yet (no JS target); kept so the file does not diverge. |
+| 3 | `gradle.properties` | Verbatim (`reaktorVersion`, AGP 9 flags, `skipIosRelease`). |
+| 4 | Gradle wrapper | `gradlew`, `gradlew.bat`, `gradle/wrapper/*` (Gradle 9.7). |
+| 5 | `.gitignore` | Hearth's, minus the worker lines. |
+| 6 | `local.properties` | `sdk.dir` and the CocoaPods path. Per machine, not committed. |
+| 7 | `modules/app/build.gradle.kts` | Hearth's shape: compose-library plus the cocoapods plugin, the podspec block (the `sqlite3` link line is still required). Dependencies chosen per app. |
+| 8 | `modules/app/src/androidMain/AndroidManifest.xml` | Empty of permissions: Coffer has none of its own. |
+| 9 | `targets/appAndroid/build.gradle.kts` | Verbatim except the application id and the namespace (`ai.coffer.android`, which AGP 9 makes differ from `:app`'s). |
+| 10 | `targets/appAndroid/src/main/AndroidManifest.xml` | The Application class and launcher Activity, plus two app-specific edits a template should know about: `tools:node="remove"` on `INTERNET` (arrives from reaktor-io), and `tools:replace="android:label"` on the listener service so Settings says what Coffer reads. |
+| 11 | `targets/appAndroid/src/main/res/values{,-night}/themes.xml` | NoActionBar theme; the window ground typed in by hand to match `Theme.kt` (CO9). |
+| 12 | `targets/appDarwin/` | Not yet: Phase 1 with the iOS build. |
+| 13 | Entry points | `CofferApplication` (adapter order Dependency, File, Sql, Database; then the listener slot; then the session), `CofferActivity`, `CofferViewController.kt`. Same shape as Hearth's; only the capabilities differ. |
+| 14 | Design starter | `design/Theme.kt`, `Tokens.kt`, `Motion.kt` (the house press), the contrast test, `DESIGN.md`: shape from Hearth, values new. |
+| 15 | Test scaffolding | A session test needs `Feature.Dependency = KoinDependencyAdapter(koinApplication { })` and an in-memory database, both reset after. Every app copies this. |
+
+What the template should take from this: items 1, 3 and 11 drift silently (the substitution list,
+the versions, the window colour); 10 and 13 differ per app but share a shape; 15 belongs in a test
+helper in reaktor-graph rather than in each app.
 
 ---
 
@@ -686,10 +713,45 @@ until the name is settled.
 
 ## 14. Status
 
-**Plan written, 9 November 2026.** Research taken as given from the brief (competitors, capture
-routes, Account Aggregator). The two CHECK items were looked up the same day (§4.1): Android 15
-redaction is real and keyed on detected OTPs; no Google text names notification listeners in the
-SMS policy, and the Messages-app route is treated as a gate question. Nothing built yet.
+**Plan written, 9 November 2026** (`a737c0e1`). Research taken as given from the brief (competitors,
+capture routes, Account Aggregator). The two CHECK items were looked up the same day (§4.1): Android
+15 redaction is real and keyed on detected OTPs; no Google text names notification listeners in the
+SMS policy, and the Messages-app route is treated as a gate question.
+
+**Phase 0 — done, 9 November 2026.** Framework: `975e9437` (`Money`, `NumberFormats`, `parseMoney`),
+`1482ff9a` (templates), `b2b5b082` (`getRange`), `5b74921b` (`reaktor-notification-listener`). App:
+`coffer@779fb41`, `coffer@fe7713f`.
+
+| Check | Where | Result |
+|---|---|---|
+| `Money`, `NumberFormats`, `parseMoney`: 19 tests, including every printed amount reading back across 11 locales × 6 currencies | JVM, Node, iOS simulator | pass on all three |
+| Templates: 12 tests | JVM, Node, iOS simulator | pass on all three |
+| `getRange`: SQLite and in-memory agree; a 50-row page of 20,000 rows costs under a tenth of the store | JVM | pass |
+| Listener gate: a filtered-out notification is never read | JVM, iOS simulator | pass |
+| Coffer: 12 alert fixtures (5 banks, OTPs, a reworded alert, an offer), capture end to end, contrast | JVM (Android unit tests) | pass |
+| Alerts posted with `cmd notification post` become entries | Android emulator, API 36 | yes: HDFC, ICICI, Kotak read; the OTP skipped and not stored; a reworded HDFC alert and a chat message kept as not understood |
+| Nothing from an app outside the filter is kept | emulator | yes: the shade held Android, Play Store, Wellbeing and Safety Center notifications; the database held only the shell's |
+| Amounts in the phone's locale | emulator, per-app locale | `en-IN` ₹65,500.50 and ₹64,000.00; `de-DE` 64.000,00 ₹; `ar-EG` mirrored layout and ₹ ٦٤٬٠٠٠٫٠٠ |
+| Granting access through Settings, adb-installed build | emulator | not restricted; the system's dialog and grant work |
+| Reconnecting re-reads the shade | emulator | it did, and over-counted a skipped OTP; fixed (`coffer@fe7713f`) and re-checked over four reconnects |
+
+How it came out, against the plan:
+- **iOS simulator tests are switched off on this branch** by dependeasy (`PhysicalDevices.kt`:
+  "builds never boot simulators"). They were run with a scratch Gradle init script that re-enables
+  the compile, link and test tasks for one invocation, each task in its own Gradle run because the
+  cleared dependencies fail Gradle's validation when run together. The branch was not changed.
+- **The listener module has no web target.** Adding one changed the pnpm lockfile every JS build in
+  reaktor shares, while another session had uncommitted lockfile changes of its own. Nothing on the
+  web can listen, so the target waits for an app that has a web shell.
+- **Android 15 OTP redaction did not trigger on the emulator**, which runs Android System
+  Intelligence: an OTP posted from the shell reached Coffer with its text. That says nothing about
+  a phone: the real-device check in §4.1 stands.
+- **Coffer ran on its own emulator** (a `Coffer_Phone` AVD on port 5560, headless), because
+  emulator-5554 had Lector in front and 5556 is Hearth's.
+
+Not done in Phase 0, carried to Phase 1: the iOS app shell (the common code compiles for iOS);
+dates, month names and times in the phone's locale (English and hand-built today); the ₹0.00 total
+on day one (FB7, EX6); dark scheme, font scale 2.0 and TalkBack not yet looked at.
 
 Related: [app-portfolio.md](app-portfolio.md) · [hearth.md](hearth.md) · [cairn.md](cairn.md) ·
 [lector.md](lector.md)

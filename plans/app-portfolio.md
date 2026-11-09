@@ -562,7 +562,7 @@ Status of each idea. Update as work starts; per-app plans go in `plans/<app>.md`
 | 2 | Cairn arc II (retention) | Not started | arc I ph.0–6 | [cairn.md](cairn.md) |
 | 0.5 | `reaktor-cli new` scaffolding | Not started | Cairn arc I shipping first | — |
 | 3 | Podcast (Hearth) | In progress — phases 0–1 done; phase 2 (sync: account sign-in, Worker + D1 free) built 4 Nov 2026, waiting on OAuth client ids, Sign in with Apple and a yes to deploy | — | [hearth.md](hearth.md) |
-| 4 | Money manager (Coffer) | In progress — plan written 9 Nov 2026; phase 0 (listener, parser, `Money`, one list) next | — (sync tier 1 built, `e0a9c829`) | [coffer.md](coffer.md) |
+| 4 | Money manager (Coffer) | In progress — phase 0 done 9 Nov 2026 (listener module, templates, `Money`, range reads; alerts to a ledger on the emulator); phase 1 next | — (sync tier 1 built, `e0a9c829`) | [coffer.md](coffer.md) |
 | 5 | Kitchen ph.1 | Not started | Money (sync tier 2) + second-user confirmation | — |
 | 6 | Steps & health | Not started | — | — |
 | 7 | Recorder ph.1 | **Folded into Lector** — recognizer promoted, `b7b03703` | — | [lector.md](lector.md) |
