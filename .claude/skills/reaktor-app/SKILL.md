@@ -536,6 +536,58 @@ and restores the whole database. The server half is `reaktor-cloudflare`'s `D1Sy
   load `skiko.mjs`. An empty `export const skikoApi = {};` in `src/jsTest/resources/skiko.mjs`
   satisfies the import (see reaktor-cloudflare).
 
+## Reading other apps' notifications
+
+`reaktor-notification-listener` (Coffer is the worked example, `capture/Capture.kt`).
+
+- **Install the listener and build the session in `Application.onCreate`.** The system binds the
+  listener service on its own and can start the process for it with no screen; whatever collects
+  `posted` must already exist. Notifications that arrive before a collector are queued, not lost.
+- **Set the filter before anything can arrive, and keep it narrow.** The module reads only the
+  package name of a notification outside the filter. Do not widen it to "every app" for convenience:
+  the system's grant dialog already tells the person the app can read everything.
+- **On every connect, read `active()` and expect repeats.** A reconnect hands over what is still in
+  the shade. Remember each notification by its identity (app, key, post time) so a repeat is
+  skipped, and never by a hash of its text when the text is a secret: a hash of a six-digit OTP is
+  the OTP.
+- **Test it on an emulator from the shell.** `cmd notification post` posts as `com.android.shell`,
+  so a debug build adds the shell to its filter. `cmd notification allow_listener <pkg>/<service>`
+  grants access without Settings, and `disallow_listener` then `allow_listener` is a reconnect.
+  `cmd locale set-app-locales <pkg> --locales de-DE` changes one app's locale for a locale check.
+
+## Running iOS simulator tests on `shibasis/newDesign`
+
+dependeasy switches the simulator test chain off on this branch (`PhysicalDevices.kt`: "builds never
+boot simulators"), so `iosSimulatorArm64Test` is skipped and reports nothing. To run a module's
+common tests on the simulator anyway, without changing the branch, use an init script that turns
+the three tasks back on, and run each task in its own Gradle invocation: the plugin cleared their
+dependencies, and naming all three in one run fails Gradle's implicit-dependency validation.
+
+```groovy
+// ios-sim-tests.init.gradle
+gradle.taskGraph.whenReady { graph ->
+    graph.allTasks.each { task ->
+        if (task.name in ['compileTestKotlinIosSimulatorArm64', 'linkDebugTestIosSimulatorArm64', 'iosSimulatorArm64Test']) {
+            task.enabled = true
+            if (task.name == 'iosSimulatorArm64Test') task.device.set('iPhone 17 Pro')
+        }
+    }
+}
+```
+
+```bash
+for t in compileTestKotlinIosSimulatorArm64 linkDebugTestIosSimulatorArm64 iosSimulatorArm64Test; do
+  ./gradlew -I ios-sim-tests.init.gradle :reaktor-<module>:$t --tests '<package>.*'; done
+```
+
+A test that builds a graph needs `Feature.Dependency = KoinDependencyAdapter(koinApplication { })`
+as well as a database, and both put back to null after.
+
+**A new module with a JS target changes reaktor's shared pnpm lockfile** (the generated workspace
+lists every module's package), and the JS build then fails with `ERR_PNPM_PACKAGE_MANAGER_NO_IMPORTER`
+until the lockfile is regenerated. Give a module a web target only when something on the web uses
+it, and when it must have one, regenerate and commit the lockfile in the same change.
+
 ## Extending reaktor rather than working around it
 
 When an app needs something reaktor does not have, the default is to add it to reaktor rather
