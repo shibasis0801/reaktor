@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!--
+            Bound by the system once the user grants notification access in Settings. Exported
+            because the system binds it; protected by BIND_NOTIFICATION_LISTENER_SERVICE, which
+            only the system holds, so no other app can bind it or feed it notifications.
+
+            The label is what Settings → Notification access shows under the app's name. An app
+            replaces it with tools:replace="android:label".
+        -->
+        <service
+            android:name=".ReaktorNotificationListenerService"
+            android:exported="true"
+            android:label="Reads the alerts you allow"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>
