@@ -562,7 +562,7 @@ Status of each idea. Update as work starts; per-app plans go in `plans/<app>.md`
 | 2 | Cairn arc II (retention) | Not started | arc I ph.0–6 | [cairn.md](cairn.md) |
 | 0.5 | `reaktor-cli new` scaffolding | Not started | Cairn arc I shipping first | — |
 | 3 | Podcast (Hearth) | In progress — phases 0–1 done; phase 2 (sync: account sign-in, Worker + D1 free) built 4 Nov 2026, waiting on OAuth client ids, Sign in with Apple and a yes to deploy | — | [hearth.md](hearth.md) |
-| 4 | Money manager | Not started | Podcast (sync tier 1) | — |
+| 4 | Money manager (Coffer) | In progress — plan written 9 Nov 2026; phase 0 (listener, parser, `Money`, one list) next | — (sync tier 1 built, `e0a9c829`) | [coffer.md](coffer.md) |
 | 5 | Kitchen ph.1 | Not started | Money (sync tier 2) + second-user confirmation | — |
 | 6 | Steps & health | Not started | — | — |
 | 7 | Recorder ph.1 | **Folded into Lector** — recognizer promoted, `b7b03703` | — | [lector.md](lector.md) |
@@ -577,7 +577,8 @@ Status of each idea. Update as work starts; per-app plans go in `plans/<app>.md`
 **Open decisions awaiting an answer:** Cairn §15 (seven; 1–6 before its phase 3, 7 before phase 7) ·
 Commute transit-feed check · Kitchen second-user confirmation · Voice reader Android ambient-overlay
 Play-policy check (iOS ships share-pull only) · Hearth §10 decisions 4–5 (sync identity, sync
-infrastructure) before its phase 2.
+infrastructure) before its phase 2 · Coffer §8 gate (capture route, encryption, server, platforms)
+before its phase 2.
 
 ---
 
