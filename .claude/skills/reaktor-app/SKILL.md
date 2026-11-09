@@ -353,18 +353,21 @@ A connection can die without closing — a carrier NAT forgets an idle mapping i
 changes networks — and then the socket reports `Open` forever while everything sent into it is
 lost and nothing comes out. Cairn's phone sat like that, showing itself online; the relay, asked
 directly, did not have it. Send something on an interval that your server answers, and let the
-socket drop a connection that has heard nothing:
+socket drop a connection that has heard nothing since:
 
 ```kotlin
 webSocketOptions = WebSocketOptions(
     eager = false,
     heartbeat = Heartbeat(
-        interval = 20.seconds,   // under the idle timeout of the NATs that forget soonest
-        silence = 50.seconds,    // two missed answers and a margin, so congestion is not death
-        message = { json.encodeToString(ClientMessage.serializer(), ClientMessage.Ping(epochTime())) },
+        every = 20.seconds,   // under the idle timeout of the NATs that forget soonest
+        wait = 10.seconds,    // how long the answer may take before the connection is given up
+        ping = "ping",        // what the socket sends; your server must answer it
+        pong = "pong",        // the answer, kept out of receiver.textFrames
     ),
 ),
 ```
+
+Any frame that arrives counts as an answer, so a busy connection is never dropped for a late pong.
 
 **Sending is not delivering.** A frame written to a socket that closed a moment later is gone,
 and so is one written before the socket finished opening. If the app promises that something sent
