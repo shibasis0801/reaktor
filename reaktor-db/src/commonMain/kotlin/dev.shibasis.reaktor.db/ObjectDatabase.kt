@@ -183,6 +183,50 @@ abstract class ObjectDatabase(
         return values
     }
 
+    /**
+     * The objects of [storeName] whose keys sort at or after [from] and before [until], in key
+     * order (or reverse key order when [descending]), at most [limit] of them.
+     *
+     * This is how a store of years of rows is read a page or a period at a time: give its keys a
+     * prefix that sorts the way it should be read, such as a zero-padded timestamp, and a month is
+     * one range and "the next fifty older" is another. Keys compare as their UTF-8 bytes, which is
+     * the same as text order for ASCII keys.
+     *
+     * Every database answers it; one that cannot read a range natively reads the whole store and
+     * filters, and the SQLite one reads only the range, through its primary key.
+     */
+    suspend fun <T : Any> getRange(
+        storeName: String,
+        type: KClass<T>,
+        serializer: KSerializer<T>,
+        from: String? = null,
+        until: String? = null,
+        limit: Int = Int.MAX_VALUE,
+        descending: Boolean = false,
+    ): List<StoredObject<T>> {
+        require(limit >= 0) { "limit must not be negative" }
+        val values = getRangeRaw(storeName, type, serializer, KeyRange(from, until, limit, descending))
+        publish(DatabaseEvent.GetAll(storeName))
+        return values
+    }
+
+    /** A key range as [getRange] takes it. */
+    protected data class KeyRange(val from: String?, val until: String?, val limit: Int, val descending: Boolean) {
+        fun contains(key: String) =
+            (from == null || utf8Compare(key, from) >= 0) && (until == null || utf8Compare(key, until) < 0)
+    }
+
+    protected open suspend fun <T : Any> getRangeRaw(
+        storeName: String,
+        type: KClass<T>,
+        serializer: KSerializer<T>,
+        range: KeyRange,
+    ): List<StoredObject<T>> {
+        val inRange = getAllRaw(storeName, type, serializer).filter { range.contains(it.key) }
+        val ordered = inRange.sortedWith { a, b -> utf8Compare(a.key, b.key) }
+        return (if (range.descending) ordered.asReversed() else ordered).take(range.limit)
+    }
+
     suspend fun delete(
         storeName: String,
         key: String,
@@ -338,6 +382,20 @@ abstract class ObjectDatabase(
     protected abstract suspend fun clearRaw(storeName: String)
 
     protected abstract suspend fun clearRaw()
+}
+
+/**
+ * Compares two keys as SQLite's default collation does, by their UTF-8 bytes. That differs from
+ * [String.compareTo] (UTF-16 units) only for characters past U+FFFF against U+E000–U+FFFF.
+ */
+internal fun utf8Compare(a: String, b: String): Int {
+    val x = a.encodeToByteArray()
+    val y = b.encodeToByteArray()
+    for (i in 0 until minOf(x.size, y.size)) {
+        val difference = (x[i].toInt() and 0xFF) - (y[i].toInt() and 0xFF)
+        if (difference != 0) return difference
+    }
+    return x.size - y.size
 }
 
 /** Marks a key holding bytes this build could not read. Kept stable so a later build can find them. */

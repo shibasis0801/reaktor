@@ -267,6 +267,48 @@ class SqliteObjectDatabase(
         }.await()
     }
 
+    override suspend fun <T : Any> getRangeRaw(
+        storeName: String,
+        type: KClass<T>,
+        serializer: KSerializer<T>,
+        range: KeyRange,
+    ): List<StoredObject<T>> {
+        ready()
+        if (range.limit == 0) return emptyList()
+        // (store_name, key) is the primary key, so this walks the index for the range only.
+        val limited = range.limit != Int.MAX_VALUE
+        val sql = buildString {
+            append("SELECT * FROM $tableName WHERE store_name = ?")
+            if (range.from != null) append(" AND key >= ?")
+            if (range.until != null) append(" AND key < ?")
+            append(if (range.descending) " ORDER BY key DESC" else " ORDER BY key ASC")
+            if (limited) append(" LIMIT ?")
+        }
+        val parameters = 1 + listOfNotNull(range.from, range.until).size + if (limited) 1 else 0
+        return driver.executeQuery(
+            null,
+            sql,
+            { cursor ->
+                val items = mutableListOf<StoredObject<T>>()
+                while (cursor.next().value) {
+                    try {
+                        items.add(decodeRow(cursor, serializer))
+                    } catch (exception: UnreadableObjectException) {
+                        log.warn { "Skipping unreadable row in $tableName: ${exception.message}" }
+                    }
+                }
+                QueryResult.Value(items)
+            },
+            parameters,
+        ) {
+            var index = 0
+            bindString(index++, storeName)
+            range.from?.let { bindString(index++, it) }
+            range.until?.let { bindString(index++, it) }
+            if (limited) bindLong(index, range.limit.toLong())
+        }.await()
+    }
+
     override suspend fun exportRaw(storeName: String?): List<RawObject> {
         ready()
         requireText("export")

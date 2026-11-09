@@ -123,6 +123,25 @@ class ObjectStore internal constructor(
         }
     }
 
+    /** [ObjectDatabase.getRange] for this store, with the store's retention applied as [getAll] does. */
+    suspend inline fun <reified T : Any> getRange(
+        from: String? = null,
+        until: String? = null,
+        limit: Int = Int.MAX_VALUE,
+        descending: Boolean = false,
+    ): List<StoredObject<T>> {
+        val values = database.getRange(storeName, T::class, serializer(), from, until, limit, descending)
+        return values.filter { stored ->
+            if (retention.isValid(stored)) {
+                applyLoaded(stored)
+                true
+            } else {
+                database.delete(storeName, stored.key)
+                false
+            }
+        }
+    }
+
     suspend fun delete(key: String) {
         database.delete(storeName, key)
     }
