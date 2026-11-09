@@ -50,6 +50,28 @@ class ObjectDatabaseRangeTest {
         }
     }
 
+    @Serializable
+    private data class Note(val payee: String, val note: String = "")
+
+    @Test
+    fun containingAgreesAcrossDatabases() = runBlocking {
+        for ((name, db) in databases()) {
+            val rows = listOf("Raju Tea Stall", "SWIGGY", "Steam Kettle", "100% Pure", "under_score", "Chai")
+            rows.forEachIndexed { i, payee -> db.put("notes", key(i), Note(payee), Note.serializer()) }
+            db.put("other", key(9), Note("tea elsewhere"), Note.serializer())
+            fun find(needle: String, limit: Int = Int.MAX_VALUE, descending: Boolean = false) = runBlocking {
+                db.getContaining("notes", Note::class, Note.serializer(), needle, limit, descending).map { it.value.payee }
+            }
+            assertEquals(listOf("Raju Tea Stall", "Steam Kettle"), find("tea"), name)
+            assertEquals(listOf("Steam Kettle"), find("TEA", limit = 1, descending = true), name)
+            assertEquals(listOf("100% Pure"), find("0%"), name)
+            assertEquals(listOf("under_score"), find("r_s"), name)
+            assertEquals(listOf("SWIGGY"), find("swig"), name)
+            assertEquals(emptyList(), find("coffee"), name)
+            assertEquals(6, find("").size, name)
+        }
+    }
+
     @Test
     fun keysCompareAsUtf8Bytes() {
         assertEquals(true, utf8Compare("a", "b") < 0)

@@ -210,6 +210,48 @@ abstract class ObjectDatabase(
         return values
     }
 
+    /**
+     * Like [getRange], keeping only objects whose stored text contains [needle], ignoring case.
+     *
+     * A filter before decoding, not a search engine: the stored form is matched, so a needle can
+     * hit a field name or another field's value, and the caller checks the decoded object. What it
+     * buys is not decoding the rest: on SQLite the text is matched by `LIKE` inside the query, so a
+     * scan of years of rows decodes only the few that might match. SQLite folds case for ASCII only;
+     * other letters match as written. Full-text search with ranking is a different tool.
+     */
+    suspend fun <T : Any> getContaining(
+        storeName: String,
+        type: KClass<T>,
+        serializer: KSerializer<T>,
+        needle: String,
+        limit: Int = Int.MAX_VALUE,
+        descending: Boolean = false,
+    ): List<StoredObject<T>> {
+        require(limit >= 0) { "limit must not be negative" }
+        if (needle.isEmpty()) return getRange(storeName, type, serializer, limit = limit, descending = descending)
+        val values = getContainingRaw(storeName, type, serializer, needle, KeyRange(null, null, limit, descending))
+        publish(DatabaseEvent.GetAll(storeName))
+        return values
+    }
+
+    protected open suspend fun <T : Any> getContainingRaw(
+        storeName: String,
+        type: KClass<T>,
+        serializer: KSerializer<T>,
+        needle: String,
+        range: KeyRange,
+    ): List<StoredObject<T>> {
+        val all = getRangeRaw(storeName, type, serializer, range.copy(limit = Int.MAX_VALUE))
+        return all.filter { stored ->
+            val text = when (val encoded = (objectSerializer as dev.shibasis.reaktor.io.serialization.ObjectSerializer<Any?>).serialize(serializer, stored.value)) {
+                is String -> encoded
+                is ByteArray -> encoded.decodeToString()
+                else -> encoded.toString()
+            }
+            text.contains(needle, ignoreCase = true)
+        }.take(range.limit)
+    }
+
     /** A key range as [getRange] takes it. */
     protected data class KeyRange(val from: String?, val until: String?, val limit: Int, val descending: Boolean) {
         fun contains(key: String) =

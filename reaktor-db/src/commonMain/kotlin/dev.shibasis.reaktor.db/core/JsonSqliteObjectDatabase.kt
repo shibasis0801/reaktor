@@ -309,6 +309,45 @@ class SqliteObjectDatabase(
         }.await()
     }
 
+    override suspend fun <T : Any> getContainingRaw(
+        storeName: String,
+        type: KClass<T>,
+        serializer: KSerializer<T>,
+        needle: String,
+        range: KeyRange,
+    ): List<StoredObject<T>> {
+        if (objectSerializer !is TextSerializer) return super.getContainingRaw(storeName, type, serializer, needle, range)
+        ready()
+        if (range.limit == 0) return emptyList()
+        val pattern = "%" + needle.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+        val limited = range.limit != Int.MAX_VALUE
+        val sql = buildString {
+            append("SELECT * FROM $tableName WHERE store_name = ? AND value LIKE ? ESCAPE '\\'")
+            append(if (range.descending) " ORDER BY key DESC" else " ORDER BY key ASC")
+            if (limited) append(" LIMIT ?")
+        }
+        return driver.executeQuery(
+            null,
+            sql,
+            { cursor ->
+                val items = mutableListOf<StoredObject<T>>()
+                while (cursor.next().value) {
+                    try {
+                        items.add(decodeRow(cursor, serializer))
+                    } catch (exception: UnreadableObjectException) {
+                        log.warn { "Skipping unreadable row in $tableName: ${exception.message}" }
+                    }
+                }
+                QueryResult.Value(items)
+            },
+            if (limited) 3 else 2,
+        ) {
+            bindString(0, storeName)
+            bindString(1, pattern)
+            if (limited) bindLong(2, range.limit.toLong())
+        }.await()
+    }
+
     override suspend fun exportRaw(storeName: String?): List<RawObject> {
         ready()
         requireText("export")

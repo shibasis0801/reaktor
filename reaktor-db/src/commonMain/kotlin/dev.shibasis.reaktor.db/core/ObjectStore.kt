@@ -142,6 +142,22 @@ class ObjectStore internal constructor(
         }
     }
 
+    /** [ObjectDatabase.getContaining] for this store, with the store's retention applied. */
+    suspend inline fun <reified T : Any> getContaining(
+        needle: String,
+        limit: Int = Int.MAX_VALUE,
+        descending: Boolean = false,
+    ): List<StoredObject<T>> =
+        database.getContaining(storeName, T::class, serializer(), needle, limit, descending).filter { stored ->
+            if (retention.isValid(stored)) {
+                applyLoaded(stored)
+                true
+            } else {
+                database.delete(storeName, stored.key)
+                false
+            }
+        }
+
     suspend fun delete(key: String) {
         database.delete(storeName, key)
     }
