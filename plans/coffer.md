@@ -753,6 +753,21 @@ Not done in Phase 0, carried to Phase 1: the iOS app shell (the common code comp
 dates, month names and times in the phone's locale (English and hand-built today); the ₹0.00 total
 on day one (FB7, EX6); dark scheme, font scale 2.0 and TalkBack not yet looked at.
 
+**Phase 1 — mostly built, 9 November 2026; not at the checkpoint.** Framework: `d41ef983`
+(`DateFormats`), `983dc117` (forms), `db9a8fa2` (`Migrations`), `ddf30630` (`contrastRatio`),
+`1fc19e77` (`Money.decimalString`), `ff3c99f9` (`getContaining`). App: `coffer@a9e42ef` through
+`coffer@` the iOS commit. 19 app tests on the JVM.
+- Built: categories, rules learned from corrections, dedupe with split and merge, Needs a look,
+  entry, add/edit on reaktor-ui forms with drafts, months with budgets and the closing double rule,
+  settings, CSV export, search, the disclosure, schema v2 through `Migrations`, the iOS app.
+- Checked on the emulator: the Phase 0 ledger migrated in place; a correction filed the next alert;
+  five seeded years: cold start 585–690 ms, a month 7–9 ms warm, search 42–135 ms (was 1.2 s on the
+  main thread before `getContaining` and moving ledger work off it); font scale 2.0, dark, `ar-EG`
+  RTL. Checked on the iOS simulator: manual entry end to end.
+- Not done: IN14 (category chips), CP8 (strings to resources), AC4 (a person with TalkBack and
+  VoiceOver), the closing celebration seen on a device, the two-week checkpoint itself. The gate
+  (§8) has not been reached, and Phase 2 has not started. See `coffer/docs/house-style-audit.md`.
+
 Related: [app-portfolio.md](app-portfolio.md) · [hearth.md](hearth.md) · [cairn.md](cairn.md) ·
 [lector.md](lector.md)
 
