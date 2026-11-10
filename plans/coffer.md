@@ -730,9 +730,9 @@ helper in reaktor-graph rather than in each app.
 | 5 | Identity ◆ | Audit green on Ledger/Ink / register blue-black / other | Audit green, as proposed | before Phase 1 ships |
 | 6 | Dedupe window | 10 / 30 / 60 min | 30 min, tuned at the checkpoint | Phase 1 |
 | 7 | Name | Coffer / other | see §13 | before a store listing |
-| 8 | Phase 1.5 packages | A–G of `user-grievances.md` | A, B, C and D's local backup recommended | before the checkpoint |
-| 9 | Android's own cloud backup | opt-in / off | off: nothing leaves the phone unless chosen | with package D |
-| 10 | The free promise (G) | promise in app and listing / no promise yet | no promise until decided | before a store listing |
+| 8 | Phase 1.5 packages | A–G of `user-grievances.md` | **taken: A, B, C, D, E, F** (owner, 10 Nov 2026) | before the checkpoint |
+| 9 | Android's own cloud backup | opt-in / off | **taken: opt-in, said plainly** (owner, 10 Nov 2026) | with package D |
+| 10 | The free promise (G) | promise in app and listing / no promise yet | **taken: not yet** (owner, 10 Nov 2026) | before a store listing |
 
 ---
 
