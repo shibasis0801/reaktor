@@ -7,6 +7,8 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
+import android.os.PowerManager
+import android.net.Uri
 import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
@@ -78,6 +80,55 @@ object AndroidNotificationListener : NotificationListener {
         val bound = service.get() ?: return emptyList()
         val shade = runCatching { bound.activeNotifications }.getOrNull() ?: return emptyList()
         return shade.mapNotNull { sbn -> gate.admit(sbn.packageName) { sbn.read() } }
+    }
+
+    override fun batteryRestricted(): Boolean? {
+        val context = context ?: return null
+        val power = context.getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return null
+        return !power.isIgnoringBatteryOptimizations(context.packageName)
+    }
+
+    override val maker: String? get() = Build.MANUFACTURER?.lowercase()
+
+    override fun openKeepAliveSettings(): KeepAliveScreen? {
+        val context = context ?: return null
+        val tries = makerScreens(maker).map { component -> Intent().setComponent(component) to KeepAliveScreen.MakerAutostart } +
+            listOf(
+                Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS) to KeepAliveScreen.BatteryOptimisation,
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)) to KeepAliveScreen.AppDetails,
+            )
+        for ((intent, screen) in tries) {
+            if (intent.resolveActivity(context.packageManager) == null) continue
+            val opened = runCatching { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            if (opened.isSuccess) return screen
+            log.w(opened.exceptionOrNull()) { "Could not open ${intent.component ?: intent.action}" }
+        }
+        return null
+    }
+
+    /**
+     * The makers' own autostart and background screens, the ones that stop listeners on their
+     * phones whatever Android's own setting says. Names change between their OS versions, so each
+     * maker has several, tried in order; a screen that isn't there is skipped.
+     */
+    private fun makerScreens(maker: String?): List<ComponentName> = when (maker) {
+        "xiaomi", "redmi", "poco" -> listOf(
+            ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"),
+        )
+        "oppo", "realme", "oneplus" -> listOf(
+            ComponentName("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity"),
+            ComponentName("com.oplus.safecenter", "com.oplus.safecenter.startupapp.StartupAppListActivity"),
+            ComponentName("com.coloros.safecenter", "com.coloros.safecenter.startupapp.StartupAppListActivity"),
+        )
+        "vivo", "iqoo" -> listOf(
+            ComponentName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"),
+            ComponentName("com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.BgStartUpManager"),
+        )
+        "huawei", "honor" -> listOf(
+            ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity"),
+            ComponentName("com.hihonor.systemmanager", "com.hihonor.systemmanager.startupmgr.ui.StartupNormalAppListActivity"),
+        )
+        else -> emptyList()
     }
 
     internal fun connected(listener: NotificationListenerService) {

@@ -73,6 +73,34 @@ interface NotificationListener {
 
     /** What is in the notification shade now, from apps in the filter. Empty unless connected. */
     suspend fun active(): List<PostedNotification>
+
+    /**
+     * Whether the system may stop this app in the background to save battery, which on many phones
+     * also stops the listener: true, false, or null where the platform can't say.
+     */
+    fun batteryRestricted(): Boolean? = null
+
+    /** Who made the phone, lower case ("xiaomi", "samsung"), where the platform says. */
+    val maker: String? get() = null
+
+    /**
+     * Opens the screen where this phone lets the app keep running in the background: the maker's
+     * own autostart or background screen where it has one, else the system's battery settings.
+     * Returns what it opened, or null when nothing could be opened.
+     */
+    fun openKeepAliveSettings(): KeepAliveScreen? = null
+}
+
+/** Which screen [NotificationListener.openKeepAliveSettings] opened, so the app can say what to do there. */
+enum class KeepAliveScreen {
+    /** The phone maker's own list of apps allowed to start or run in the background. */
+    MakerAutostart,
+
+    /** The system's list of apps and their battery optimisation. */
+    BatteryOptimisation,
+
+    /** The app's own page in the system settings (battery is one tap in from there). */
+    AppDetails,
 }
 
 var Feature.NotificationListener by CreateSlot<NotificationListener>()
