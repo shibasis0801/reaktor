@@ -89,6 +89,25 @@ numbers before the gate asks about it.
 
 ---
 
+## 2.5 What users of these apps complain about
+
+Researched 10 November 2026 for the owner's brief: free (at least at first), and easing the
+experience rather than repeating the current apps' gaps. Full write-up, evidence and sources:
+`coffer/docs/user-grievances.md`. 6,053 App Store reviews of 13 apps (India and US) and 161 Hacker
+News comments were read, plus Indian forum threads. Reddit (blocks our tools) and Play Store
+reviews (unreachable) were not.
+
+The largest complaints, in order: paywalls and free features taken away; automatic import that
+breaks silently; bugs; support that never answers; rigid budgets; categorising that is wrong or
+tedious; forced accounts; updates that make it worse; no export; data lost with no backup; card
+bills and transfers counted as spending; privacy (bank credentials, lending funnels, spam calls).
+
+Coffer's design already answers bank-link breakage (no bank login), forced accounts, ads, typing,
+duplicates, privacy (no INTERNET permission at all), export and search. Its own versions of the
+gaps are a listener that dies silently (phone makers' battery managers), "Other" for every payment
+in the first weeks, no backup, card bills, cash and reversals counted as spending, and no promise
+about staying free. Phase 1.5 (§8) closes them.
+
 ## 3. Product surface
 
 Five screens and one list that matters most.
@@ -613,6 +632,18 @@ blue-black register ink, which is closer to the finance-app median and would be 
 - *Checkpoint:* the owner's only expense tracker for two weeks, with real alerts. Measures how many
   payments each route saw and missed.
 
+**Phase 1.5: closing the gaps users complain about (§2.5), before the checkpoint.** Packages from
+`coffer/docs/user-grievances.md`, the owner choosing which:
+- A · Nothing stops silently: per-sender health ("HDFC Bank: no alerts for 9 days"), phone-maker
+  battery and autostart guidance at the moment the listener dies, the wording-change card.
+- B · Spending means spending: card bill payments, ATM withdrawals and wallet top-ups filed as
+  movements between one's own accounts; reversals and refunds matched to the payment they undo.
+- C · Sensible from day one: starter payee rules for the merchants Indians pay most, overridable.
+- D · Never lose a year: backup file and restore through Android's picker, weekly to a chosen
+  folder; Android's own encrypted backup only as an opt-in, if the owner agrees.
+- E · Cash in two taps. F · Import from Money Manager and Axio exports (needs sample files).
+- G · Free, and staying free: a written promise, if the owner makes it.
+
 **GATE. Stop and ask the owner. Phase 2 does not start on a default.**
 - **G1. Capture route:** bank and UPI apps only; plus the Messages app's notifications (policy risk,
   §4.1); or the declared `READ_SMS` route with its form and review.
@@ -699,6 +730,9 @@ helper in reaktor-graph rather than in each app.
 | 5 | Identity ◆ | Audit green on Ledger/Ink / register blue-black / other | Audit green, as proposed | before Phase 1 ships |
 | 6 | Dedupe window | 10 / 30 / 60 min | 30 min, tuned at the checkpoint | Phase 1 |
 | 7 | Name | Coffer / other | see §13 | before a store listing |
+| 8 | Phase 1.5 packages | A–G of `user-grievances.md` | A, B, C and D's local backup recommended | before the checkpoint |
+| 9 | Android's own cloud backup | opt-in / off | off: nothing leaves the phone unless chosen | with package D |
+| 10 | The free promise (G) | promise in app and listing / no promise yet | no promise until decided | before a store listing |
 
 ---
 
