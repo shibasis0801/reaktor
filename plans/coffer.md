@@ -753,7 +753,7 @@ Not done in Phase 0, carried to Phase 1: the iOS app shell (the common code comp
 dates, month names and times in the phone's locale (English and hand-built today); the ₹0.00 total
 on day one (FB7, EX6); dark scheme, font scale 2.0 and TalkBack not yet looked at.
 
-**Phase 1 — mostly built, 9 November 2026; not at the checkpoint.** Framework: `d41ef983`
+**Phase 1 — built, 9–10 November 2026; at the checkpoint.** Framework: `d41ef983`
 (`DateFormats`), `983dc117` (forms), `db9a8fa2` (`Migrations`), `ddf30630` (`contrastRatio`),
 `1fc19e77` (`Money.decimalString`), `ff3c99f9` (`getContaining`). App: `coffer@a9e42ef` through
 `coffer@` the iOS commit. 19 app tests on the JVM.
@@ -764,9 +764,18 @@ on day one (FB7, EX6); dark scheme, font scale 2.0 and TalkBack not yet looked a
   five seeded years: cold start 585–690 ms, a month 7–9 ms warm, search 42–135 ms (was 1.2 s on the
   main thread before `getContaining` and moving ledger work off it); font scale 2.0, dark, `ar-EG`
   RTL. Checked on the iOS simulator: manual entry end to end.
-- Not done: IN14 (category chips), CP8 (strings to resources), AC4 (a person with TalkBack and
-  VoiceOver), the closing celebration seen on a device, the two-week checkpoint itself. The gate
-  (§8) has not been reached, and Phase 2 has not started. See `coffer/docs/house-style-audit.md`.
+- 10 November, on the emulator: IN14 fixed (the four categories used most, then "More
+  categories…", `coffer@164e484`); TY4 at font scale 2.0 on every screen; ST4 with the process
+  killed mid-typing; the closing double rule drawing once (September) and drawn at once with
+  animations off (August); a one-frame flash of the last month's numbers under a new month's title
+  fixed (`coffer@945f1df`, and house-style ST7). Filing one payee's 514 entries from the offer
+  closed every past month in one tap.
+- **Phase 1 is built; its checkpoint is not.** Left for release, not for the gate: CP8 (copy into
+  Compose resources, needed before any translation), AC4 (a person walks the app with TalkBack and
+  VoiceOver), iOS AX5, the closing haptic on a phone, the identity's approval (◆). Left for the
+  checkpoint: two weeks as the owner's only tracker on a real phone with real alerts, which also
+  checks the five bank formats, the Android 15 OTP redaction (§4.1) and the dedupe window. The gate
+  (§8) waits on that, and Phase 2 has not started. See `coffer/docs/house-style-audit.md`.
 
 Related: [app-portfolio.md](app-portfolio.md) · [hearth.md](hearth.md) · [cairn.md](cairn.md) ·
 [lector.md](lector.md)
