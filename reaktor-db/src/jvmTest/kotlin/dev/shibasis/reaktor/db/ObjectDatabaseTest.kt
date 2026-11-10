@@ -433,6 +433,24 @@ class ObjectDatabaseTest {
     }
 
     @Test
+    fun `deleteAll removes the given keys together and leaves the rest`() = runTest {
+        val db = createDb()
+        val users = db.store("users")
+        val state = users.state<TestUser>("bob")
+        users.put("alice", TestUser("Alice", 30))
+        state.set(TestUser("Bob", 40))
+        users.put("carol", TestUser("Carol", 50))
+        db.store("config").put("bob", TestConfig(debug = true, version = 1))
+
+        db.deleteAll("users", listOf("alice", "bob"))
+
+        assertEquals(listOf("carol"), users.getAll<TestUser>().map { it.key })
+        assertNull(state.value, "an open state hears the delete")
+        assertEquals(TestConfig(true, 1), db.store("config").get<TestConfig>("bob")?.value, "another store's key of the same name stays")
+        db.deleteAll("users", emptyList())
+    }
+
+    @Test
     fun `import of an empty backup leaves the database untouched`() = runTest {
         val db = createDb()
         db.store("users").put("alice", TestUser("Alice", 30))

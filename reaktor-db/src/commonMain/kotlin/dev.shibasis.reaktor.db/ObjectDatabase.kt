@@ -278,6 +278,25 @@ abstract class ObjectDatabase(
         publish(DatabaseEvent.Delete(storeName, key, origin))
     }
 
+    /**
+     * Deletes [keys] from [storeName] as one change: in a single transaction where the backend has
+     * them, so undoing an import of thousands of rows takes a moment, not one commit per row.
+     */
+    suspend fun deleteAll(
+        storeName: String,
+        keys: Collection<String>,
+        origin: Origin = Origin.Local,
+    ) {
+        if (keys.isEmpty()) return
+        deleteManyRaw(storeName, keys)
+        keys.forEach { publish(DatabaseEvent.Delete(storeName, it, origin)) }
+    }
+
+    /** One by one unless the backend can do better. */
+    protected open suspend fun deleteManyRaw(storeName: String, keys: Collection<String>) {
+        keys.forEach { deleteRaw(storeName, it) }
+    }
+
     suspend fun clear(
         storeName: String,
         origin: Origin = Origin.Local,

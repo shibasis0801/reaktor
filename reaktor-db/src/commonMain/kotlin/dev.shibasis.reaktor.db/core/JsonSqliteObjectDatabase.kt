@@ -448,6 +448,18 @@ class SqliteObjectDatabase(
         }.await()
     }
 
+    override suspend fun deleteManyRaw(storeName: String, keys: Collection<String>) {
+        ready()
+        transacter.transaction {
+            keys.forEach { key ->
+                driver.execute(null, "DELETE FROM $tableName WHERE key = ? AND store_name = ?", 2) {
+                    bindString(0, key)
+                    bindString(1, storeName)
+                }.await()
+            }
+        }
+    }
+
     override suspend fun clearRaw(storeName: String) {
         ready()
         driver.execute(null, "DELETE FROM $tableName WHERE store_name = ?", 1) {

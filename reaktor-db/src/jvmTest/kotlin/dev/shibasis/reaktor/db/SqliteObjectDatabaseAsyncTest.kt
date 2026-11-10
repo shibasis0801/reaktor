@@ -62,6 +62,16 @@ class SqliteObjectDatabaseAsyncTest {
     }
 
     @Test
+    fun asyncDeleteAllRunsInOneTransaction() = runTest {
+        val driver = AsyncDriver(JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY))
+        val db = SqliteObjectDatabase(driver, "async")
+        db.importRaw((1..50).map { RawObject("n$it", "notes", "{\"title\":\"$it\"}", 1, 1) })
+        db.deleteAll("notes", (1..49).map { "n$it" })
+        assertEquals(listOf("n50"), db.exportRaw().map { it.key })
+        driver.close()
+    }
+
+    @Test
     fun asyncImportPreservesPayloadAndTimestamps() = runTest {
         val driver = AsyncDriver(JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY))
         val db = SqliteObjectDatabase(driver, "async")
