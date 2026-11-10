@@ -592,6 +592,11 @@ blue-black register ink, which is closer to the finance-app median and would be 
 - **Data safety, v1:** nothing collected (nothing leaves the device). Stored locally: financial info
   (payments, amounts, payees), and the text of alerts from the allow-listed apps. Phase 2 changes
   this answer, and the gate decides how (end-to-end encryption or not).
+- **Backups (Phase 1.5, package D).** The backup file and the weekly copy go only where the person
+  chooses through Android's own picker; Coffer sends nothing. Android's own backup is opt-in and off
+  by default (`allowBackup` with `CofferBackupAgent`): to the cloud only when switched on and the
+  transport encrypts on the phone, phone-to-phone transfer always. Before release, check that
+  answer against Play's data-safety guidance on Android backup; it has not been looked up.
 - **Prominent disclosure** before the access screen (§4.1), and a privacy policy URL, which Play
   requires for an app reading this class of data even with no server.
 - **Android 13+ restricted settings.** On a sideloaded install, Android can block granting
@@ -810,6 +815,47 @@ on day one (FB7, EX6); dark scheme, font scale 2.0 and TalkBack not yet looked a
   checkpoint: two weeks as the owner's only tracker on a real phone with real alerts, which also
   checks the five bank formats, the Android 15 OTP redaction (§4.1) and the dedupe window. The gate
   (§8) waits on that, and Phase 2 has not started. See `coffer/docs/house-style-audit.md`.
+
+**Phase 1.5 — built, 10 November 2026; at the checkpoint.** The grievance research
+(`coffer/docs/user-grievances.md`, `coffer@6837da2`; 6,053 App Store reviews of 13 apps; Reddit and
+Play not read) and the owner's picks: A, B, C, D, E, F; Android backup opt-in; no free promise yet
+(§12 rows 8–10). G was not built.
+- Framework: `6de977a6` (listener: battery restriction, the maker, the keep-alive screens),
+  `7869d36a` (`reaktor-io`: `FolderChooser`, `FolderWriter`, `DocumentSaver`), `f282a77c`
+  (`importRaw` in one transaction), `3bf2ccaf` (`deleteAll`). House-style: `skills@f08bd18`
+  (EX7, IN17, CP12).
+- App: C `coffer@77026b9`, B `coffer@b3c5634`, A `coffer@29d27d9`, D `coffer@a9b4658`, E
+  `coffer@5b05ff6`, F `coffer@dfed312`, a day-heading fix `coffer@f04f335`, the checkpoint's
+  evaluate and deslop `coffer@ed9203d`. 46 app tests on the JVM; reaktor-db 77 on the JVM and 28 on
+  Node; the app and the new framework code compile for the iOS simulator.
+
+| Check | Where | Result |
+|---|---|---|
+| C: a Zomato alert filed Food and drink on day one; the person's own rule wins | emulator; JVM | yes |
+| B: a payment and its refund (same UPI ref), an ATM withdrawal, a card bill | emulator, `cmd notification post` | refund linked ("₹180.00 refunded"), ATM under Cash withdrawals, card bill between own accounts; the month's spending unchanged |
+| A: Keep Coffer running opens Android's battery list; back, it says which list | emulator (Pixel image) | yes; makers' own screens need their phones |
+| D: folder chosen once, first copy written | emulator, Documents | 6.5 MB for five seeded years |
+| D: restore five years, then Undo | emulator | 15.5 s before `f282a77c`, 1.6 s after; Undo put the old ledger back |
+| D: save-as reports the name Android chose | emulator | "coffer-backup-2026-11-10 (1).json" |
+| D: the folder deleted | emulator | said on Backups and as the Ledger's card |
+| D: Android backup, `bmgr` with the local transport | emulator | off + encrypted: nothing sent; on + encrypted: backed up; on + unencrypted: nothing; off + phone-to-phone: backed up |
+| E: Cash, 120, Groceries | emulator, font 1.0 and 2.0 | saved in three taps; the month line shows ATM cash against cash paid |
+| F: an HDFC-style statement CSV | emulator | 3 payments previewed, the summary line left out by number, dates asked (all days ≤ 12), added in 66 ms, Undo |
+| Scale: backup and restore of five years | JVM, SQLite file | 49 ms, 7 MB; restore 296 ms (4.4 s before `f282a77c`) |
+| House-style at the checkpoint | emulator, 1.0/2.0, light/dark | six findings fixed (EX7, IN17, CP12, ID7, a crowded column list, ST3); see the audit |
+
+How it came out, against the plan:
+- **F was built without sample exports.** Money Manager and Axio files were not to hand, so the
+  importer guesses columns from their names and was tested on files written to their known
+  shapes and on Coffer's own CSV. Real exports from the owner would settle it.
+- **A restore replaces what is on the phone**, against house-style IN10's "beside, never over".
+  Recorded in `coffer/DESIGN.md` as a proposed departure, for the owner at the gate.
+- **The framework fixed a cost that every app paid:** `importRaw` was one commit per row. Coffer's
+  seeding got ten times faster with it.
+
+Unchanged from Phase 1: the checkpoint is two weeks on the owner's phone, then the gate (§8).
+Phase 2 has not started. Also left: AC4 (TalkBack and VoiceOver walks, now over the new screens
+too), CP8, iOS AX5, the maker-specific keep-alive screens on real phones, the identity (◆).
 
 Related: [app-portfolio.md](app-portfolio.md) · [hearth.md](hearth.md) · [cairn.md](cairn.md) ·
 [lector.md](lector.md)
