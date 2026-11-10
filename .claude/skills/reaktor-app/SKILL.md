@@ -297,6 +297,19 @@ object Photos { var source: PhotoSource? = null }
 Register both from the platform entry point **before the graph starts**, so the first thing the
 graph publishes has somewhere to land.
 
+### Activity-bound slots and process-wide ones (reaktor-io's file slots)
+
+The system's file dialogs answer through `registerForActivityResult`, which only works while an
+Activity is being created. So `DocumentPicker`, `DocumentSaver` and `FolderChooser` (and `Share`)
+are built and installed in `onCreate`, again by each new Activity. Anything that must work with no
+screen open goes in `Application.onCreate` instead: `FolderWriter` writes into a folder chosen once
+(its grant is taken as persistable), so a weekly backup runs whenever the process is alive.
+Coffer's `CofferActivity` and `CofferApplication` are the worked example.
+
+Android's own backup runs in a restricted process **without your `Application` subclass**, so a
+`BackupAgent` cannot reach the graph. Mirror the one setting it needs into `SharedPreferences` from
+the app, and read it there (Coffer's `CofferBackupAgent`).
+
 ### Write every actual, including the ones you do not ship
 
 An `expect` with no `actual` for jvm or js breaks those targets, and you will not notice until a
@@ -536,6 +549,14 @@ and restores the whole database. The server half is `reaktor-cloudflare`'s `D1Sy
   load `skiko.mjs`. An empty `export const skikoApi = {};` in `src/jsTest/resources/skiko.mjs`
   satisfies the import (see reaktor-cloudflare).
 
+## Writing many rows: one transaction
+
+A loop of `put` or `delete` on a SQLite-backed store is one commit per row. Restoring 30,000 rows
+that way took 4.4 s on a laptop and 15.5 s on an emulator. `ObjectDatabase.importRaw` and
+`deleteAll` run in one transaction (0.3 s and 1.6 s), and are all-or-nothing as well. Use them
+for seeding, restoring, importing and undoing an import; serialize with the database's own
+`objectSerializer` to build the `RawObject`s.
+
 ## Reading other apps' notifications
 
 `reaktor-notification-listener` (Coffer is the worked example, `capture/Capture.kt`).
@@ -554,6 +575,11 @@ and restores the whole database. The server half is `reaktor-cloudflare`'s `D1Sy
   so a debug build adds the shell to its filter. `cmd notification allow_listener <pkg>/<service>`
   grants access without Settings, and `disallow_listener` then `allow_listener` is a reconnect.
   `cmd locale set-app-locales <pkg> --locales de-DE` changes one app's locale for a locale check.
+- **A stopped listener looks exactly like a quiet month.** Phone makers kill background apps
+  whatever Android's own setting says. Show `batteryRestricted()` where the person can act on it,
+  offer `openKeepAliveSettings()` (the maker's autostart screen first, then Android's battery
+  list), and watch each source's rhythm so a sender that goes quiet is said, not assumed (Coffer's
+  `ledger/Health.kt`). `<queries>` for the makers' packages is already in the module's manifest.
 
 ## Running iOS simulator tests on `shibasis/newDesign`
 
