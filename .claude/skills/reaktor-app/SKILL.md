@@ -549,6 +549,13 @@ and restores the whole database. The server half is `reaktor-cloudflare`'s `D1Sy
   load `skiko.mjs`. An empty `export const skikoApi = {};` in `src/jsTest/resources/skiko.mjs`
   satisfies the import (see reaktor-cloudflare).
 
+## Files people bring from other apps
+
+`reaktor-io`'s `archive` package reads them in common code: `Zip` (stored and deflated entries),
+`Inflate` (raw DEFLATE) and `Xlsx.firstSheet` (an Excel workbook's first sheet as rows of text;
+`Xlsx.excelDate` for its day-number dates). Money apps export Excel more often than CSV. Old
+binary `.xls` (it starts D0 CF 11 E0) isn't read: say so and ask for `.xlsx` or CSV.
+
 ## Writing many rows: one transaction
 
 A loop of `put` or `delete` on a SQLite-backed store is one commit per row. Restoring 30,000 rows
@@ -580,6 +587,16 @@ for seeding, restoring, importing and undoing an import; serialize with the data
   offer `openKeepAliveSettings()` (the maker's autostart screen first, then Android's battery
   list), and watch each source's rhythm so a sender that goes quiet is said, not assumed (Coffer's
   `ledger/Health.kt`). `<queries>` for the makers' packages is already in the module's manifest.
+
+## Hearing TalkBack on an emulator
+
+TalkBack ships on Play images. Switch it on with `settings put secure
+enabled_accessibility_services com.google.android.marvin.talkback/com.google.android.marvin.talkback.TalkBackService`
+and `accessibility_enabled 1`. To hear it from adb, set TalkBack's Developer settings, Log output
+level to VERBOSE first: each spoken word is logged as `talkback: … speak word = <word>`. Don't
+trust it as a walk: taps and swipes sent with `adb shell input` under TalkBack sometimes activate
+instead of focusing, which changes the app under you. It finds wrong labels; a person does AC4.
+Put both settings back after.
 
 ## Running iOS simulator tests on `shibasis/newDesign`
 

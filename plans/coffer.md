@@ -595,8 +595,10 @@ blue-black register ink, which is closer to the finance-app median and would be 
 - **Backups (Phase 1.5, package D).** The backup file and the weekly copy go only where the person
   chooses through Android's own picker; Coffer sends nothing. Android's own backup is opt-in and off
   by default (`allowBackup` with `CofferBackupAgent`): to the cloud only when switched on and the
-  transport encrypts on the phone, phone-to-phone transfer always. Before release, check that
-  answer against Play's data-safety guidance on Android backup; it has not been looked up.
+  transport encrypts on the phone, phone-to-phone transfer always. Looked up 11 November: Google
+  says Android's backup is end-to-end encrypted with the screen lock and defines "collection" as
+  the app sending data off the device; no Play text found says how an app's Android-backup data is
+  declared. Settle it before release, from the Play Console's own help.
 - **Prominent disclosure** before the access screen (§4.1), and a privacy policy URL, which Play
   requires for an app reading this class of data even with no server.
 - **Android 13+ restricted settings.** On a sideloaded install, Android can block granting
@@ -852,6 +854,22 @@ How it came out, against the plan:
   Recorded in `coffer/DESIGN.md` as a proposed departure, for the owner at the gate.
 - **The framework fixed a cost that every app paid:** `importRaw` was one commit per row. Coffer's
   seeding got ten times faster with it.
+
+**Continued, 11 November 2026.**
+- **Money Manager exports Excel, not CSV** (headers Period, Accounts, Category, Subcategory,
+  Amount, Income/Expense, Note, Description; dates as Excel day numbers; from a third-party
+  analyzer of its exports and Realbyte's import template, since Realbyte's help pages refuse
+  automated reads). Framework: `bd8d50de` (`reaktor-io`: `Inflate`, `Zip`, `Xlsx` in common code;
+  tests pass on the JVM, Node and the iOS simulator, and against the JDK's Deflater up to 1 MB).
+  App: `coffer@4b6b7c7` reads `.xlsx`, keeps transfers apart, and files "Food" and "Salary" under
+  Coffer's own categories. Checked on the emulator and the iOS simulator. Axio's export format
+  was not found.
+- **iOS:** the share sheet and the Files picker were never installed, so backup and import could
+  not work on an iPhone; fixed and used on the simulator (`coffer@ccb4309`). AX5 walked on five
+  screens; a title that broke mid-word fixed in `TopBar`.
+- **TalkBack** heard on the emulator: action labels were nouns ("Double-tap to Back"); fixed
+  (`coffer@9671a3c`, house-style AC1). The walk itself still needs a person: taps from adb under
+  TalkBack sometimes activate instead of focusing.
 
 Unchanged from Phase 1: the checkpoint is two weeks on the owner's phone, then the gate (§8).
 Phase 2 has not started. Also left: AC4 (TalkBack and VoiceOver walks, now over the new screens
