@@ -450,7 +450,7 @@ private fun AgentMarker(card: Card, agent: BlueprintAgent, bounds: BlueprintBadg
         .wrapContentSize(Alignment.TopStart, unbounded = true)
         .requiredSize((bounds.width / bounds.scale).toFloat().dp, (bounds.height / bounds.scale).toFloat().dp)
         .graphicsLayer { scaleX = bounds.scale.toFloat(); scaleY = scaleX; transformOrigin = TransformOrigin(0f, 0f) }) {
-        BlueprintAgentBadge(agent, { onOpen(agent) }, Modifier.fillMaxSize(), compact = bounds.compact, visible = visible, tag = "blueprint-agent-${card.id}", fillHeight = true)
+        BlueprintAgentBadge(agent, { onOpen(agent) }, Modifier.fillMaxSize(), compact = bounds.compact, visible = visible, tag = "blueprint-agent-${card.id}", fillHeight = true, onParticipantOpen = onOpen)
     }
 }
 

@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.auth.runtime
 
+import dev.shibasis.reaktor.auth.api.AccountDeletionOptions
 import dev.shibasis.reaktor.auth.api.AnonymousAuthRequest
 import dev.shibasis.reaktor.auth.api.DeactivateAccountRequest
 import dev.shibasis.reaktor.auth.api.DeactivateAccountResponse
@@ -42,5 +43,6 @@ interface AuthSessions {
 }
 
 interface AuthAccount {
+    suspend fun deletionOptions(request: DeactivateAccountRequest): AccountDeletionOptions
     suspend fun deactivate(request: DeactivateAccountRequest): DeactivateAccountResponse
 }

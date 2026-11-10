@@ -34,6 +34,6 @@ internal fun KanbanCard(node: NodeShape, look: BlueprintCardLook, selected: Bool
         if (look.subtitle.isNotBlank()) Text(look.subtitle, Modifier.fillMaxWidth(), role = Type.Meta, ink = Ink.Muted, lines = Int.MAX_VALUE)
         if (look.marks.isNotEmpty()) Text(look.marks.joinToString(" · ") { it.text }, Modifier.fillMaxWidth(), role = Type.Meta, lines = Int.MAX_VALUE)
         if (closingReason != null) Text(closingReason, Modifier.fillMaxWidth().testTag("kanban-reason-${node.id}"), role = Type.Meta, ink = Ink.Muted, lines = Int.MAX_VALUE)
-        look.agent?.let { agent -> BlueprintAgentBadge(agent, { onAgentOpen(agent) }, Modifier.fillMaxWidth(), tag = "kanban-agent-${node.id}") }
+        look.agent?.let { agent -> BlueprintAgentBadge(agent, { onAgentOpen(agent) }, Modifier.fillMaxWidth(), tag = "kanban-agent-${node.id}", onParticipantOpen = onAgentOpen) }
     }
 }

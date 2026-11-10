@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.blueprint.canvas
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -26,6 +27,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.testTag
@@ -54,7 +56,20 @@ fun BlueprintAgentBadge(
     visible: Boolean = true,
     tag: String = "blueprint-agent",
     fillHeight: Boolean = false,
+    onParticipantOpen: ((BlueprintAgent) -> Unit)? = null,
 ) {
+    if (agent.companions.isNotEmpty()) {
+        Row(modifier.testTag(tag).horizontalScroll(androidx.compose.foundation.rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(MachineSignal.AgentBadge.gap)) {
+            (listOf(agent.copy(companions = emptyList(), otherAgents = 0)) + agent.companions).forEachIndexed { index, member ->
+                dev.shibasis.reaktor.surface.compose.Tooltip(tip = { Text(agentBadgeState(member)) }) {
+                    BlueprintAgentBadge(member, { onParticipantOpen?.invoke(member) ?: onOpen() }, compact = true,
+                        visible = visible, tag = "$tag-participant-$index")
+                }
+            }
+        }
+        return
+    }
     val phase = remember { mutableFloatStateOf(0f) }
     LaunchedEffect(agent.activity, visible) {
         phase.floatValue = 0f
@@ -64,7 +79,7 @@ fun BlueprintAgentBadge(
     val tone = agentBadgeHeat(agent.effort, colors.canvas.luminance() > .5f, colors.textMuted)
     val description = listOfNotNull(agentBadgeState(agent).takeIf(String::isNotBlank),
         agentBadgeTuple(agent).takeIf(String::isNotBlank), agent.effort?.takeIf(String::isNotBlank)?.let { "reasoning $it" },
-        "Open agent gallery").joinToString(", ")
+        (if (agent.person) "View participant" else "Open agent gallery")).joinToString(", ")
     Row(modifier.testTag(tag), verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(MachineSignal.AgentBadge.gap)) {
         Button(onOpen, Modifier.size(MachineSignal.AgentBadge.size).testTag("$tag-icon")
@@ -144,11 +159,21 @@ internal fun DrawScope.drawBlueprintAgentIcon(
             drawPath(open, tone, style = Stroke(stroke,
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(MachineSignal.AgentBadge.dash.toPx(), MachineSignal.AgentBadge.dash.toPx()))))
         }
-        else -> Unit
+        BlueprintAgent.Activity.Unassigned -> Unit
+        else -> drawPath(path, tone, style = Stroke(stroke))
     }
     val side = min(MachineSignal.AgentBadge.iconSize.toPx(), bounds.minDimension - stroke * 2).roundToInt().coerceAtLeast(1)
     val origin = IntOffset((bounds.center.x - side / 2f).roundToInt(), (bounds.center.y - side / 2f).roundToInt())
-    if (agent.image != null) drawImage(agent.image, dstOffset = origin, dstSize = IntSize(side, side), filterQuality = FilterQuality.High)
+    if (agent.image != null) {
+        val image = agent.image
+        val crop = min(image.width, image.height)
+        val paint: DrawScope.() -> Unit = {
+            drawImage(image, srcOffset = IntOffset((image.width - crop) / 2, (image.height - crop) / 2), srcSize = IntSize(crop, crop),
+                dstOffset = origin, dstSize = IntSize(side, side), filterQuality = FilterQuality.High)
+        }
+        if (agent.person) clipPath(Path().apply { addOval(Rect(origin.x.toFloat(), origin.y.toFloat(), (origin.x + side).toFloat(), (origin.y + side).toFloat())) }) { paint() }
+        else paint()
+    }
     else drawRoundRect(tone, Offset(origin.x.toFloat(), origin.y.toFloat()), androidx.compose.ui.geometry.Size(side.toFloat(), side.toFloat()),
         CornerRadius(radius / 2), style = Stroke(MachineSignal.Stroke.hairline.toPx()))
 }

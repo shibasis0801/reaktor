@@ -17,7 +17,7 @@ enum class BoardActorKind { Person, Agent, Schedule }
 
 @Serializable
 data class BoardActor(val kind: BoardActorKind, val name: String, val session: String? = null, val agent: String? = null,
-    val profile: String? = null, val profileRevision: Long? = null)
+    val profile: String? = null, val profileRevision: Long? = null, val principal: String? = null, val photoUrl: String? = null)
 
 @Serializable
 sealed interface BoardBlocker {

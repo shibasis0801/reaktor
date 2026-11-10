@@ -265,7 +265,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         var touched = false; var any = false
         for (i in cards.indices) {
             val glow = if (cards[i].id == selected && looks.getOrNull(i)?.image == null) accentArgb else glows.getOrNull(i)?.toArgb() ?: 0
-            val faded = cards[i].id in aside || highlight.isNotEmpty() && cards[i].id !in highlight
+            val faded = cards[i].id in aside
             if (halo[i] != glow || dim[i] != faded) { halo[i] = glow; dim[i] = faded; touched = true }
             any = any || faded
         }
@@ -778,12 +778,16 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
             val bottom = if (look.subtitle.isEmpty()) MachineSignal.Space.s2_5.value else top
             h = maxOf(h, title.size.height + top + bottom.toDouble())
         }
+        look.agent?.takeIf { it.companions.isNotEmpty() }?.let {
+            w = maxOf(w, MachineSignal.Space.s3.value * 2.0 + MachineSignal.AgentBadge.size.value * (it.companions.size + 1) + MachineSignal.AgentBadge.gap.value * it.companions.size)
+        }
         look.image?.let { image -> h = maxOf(h, BlueprintEngine.HeaderHeight + w * image.height / image.width) }
         look.agent?.let { h += agentHeight(it, w.toFloat()) }
         return dev.shibasis.reaktor.blueprint.BlueprintBody(ceil(w), ceil(h - node.pinHeader))
     }
 
     private fun agentHeight(agent: dev.shibasis.reaktor.blueprint.BlueprintAgent, width: Float): Float {
+        if (agent.companions.isNotEmpty()) return MachineSignal.AgentBadge.size.value + MachineSignal.AgentBadge.gap.value * 2
         val room = width - MachineSignal.Space.s3.value * 2 - MachineSignal.AgentBadge.size.value - MachineSignal.AgentBadge.gap.value
         val style = type.style(MachineSignal.Type.body2, colors.textStrong)
         val states = dev.shibasis.reaktor.blueprint.BlueprintAgent.Activity.entries

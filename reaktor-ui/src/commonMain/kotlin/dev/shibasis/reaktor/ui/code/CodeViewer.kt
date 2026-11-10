@@ -21,9 +21,12 @@ fun CodeViewer(
     showStatusBar: Boolean = false,
     tag: String = "code-viewer",
     presentation: CodePresentation = CodePresentation.Source,
+    scrollState: androidx.compose.foundation.ScrollState? = null,
 ) {
     val state = remember(tag) { CodeEditorState(text, language, "reaktor://view/$tag", readOnly = true) }
     state.presentation = presentation
     remember(state, text, language) { state.update(text, language) }
-    CodeEditor(state, modifier, showGutter = showGutter, showStatusBar = showStatusBar, tag = tag)
+    if (language === CodeLanguage.Markdown && presentation == CodePresentation.Preview && scrollState != null)
+        MarkdownPreview(state, modifier, tag, scrollState = scrollState)
+    else CodeEditor(state, modifier, showGutter = showGutter, showStatusBar = showStatusBar, tag = tag)
 }

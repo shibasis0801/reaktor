@@ -36,8 +36,9 @@ class ResourcePorts(graph: Graph, bindings: List<ResourceNode>) : BasicNode(grap
 
     override suspend fun <T> execute(binding: String, operation: String, effect: Effect, action: suspend () -> T): T {
         val port = requireNotNull(ports[binding]) { "Resource '$binding' is not declared in ${graph.label}" }
+        val attributes = currentCoroutineContext()[CallAttributes]?.values.orEmpty()
         return port.suspended {
-            withContext(CallAttributes(mapOf(ServiceCall.EdgeAttribute to WireIdentity(port)()))) {
+            withContext(CallAttributes(attributes + (ServiceCall.EdgeAttribute to WireIdentity(port)()))) {
                 execute(operation, effect, action)
             }
         }
@@ -54,8 +55,9 @@ class Uses internal constructor(private val ports: Map<String, ConsumerPort<Reso
         return withContext(ResourceCalls(object : ResourceAccess {
             override suspend fun <R> execute(binding: String, operation: String, effect: Effect, action: suspend () -> R): R {
                 val port = ports[binding] ?: return if (outer != null) outer.execute(binding, operation, effect, action) else action()
+                val attributes = currentCoroutineContext()[CallAttributes]?.values.orEmpty()
                 return port.suspended {
-                    withContext(CallAttributes(mapOf(ServiceCall.EdgeAttribute to wires.getValue(binding)()))) { execute(operation, effect, action) }
+                    withContext(CallAttributes(attributes + (ServiceCall.EdgeAttribute to wires.getValue(binding)()))) { execute(operation, effect, action) }
                 }
             }
         })) { block() }

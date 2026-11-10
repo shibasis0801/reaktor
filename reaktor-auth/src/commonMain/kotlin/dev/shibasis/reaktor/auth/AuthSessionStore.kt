@@ -6,7 +6,7 @@ import dev.shibasis.reaktor.service.Environment
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class StoredAuthSession(val context: AuthContext, val tokens: TokenSet, val expiresAtEpochMillis: Long) {
+data class StoredAuthSession(val context: AuthContext, val tokens: TokenSet, val expiresAtEpochMillis: Long, val profile: kotlinx.serialization.json.JsonElement? = null) {
     override fun toString() = "StoredAuthSession(principal=${context.principal.id}, credentials=<redacted>)"
 }
 

@@ -118,7 +118,7 @@ def local_capacity():
         reason = (f'{idle:.0f}% CPU idle, {free}% memory capacity, pressure {pressure}, '
                   f'{compressed / total:.0%} compressed, {swapped / 1024 ** 3:.1f} GiB swap')
         return (idle >= CONFIG.get('local_min_idle_percent', 60) and free >= CONFIG.get('local_min_free_percent', 40)
-                and pressure == 1 and compressed <= total * CONFIG.get('local_max_compressed_fraction', 0.15)
+                and pressure <= CONFIG.get('local_max_pressure', 1) and compressed <= total * CONFIG.get('local_max_compressed_fraction', 0.15)
                 and swapped <= CONFIG.get('local_max_swap_gib', 1) * 1024 ** 3), reason
     except (subprocess.SubprocessError, ValueError, IndexError, TypeError, OSError):
         return False, 'local capacity unavailable'
@@ -137,13 +137,11 @@ def declared_gradle_runtime(name, relative, args):
 def local_gradle(name, relative, args, log=None, on_line=None, local_slot=0):
     import workspace_storage
     global LAST_RUN_ID
-    workspace_storage.automatic(sys.modules[__name__], held_locks={'local-slot-1' if local_slot else 'local-gradle'})
+    workspace_storage.automatic(sys.modules[__name__], held_locks={f'local-slot-{local_slot}' if local_slot else 'local-gradle'})
     if args[:1] == ['--']:
         args = args[1:]
-    workers = CONFIG.get('local_max_workers', 6)
-    if local_slot:
-        workers = min(workers, 4)
-    idle_timeout = 60_000 if local_slot else 300_000
+    workers = local_slot_max_workers() if local_slot else CONFIG.get('local_max_workers', 6)
+    idle_timeout = 60_000 if local_slot else 1_800_000
     defaults = ['--console=plain', f'--max-workers={workers}', f'-Dorg.gradle.daemon.idletimeout={idle_timeout}',
                 *([] if not local_slot and CONFIG.get('local_watch_fs', True) else ['--no-watch-fs'])]
     supplied_options = {arg.partition('=')[0] for arg in args}
@@ -252,20 +250,31 @@ def released_after_launch(lease, tasks):
 
 def local_slot_count():
     count = json.loads((STATE / 'config.json').read_text()).get('local_slots', 1)
-    if type(count) is not int or not 1 <= count <= 2:
-        raise ValueError('local_slots must be 1 or 2')
+    if type(count) is not int or not 1 <= count <= remote_retention.MAX_LOCAL_SLOTS:
+        raise ValueError(f'local_slots must be between 1 and {remote_retention.MAX_LOCAL_SLOTS}')
     return count
 
 
-def isolated_verification(args, contract):
-    # Accept only declared verification tasks and options that can't change their workspace or effects.
-    allowed = {'--', '--console=plain', '--stacktrace', '--info', '--rerun-tasks', '--no-daemon'}
+def local_slot_max_workers():
+    count = CONFIG.get('local_slot_max_workers', 6)
+    if type(count) is not int or not 1 <= count <= 64:
+        raise ValueError('local_slot_max_workers must be between 1 and 64')
+    return count
+
+
+def portable_tasks(args, contract):
+    import mobile_worker
+    allowed = {'--', '--console=plain', '--console=auto', '--console=rich', '--stacktrace', '-s',
+               '--info', '-i', '--debug', '-d', '--quiet', '-q', '--rerun-tasks', '--no-daemon',
+               '--offline', '--continue', '--dry-run', '-m', '--build-cache', '--no-build-cache',
+               '--configuration-cache', '--no-configuration-cache', '--no-scan',
+               '--warning-mode=all', '--warning-mode=none', '--warning-mode=summary', '--warning-mode=fail'}
     tasks = []
     filter_expected = False
     for arg in args:
         if filter_expected:
             if not re.fullmatch(r'[\w.*$-]+', arg):
-                return False
+                return []
             filter_expected = False
         elif arg == '--tests' and tasks:
             filter_expected = True
@@ -274,52 +283,71 @@ def isolated_verification(args, contract):
         elif re.fullmatch(r':?[\w-]+(?::[\w-]+)*', arg):
             tasks.append(':' + arg.lstrip(':'))
         else:
-            return False
-    return bool(tasks) and not filter_expected and all(
-        contract.get('taskFamilies', {}).get(task) == 'verification'
-        and contract.get('taskHosts', {}).get(task, {}).get('execution') in {None, 'Any'}
-        for task in tasks
-    )
+            return []
+    if filter_expected or mobile_worker.device_tasks(tasks):
+        return []
+    for task in tasks:
+        host = contract.get('taskHosts', {}).get(task, {})
+        family = contract.get('taskFamilies', {}).get(task)
+        if (host.get('execution') not in {None, 'Any'} or host.get('platform') not in {None, 'Portable'}
+                or family in {'android', 'apple'}
+                or re.search(r'android|ios(?:arm|simulator|x64)|(?:^|:)(?:ios|iosApp|mobile)(?:$|:)', task, re.I)
+                or re.fullmatch(r'(?:install|uninstall)[A-Z]\w*|(?:connected|managed)\w*Test', task.rsplit(':', 1)[-1])):
+            return []
+    return tasks
 
 
-def additional_local_gradle(name, relative, args, reason):
+def additional_local_gradle(name, relative, args, contract, tasks):
     import remote_build
     global ROOT
-    if local_slot_count() < 2:
-        return None
-    with (STATE / 'local-slot-1.lock').open('a') as lock:
-        try:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            return None
-        if local_slot_count() < 2:  # Respect a removal that raced with the lease.
-            return None
-        remote_retention.require_admission(STATE)
-        helper = sys.modules[__name__]
-        try:
-            remote_build.disk_admission(helper, 'local')
-            if (LOCAL_SLOTS / 'local-1').is_symlink():
-                raise ValueError('The additional local workspace is a symbolic link')
-            snapshot = remote_build.freeze(helper)
-            slot = remote_build.materialize(helper, snapshot, 'local-1')
-        except (OSError, ValueError, subprocess.SubprocessError) as error:
-            print(f'Additional local lane could not prepare an isolated workspace: {error}', flush=True)
-            return None
-        if LINE is not None:
-            LINE.unlink(missing_ok=True)
-        print(f'Building {name} on this Mac in lane 2: {reason}; workspace {slot}', flush=True)
-        original_root = ROOT
-        try:
-            ROOT = slot
-            code = local_gradle(name, relative, args, local_slot=1)
-            artifacts = STATE / 'artifacts' / LAST_RUN_ID
-            if code != 130:
-                remote_build.collect_local(helper, slot, artifacts, code == 0, 'verification', projects=[name])
-            if artifacts.is_dir():
-                print(f'Verification artifacts: {artifacts}', flush=True)
-            return code
-        finally:
-            ROOT = original_root
+    for index in range(1, local_slot_count()):
+        with remote_build.try_leases([STATE / f'local-slot-{index}.lock']) as lease:
+            if lease is None:
+                continue
+            if index >= local_slot_count():
+                return None
+            available, reason = local_capacity()
+            if not available:
+                return None
+            remote_retention.require_admission(STATE)
+            helper = sys.modules[__name__]
+            disk_gib = CONFIG.get('local_slot_min_free_disk_gib', 20)
+            if type(disk_gib) is not int or disk_gib < 1:
+                raise ValueError('local_slot_min_free_disk_gib must be a positive integer')
+            local_slot_max_workers()
+            try:
+                remote_build.disk_admission(helper, 'local', minimum_bytes=disk_gib * 1024 ** 3)
+                if (LOCAL_SLOTS / f'local-{index}').is_symlink():
+                    raise ValueError('The additional local workspace is a symbolic link')
+                epoch = time.time()
+                snapshot = remote_build.freeze(helper)
+                slot = remote_build.materialize(helper, snapshot, f'local-{index}')
+            except (OSError, ValueError, subprocess.SubprocessError) as error:
+                print(f'Additional local lane could not prepare an isolated workspace: {error}', flush=True)
+                return None
+            if LINE is not None:
+                LINE.unlink(missing_ok=True)
+            print(f'Building {name} on this Mac in lane {index + 1}: {reason}; workspace {slot}', flush=True)
+            original_root = ROOT
+            started = time.time()
+            try:
+                ROOT = slot
+                code = local_gradle(name, relative, args, local_slot=index)
+            finally:
+                ROOT = original_root
+            if code == 130:
+                return code
+            family = artifact_family(tasks, contract.get('taskFamilies', {}))
+            if family == 'verification':
+                artifacts = STATE / 'artifacts' / LAST_RUN_ID
+                remote_build.collect_local(helper, slot, artifacts, code == 0, family, projects=[name])
+                if artifacts.is_dir():
+                    print(f'Verification artifacts: {artifacts}', flush=True)
+                return code
+            if any(arg in {'--dry-run', '-m'} for arg in args):
+                return code
+            return publish_local_build(name, slot, family, code, epoch, started)
+    return None
 
 
 def route_gradle(name, relative, args):
@@ -362,10 +390,12 @@ def route_gradle(name, relative, args):
                 remote_retention.require_admission(STATE)
                 return local_gradle(name, relative, args)
     if primary_busy:
-        if selected is None and os.environ.get('REMOTE_DEV_CACHE') != 'write' and isolated_verification(args, contract):
-            result = additional_local_gradle(name, relative, args, reason)
-            if result is not None:
-                return result
+        if selected is None and os.environ.get('REMOTE_DEV_CACHE') != 'write':
+            portable = portable_tasks(args, contract)
+            if portable:
+                result = additional_local_gradle(name, relative, args, contract, portable)
+                if result is not None:
+                    return result
         reason = 'no eligible local build lane is available'
     print(f'Routing to {HOST}: {reason}', flush=True)
     return None
@@ -788,10 +818,16 @@ def artifact_reference(name, run_id, family):
     return None
 
 
+def local_contract_python(code, *args, **kwargs):
+    source = Path(__file__).with_name('hosts_contract.py').read_text()
+    return run([sys.executable, '-c', source + '\n' + code, *args], **kwargs)
+
+
 def pull(name, run_id, successful=True, family='all', agent_distribution=False, metadata=False, lockfiles=False, publish=True,
-         since=None, unverified=None, observed_tasks=(), report_since=None):
-    target = f'{REMOTE}/{name}'
-    result = remote_contract_python('''import os,json,sys
+         since=None, unverified=None, observed_tasks=(), report_since=None, local_slot=None):
+    target = str(local_slot / name) if local_slot is not None else f'{REMOTE}/{name}'
+    invoke = remote_contract_python if local_slot is None else local_contract_python
+    result = invoke('''import os,json,sys
 from pathlib import Path
 base=Path(sys.argv[1]).resolve(); success=sys.argv[2]=='True'; family=sys.argv[3]; found=[]
 policy=read_hosts_contract(base)
@@ -907,9 +943,10 @@ else:
             manifest.flush()
             reference = artifact_reference(name, run_id, family)
             sharing = [f'--link-dest={reference}'] if reference else []
+            transport = [] if local_slot is not None else ['--rsync-path=ulimit -n 8192; /usr/bin/rsync']
+            source = target if local_slot is not None else f'{HOST}:{target}'
             run(['rsync', '-ac', *sharing, '--from0', f'--files-from={manifest.name}',
-                 '--rsync-path=ulimit -n 8192; /usr/bin/rsync',
-                 f'{HOST}:{target}/', str(dest) + '/'])
+                 *transport, source + '/', str(dest) + '/'])
         missing = [relative for relative in files if not os.path.lexists(dest / relative)]
         if missing:
             raise OSError(f'Artifact transfer missed {len(missing)} paths; first: {missing[0]}')
@@ -1276,15 +1313,22 @@ def declared_build_owners(directory, layout, workspace):
     return owners
 
 
-def composite_artifacts(receipt):
+def composite_artifacts(receipt, local_slot=None):
     name = receipt['project']
     owners = {name: name}
     families = {}
-    declaration = remote_contract_python('''import sys
+    if local_slot is None:
+        directory, workspace = receipt['remote_path'], REMOTE
+        declaration = remote_contract_python('''import sys
 print(json.dumps(read_hosts_contract(sys.argv[1])))
-''', receipt['remote_path'], capture_output=True, text=True).stdout
-    layout = json.loads(declaration)
-    owners.update(declared_build_owners(receipt['remote_path'], layout, REMOTE))
+''', directory, capture_output=True, text=True).stdout
+        layout = json.loads(declaration)
+    else:
+        directory, workspace = receipt['project_directory'], local_slot
+        layout = read_hosts_contract(directory)
+        if layout and 'builds' not in layout:
+            layout['builds'] = {}
+    owners.update(declared_build_owners(directory, layout, workspace))
     if layout:
         declared = layout.get('taskFamilies', {})
         if not isinstance(declared, dict):
@@ -1327,6 +1371,49 @@ def pull_xcode_resources(receipt, publish=True):
             run(['rsync', '-ac', '--delete', str(snapshot) + '/', str(local) + '/'])
     print(f'{"Copied" if publish else "Collected"} Compose resources for {receipt["project"]}', flush=True)
     return [str(local)]
+
+
+def publish_local_build(name, slot, family, code, epoch, started):
+    path = STATE / 'logs' / (LAST_RUN_ID + '.json')
+    receipt = json.loads(path.read_text())
+    receipt.pop('finished', None)
+    receipt.update(phase='Collecting', artifact_family=family, publication='changed-files',
+                   source_epoch=epoch, pending_publications=[], workspace_root=str(ROOT),
+                   isolated_workspace=str(slot))
+    build_control.write_json(path, receipt)
+    try:
+        owners, projects, _, _ = composite_artifacts(receipt, local_slot=slot)
+        observed = observed_gradle_tasks(receipt['log'], code)
+        review = {}
+        for project in projects:
+            tasks = observed_for_project(observed, owners, name, project)
+            files = pull(project, LAST_RUN_ID, code == 0, family, family == 'agent', publish=False,
+                         since=started, unverified=review, observed_tasks=tasks, report_since=started,
+                         local_slot=slot)
+            receipt['pending_publications'].append((project, files))
+        receipt.update(unverified_outputs=review, copied_files=sum(len(files) for _, files in receipt['pending_publications']))
+    except (OSError, ValueError, subprocess.CalledProcessError) as error:
+        receipt.update(copy_error=str(error), exit_code=code or 74, phase='Finished',
+                       finished=datetime.datetime.now().isoformat())
+        build_control.write_json(path, receipt)
+        print(f'Additional local lane could not collect outputs: {error}', file=sys.stderr, flush=True)
+        return receipt['exit_code']
+    return publish_build(receipt)
+
+
+def observed_gradle_tasks(log, code):
+    if code != 0:
+        return []
+    matches = re.findall(r'^> Task (:[^\s]+)(?: (UP-TO-DATE|FROM-CACHE|SKIPPED|NO-SOURCE|FAILED))?$',
+                         Path(log).read_text(), re.MULTILINE)
+    return [task for task, status in matches if status not in {'SKIPPED', 'NO-SOURCE', 'FAILED'}]
+
+
+def observed_for_project(observed, owners, name, project):
+    if project == name:
+        return observed
+    prefixes = [':' + identity + ':' for identity, owner in owners.items() if owner == project]
+    return [':' + task[len(prefix):] for task in observed for prefix in prefixes if task.startswith(prefix)]
 
 
 def publish_build(receipt, worker_lock=None):
@@ -1444,12 +1531,9 @@ print(json.dumps({'text':chunk.decode(errors='replace'),'offset':offset,'code':c
         agent_distribution = family == 'agent'
         metadata = any(families.get(':' + task.lstrip(':')) == 'metadata' for task in gradle_tasks(args, task_options))
         lockfiles = metadata
-        observed = re.findall(r'^> Task (:[^\s]+)(?: (UP-TO-DATE|FROM-CACHE|SKIPPED|NO-SOURCE|FAILED))?$', log.read_text(), re.MULTILINE)
+        observed = observed_gradle_tasks(log, code)
         for item in projects_to_pull:
-            tasks = [task for task, state in observed if state not in {'SKIPPED', 'NO-SOURCE', 'FAILED'}] if code == 0 else []
-            if item != name:
-                prefixes = [':' + identity + ':' for identity, owner in receipt['builds'].items() if owner == item]
-                tasks = [':' + task[len(prefix):] for task in tasks for prefix in prefixes if task.startswith(prefix)]
+            tasks = observed_for_project(observed, receipt['builds'], name, item)
             files = pull(item, run_id, code == 0, family, agent_distribution, metadata, lockfiles and item == name,
                          publish=False, since=since, unverified=unverified, observed_tasks=tasks,
                          report_since=receipt['worker_started_epoch'])

@@ -21,4 +21,6 @@ data class AuthRuntimeConfig(
     val access: AuthAccess? = null,
     val deviceCredentialJwkJson: String = "",
     val deviceCredentialNextJwkJson: String = "",
+    val appleRevocationClients: List<AppleRevocationClient> = emptyList(),
+    val appleRevocationHttpClient: java.net.http.HttpClient? = null,
 )

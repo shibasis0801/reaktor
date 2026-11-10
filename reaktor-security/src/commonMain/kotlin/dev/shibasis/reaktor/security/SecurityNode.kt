@@ -358,6 +358,14 @@ class SecurityNode(graph: Graph, private val telemetry: SpanSink? = null) : Acto
         val accepted = try { observed("commit", { if (it.accepted) 200 else 409 }) { publishCommit(pending.publication) } }
         catch (error: Throwable) {
             val failure = error.asCallFailure()
+            if (failure is Rejected && failure.status == 409 && pending.publication.previousEpoch == null) {
+                val info = groupInfo(id)
+                if (info.epoch == null && !info.activationReady) {
+                    crypto().discard(id)
+                    persist(current().copy(pending = current().pending - id))
+                    return false
+                }
+            }
             if (failure is Rejected && failure.status == 400) {
                 crypto().discard(id)
                 persist(current().copy(pending = current().pending - id))
@@ -434,12 +442,14 @@ class SecurityNode(graph: Graph, private val telemetry: SpanSink? = null) : Acto
         repeat(8) {
             retryPending(id)
             catchUp(id)
+            val info = groupInfo(id)
+            if (epoch(id) == null && info.epoch == null && !info.activationReady)
+                return update(id, ConversationHealth.Waiting)
             val desired = devices(DirectoryLookup(id, emptySet()))
             val desiredIds = desired.map { it.deviceId }.toSet()
             val members = desired.map { it.userId }.toSet()
             require(desiredIds.size == desired.size && current().deviceId in desiredIds)
             require(requestedMembers.isEmpty() || requestedMembers.containsAll(members))
-            val info = groupInfo(id)
             val localEpoch = epoch(id)
             if (localEpoch == null) {
                 if (info.epoch == null) {

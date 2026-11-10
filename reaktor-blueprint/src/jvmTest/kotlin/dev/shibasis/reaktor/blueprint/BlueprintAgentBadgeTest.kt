@@ -61,6 +61,32 @@ class BlueprintAgentBadgeTest {
     private val agent = BlueprintAgent(null, "(codex, xhigh, sol 6.1, designer)", BlueprintAgent.Activity.Claimed,
         effort = "xhigh", model = "sol 6.1", role = "designer")
 
+    @Test fun mixedParticipantsHaveSeparateSideBySideIconsAndActions() {
+        val companions = listOf(BlueprintAgent(null, "Claude", BlueprintAgent.Activity.Assigned, key = "claude"),
+            BlueprintAgent(null, "Ada", BlueprintAgent.Activity.Completed, key = "ada", person = true))
+        val people = agent.copy(key = "codex", companions = companions, otherAgents = 2)
+        val opened = mutableListOf<String?>()
+        lateinit var scene: ImageComposeScene
+        SwingUtilities.invokeAndWait {
+            scene = ImageComposeScene(360, 100, Density(1f), coroutineContext = Dispatchers.Unconfined) {
+                MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact) {
+                    BlueprintAgentBadge(people, {}, Modifier.fillMaxWidth(), onParticipantOpen = { opened += it.key })
+                }
+            }
+        }
+        try {
+            repeat(4) { tick -> SwingUtilities.invokeAndWait { Snapshot.sendApplyNotifications(); scene.render((tick + 1L) * 16_666_667L).close() } }
+            SwingUtilities.invokeAndWait {
+                fun walk(node: SemanticsNode): List<SemanticsNode> = listOf(node) + node.children.flatMap(::walk)
+                val nodes = scene.semanticsOwners.flatMap { walk(it.unmergedRootSemanticsNode) }
+                val icons = (0..2).map { i -> nodes.single { it.config.getOrNull(SemanticsProperties.TestTag) == "blueprint-agent-participant-$i-icon" } }
+                assertTrue(icons.zipWithNext().all { (a, b) -> a.boundsInRoot.right <= b.boundsInRoot.left && a.boundsInRoot.top == b.boundsInRoot.top })
+                icons.forEach { assertTrue(it.boundsInRoot.height > 0); it.config[SemanticsActions.OnClick].action!!.invoke() }
+                assertEquals(listOf<String?>("codex", "claude", "ada"), opened.toList())
+            }
+        } finally { SwingUtilities.invokeAndWait { scene.close() } }
+    }
+
     @Test fun modelAndRoleComeFromStructuredHostValuesWithoutParsingTheLabel() {
         assertEquals("(sol 6.1, designer)", agentBadgeTuple(agent))
         assertEquals("", agentBadgeTuple(agent.copy(model = null, role = null)))
@@ -142,7 +168,7 @@ class BlueprintAgentBadgeTest {
         return bitmap.toPixelMap().let { map -> (0 until side).flatMap { y -> (0 until side).map { x -> map[x, y] } } }
     }
 
-    @Test fun liveSweepsAssignedStandsStillStaleIsDashedAndCompletedHasNoRing() {
+    @Test fun liveSweepsWhileAssignedAndCompletedHaveStaticRings() {
         for (density in listOf(1f, 2f)) {
             val assigned = pixels(BlueprintAgent.Activity.Claimed, 0f, density)
             assertEquals(assigned, pixels(BlueprintAgent.Activity.Claimed, .5f, density))
@@ -150,8 +176,9 @@ class BlueprintAgentBadgeTest {
             assertNotEquals(assigned, pixels(BlueprintAgent.Activity.Stale, 0f, density))
             assertNotEquals(pixels(BlueprintAgent.Activity.Live, 0f, density), pixels(BlueprintAgent.Activity.Live, .5f, density))
             val completed = pixels(BlueprintAgent.Activity.Completed, 0f, density)
-            assertNotEquals(assigned, completed)
-            assertEquals(completed, pixels(BlueprintAgent.Activity.Unassigned, 0f, density))
+            assertEquals(assigned, completed)
+            assertEquals(completed, pixels(BlueprintAgent.Activity.Completed, .5f, density))
+            assertNotEquals(completed, pixels(BlueprintAgent.Activity.Unassigned, 0f, density))
         }
     }
 

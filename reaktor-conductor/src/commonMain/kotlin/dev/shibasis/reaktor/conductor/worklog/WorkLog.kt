@@ -98,6 +98,8 @@ sealed interface WorkStep {
         override val status: StepStatus = StepStatus.Running,
         val cut: Boolean = false,
         val movedTo: String? = null,
+        /** Complete recorded contents after a write, or before a deletion. Never read from the current worktree. */
+        val content: String? = null,
     ) : WorkStep {
         val added: Int get() = hunks.sumOf { hunk -> hunk.lines.count { it.startsWith('+') } }
         val removed: Int get() = hunks.sumOf { hunk -> hunk.lines.count { it.startsWith('-') } }

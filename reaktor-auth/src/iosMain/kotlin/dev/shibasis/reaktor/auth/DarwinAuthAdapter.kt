@@ -32,6 +32,12 @@ class DarwinAuthAdapter(
         return succeed(Unit)
     }
 
+    override val appleDeletionClientId: String?
+        get() = platform.Foundation.NSBundle.mainBundle.bundleIdentifier
+
+    override suspend fun appleDeletionCode(): String? =
+        (providers[UserProvider.APPLE]?.login()?.getOrNull() as? AppleUser)?.authorizationCode
+
     fun registerAppleLogin() {
         register(UserProvider.APPLE, DarwinAppleLogin(this))
     }

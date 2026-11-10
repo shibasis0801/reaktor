@@ -1,6 +1,10 @@
 package dev.shibasis.reaktor.auth.spring
 
+import co.touchlab.kermit.Logger
 import dev.shibasis.reaktor.auth.jwt.UserAuthenticationProvider
+import dev.shibasis.reaktor.auth.runtime.AppleRevocationClient
+import dev.shibasis.reaktor.auth.runtime.AppleRevocationSettings
+import dev.shibasis.reaktor.core.framework.json
 import dev.shibasis.reaktor.auth.runtime.AuthAccess
 import dev.shibasis.reaktor.auth.runtime.AuthRuntimeConfig
 import dev.shibasis.reaktor.auth.runtime.AuthRuntimeGraph
@@ -27,6 +31,7 @@ open class AuthSpringConfiguration {
         @Value("\${reaktor.auth.allow-ephemeral-signing-key:false}") allowEphemeralSigningKey: Boolean,
         @Value("\${reaktor.auth.device-credential-jwk:}") deviceCredentialJwkJson: String,
         @Value("\${reaktor.auth.device-credential-next-jwk:}") deviceCredentialNextJwkJson: String,
+        @Value("\${reaktor.auth.apple-revocation-clients:[]}") appleRevocationClientsJson: String,
     ): AuthRuntimeGraph {
         val providers = authProviderList.ifAvailable()
             ?: authProviderBeans.orderedStream().toList()
@@ -44,10 +49,21 @@ open class AuthSpringConfiguration {
                 access = access.ifAvailable(),
                 deviceCredentialJwkJson = deviceCredentialJwkJson,
                 deviceCredentialNextJwkJson = deviceCredentialNextJwkJson,
+                appleRevocationClients = json.decodeFromString<List<AppleRevocationSettings>>(appleRevocationClientsJson).mapNotNull { settings ->
+                    runCatching {
+                        val secret = appleRevocationSecret(settings.privateKeyEnvironmentVariable)
+                        require(!secret.isNullOrBlank())
+                        AppleRevocationClient.from(settings, secret)
+                    }.onFailure {
+                        Logger.e { "Apple revocation configuration unavailable: count=1" }
+                    }.getOrNull()
+                },
             ),
             dependencyAdapter = SpringDependencyAdapter(applicationContext),
         )
     }
+
+    protected open fun appleRevocationSecret(name: String): String? = System.getenv(name)
 
     @Bean
     open fun reaktorSecurityWebFilter(runtime: AuthRuntimeGraph): ReaktorSecurityWebFilter =

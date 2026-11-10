@@ -129,7 +129,7 @@ class MemorySecureDirectory(
     override val groupInfo = super.groupInfo.handle { conversationId -> locked {
         member(conversationId)
         val latest = commits[conversationId]?.lastOrNull()
-        DirectoryGroupInfo(latest?.epoch, groupInfo[conversationId]?.copyOf(), latest?.members.orEmpty().toSet(), latest?.roster.orEmpty().toSet())
+        DirectoryGroupInfo(latest?.epoch, groupInfo[conversationId]?.copyOf(), latest?.members.orEmpty().toSet(), latest?.roster.orEmpty().toSet(), activationReady = true)
     } }
 
     override val welcomes = super.welcomes.handle { deviceId -> locked {

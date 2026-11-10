@@ -118,7 +118,7 @@ internal class ClaudeLog(private val root: String?, private val subagent: (Strin
             "Edit" -> edit(id, at, file, EditKind.Update, listOf(LogText.replacement(input.str("old_string").orEmpty(), input.str("new_string").orEmpty())))
             "MultiEdit" -> edit(id, at, file, EditKind.Update, input.list("edits").mapNotNull { it as? JsonObject }
                 .map { LogText.replacement(it.str("old_string").orEmpty(), it.str("new_string").orEmpty()) })
-            "Write" -> edit(id, at, file, EditKind.Add, listOf(LogText.lines(input.str("content").orEmpty(), '+').let { (lines, cut) -> DiffHunk(null, 1, lines) to cut }))
+            "Write" -> edit(id, at, file, EditKind.Add, listOf(LogText.lines(input.str("content").orEmpty(), '+').let { (lines, cut) -> DiffHunk(null, 1, lines) to cut }), content = input.str("content")?.takeIf { it.length <= 1_000_000 })
             "NotebookEdit" -> edit(id, at, file, EditKind.Update, listOf(LogText.lines(input.str("new_source").orEmpty(), '+').let { (lines, cut) -> DiffHunk(null, null, lines) to cut }))
             "Read" -> WorkStep.Tool(id, at, ToolKind.Read, "Read", readSummary(file, input))
             "Grep" -> WorkStep.Tool(id, at, ToolKind.Search, "Search", listOfNotNull(input.str("pattern"), LogText.relative(input.str("path"), root), input.str("glob")).joinToString(" · "))
@@ -136,8 +136,8 @@ internal class ClaudeLog(private val root: String?, private val subagent: (Strin
         }
     }
 
-    private fun edit(id: String, at: Long?, file: String?, kind: EditKind, hunks: List<Pair<DiffHunk, Boolean>>) =
-        WorkStep.Edit(id, at, file ?: "(unknown file)", kind, hunks.map { it.first }, cut = hunks.any { it.second })
+    private fun edit(id: String, at: Long?, file: String?, kind: EditKind, hunks: List<Pair<DiffHunk, Boolean>>, content: String? = null) =
+        WorkStep.Edit(id, at, file ?: "(unknown file)", kind, hunks.map { it.first }, cut = hunks.any { it.second }, content = content)
 
     private fun readSummary(file: String?, input: JsonObject): String {
         val offset = input.num("offset")

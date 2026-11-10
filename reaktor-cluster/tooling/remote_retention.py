@@ -10,6 +10,9 @@ import subprocess
 import time
 
 
+MAX_LOCAL_SLOTS = 4
+LOCAL_LANE_LOCKS = ('local-gradle', *(f'local-slot-{index}' for index in range(1, MAX_LOCAL_SLOTS)))
+
 MARKER = '.payload-pruned.json'
 DIAGNOSTICS = {'reports', 'test-results', 'hangar-flows', 'hangar-shards', 'dependeasy'}
 GENERATED = {'build', '.gradle', '.kotlin', '.cxx', 'node_modules'}
@@ -164,7 +167,7 @@ def idle_locks(state, wait=False, held_locks=()):
     while True:
         with contextlib.ExitStack() as locks:
             blocked = None
-            for name in ('graph-activity', 'workspace', 'local-gradle', 'local-slot-1', 'worker-gradle', 'worker-slot-1', 'worker-slot-2', 'capture'):
+            for name in ('graph-activity', 'workspace', *LOCAL_LANE_LOCKS, 'worker-gradle', 'worker-slot-1', 'worker-slot-2', 'capture'):
                 if name in held_locks:
                     continue
                 lock = locks.enter_context((state / (name + '.lock')).open('a'))

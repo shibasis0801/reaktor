@@ -9,7 +9,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 @Serializable
-data class EditorPrefs(val keys: Map<String, String> = emptyMap(), val favourites: List<String> = emptyList(), val minimap: Boolean = true) {
+data class EditorPrefs(val keys: Map<String, String> = emptyMap(), val favourites: List<String> = emptyList(), val minimap: Boolean = false, val legend: Boolean = false) {
     fun encode(): String = PrefsJson.encodeToString(serializer(), this)
 
     companion object {

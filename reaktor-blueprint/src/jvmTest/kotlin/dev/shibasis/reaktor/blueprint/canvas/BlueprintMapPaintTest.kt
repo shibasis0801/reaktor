@@ -50,6 +50,56 @@ import kotlin.test.*
 
 class BlueprintMapPaintTest {
 
+    @Test fun selectingACardPreservesEveryCardsStatusFill() {
+        val source = Card("selected", 30.0, 50.0, 280.0, 240.0, emptyList(), 0)
+        val target = Card("unrelated", 400.0, 50.0, 280.0, 240.0, emptyList(), 0)
+        val layout = BlueprintLayout("stable-status", linkedMapOf(source.id to source, target.id to target), emptyList(), emptyList(), 720.0, 350.0)
+        for (mode in listOf(MachineSignalMode.Light, MachineSignalMode.Dark)) {
+            val selected = mutableStateOf<String?>(null)
+            val canvas = GraphCanvasState(.002..16.0)
+            lateinit var scene: ImageComposeScene
+            var tick = 0L
+            fun settle() { repeat(24) { edt { Snapshot.sendApplyNotifications(); scene.render(++tick * 16_666_667L).close() } } }
+            fun fills(): List<Int> {
+                var result = emptyList<Int>()
+                edt {
+                    scene.render(++tick * 16_666_667L).use { image ->
+                        image.encodeToData()!!.use { png ->
+                            val bitmap = ImageIO.read(ByteArrayInputStream(png.bytes))
+                            val view = canvas.viewport()
+                            result = listOf(source, target).map { card ->
+                                bitmap.getRGB((view.x + (card.x + 140) * view.zoom).toInt(), (view.y + (card.y + 210) * view.zoom).toInt())
+                            }
+                        }
+                    }
+                }
+                return result
+            }
+            edt {
+                scene = ImageComposeScene(800, 450, Density(1f), coroutineContext = Dispatchers.Unconfined) {
+                    MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact, mode = mode) {
+                        val colors = MachineSignal.colors
+                        BlueprintCanvas(layout, canvas, selected.value?.let(::setOf) ?: emptySet(), selected.value,
+                            cardLook = { card -> BlueprintCardLook(colors.source, SurfaceGraphSymbol, card.id, "Status",
+                                fill = if (card.id == source.id) Color(0xFF238636) else Color(0xFFDAA520),
+                                selected = card.id == selected.value) },
+                            frameLook = { BlueprintFrameLook(SurfaceGraphSymbol, "") }, linkStyle = { Blueprint.link(colors.source, false, false) },
+                            onCardClick = {}, onLinkClick = {}, onPaneClick = {}, initialFit = {}, modifier = Modifier.fillMaxSize())
+                    }
+                }
+            }
+            try {
+                settle(); edt { canvas.restore(20.0, 30.0, 1.0) }; settle()
+                val before = fills()
+                assertNotEquals(before[0], before[1], "The fixture must distinguish two status colors")
+                edt { selected.value = source.id }; settle()
+                assertEquals(before, fills(), "Selection must preserve selected and unrelated status fills in $mode")
+                edt { selected.value = null }; settle()
+                assertEquals(before, fills(), "Closing the inspector must preserve the same colors")
+            } finally { edt { scene.close() } }
+        }
+    }
+
 
     @Test fun replayOmissionRestoresTheFullRasterAndExactTypedGeometry() {
         val outgoing = Pin("value", "Value", true, 100.0, PortWiring.Connected)

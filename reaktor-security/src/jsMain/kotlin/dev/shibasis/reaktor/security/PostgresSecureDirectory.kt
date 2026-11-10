@@ -23,6 +23,8 @@ abstract class PostgresSecureDirectory : SecureDirectoryApi() {
     protected abstract suspend fun enroll(registration: DeviceRegistration): ByteArray
     protected abstract suspend fun announce(commit: DirectoryCommit, welcomes: List<DirectoryWelcome>)
     protected open suspend fun authorizeActivation(session: DirectorySession, publication: CommitPublication) = Unit
+    protected open suspend fun activationReady(session: DirectorySession, conversationId: String): Boolean = true
+    protected open suspend fun packagesPublished(session: DirectorySession) = Unit
 
     override val register = super.register.handle { registration ->
         authenticated {
@@ -58,7 +60,7 @@ abstract class PostgresSecureDirectory : SecureDirectoryApi() {
             valid(publication.packages.map { it.reference }.toSet().size == publication.packages.size)
             valid(publication.packages.count { it.lastResort } <= 1)
             publication.packages.forEach { identifier(it.reference); valid(it.bytes.size in 1..1048576) }
-            database.transaction {
+            val count = database.transaction {
                 ownDevice(this, publication.deviceId)
                 val count = string("count", """
                     SELECT count(*)::text AS count FROM security_key_packages
@@ -87,6 +89,8 @@ abstract class PostgresSecureDirectory : SecureDirectoryApi() {
                     WHERE tenant_id = %V AND app_id = %V AND device_id = %V AND claimed_at IS NULL
                 """.trimIndent(), tenantId, appId, publication.deviceId)?.toInt() ?: 0
             }
+            if (publication.packages.isNotEmpty()) packagesPublished(this)
+            count
         }
     }
 
@@ -251,7 +255,8 @@ abstract class PostgresSecureDirectory : SecureDirectoryApi() {
             """.trimIndent(), tenantId, appId, conversationId) ?: reject(404, "Conversation not found")
             DirectoryGroupInfo(row.string("epoch")?.toLong(), row.string("bytes")?.let(Base64.Mime::decode),
                 row.string("member_users")?.let { json.decodeFromString<Set<String>>(it) }.orEmpty(),
-                row.string("roster")?.let { json.decodeFromString<Set<String>>(it) }.orEmpty())
+                row.string("roster")?.let { json.decodeFromString<Set<String>>(it) }.orEmpty(),
+                activationReady(this, conversationId))
         }
     }
 

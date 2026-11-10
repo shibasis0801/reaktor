@@ -64,7 +64,8 @@ data class CommitCursor(val conversationId: String, val afterEpoch: Long = -1)
 
 @JsExport
 @Serializable
-data class DirectoryGroupInfo(val epoch: Long?, val bytes: ByteArray?, val members: Set<String> = emptySet(), val roster: Set<String> = emptySet())
+data class DirectoryGroupInfo(val epoch: Long?, val bytes: ByteArray?, val members: Set<String> = emptySet(), val roster: Set<String> = emptySet(),
+    val activationReady: Boolean = false)
 
 @JsExport
 @Serializable

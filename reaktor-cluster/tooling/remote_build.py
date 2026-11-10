@@ -167,10 +167,11 @@ def local_lease(state, wait=0.5, ticket=None):
         yield lock
 
 
-def disk_admission(helper, host):
+def disk_admission(helper, host, minimum_bytes=0):
     minimum = int(helper.CONFIG.get('minimum_free_disk_mib', 1024)) * 1024 * 1024
     if minimum <= 0:
         raise ValueError('minimum_free_disk_mib must be positive')
+    minimum = max(minimum, minimum_bytes)
     local_free = shutil.disk_usage(helper.STATE).free
     observed = {'minimumFreeBytes': minimum, 'localFreeBytes': local_free}
     if local_free < minimum:

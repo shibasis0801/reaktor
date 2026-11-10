@@ -325,8 +325,20 @@ data class DeactivateAccountRequest(
     override val headers: MutableMap<String, String> = mutableMapOf(),
     override val queryParams: MutableMap<String, String> = mutableMapOf(),
     override val pathParams: MutableMap<String, String> = mutableMapOf(),
-    override var environment: Environment = Environment.PROD
-): Request()
+    override var environment: Environment = Environment.PROD,
+    val appleAuthorizationCode: String? = null,
+    val appleClientId: String? = null,
+): Request() {
+    override fun toString() = "DeactivateAccountRequest(audience=$audience, environment=$environment, credentials=<redacted>)"
+}
+
+@JsExport
+@Serializable
+data class AccountDeletionOptions(
+    val appleLinked: Boolean = false,
+    override var statusCode: StatusCode = StatusCode.OK,
+    override val headers: MutableMap<String, String> = mutableMapOf(),
+): Response()
 
 @JsExport
 @Serializable
@@ -351,6 +363,7 @@ open class AuthService : Service("reaktor.auth") {
     open val sessionMe by post<MeRequest, MeResponse>("/auth/session/me")
     open val deviceCredential by post<DeviceCredentialRequest, DeviceCredentialResponse>("/auth/devices/credential")
     open val sessionLogoutAll by post<LogoutAllRequest, LogoutAllResponse>("/auth/session/logout-all")
+    open val accountDeletionOptions by post<DeactivateAccountRequest, AccountDeletionOptions>("/auth/account/deletion-options")
     open val accountDeactivate by post<DeactivateAccountRequest, DeactivateAccountResponse>("/auth/account/deactivate")
     open val authorityGrants by post<AuthorityGrantsRequest, AuthorityGrantsResponse>("/auth/authority/grants")
     open val authorityResolve by post<AuthorityResolveRequest, AuthorityResolveResponse>("/auth/authority/resolve")

@@ -192,7 +192,7 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
     private fun save(next: WorkPlan, previous: WorkPlan?, by: BoardActor?): WorkPlan {
         val stored = stored(logged(next, previous))
         val text = ConductorJson.encodeToString(WorkPlan.serializer(), stored)
-        require(text.length <= MaxChars) { "A plan is at most ${MaxChars / 1024} KB; group finished parts under one Done item or start a new thread" }
+        require(text.length <= MaxChars) { "This plan has reached its ${MaxChars / (1024 * 1024)} MB limit" }
         atomicWrite(file(next.thread), text)
         plans[next.thread] = stored
         changed.value += 1
@@ -233,7 +233,7 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
     private fun file(thread: String): Path = directory.resolve("${thread.replace(':', '-')}.json")
 
     companion object {
-        const val MaxChars = 512 * 1024
+        const val MaxChars = 8 * 1024 * 1024
     }
 
     private fun agentSession(agent: String?): String? {

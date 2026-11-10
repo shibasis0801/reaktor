@@ -7,6 +7,7 @@ import dev.shibasis.reaktor.auth.App
 import dev.shibasis.reaktor.auth.AuthAuditEventType
 import dev.shibasis.reaktor.auth.AuthAuditOutcome
 import dev.shibasis.reaktor.auth.AuthPrincipal
+import dev.shibasis.reaktor.auth.AuthProviderAccount
 import dev.shibasis.reaktor.auth.PersonalAccessToken
 import dev.shibasis.reaktor.auth.ServiceAccount
 import dev.shibasis.reaktor.auth.api.LoginRequest
@@ -57,6 +58,7 @@ interface AuthPrincipalDirectory {
     suspend fun getPrincipalPermissions(request: Request, principalId: UUID, appId: UUID, tenantId: String? = null, contextId: String? = null): Result<List<String>>
     suspend fun getPrincipalRoles(request: Request, principalId: UUID, appId: UUID, tenantId: String? = null, contextId: String? = null): Result<List<String>>
     suspend fun getPrincipal(request: Request, principalId: UUID): Result<AuthPrincipal?>
+    suspend fun providerAccounts(request: Request, principalId: UUID): Result<List<AuthProviderAccount>>
     suspend fun softDeleteAccount(request: Request, principalId: UUID): Result<Boolean>
 }
 

@@ -33,6 +33,20 @@ class WorkPlanTest {
         PlanOp.Add("Kanban lanes", key = "kanban", parent = "views"),
     )), claude)
 
+    @Test fun fullNotesSurviveAPlanLargerThanTheOldHalfMegabyteLimit() {
+        val home = directory("plan-full-notes")
+        val store = WorkPlanStore(home)
+        val note = "Readable note.\n".repeat(4000)
+        val written = store.write("codex:notes", PlanPatch(title = "Notes", ops = (1..12).map {
+            PlanOp.Add("Note $it", key = "note-$it", detail = note)
+        }), person)
+        assertTrue(written.refused.isEmpty())
+        assertTrue(written.plan.items.sumOf { it.detail.length } > 512 * 1024)
+        val restored = WorkPlanStore(home).read("codex:notes").plan!!
+        assertEquals(12, restored.items.size)
+        assertTrue(restored.items.all { it.detail == note })
+    }
+
     @Test fun anAgentDrawsItsPlanAndKeepsItsChecklist() {
         val store = WorkPlanStore(directory("plan-draw"))
         val drawn = draw(store)

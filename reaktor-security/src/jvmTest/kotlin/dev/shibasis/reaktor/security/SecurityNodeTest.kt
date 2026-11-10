@@ -60,13 +60,25 @@ class SecurityNodeTest {
         val lostCommitResponse = AtomicBoolean()
         val offline = AtomicBoolean()
         val publications = AtomicInteger()
+        val claims = AtomicInteger()
+        val activationReady = AtomicBoolean(true)
+        val rejectActivation = AtomicBoolean()
         val consumptions = AtomicInteger()
         override suspend fun <In, R> intercept(exchange: Exchange<In, R>, next: Next<In, R>): R {
-            if (exchange.name == "publishCommit") publications.incrementAndGet()
+            if (exchange.name == "publishCommit") {
+                publications.incrementAndGet()
+                if (rejectActivation.compareAndSet(true, false)) {
+                    activationReady.set(false)
+                    throw Rejected(409, "Every member needs a device that supports encrypted chat")
+                }
+            }
+            if (exchange.name == "claimPackages") claims.incrementAndGet()
             if (exchange.name == "consumeWelcomes") consumptions.incrementAndGet()
             if (offline.get()) throw Unavailable("Directory is offline")
             val result = next(exchange)
             if (exchange.name == "publishCommit" && lostCommitResponse.compareAndSet(true, false)) throw OutcomeUnknown("Response lost after acceptance")
+            @Suppress("UNCHECKED_CAST")
+            if (result is DirectoryGroupInfo) return result.copy(activationReady = activationReady.get()) as R
             return result
         }
     }
@@ -100,6 +112,52 @@ class SecurityNodeTest {
         }
         fun restart() = world.install(user, store, box, probe)
         override fun close() = graph.close()
+    }
+
+    @Test fun unreadyActivationWaitsWithoutClaimingOrPublishingAndResumesWhenNotified() = runBlocking<Unit>(Dispatchers.Default) {
+        Reaktor.web()
+        val world = World()
+        world.members.retainAll(setOf("alice", "bob"))
+        world.install("alice").use { alice ->
+            world.install("bob").use { bob ->
+                alice.api.device()
+                bob.api.device()
+                alice.probe.activationReady.set(false)
+                val waiting = alice.api.reconcile("chat", world.members)
+                assertEquals(ConversationHealth.Waiting, waiting.health)
+                assertNull(waiting.epoch)
+                assertEquals(0, alice.probe.claims.get())
+                assertEquals(0, alice.probe.publications.get())
+                alice.probe.activationReady.set(true)
+                assertEquals(ConversationHealth.Ready, alice.api.reconcile("chat", world.members).health)
+                assertEquals(ConversationHealth.Ready, bob.api.reconcile("chat", world.members).health)
+                val envelope = "waiting-resume".encodeToByteArray()
+                val sealed = alice.api.seal("chat", envelope, "Sealed after readiness".encodeToByteArray())
+                assertPlaintext("Sealed after readiness", bob.api.open("chat", envelope, sealed))
+            }
+        }
+    }
+
+    @Test fun firstActivationConflictDiscardsOnlyTheUnacceptedProposalAndStaysWaiting() = runBlocking<Unit>(Dispatchers.Default) {
+        Reaktor.web()
+        val world = World()
+        world.members.retainAll(setOf("alice", "bob"))
+        world.install("alice").use { alice ->
+            world.install("bob").use { bob ->
+                alice.api.device()
+                bob.api.device()
+                alice.probe.rejectActivation.set(true)
+                val waiting = alice.api.reconcile("chat", world.members)
+                assertEquals(ConversationHealth.Waiting, waiting.health)
+                assertNull(waiting.epoch)
+                assertEquals(1, alice.probe.publications.get())
+                alice.probe.activationReady.set(true)
+                val ready = alice.api.reconcile("chat", world.members)
+                assertEquals(ConversationHealth.Ready, ready.health)
+                assertEquals(1L, ready.epoch)
+                assertEquals(2, alice.probe.publications.get())
+            }
+        }
     }
 
     @Test fun realActorsRecoverOrderingMembershipAndPendingPublicationAcrossRestarts() = runBlocking<Unit>(Dispatchers.Default) {
@@ -156,6 +214,43 @@ class SecurityNodeTest {
             assertTrue(world.spans.any { it.operation == "open" && it.status == 500 && it.decisions["failure"]?.startsWith("native_") == true })
             assertTrue(world.spans.all { it.contract == "reaktor.security" && it.durationMillis >= 0 })
             assertFalse(world.spans.joinToString().contains("first encrypted message"))
+        } finally { installs.forEach { it.close() } }
+    }
+
+    @Test fun aSecondDeviceJoinsAndSendsWithEveryOtherDeviceOfflineThenBothDevicesExchange() = runBlocking<Unit>(Dispatchers.Default) {
+        Reaktor.web()
+        val world = World()
+        world.members.retainAll(setOf("alice", "bob"))
+        val installs = mutableListOf<Install>()
+        try {
+            val first = world.install("alice").also { installs += it }
+            val other = world.install("bob").also { installs += it }
+            first.api.device()
+            other.api.device()
+            val initial = first.api.reconcile("chat", world.members)
+            other.api.reconcile("chat", world.members)
+            first.close()
+            other.close()
+            val second = world.install("alice").also { installs += it }
+            second.api.device()
+            val joined = second.api.reconcile("chat", world.members)
+            assertEquals(ConversationHealth.Ready, joined.health)
+            assertEquals(requireNotNull(initial.epoch) + 1, joined.epoch)
+            assertEquals(joined.epoch, joined.firstJoinedEpoch)
+            assertEquals(3, joined.roster.size)
+            val envelope = "offline-device-join".encodeToByteArray()
+            val alone = second.api.seal("chat", envelope, "Sent with other devices offline".encodeToByteArray())
+            assertPlaintext("Sent with other devices offline", second.api.open("chat", envelope, alone))
+            val resumed = first.restart().also { installs += it }
+            assertEquals(ConversationHealth.Ready, resumed.api.reconcile("chat", world.members).health)
+            assertPlaintext("Sent with other devices offline", resumed.api.open("chat", envelope, alone))
+            val (fromFirst, fromSecond) = coroutineScope {
+                val left = async { resumed.api.seal("chat", envelope, "First live device".encodeToByteArray()) }
+                val right = async { second.api.seal("chat", envelope, "Second live device".encodeToByteArray()) }
+                left.await() to right.await()
+            }
+            assertPlaintext("First live device", second.api.open("chat", envelope, fromFirst))
+            assertPlaintext("Second live device", resumed.api.open("chat", envelope, fromSecond))
         } finally { installs.forEach { it.close() } }
     }
 

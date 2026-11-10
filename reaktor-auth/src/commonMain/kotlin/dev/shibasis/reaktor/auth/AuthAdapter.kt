@@ -176,6 +176,9 @@ abstract class AuthAdapter<Controller>(
 
     abstract suspend fun logout(): Result<Unit>
 
+    suspend fun accountProfile(environment: Environment = activeEnvironment): kotlinx.serialization.json.JsonElement? =
+        if (currentLoginState is AuthLoginState.Authenticated) sessionStore?.read(environment)?.profile else null
+
     suspend fun resumeSession(environment: Environment = Environment.PROD): Boolean {
         activeEnvironment = environment
         if (sessionHeaders(environment).isEmpty()) { resetLoginState(); return false }
@@ -195,6 +198,10 @@ abstract class AuthAdapter<Controller>(
      * [appId] is the token audience — session access tokens are minted with the
      * app id as their audience, so it must match here for verification to pass.
      */
+    protected open val appleDeletionClientId: String? = null
+
+    protected open suspend fun appleDeletionCode(): String? = null
+
     suspend fun deactivateAccount(
         appId: String,
         environment: Environment = Environment.PROD,
@@ -203,16 +210,29 @@ abstract class AuthAdapter<Controller>(
         if (headers.isEmpty()) {
             return DeactivateAccountResponse(statusCode = StatusCode.UNAUTHORIZED)
         }
+        val clientId = appleDeletionClientId
+        val code = try {
+            val options = if (clientId == null) null else authClient.accountDeletionOptions(
+                DeactivateAccountRequest(audience = appId, headers = headers, environment = environment)
+            )
+            if (options?.statusCode == StatusCode.OK && options.appleLinked) appleDeletionCode() else null
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
+            null
+        }
         return runCatching {
             authClient.accountDeactivate(
                 DeactivateAccountRequest(
                     audience = appId,
+                    appleAuthorizationCode = code,
+                    appleClientId = clientId,
                     headers = headers,
                     environment = environment,
                 )
             )
-        }.getOrElse { error ->
-            Logger.e(error) { "Account deactivation request failed" }
+        }.getOrElse {
+            if (it is CancellationException) throw it
+            Logger.e { "Account deactivation request failed: count=1" }
             DeactivateAccountResponse(statusCode = StatusCode.INTERNAL_SERVER_ERROR)
         }
     }
@@ -270,10 +290,11 @@ abstract class AuthAdapter<Controller>(
     suspend fun refreshSession(
         environment: Environment = Environment.PROD,
         lead: Duration = REFRESH_SKEW_MILLIS.milliseconds,
+        force: Boolean = false,
     ): TokenSet? = refreshMutex.withLock {
         if (sessionStore != null) {
             val current = sessionStore.read(environment) ?: return@withLock null
-            if (current.expiresAtEpochMillis > Clock.System.now().toEpochMilliseconds() + lead.inWholeMilliseconds) return@withLock current.tokens
+            if (!force && current.expiresAtEpochMillis > Clock.System.now().toEpochMilliseconds() + lead.inWholeMilliseconds) return@withLock current.tokens
             val token = current.tokens.refreshToken ?: return@withLock null
             return@withLock withContext(NonCancellable) {
                 val response = authClient.sessionRefresh(RefreshRequest(token, environment = environment))
@@ -291,7 +312,7 @@ abstract class AuthAdapter<Controller>(
         val now = Clock.System.now().toEpochMilliseconds()
         val held = store.getAccessToken()
         val heldUntil = store.getAccessTokenExpiresAtEpochMillis()
-        if (held != null && heldUntil != null && heldUntil > now + lead.inWholeMilliseconds) {
+        if (!force && held != null && heldUntil != null && heldUntil > now + lead.inWholeMilliseconds) {
             return@withLock TokenSet(accessToken = held, refreshToken = store.getRefreshToken(), expiresInSeconds = ((heldUntil - now) / 1000).toInt())
         }
         val refreshToken = store.getRefreshToken() ?: return@withLock null
@@ -340,7 +361,7 @@ abstract class AuthAdapter<Controller>(
     private suspend fun cache(response: LoginResponse.Success, environment: Environment) {
         if (sessionStore != null) {
             val expiry = requireNotNull(response.tokenSet.accessTokenExpiresAtEpochMillis()) { "Login returned no session expiry" }
-            sessionStore.write(environment, StoredAuthSession(response.context.toAuthContext(), response.tokenSet, expiry))
+            sessionStore.write(environment, StoredAuthSession(response.context.toAuthContext(), response.tokenSet, expiry, response.profile))
             return
         }
         val db = Feature.Database ?: return

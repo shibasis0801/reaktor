@@ -20,6 +20,9 @@ data class BlueprintAgent(
     val effort: String? = null,
     val model: String? = null,
     val role: String? = null,
+    val companions: List<BlueprintAgent> = emptyList(),
+    val key: String? = null,
+    val person: Boolean = false,
 ) {
     init {
         require(otherAgents >= 0)

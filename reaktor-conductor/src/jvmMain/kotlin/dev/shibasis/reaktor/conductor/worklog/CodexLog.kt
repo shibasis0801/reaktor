@@ -99,8 +99,8 @@ internal class CodexLog(private val root: String?) : LogParser {
                 val file = LogText.relative(path, root) ?: path
                 val status = if (failed) StepStatus.Failed else StepStatus.Done
                 val step = when (change.str("type")) {
-                    "add" -> LogText.lines(change.str("content").orEmpty(), '+').let { (lines, cut) -> WorkStep.Edit("$id:$file", stamp, file, EditKind.Add, listOf(DiffHunk(null, 1, lines)), status, cut) }
-                    "delete" -> LogText.lines(change.str("content").orEmpty(), '-').let { (lines, cut) -> WorkStep.Edit("$id:$file", stamp, file, EditKind.Delete, listOf(DiffHunk(1, null, lines)), status, cut) }
+                    "add" -> LogText.lines(change.str("content").orEmpty(), '+').let { (lines, cut) -> WorkStep.Edit("$id:$file", stamp, file, EditKind.Add, listOf(DiffHunk(null, 1, lines)), status, cut, content = change.str("content")?.takeIf { it.length <= 1_000_000 }) }
+                    "delete" -> LogText.lines(change.str("content").orEmpty(), '-').let { (lines, cut) -> WorkStep.Edit("$id:$file", stamp, file, EditKind.Delete, listOf(DiffHunk(1, null, lines)), status, cut, content = change.str("content")?.takeIf { it.length <= 1_000_000 }) }
                     else -> WorkStep.Edit("$id:$file", stamp, file, EditKind.Update, LogText.unified(change.str("unified_diff").orEmpty()), status,
                         movedTo = LogText.relative(change.str("move_path"), root))
                 }

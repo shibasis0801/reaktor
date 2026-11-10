@@ -27,7 +27,7 @@ TEMP_PREFIXES = ('tmp', '.tmp', 'included', 'konan_temp', 'gradle', 'kotlin', 'j
                  'claude-', 'codex-', 'webmcp', 'chromium-webmcp', 'pnpm-verify')
 PROTECTED_NAMES = {'config.json', 'config', '.env', 'dev-auth-fixtures.json',
                    'dev-auth-fixtures.dev.json', 'docker-migration', 'build-cache',
-                   'workspace.lock', 'local-gradle.lock', 'local-slot-1.lock', 'worker-gradle.lock', 'worker-slot-1.lock',
+                   'workspace.lock', *(name + '.lock' for name in remote_retention.LOCAL_LANE_LOCKS), 'worker-gradle.lock', 'worker-slot-1.lock',
                    'worker-slot-2.lock', 'publications.sqlite3', 'capture.lock',
                    'storage.lock', 'graph-activity.lock', 'storage-budget.json', 'retention.json',
                    'storage-cleanup-20261013.json', 'cleanup-20261003.json',
@@ -498,7 +498,7 @@ def remote_idle(state, held_locks=(), wait=False):
     while True:
         with contextlib.ExitStack() as stack:
             blocked = False
-            for name in ('workspace', 'local-gradle', 'local-slot-1', 'worker-gradle', 'worker-slot-1', 'worker-slot-2', 'capture', 'graph-activity'):
+            for name in ('workspace', *remote_retention.LOCAL_LANE_LOCKS, 'worker-gradle', 'worker-slot-1', 'worker-slot-2', 'capture', 'graph-activity'):
                 if name in held_locks:
                     continue
                 lock = stack.enter_context((state / (name + '.lock')).open('a'))
