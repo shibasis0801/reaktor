@@ -167,6 +167,45 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
         return plan.copy(seats = plan.seats.map { if (it.id == seat) it.copy(run = run) else it }).also { save(it, plan, null) }
     }
 
+    @Synchronized fun archive(thread: String, by: BoardActor): List<String> {
+        val writer = identity(by)
+        val current = plan(thread) ?: error("$thread has no plan")
+        require(writer.kind == BoardActorKind.Person || writer.session == thread || thread.startsWith(BoardRefs.Hangar)) {
+            "Only the thread's agent or a person archives closed items on $thread"
+        }
+        val parents = current.items.mapNotNullTo(HashSet()) { it.parent }
+        val closed = setOf(PlanStatus.Done, PlanStatus.Dropped)
+        val archivable = current.items.filter { item ->
+            item.id !in parents && item.kind != PlanKind.Component && item.status in closed &&
+                current.items.none { other -> item.id in other.after && other.status !in closed }
+        }
+        if (archivable.isEmpty()) return emptyList()
+        val archiveDir = directory.resolve("archive").also(::privateDirectory)
+        val archiveFile = archiveDir.resolve("${thread.replace(':', '-')}.json")
+        val existing = if (Files.isRegularFile(archiveFile))
+            runCatching { ConductorJson.decodeFromString(WorkPlan.serializer(), Files.readString(archiveFile)) }.getOrNull()
+        else null
+        val archivedIds = archivable.mapTo(HashSet()) { it.id }
+        val now = clock()
+        val mergedArchive = (existing ?: current.copy(items = emptyList(), changes = emptyList())).let { base ->
+            val kept = base.items.filterNot { it.id in archivedIds } + archivable
+            base.copy(items = kept, revision = current.revision + 1, updatedAt = now)
+        }
+        atomicWrite(archiveFile, ConductorJson.encodeToString(WorkPlan.serializer(), mergedArchive))
+        val revision = current.revision + 1
+        val summary = "Archived ${archivable.size} closed ${if (archivable.size == 1) "item" else "items"}: ${archivable.take(10).joinToString { it.id }}"
+        val next = current.copy(
+            items = current.items.filterNot { it.id in archivedIds }.map { item ->
+                item.copy(after = item.after - archivedIds, relations = item.relations.filterNot { it.to in archivedIds })
+            },
+            revision = revision,
+            updatedAt = now,
+            changes = (current.changes + PlanChange(revision, now, writer, listOf(summary))).takeLast(PlanRules.MaxChanges),
+        )
+        save(next, current, writer)
+        return archivable.map { it.id }
+    }
+
     private fun logged(next: WorkPlan, previous: WorkPlan?): WorkPlan {
         val now = clock()
         val before = previous?.items.orEmpty().associateBy { it.id }

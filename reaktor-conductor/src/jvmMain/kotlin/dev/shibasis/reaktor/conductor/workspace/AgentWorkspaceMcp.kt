@@ -58,7 +58,7 @@ internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<Mcp
                 finally { taskWaits.release() }
             }
         },
-        McpTool("agent_submit", "Start or continue a Reaktor conversation: Single uses one provider, Compare uses two independent proposals, Council uses two proposals, two critiques and a synthesis by the primary provider; councilHybrid adds the third ChatGPT + Gemini seat. Single ChatGptGemini uses only human ChatGPT handoffs and Gemini execution. Collaborative turns use fresh provider sessions; editing requires owned Worktree isolation. Reuse requestId only for identical retries. This incurs model usage and harnesses may execute tools; provider permissions apply.",
+        McpTool("agent_submit", "Start or continue a Reaktor conversation: Single uses one provider, Compare uses two independent proposals, Council uses two proposals, two critiques and a synthesis by the primary provider; councilHybrid runs the three-seat council across Claude Code, Codex, and Antigravity. Collaborative turns use fresh provider sessions; editing requires owned Worktree isolation. Reuse requestId only for identical retries. This incurs model usage and harnesses may execute tools; provider permissions apply.",
             objectSchema(mapOf(
                 "requestId" to stringSchema("Unique idempotency key for this exact submission"),
                 "provider" to enumSchema("Provider configured by this workspace", workspace.info().providers.map { it.name }),
@@ -71,7 +71,7 @@ internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<Mcp
                 "allowWrites" to buildJsonObject { put("type", "boolean") },
                 "timeoutMillis" to buildJsonObject { put("type", "integer"); put("minimum", 1); put("description", "Optional positive executor turn budget in milliseconds; use a longer budget for editing, builds and tests.") },
                 "scope" to buildJsonObject { put("type", "array"); put("maxItems", 100); put("items", stringSchema("Source path, build module or shared interface; omitted writers hold the whole workspace")) },
-                "councilHybrid" to buildJsonObject { put("type", "boolean"); put("description", "Add the third ChatGPT + Gemini seat to a Codex/Claude Council. ChatGPT planning and review require durable human handoffs.") },
+                "councilHybrid" to buildJsonObject { put("type", "boolean"); put("description", "Run the three-seat native council across Claude Code, Codex, and Antigravity.") },
                 "isolation" to enumSchema("Shared source or owned Worktree", listOf("Shared", "Worktree")),
                 "workflow" to buildJsonObject { put("type", "object"); put("description", "WorkflowDefinition: id,title,participants AgentSpecs,stages(id,title,agent,instruction,action Agent|Check|Gate,contract Text|Decision,checkId),edges(from,to,whenResult Always|Succeeded|Failed|Pass|Repair),subjectRefs. Bounded DAG, explicit gate resume."); put("additionalProperties", true) },
                 "collaboration" to enumSchema("Single by default; Compare and Council require a partner; editing requires Worktree isolation", workspace.info().collaborations.map { it.name }),

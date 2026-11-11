@@ -20,6 +20,10 @@ internal class AntigravityLog(private val root: String?) : LogParser {
             }
             "PLANNER_RESPONSE" -> {
                 val turn = turns.ensure(at)
+                val input = record.num("input_tokens")
+                val cache = record.num("cache_read_tokens")
+                val output = record.num("output_tokens")
+                if (input != null || output != null) turn.use(WorkUsage(context = (input ?: 0L) + (cache ?: 0L), output = output, input = input))
                 record.str("thinking")?.trim()?.takeIf(String::isNotEmpty)?.let { turn.add(WorkStep.Reasoning("agy:$index:thinking", at, it, summary = false)) }
                 record.str("content")?.trim()?.takeIf(String::isNotEmpty)?.let { turn.add(WorkStep.Message("agy:$index:text", at, it)) }
                 record.list("tool_calls").mapNotNull { it as? JsonObject }.forEachIndexed { position, call ->
@@ -50,18 +54,18 @@ internal class AntigravityLog(private val root: String?) : LogParser {
 
     private fun call(id: String, at: Long?, name: String, args: JsonObject): WorkStep {
         val purpose = args.str("toolSummary")
-        val file = LogText.relative(args.str("TargetFile") ?: args.str("AbsolutePath"), root)
+        val file = LogText.relative(args.str("TargetFile") ?: args.str("AbsolutePath") ?: args.str("Path"), root)
         return when (name) {
             "run_command" -> WorkStep.Command(id, at, args.str("CommandLine").orEmpty(), purpose = purpose)
-            "replace_file_content", "multi_replace_file_content" -> {
+            "replace_file_content", "multi_replace_file_content", "edit_file" -> {
                 val chunks = args.list("ReplacementChunks").mapNotNull { it as? JsonObject }.ifEmpty { listOf(args) }
-                val hunks = chunks.map { LogText.replacement(it.str("TargetContent").orEmpty(), it.str("ReplacementContent").orEmpty()) }
+                val hunks = chunks.map { LogText.replacement((it.str("TargetContent") ?: it.str("Target")).orEmpty(), (it.str("ReplacementContent") ?: it.str("Replacement")).orEmpty()) }
                 WorkStep.Edit(id, at, file ?: "(unknown file)", EditKind.Update, hunks.map { it.first }, cut = hunks.any { it.second })
             }
-            "write_to_file" -> LogText.lines(args.str("CodeContent").orEmpty(), '+').let { (lines, cut) ->
+            "write_to_file", "write_file" -> LogText.lines((args.str("CodeContent") ?: args.str("Content")).orEmpty(), '+').let { (lines, cut) ->
                 WorkStep.Edit(id, at, file ?: "(unknown file)", if (args.flag("Overwrite")) EditKind.Update else EditKind.Add, listOf(DiffHunk(null, 1, lines)), cut = cut)
             }
-            "view_file", "view_file_outline", "view_code_item" -> WorkStep.Tool(id, at, ToolKind.Read, "Read",
+            "view_file", "view_file_outline", "view_code_item", "read_file" -> WorkStep.Tool(id, at, ToolKind.Read, "Read",
                 listOfNotNull(file, args.num("StartLine")?.let { start -> "lines $start–${args.num("EndLine") ?: start}" }).joinToString(" · ").ifEmpty { purpose })
             "find_by_name", "grep_search", "list_dir", "codebase_search" -> WorkStep.Tool(id, at, ToolKind.Search, if (name == "list_dir") "List folder" else "Search",
                 listOfNotNull(args.str("Pattern") ?: args.str("Query"), LogText.relative(args.str("SearchDirectory") ?: args.str("SearchPath") ?: args.str("DirectoryPath"), root)).joinToString(" · ").ifEmpty { purpose })

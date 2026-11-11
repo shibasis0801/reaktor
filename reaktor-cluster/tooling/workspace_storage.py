@@ -402,11 +402,14 @@ def claim_run(state, run_id):
     return receipt
 
 
-def remote_candidates(state=STATE, idle=0, abandoned=()):
+def remote_candidates(state=STATE, idle=0, abandoned=(), held_locks=()):
     """Evict rematerializable slots, old archives/reports, then unpinned source backups."""
+    active_slots = ({'local'} if 'local-gradle' in held_locks else set()) | (
+        {'worker'} if 'worker-gradle' in held_locks else set()) | {
+        f'local-{name.removeprefix("local-slot-")}' for name in held_locks if name.startswith('local-slot-')}
     for slots in remote_retention.configured_slot_roots(state):
         for path in slots.iterdir() if slots.exists() else []:
-            if path.is_dir() and not path.is_symlink() and (path / 'source-manifest.json').is_file():
+            if path.name not in active_slots and path.is_dir() and not path.is_symlink() and (path / 'source-manifest.json').is_file():
                 yield 0, path
     orphans = set(orphaned_artifacts(state))
     for name in ('artifacts', 'runs'):
@@ -609,7 +612,7 @@ def cleanup(root=ROOT, state=STATE, config=None, dry_run=False, wait=False, held
                 if not dry_run:
                     for path, receipt in runs:
                         abandon(path, receipt)
-                report['remote'] = enforce([state], remote_candidates(state, idle, {path.stem for path, _ in runs}),
+                report['remote'] = enforce([state], remote_candidates(state, idle, {path.stem for path, _ in runs}, held_locks),
                                            remote_limit, int(remote_limit * fraction), files, working, [state],
                                            0, dry_run, disk_room(root, floor))
                 report['remote']['orphans'] = orphans

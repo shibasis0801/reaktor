@@ -65,12 +65,12 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
             "The answer lists what applied, what was refused and why, and the new revision.",
             withActor(api.write.request.descriptor.jsonSchema()),
             readOnly = false, idempotent = false) { args ->
-            args.only("thread", "title", "goal", "ops", "base", "seat", "message", "documentPath", "by")
+            args.only("thread", "title", "goal", "ops", "base", "seat", "message", "documentPath", "requestId", "by")
             val writer = args.actor() ?: error("by is required: who makes this change")
             val patch = PlanPatch(
                 ops = AgentWorkspaceJson.decodeFromJsonElement(ListSerializer(PlanOp.serializer()), PlanJson.statuses(args["ops"] ?: JsonArray(emptyList()))),
                 title = args.text("title"), goal = args.text("goal"), base = args.long("base"), seat = args.text("seat"), message = args.text("message"),
-                documentPath = args.text("documentPath"),
+                documentPath = args.text("documentPath"), requestId = args.text("requestId"),
             )
             val applied = workspace.plans.write(args.thread(writer), patch, writer)
             buildJsonObject {
@@ -100,6 +100,18 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
             val plans = wanted?.mapNotNull(workspace.plans::plan) ?: workspace.plans.list().mapNotNull { workspace.plans.plan(it.thread) }
             AgentWorkspaceJson.encodeToJsonElement(dev.shibasis.reaktor.graph.core.GraphShape.serializer(), PlanGraph.shape(plans))
         },
+        McpTool("agent_plan_archive", "Archive completed (Done) and closed (Dropped) leaf items from a thread's plan into plans/archive/ so large multi-wave plans stay compact.",
+            withActor(api.archive.request.descriptor.jsonSchema()), readOnly = false, idempotent = true) { args ->
+            args.only("thread", "by")
+            val writer = args.actor() ?: error("by is required")
+            val thread = args.thread(writer)
+            val archived = workspace.plans.archive(thread, writer)
+            buildJsonObject {
+                put("thread", thread)
+                put("archived", JsonArray(archived.map(::JsonPrimitive)))
+                put("revision", workspace.plans.read(thread, reader = writer).plan.revision)
+            }
+        },
         McpTool("agent_taskgraph_archive", "Move every task graph that is not running, with its tasks, to the board's archive folder (board/archive). " +
             "Plans replace task graphs in Hangar; moving the files back restores a graph. Only a person archives.",
             objectSchema(mapOf(by), listOf("by")), readOnly = false, idempotent = true) { args ->
@@ -115,6 +127,7 @@ internal object PlanJson {
         "doing" to PlanStatus.Doing, "in progress" to PlanStatus.Doing, "in-progress" to PlanStatus.Doing, "in_progress" to PlanStatus.Doing, "started" to PlanStatus.Doing,
         "done" to PlanStatus.Done, "complete" to PlanStatus.Done, "completed" to PlanStatus.Done,
         "dropped" to PlanStatus.Dropped, "won't do" to PlanStatus.Dropped, "wont do" to PlanStatus.Dropped, "will not do" to PlanStatus.Dropped, "skipped" to PlanStatus.Dropped,
+        "parked" to PlanStatus.Dropped, "deferred" to PlanStatus.Dropped,
     )
 
     fun statuses(ops: JsonElement): JsonElement = (ops as? JsonArray)?.let { array ->

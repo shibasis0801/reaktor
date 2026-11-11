@@ -21,7 +21,7 @@ class PlanNudges(inbox: Path) {
         }
 
     companion object {
-        val Reached = setOf(RuntimeKind.ClaudeCode, RuntimeKind.Codex)
+        val Reached = setOf(RuntimeKind.ClaudeCode, RuntimeKind.Codex, RuntimeKind.Gemini)
         const val QuietMillis = 15 * 60_000L
         const val Draw = "draw"
         const val Flat = "flat"
@@ -30,7 +30,7 @@ class PlanNudges(inbox: Path) {
         const val Stale = "stale"
         private const val DrawMillis = 5 * 60_000L
         private const val StaleMillis = 30 * 60_000L
-        private val Elsewhere = listOf("/.claude/", "/.reaktor/", "/private/tmp/", "/tmp/")
+        private val Elsewhere = listOf("/.claude/", "/.gemini/", "/.reaktor/", "/private/tmp/", "/tmp/")
 
         fun of(thread: String, plan: WorkPlan?, session: HarnessSession, now: Long): PlanReminder? {
             val edited = session.steps.filter { step -> step.file?.let { file -> Elsewhere.none { it in "/$file" } } == true }

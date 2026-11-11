@@ -189,6 +189,33 @@ print(shutil.disk_usage(sys.argv[1]).free)
     return observed
 
 
+def prune_snapshots(state, keep=()):
+    snapshots = state / 'snapshots'
+    if not snapshots.is_dir():
+        return
+    pending = set(keep)
+    runs = state / 'runs'
+    if runs.is_dir():
+        for run in runs.iterdir():
+            try:
+                receipt = json.loads((run / 'receipt.json').read_text())
+            except (OSError, ValueError):
+                continue
+            if not receipt.get('finished') and receipt.get('status') not in {'cancelled', 'failed', 'succeeded'}:
+                pending.add(receipt.get('snapshot'))
+    candidates = sorted((p for p in snapshots.iterdir() if re.fullmatch('[0-9a-f]{64}', p.name)
+                         and p.name not in pending and not p.is_symlink() and (p / 'manifest.json').is_file()),
+                        key=lambda p: p.stat().st_mtime)
+    pins = state / 'snapshot-pins'
+    for old in candidates[:-1]:
+        pin = pins / (old.name + '.lock')
+        if pin.exists():
+            with pin.open('a') as lock:
+                if not try_lock(lock):
+                    continue
+        shutil.rmtree(old, ignore_errors=True)
+
+
 def freeze(helper):
     with lease(helper.STATE / 'capture.lock'):
         remote_retention.require_admission(helper.STATE)
@@ -199,6 +226,7 @@ def freeze(helper):
             destination = helper.STATE / 'snapshots' / identity
             if destination.exists():
                 verify_sources(destination / 'workspace', manifest)
+                prune_snapshots(helper.STATE, keep={identity})
                 return identity
             destination.parent.mkdir(parents=True, exist_ok=True)
             pending = Path(tempfile.mkdtemp(prefix='capture-', dir=destination.parent))
@@ -214,7 +242,6 @@ def freeze(helper):
                     source, target = helper.ROOT / relative, workspace / relative
                     target.parent.mkdir(parents=True, exist_ok=True)
                     if source.is_symlink():
-                        # Absolute in-workspace links become relocatable within the snapshot.
                         link = os.readlink(source)
                         if os.path.isabs(link):
                             raise ValueError(f'Use a relative source symlink: {relative}')
@@ -226,6 +253,7 @@ def freeze(helper):
                     continue
                 (pending / 'manifest.json').write_text(json.dumps(manifest, sort_keys=True) + '\n')
                 pending.rename(destination)
+                prune_snapshots(helper.STATE, keep={identity})
                 return identity
             except (OSError, ValueError):
                 if source_manifest(helper) == manifest:

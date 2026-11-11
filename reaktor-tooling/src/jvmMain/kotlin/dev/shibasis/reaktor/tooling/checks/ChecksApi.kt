@@ -19,7 +19,7 @@ open class ChecksApi : Service("reaktor.check") {
 
     open val artifact by call<CheckArtifactRequest, JsonElement>(effect = Effect.ReadOnly, summary = "Read a bounded range of a retained non-sensitive check log.")
 
-    open val run by call<CheckRunRequest, CheckRunAnswer>(effect = Effect.LocalArtifactWrite, summary = "Runs affected test classes through the code graph by default, excluding window tests; narrow:false explicitly runs whole checks. Missing safe class selection is reported without broadening. Waits up to 25 seconds and reports run receipts, selected classes, reused results, compiler errors, assertions with source lines and Gradle failure causes in a bounded summary. Queued admission follows the bound plan item's current priority and dependencies. Follow the returned next request while unfinished; waiting admissions continue with queue, admitted checks with run or runs.")
+    open val run by call<CheckRunRequest, CheckRunAnswer>(effect = Effect.LocalArtifactWrite, deadline = kotlin.time.Duration.parse("1m"), summary = "Runs affected test classes through the code graph by default, excluding window tests; narrow:false explicitly runs whole checks. Missing safe class selection is reported without broadening. Waits up to 25 seconds and reports run receipts, selected classes, reused results, compiler errors, assertions with source lines and Gradle failure causes in a bounded summary. Queued admission follows the bound plan item's current priority and dependencies. Follow the returned next request while unfinished; waiting admissions continue with queue, admitted checks with run or runs.")
 }
 
 @Serializable

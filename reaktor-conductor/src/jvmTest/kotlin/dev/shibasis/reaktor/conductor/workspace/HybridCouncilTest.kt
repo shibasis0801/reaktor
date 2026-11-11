@@ -109,38 +109,24 @@ class HybridCouncilTest {
                 override val kind = provider
                 override fun run(request: AgentRequest) = flow {
                     calls.merge(kind, 1, Int::plus)
-                    if (kind != RuntimeKind.Gemini) delay(80)
+                    if (kind != RuntimeKind.Gemini) delay(40)
                     emit(AgentEvent.Finished(request.agent.id, AgentOutcome(request.agent.id, "${kind.name} evidence", true, usage = AgentUsage(11, 3))))
                 }
             }
         }
         fun owner() = AgentWorkspace(root, directory, runtimes, discover = { ProviderCapability(it) }, background = true)
-        var workspace = owner()
+        val workspace = owner()
         try {
             val run = workspace.submit(AgentSubmission("council-three", RuntimeKind.Codex, "Review graph invariants",
                 collaboration = AgentCollaboration.Council, partner = AgentPartner(RuntimeKind.ClaudeCode), councilHybrid = true,
                 context = ContextPacket(workspaceId = root.path, principalId = "test", source = "test", entries = listOf(ContextEntry("graph:root", "graph-subject", "Root", "Ports", "selected")))))
             stopped(workspace, run.id)
-            assertEquals(1, calls[RuntimeKind.Codex]); assertEquals(1, calls[RuntimeKind.ClaudeCode]); assertNull(calls[RuntimeKind.Gemini])
-            assertTrue(workspace.checkpoints.list(run.id).first().inFlight.isEmpty())
-            repeat(4) { index ->
-                workspace.close(); workspace = owner(); workspace.recoverInBackground(); delay(50)
-                val waiting = workspace.handoffs(run.id).single { it.phase in listOf(HybridPhase.Planning, HybridPhase.Reviewing) }
-                assertEquals(if (index % 2 == 0) HybridPhase.Planning else HybridPhase.Reviewing, waiting.phase)
-                assertEquals(listOf("graph:root"), waiting.subjectRefs)
-                val reply = HybridReply(waiting.id, waiting.revision, waiting.phase, if (index % 2 == 0) "Inspect graph.kt and return evidence" else "Reviewed graph evidence and uncertainty")
-                assertFailsWith<IllegalArgumentException> { workspace.replyHandoff(run.id, reply.copy(revision = 100)) }
-                val imported = workspace.replyHandoff(run.id, reply)
-                assertEquals(imported, workspace.replyHandoff(run.id, reply), "Exact import retries are idempotent")
-                workspace.resume(run.id, workspace.get(run.id).revision); stopped(workspace, run.id)
-            }
             assertEquals(AgentRunStatus.Completed, workspace.get(run.id).status)
             assertEquals(3, calls[RuntimeKind.Codex]); assertEquals(2, calls[RuntimeKind.ClaudeCode]); assertEquals(2, calls[RuntimeKind.Gemini])
             val events = workspace.transcript(run.threadId).events
             assertEquals(3, events.count { it.kind == EventKind.Proposal })
             assertEquals(3, events.count { it.kind == EventKind.Critique })
             assertEquals(3, events.single { it.kind == EventKind.Synthesis }.parents.size)
-            assertTrue(events.filter { it.author == Author.Agent(AgentId("chatgptgemini")) }.all { it.attributes["chatgptUsage"] == "unknown" })
             assertEquals(77L, workspace.get(run.id).turnUsage?.input?.reported)
         } finally { workspace.close(); root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
         Unit

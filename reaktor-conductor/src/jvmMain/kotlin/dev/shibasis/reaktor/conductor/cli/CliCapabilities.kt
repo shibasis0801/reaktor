@@ -149,7 +149,7 @@ object CliCapabilities {
             ),
             notes = buildList {
                 if (!advertised) add("This CLI advertises no --effort flag; effort selection is unavailable.")
-                add("Hangar passes bypassPermissions for writing turns; inspection disables built-in editors. These permissions are not an OS sandbox.")
+                add("Hangar passes bypassPermissions for Admin turns and acceptEdits for Write turns; inspection disables built-in editors. These permissions are not an OS sandbox.")
             },
             models = help?.let(::parseClaudeModels).orEmpty(),
             defaultModel = defaultModel,

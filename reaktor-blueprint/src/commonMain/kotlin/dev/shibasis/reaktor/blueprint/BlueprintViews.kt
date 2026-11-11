@@ -215,9 +215,9 @@ fun <K> BlueprintCanvas(
     val glows = cards.map { glow(it.id) }
     val tints = editor?.placement?.notes?.associate { it.id to it.tint }
     val frameLooks = layout.frames.map { frame -> frameLook(frame).let { look -> tints?.get(frame.key)?.takeIf { it != 0L }?.let { look.copy(lit = Color(it.toInt())) } ?: look } }
-    val controlled = frameLooks.indices.filter { frameLooks[it].hasHeaderContent } +
-        cards.indices.filter { looks[it]?.drawsControls == true }.map { it + layout.frames.size }
-    val carried = cards.indices.filter { cardContent != null || looks[it]?.agent != null }.map { it + layout.frames.size }
+    val controlled = (if (detailLevel == 2) frameLooks.indices.filter { frameLooks[it].hasHeaderContent } else emptyList()) +
+        (if (detailLevel > 0) cards.indices.filter { looks[it]?.drawsControls == true }.map { it + layout.frames.size } else emptyList())
+    val carried = if (detailLevel > 0) cards.indices.filter { cardContent != null || looks[it]?.agent != null }.map { it + layout.frames.size } else emptyList()
     val stillIndices = remember(markerIndices, controlled) { controlled.toHashSet().let { live -> markerIndices.filter { it !in live } } }
     val liveIndices = remember(markerIndices, controlled, carried) { (controlled + carried).toHashSet().let { live -> markerIndices.filter { it in live } } }
     val stillBoxes = remember(boxes, stillIndices) { stillIndices.map(boxes::get) }
@@ -338,7 +338,7 @@ fun <K> BlueprintCanvas(
                 if (i < layout.frames.size) Region(layout.frames[i], frameLooks[i])
                 else looks[i - layout.frames.size]?.let { look -> Marker(cards[i - layout.frames.size], look) }
             }
-            if (liveBoxes.isNotEmpty()) GraphMarkers(canvas, liveBoxes, { markerId(liveIndices[it]) }) { marker, _ ->
+            if (liveBoxes.isNotEmpty()) GraphMarkers(canvas, liveBoxes, { markerId(liveIndices[it]) }, batch = if (mapLayers) MapMarkerBatch else Int.MAX_VALUE) { marker, _ ->
                 val i = liveIndices[marker]
                 val moving = editor?.takeIf { it.settled.cards === layout.cards }?.layout
                 if (i < layout.frames.size) {
@@ -568,6 +568,22 @@ fun measureBlueprintBody(node: BlueprintNode, look: BlueprintCardLook): Blueprin
         BlueprintPainter(graphics, TextMeasurer(resolver, Density(1f), direction, cacheSize = 512), BlueprintType(fonts.ui, fonts.mono, base, fonts.graphLabel), colors)
     }
     return remember(painter, node, look) { painter.body(node, look) }
+}
+
+@Composable
+fun measureBlueprintBodies(entries: Map<String, Pair<BlueprintNode, BlueprintCardLook>>): Map<String, BlueprintBody> {
+    val fonts = LocalMachineSignalFonts.current
+    val base = LocalTextStyle.current
+    val resolver = LocalFontFamilyResolver.current
+    val direction = LocalLayoutDirection.current
+    val graphics = LocalGraphicsContext.current
+    val colors = MachineSignal.colors
+    val painter = remember(graphics, resolver, direction, fonts, base, colors) {
+        BlueprintPainter(graphics, TextMeasurer(resolver, Density(1f), direction, cacheSize = 2048), BlueprintType(fonts.ui, fonts.mono, base, fonts.graphLabel), colors)
+    }
+    return remember(painter, entries) {
+        entries.mapValues { (_, pair) -> painter.body(pair.first, pair.second) }
+    }
 }
 
 @Composable

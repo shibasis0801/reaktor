@@ -48,6 +48,7 @@ data class ToolPolicy(
      * Turn it on for a reproducible run that depends on nothing outside the [AgentSpec].
      */
     val isolateOperatorConfig: Boolean = false,
+    val sandboxed: Boolean = false,
 )
 
 /**

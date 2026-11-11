@@ -121,8 +121,10 @@ object HarnessSessions {
     private val ClaudeEdits = EditTools.map { "$it\"".encodeToByteArray() }
     private val CodexItem = "\"type\":\"".encodeToByteArray()
     private val CodexEdits = listOf("FileChange\"".encodeToByteArray())
-    private val AntigravityEdits = listOf("replace_file_content\"", "multi_replace_file_content\"", "write_to_file\"").map { it.encodeToByteArray() }
-    private val AntigravityEditTools = setOf("replace_file_content", "multi_replace_file_content", "write_to_file")
+    private val AntigravityEdits = listOf("replace_file_content\"", "multi_replace_file_content\"", "write_to_file\"", "edit_file\"", "write_file\"").map { it.encodeToByteArray() }
+    private val AntigravityEditTools = setOf("replace_file_content", "multi_replace_file_content", "write_to_file", "edit_file", "write_file")
+    private val AntigravityBrains = listOf(".gemini/antigravity/brain", ".gemini/antigravity-cli/brain")
+    private val AntigravityCaches = listOf(".gemini/antigravity/cache/last_conversations.json", ".gemini/antigravity-cli/cache/last_conversations.json")
 
     fun read(
         workspace: File,
@@ -498,9 +500,10 @@ object HarnessSessions {
     }
 
     private fun antigravity(home: File, since: Long, now: Long, root: String): List<HarnessSession> {
-        val base = File(home, ".gemini/antigravity-cli")
-        val folders = File(base, "cache/last_conversations.json").takeIf(File::isFile)?.let { runCatching { lenientJson.parseToJsonElement(it.readText()) as? JsonObject }.getOrNull() }
-            .orEmpty().entries.mapNotNull { (folder, id) -> (id as? JsonPrimitive)?.contentOrNull?.let { it to folder } }.toMap()
+        val folders = AntigravityCaches.flatMap { path ->
+            File(home, path).takeIf(File::isFile)?.let { runCatching { lenientJson.parseToJsonElement(it.readText()) as? JsonObject }.getOrNull() }
+                .orEmpty().entries.mapNotNull { (folder, id) -> (id as? JsonPrimitive)?.contentOrNull?.let { it to folder } }
+        }.toMap()
         return antigravityFiles(home, since).mapNotNull { file ->
             val id = file.parentFile.parentFile.parentFile.name
             runCatching { parsed(file, root) { antigravityParse(file, id, folders[id], root) } }.getOrNull()?.let { session ->
@@ -510,16 +513,19 @@ object HarnessSessions {
     }
 
     private fun antigravityFiles(home: File, since: Long): List<File> =
-        File(home, ".gemini/antigravity-cli/brain").listFiles().orEmpty().map { File(it, ".system_generated/logs/transcript.jsonl") }
+        AntigravityBrains.flatMap { brain -> File(home, brain).listFiles().orEmpty().map { File(it, ".system_generated/logs/transcript.jsonl") } }
             .filter { it.isFile && it.lastModified() >= since }
 
     private fun antigravityParse(file: File, id: String, folder: String?, root: String): HarnessSession? {
         val head = records(file, fromEnd = false, HeadBytes)
+        if (head.none { it.string("type") == "USER_INPUT" }) return null
         val tail = records(file, fromEnd = true, TailBytes)
         val calls = (head + tail).flatMap { record -> (record["tool_calls"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonObject)?.nested("args")?.parsedArguments() } }
-        val paths = calls.mapNotNull { args -> args.string("Cwd") ?: args.string("TargetFile") ?: args.string("AbsolutePath") ?: args.string("SearchDirectory") }
+        val paths = calls.mapNotNull { args -> args.string("Cwd") ?: args.string("TargetFile") ?: args.string("AbsolutePath") ?: args.string("Path") ?: args.string("SearchDirectory") }
         if (folder?.let { related(it, root) } != true && paths.none { related(it, root) }) return null
         val steps = tail.flatMap { antigravitySteps(it, root) }
+        val latest = tail.lastOrNull { it.string("type") == "PLANNER_RESPONSE" }
+        val tokens = latest?.let { (it.long("input_tokens") ?: 0L) + (it.long("cache_read_tokens") ?: 0L) + (it.long("output_tokens") ?: 0L) }?.takeIf { it > 0L }
         return HarnessSession(
             runtime = RuntimeKind.Gemini,
             id = id,
@@ -527,12 +533,12 @@ object HarnessSessions {
             directory = folder ?: root,
             startedAt = head.firstNotNullOfOrNull { instant(it.string("created_at")) },
             lastActiveAt = file.lastModified(),
-            origin = "cli",
+            origin = if ("/.gemini/antigravity/brain/" in file.path) "ide" else "cli",
             version = null,
             branch = null,
-            model = null,
-            effort = null,
-            tokens = null,
+            model = "gemini-4-argon-high",
+            effort = "high",
+            tokens = tokens,
             steps = steps.takeLast(StepsKept),
             transcript = file.path,
             files = steps.mapNotNull { it.file }.distinct(),
@@ -552,7 +558,7 @@ object HarnessSessions {
         return (record["tool_calls"] as? JsonArray).orEmpty().mapNotNull { it as? JsonObject }.map { call ->
             val name = call.string("name").orEmpty()
             val args = call.nested("args")?.parsedArguments()
-            val path = (args?.string("TargetFile") ?: args?.string("AbsolutePath"))?.relativeTo(root)
+            val path = (args?.string("TargetFile") ?: args?.string("AbsolutePath") ?: args?.string("Path"))?.relativeTo(root)
             val detail = args?.string("CommandLine") ?: path ?: args?.string("Pattern") ?: args?.string("toolSummary")
             HarnessStep(at, name.replace('_', ' '), detail?.oneLine(), name.startsWith("mcp_reaktor"), path?.takeIf { name in AntigravityEditTools })
         }

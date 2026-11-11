@@ -20,6 +20,8 @@ data class AgentProfile(
     val budget: AgentBudget? = null,
     val planKinds: Set<PlanKind> = emptySet(),
     val planRefs: List<String> = emptyList(),
+    val contextId: String? = null,
+    val contextName: String? = null,
 )
 
 @Serializable

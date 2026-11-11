@@ -10,9 +10,9 @@ object AgentContextHook {
         val prefix = when (harness) {
             AgentPluginBundle.Harness.Claude -> BoardRefs.Claude
             AgentPluginBundle.Harness.Codex -> BoardRefs.Codex
-            AgentPluginBundle.Harness.Antigravity -> return buildJsonObject {}
+            AgentPluginBundle.Harness.Antigravity -> BoardRefs.Antigravity
         }
-        val session = event.string("session_id") ?: return buildJsonObject {}
+        val session = event.string("session_id") ?: event.string("conversation_id") ?: return buildJsonObject {}
         val reference = prefix + session
         val name = event.string("hook_event_name") ?: return buildJsonObject {}
         if (!BoardRefs.pattern.matches(reference) || principal == null || !BoardRefs.pattern.matches(principal) ||

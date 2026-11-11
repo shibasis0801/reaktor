@@ -28,7 +28,7 @@ data class TeamWriteRequest(
     @Describe("add-member {profile, memory}, where profile is a saved profile id and memory is elephant (long memory across tasks) or goldfish (fresh context every task); " +
         "retire-member {profile, reason} (person only, current base required; refused while the member holds a bound seat or Doing work); " +
         "relate {from, to, kind} and unrelate {from, to, kind}, where kind is supervises, critic of or pairs with, from the lead, critic or elephant to the other member; " +
-        "group {key, title, members}, which moves the members out of any other group; ungroup {key}. Each op is an object with its type, such as {type: \"relate\", from: \"bpo-lead\", to: \"bpo-engine\", kind: \"supervises\"}")
+        "group {key, title, members, parent?, summary?}, which nests under an optional parent group and moves members out of any other group; ungroup {key}. Each op is an object with its type, such as {type: \"relate\", from: \"bpo-lead\", to: \"bpo-engine\", kind: \"supervises\"}")
     @Schema(openItems = true) val ops: List<JsonObject> = emptyList(),
     @Describe("The revision you read") @Schema(minimum = 0, nullable = false) val base: Long? = null,
     @Describe("A note kept in the team's history") @Schema(nullable = false) val message: String? = null,

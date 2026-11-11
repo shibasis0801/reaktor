@@ -22,6 +22,8 @@ open class PlansApi : Service("reaktor.plan") {
     open val attach by call<PlanAttachRequest, JsonElement>(effect = Effect.LocalArtifactWrite, summary = "A person attaches a gallery agent (an agent profile) to items of a plan; Hangar starts that agent with a brief naming its seat.")
 
     open val shapeGraph by call<PlanShapeRequest, JsonElement>(name = "shape", effect = Effect.ReadOnly, summary = "The reaktor-graph shape of the plans named in threads, or of every plan: a graph per plan with a child graph per component, a node per item wired by order and relations, and an In Reaktor graph with a node per file, symbol, module or graph an item links, each naming the atlas call that explores it.")
+
+    open val archive by call<PlanArchiveRequest, JsonElement>(effect = Effect.LocalArtifactWrite, summary = "Archive completed (Done) and closed (Dropped) leaf items from a thread's plan into plans/archive/ so large multi-wave plans stay compact.")
 }
 
 @Serializable
@@ -68,6 +70,12 @@ data class PlanWriteRequest(
     @Describe("Your seat when a person attached you to part of this plan") @Schema(nullable = false) val seat: String? = null,
     @Describe("A note to the others on this plan: kept in its log and delivered to them at their next step") @Schema(nullable = false) val message: String? = null,
     @Describe("Workspace-relative Markdown document under plans/, such as plans/launch.md. Headings with {#item-key} link to matching DAG items. Omit to keep the link; empty string unlinks it. Changing an existing plan's link requires its current base revision.") @Schema(nullable = false) val documentPath: String? = null,
+    @Describe("Optional idempotency key; repeating the same requestId from the same writer returns the already-applied revision without re-applying") @Schema(nullable = false) val requestId: String? = null,
+)
+
+@Serializable
+data class PlanArchiveRequest(
+    @Describe("hangar:<conversation id>, claude:<session id>, codex:<session id> or agy:<conversation id>; your own session when left out") @Schema(nullable = false) val thread: String? = null,
 )
 
 @Serializable

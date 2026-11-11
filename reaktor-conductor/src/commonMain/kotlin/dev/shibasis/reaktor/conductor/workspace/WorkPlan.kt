@@ -94,7 +94,7 @@ data class PlanSeat(
 data class PlanSeatRetirement(val by: BoardActor, val at: Long, val reason: String)
 
 @Serializable
-data class PlanChange(val revision: Long, val at: Long, val by: BoardActor, val summary: List<String>)
+data class PlanChange(val revision: Long, val at: Long, val by: BoardActor, val summary: List<String>, val requestId: String? = null)
 
 @Serializable
 data class WorkPlan(
@@ -250,6 +250,7 @@ data class PlanPatch(
     val seat: String? = null,
     val message: String? = null,
     val documentPath: String? = null,
+    val requestId: String? = null,
 )
 
 @Serializable
@@ -368,6 +369,12 @@ object PlanRules {
 
     fun apply(plan: WorkPlan, patch: PlanPatch, by: BoardActor, now: Long): PlanApplied {
         require(patch.ops.size <= MaxOps) { "A patch has at most $MaxOps ops; send the rest in another patch" }
+        val requestId = patch.requestId?.trim()?.takeIf(String::isNotEmpty)?.also {
+            require(it.length <= 200 && it.none(Char::isISOControl)) { "A requestId is at most 200 printable characters" }
+        }
+        if (requestId != null && plan.changes.any { it.requestId == requestId && it.by.same(by) }) {
+            return PlanApplied(plan, emptyList(), plan.news(patch.base ?: plan.revision, by))
+        }
         val revision = plan.revision + 1
         val items = LinkedHashMap(plan.items.associateBy { it.id })
         val refused = mutableListOf<PlanRefusal>()
@@ -479,8 +486,8 @@ object PlanRules {
 
         fun open(status: PlanStatus) = status == PlanStatus.Todo || status == PlanStatus.Doing
 
-        fun capacity(status: PlanStatus, previous: PlanStatus?) {
-            require(!open(status) || previous?.let(::open) == true || items.values.count { open(it.status) } < MaxItems) {
+        fun capacity(status: PlanStatus, previous: PlanStatus?, kind: PlanKind = PlanKind.Task) {
+            require(kind == PlanKind.Component || !open(status) || previous?.let(::open) == true || items.values.count { it.kind != PlanKind.Component && open(it.status) } < MaxItems) {
                 "A plan has at most $MaxItems open items; finish or drop open work before adding or reopening it"
             }
         }
@@ -489,7 +496,7 @@ object PlanRules {
             val outcome = runCatching {
                 when (op) {
                     is PlanOp.Add -> {
-                        capacity(op.status, null)
+                        capacity(op.status, null, op.kind)
                         val key = op.key?.also { require(Key.matches(it)) { "A key is 1 to 40 lowercase letters, digits or dashes, starting with a letter" } }
                         require(key == null || key !in items) { "$key exists; send update or status for it" }
                         val parent = op.parent?.also { require(it in items) { "Parent $it is not on the plan" } }
@@ -547,7 +554,7 @@ object PlanRules {
                     is PlanOp.Status -> {
                         val item = items[op.item] ?: error("${op.item} is not on the plan")
                         (allowed(item.id) ?: fresh(item.id))?.let(::error)
-                        capacity(op.status, item.status)
+                        capacity(op.status, item.status, item.kind)
                         val (reason, replacement) = closing(op.status, op.reason ?: item.reason, op.replacement ?: item.replacement, item.id)
                         val lease = when {
                             op.status != PlanStatus.Doing -> null
@@ -674,7 +681,7 @@ object PlanRules {
         val changed = plan.copy(
             title = title ?: plan.title, goal = goal ?: plan.goal, items = items.values.toList(), seats = seats, documentPath = documentPath,
             revision = revision, next = next, updatedAt = now,
-            changes = if (summary.isEmpty()) plan.changes else (plan.changes + PlanChange(revision, now, by, summary)).takeLast(MaxChanges),
+            changes = if (summary.isEmpty()) plan.changes else (plan.changes + PlanChange(revision, now, by, summary, requestId)).takeLast(MaxChanges),
         )
         return PlanApplied(changed, refused, news)
     }

@@ -86,7 +86,16 @@ class AntigravityCapacityTest {
     @Test fun aNamedModelStepsDownOnlyToOtherEffortsOfItself() {
         assertEquals(listOf("gemini-4-argon-medium", "gemini-4-argon-high", "gemini-4-argon-low"), antigravityModelOrder("gemini-4-argon-medium", defaultAntigravityModels))
         assertEquals(listOf("gemini-3.8-flash-high"), antigravityModelOrder("gemini-3.8-flash-high", defaultAntigravityModels))
-        assertTrue(defaultAntigravityModels.all { it.startsWith("gemini-4-argon-") }, "Capacity never moves an unnamed run off Argon")
+        assertEquals(listOf("gemini-4-argon-high", "gemini-4-argon-medium", "gemini-4-argon-low"),
+            antigravityModelOrder(null, defaultAntigravityModels))
+        assertEquals(listOf("gemini-4-carbon-high", "gemini-4-carbon-medium", "gemini-4-carbon-low"),
+            antigravityModelOrder("gemini-4-carbon-high", defaultAntigravityModels))
+
+        val preferred = request(File("/tmp")).withPreferred()
+        val explicit = preferred.copy(agent = preferred.agent.copy(effort = NativeEffort("high")))
+        assertTrue("--effort" in antigravityArgv(explicit))
+        val fallback = explicit.withModel("gemini-4-argon-medium")
+        assertFalse("--effort" in antigravityArgv(fallback), "The fallback variant carries its own effort")
     }
 
     private fun AgentRequest.withPreferred() = copy(agent = agent.copy(model = defaultAntigravityModels.first()))

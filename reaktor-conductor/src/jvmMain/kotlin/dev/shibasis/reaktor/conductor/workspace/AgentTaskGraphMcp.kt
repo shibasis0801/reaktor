@@ -168,6 +168,22 @@ internal fun agentTaskGraphTools(workspace: AgentWorkspace): List<McpTool> {
             workspace.resolveSeat(TaskSeat(profile.runtime, profile.model, profile.effort, profile.access, budget = profile.budget))
             AgentWorkspaceJson.encodeToJsonElement(AgentProfile.serializer(), workspace.profiles.save(profile, args.by(), args.long("expectedRevision")))
         },
+        McpTool("agent_context_list", "List built-in and saved reusable system contexts (engineering instructions, read/write access, tool policies, budgets and seat scopes) independent of model and reasoning level.", emptyObjectSchema(), true, true) {
+            buildJsonObject { put("contexts", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(SystemContext.serializer()), workspace.contexts.list())) }
+        },
+        McpTool("agent_context_read", "Read one system context and its revision.",
+            objectSchema(mapOf("id" to stringSchema("Context id")), listOf("id")), true, true) { args ->
+            args.only("id")
+            AgentWorkspaceJson.encodeToJsonElement(SystemContext.serializer(), workspace.contexts.read(args.text("id")))
+        },
+        McpTool("agent_context_save", "Save a reusable system context independent of runtime, model and reasoning effort.",
+            objectSchema(mapOf("context" to any, "expectedRevision" to buildJsonObject {
+                put("type", "integer"); put("minimum", 0); put("description", "The context revision you read; required when updating an existing context")
+            }, by), listOf("context", "by")), readOnly = false, idempotent = false) { args ->
+            args.only("context", "expectedRevision", "by")
+            val context = args.decode(SystemContext.serializer(), "context")
+            AgentWorkspaceJson.encodeToJsonElement(SystemContext.serializer(), workspace.contexts.save(context, args.by(), args.long("expectedRevision")))
+        },
         McpTool("agent_taskgraph_propose", "Propose a task graph: a title, the goal, its tasks with dependencies and seats, and an envelope. " +
             "It appears in Hangar as Proposed; nothing runs until a person approves it. Tasks name their dependencies by key. A managed seat may set budget: {maxTokens, maxCostUsd, timeoutMillis}; task budgets override profile defaults. Token caps stop on reported usage; USD caps require Claude Code.",
             objectSchema(mapOf(

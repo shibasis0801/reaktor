@@ -68,6 +68,7 @@ class AgentWorkspace(
     }
     val entitlements = AgentEntitlements(directory.resolve("entitlements"))
     val profiles = AgentProfileStore(directory.resolve("profiles"))
+    val contexts = AgentContextStore(directory.resolve("contexts"))
     val presence = AgentPresenceStore(file = directory.resolve("presence.json"))
     private val seatResolver = TaskSeatResolver(profiles::read) { provider -> capabilities.firstOrNull { it.runtime == provider } }
     fun resolveSeat(seat: TaskSeat): ResolvedTaskSeat = seatResolver.resolve(seat)
@@ -179,8 +180,10 @@ class AgentWorkspace(
     }
     fun planItemForRun(id: String): String? = submission(id).planItem
 
+    private val councilSeats = listOf(RuntimeKind.ClaudeCode, RuntimeKind.Codex, RuntimeKind.Gemini)
+
     private fun requireEntitlements(request: AgentSubmission) = entitlements.requireAdmitted(request.workflow?.participants?.map { it.runtime }
-        ?: (listOfNotNull(request.provider, request.partner?.provider) + if (request.councilHybrid) listOf(RuntimeKind.ChatGptGemini) else emptyList()))
+        ?: if (request.councilHybrid) councilSeats else listOfNotNull(request.provider, request.partner?.provider))
     private val runtimes = withHybrid(runtimes)
     private val batchRuntimes = withHybrid(batchRuntimes)
     /**
@@ -415,7 +418,7 @@ class AgentWorkspace(
 
     private val capabilities by lazy { workspaceCapabilities(runtimes, discover) }
 
-    fun info() = AgentWorkspaceInfo(root.canonicalPath, runtimes.keys.toList(), maxActive,
+    fun info() = AgentWorkspaceInfo(root.canonicalPath, runtimes.keys.filter { it != RuntimeKind.ChatGptGemini }, maxActive,
         collaborations = if (maxActive >= 2 && runtimes.size >= 2) AgentCollaboration.entries else listOf(AgentCollaboration.Single),
         capabilities = capabilities,
         sessionMode = if (runtimes.values.any { it is InteractiveAgentRuntime }) "Interactive Single; automatic collaboration uses batch when available" else "Batch turns",
@@ -718,10 +721,10 @@ class AgentWorkspace(
         }
         if (request.councilHybrid) {
             require(request.collaboration == AgentCollaboration.Council && request.workflow == null &&
-                setOf(request.provider, request.partner?.provider) == setOf(RuntimeKind.Codex, RuntimeKind.ClaudeCode)) {
-                "The three-seat council consists of Codex, Claude Code, and ChatGPT + Gemini"
+                request.provider in councilSeats && request.partner?.provider in councilSeats && request.provider != request.partner?.provider) {
+                "The three-seat council consists of Claude Code, Codex, and Antigravity"
             }
-            require(RuntimeKind.ChatGptGemini in runtimes) { "Gemini executor is unavailable" }
+            require(councilSeats.all { it in runtimes }) { "Gemini agent is unavailable" }
         }
         request.workflow?.let { workflow ->
             workflow.validate()
@@ -1278,7 +1281,11 @@ class AgentWorkspace(
                     additionalDirectories = (includedRoots + it.tools.additionalDirectories).distinct(), mcpConfig = it.tools.mcpConfig ?: harnessMcpConfig.takeUnless { _ -> it.tools.isolateOperatorConfig })) }
                     ?: (listOf(spec(request.provider, request.model, request.effort)) +
                     listOfNotNull(request.partner?.let { spec(it.provider, it.model, it.effort) }) +
-                    if (request.councilHybrid) listOf(spec(RuntimeKind.ChatGptGemini, null, null)) else emptyList()))
+                    if (request.councilHybrid) councilSeats.filterNot { it == request.provider || it == request.partner?.provider }.map { provider ->
+                        val capability = capabilities.firstOrNull { it.runtime == provider && provider == RuntimeKind.Gemini }
+                        val model = capability?.defaultModel
+                        spec(provider, model, capability?.model(model)?.effort?.default)
+                    } else emptyList()))
                     .map { agent ->
                         if (agent.runtime == RuntimeKind.Codex) agent.copy(attributes = agent.attributes +
                             ("codexProjectDirectory" to root.canonicalFile.parentFile.canonicalPath))

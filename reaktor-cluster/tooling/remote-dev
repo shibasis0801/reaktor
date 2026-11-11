@@ -322,6 +322,8 @@ def additional_local_gradle(name, relative, args, contract, tasks):
                 epoch = time.time()
                 snapshot = remote_build.freeze(helper)
                 slot = remote_build.materialize(helper, snapshot, f'local-{index}')
+                import workspace_storage
+                workspace_storage.automatic(helper, held_locks={f'local-slot-{index}'})
             except (OSError, ValueError, subprocess.SubprocessError) as error:
                 print(f'Additional local lane could not prepare an isolated workspace: {error}', flush=True)
                 return None

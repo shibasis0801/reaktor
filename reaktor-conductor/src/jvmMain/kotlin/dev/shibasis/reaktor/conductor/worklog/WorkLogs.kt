@@ -33,7 +33,8 @@ object WorkLogs {
         RuntimeKind.ClaudeCode -> File(home, ".claude/projects").listFiles().orEmpty().asSequence().filter(File::isDirectory)
             .map { File(it, "$session.jsonl") }.firstOrNull(File::isFile)
         RuntimeKind.Codex -> codex(home, session, now)
-        RuntimeKind.Gemini -> File(home, ".gemini/antigravity-cli/brain/$session/.system_generated/logs/transcript.jsonl").takeIf(File::isFile)
+        RuntimeKind.Gemini -> listOf(".gemini/antigravity/brain", ".gemini/antigravity-cli/brain").asSequence()
+            .map { File(home, "$it/$session/.system_generated/logs/transcript.jsonl") }.firstOrNull(File::isFile)
         else -> null
     }
 

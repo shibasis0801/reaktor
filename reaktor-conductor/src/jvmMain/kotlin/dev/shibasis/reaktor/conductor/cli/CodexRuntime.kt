@@ -191,6 +191,4 @@ class CodexEventParser(
     }
 }
 
-internal fun ToolPolicy.codexSandbox() = if (allowWrites) "danger-full-access" else "read-only"
-
 internal fun ToolPolicy.codexApprovals() = if (allowWrites) "never" else "on-request"
