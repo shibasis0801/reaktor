@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.conductor.cli
 
+import dev.shibasis.reaktor.conductor.gateway.LocalModelServer
 import dev.shibasis.reaktor.conductor.EffortSupport
 import dev.shibasis.reaktor.conductor.ModelChoice
 import dev.shibasis.reaktor.conductor.NativeEffort
@@ -236,17 +237,18 @@ object CliCapabilities {
                 effortControl = Qualification(true, true, true),
                 reasoning = ReasoningFidelity.Thinking,
                 notes = listOf("An open model on the workspace's Cloudflare account, reached through the REST inference API and an AI Gateway when one is named. It reads the workspace through confined read, search and list tools and never edits files."))
+            RuntimeKind.Local -> LocalModelServer.fromEnvironment(environment).capability()
             RuntimeKind.Echo -> ProviderCapability(runtime = RuntimeKind.Echo, executable = null, version = "in-process")
         }
         return capability.copy(probedAt = System.currentTimeMillis(),
-            executable = if (runtime in listOf(RuntimeKind.Gateway, RuntimeKind.Echo)) capability.executable else binary)
+            executable = if (runtime in listOf(RuntimeKind.Gateway, RuntimeKind.Local, RuntimeKind.Echo)) capability.executable else binary)
     }
 
     private fun defaultBinary(runtime: RuntimeKind) = when (runtime) {
         RuntimeKind.ClaudeCode -> "claude"
         RuntimeKind.Codex -> "codex"
         RuntimeKind.Gemini, RuntimeKind.ChatGptGemini -> "agy"
-        RuntimeKind.Gateway, RuntimeKind.Echo -> "echo"
+        RuntimeKind.Gateway, RuntimeKind.Local, RuntimeKind.Echo -> "echo"
     }
 
     private fun configHome(override: String?, home: File, name: String): File = override?.takeIf(String::isNotBlank)?.let(::File) ?: home.resolve(name)

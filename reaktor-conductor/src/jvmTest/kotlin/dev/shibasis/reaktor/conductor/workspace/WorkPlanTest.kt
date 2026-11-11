@@ -370,6 +370,11 @@ class WorkPlanTest {
         val codex = session("modules/app/A.kt" to now + 30 * 60_000).copy(runtime = RuntimeKind.Codex, id = "c1", lastActiveAt = now + 40 * 60_000)
         assertEquals(listOf("codex:c1"), nudges.check(listOf(codex), emptyMap(), now + 40 * 60_000).map { it.thread })
         assertContains(Files.readString(inbox.resolve("codex-c1.txt")), "no plan yet")
+        Files.delete(inbox.resolve("claude-s1.txt"))
+        assertEquals(listOf(PlanNudges.Draw), nudges.check(listOf(session("modules/app/A.kt" to now + 50 * 60_000).copy(lastActiveAt = now + 50 * 60_000)), emptyMap(), now + 50 * 60_000).map { it.kind })
+        val again = Files.readString(inbox.resolve("claude-s1.txt"))
+        assertContains(again, "still has no plan")
+        assertTrue(again.length < 300, "a repeated reminder points back to the first brief instead of repeating it: ${again.length} characters")
     }
 
     private val revamp = WorkPlan("claude:c8", "Revamp the pane", createdBy = person, createdAt = 1, updatedAt = 4,

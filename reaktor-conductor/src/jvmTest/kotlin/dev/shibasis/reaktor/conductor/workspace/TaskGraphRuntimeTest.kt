@@ -680,6 +680,68 @@ class TaskGraphRuntimeTest {
         }
     }
 
+    @Test fun aRepairMovesTheWriterUpItsLadderAndTheNextAttemptRunsOnTheStrongerSeat() {
+        val codex = Scripted(RuntimeKind.Codex, listOf("Built", "Repaired on the stronger seat"))
+        val claude = Scripted(RuntimeKind.ClaudeCode, listOf(
+            "{\"verdict\":\"repair\",\"summary\":\"Empty input crashes the parser\",\"candidate\":\"{{candidate}}\",\"findings\":[]}",
+            "{\"verdict\":\"pass\",\"summary\":\"Verified\",\"candidate\":\"{{candidate}}\",\"findings\":[]}"))
+        workspace(codex, claude) { connection, _, _ ->
+            val proposed = connection.proposeTaskGraph(TaskGraphDraft("Laddered repair", tasks = listOf(
+                TaskGraphOp.Add("Build", key = "build", seat = TaskSeat(RuntimeKind.Codex, model = "small", access = TaskAccess.Write,
+                    escalate = listOf(TaskSeat(RuntimeKind.Codex, model = "large")))),
+                TaskGraphOp.Add("Review", key = "review", seat = TaskSeat(RuntimeKind.ClaudeCode), contract = WorkflowContract.Decision,
+                    dependsOn = listOf(TaskDependency("build"))),
+                TaskGraphOp.Add("Accept", kind = TaskKind.Gate, dependsOn = listOf(TaskDependency("review", TaskCondition.Pass))),
+            )), person)
+            connection.startTaskGraph("G1", proposed.graph.revision, person)
+            val view = connection.until("G1") { it.task("Accept").graph?.state == TaskState.Waiting }
+            assertEquals(listOf("small", "large"), codex.requests.map { it.agent.model })
+            assertTrue(codex.requests.all { it.agent.tools.allowWrites })
+            assertTrue("Empty input crashes the parser" in codex.requests[1].prompt)
+            val build = requireNotNull(view.task("Build").graph)
+            assertEquals(TaskSeat(RuntimeKind.Codex, model = "large", access = TaskAccess.Write), build.seat)
+            assertEquals("large", build.resolvedSeat?.seat?.model)
+            assertEquals(2, build.attempt)
+            assertTrue(view.task("Build").history.any { it.change == "Escalated to Codex · large · write" })
+            assertEquals("pass", view.task("Review").graph?.outcome?.verdict)
+        }
+    }
+
+    @Test fun aFailedCheckReachesTheReviewWhichEscalatesTheWriterAndTheCheckRunsAgainOnTheStrongerSeat() {
+        val codex = Scripted(RuntimeKind.Codex, listOf("Built", "Repaired on the stronger seat"))
+        val claude = Scripted(RuntimeKind.ClaudeCode, listOf(
+            "{\"verdict\":\"repair\",\"summary\":\"The parser check fails on empty input\",\"candidate\":\"{{candidate}}\",\"findings\":[]}",
+            "{\"verdict\":\"pass\",\"summary\":\"Check passes\",\"candidate\":\"{{candidate}}\",\"findings\":[]}"))
+        var runs = 0
+        workspace(codex, claude, workflowCheck = { owner, task, stage ->
+            val candidate = requireNotNull(stage.candidateId)
+            runs += 1
+            val passed = runs > 1
+            owner.evidence.check(task, AgentCandidateCheck("verify-parser", candidate,
+                CheckResult(listOf("verify-parser"), if (passed) CheckOutcome.Passed else CheckOutcome.Failed, if (passed) 0 else 1,
+                    revision = candidate, coverage = CheckCoverage.Complete), "kernel"))
+            WorkflowCheckResult(passed, if (passed) "verify-parser passed" else "verify-parser failed: empty input throws", "receipt-$runs")
+        }) { connection, _, _ ->
+            val proposed = connection.proposeTaskGraph(TaskGraphDraft("Checked ladder", tasks = listOf(
+                TaskGraphOp.Add("Build", key = "build", seat = TaskSeat(RuntimeKind.Codex, model = "small", access = TaskAccess.Write,
+                    escalate = listOf(TaskSeat(RuntimeKind.Codex, model = "large")))),
+                TaskGraphOp.Add("Check", key = "check", kind = TaskKind.Check, check = "verify-parser", dependsOn = listOf(TaskDependency("build"))),
+                TaskGraphOp.Add("Review", key = "review", seat = TaskSeat(RuntimeKind.ClaudeCode), contract = WorkflowContract.Decision,
+                    dependsOn = listOf(TaskDependency("check", TaskCondition.Always))),
+                TaskGraphOp.Add("Accept", kind = TaskKind.Gate, dependsOn = listOf(TaskDependency("review", TaskCondition.Pass))),
+            )), person)
+            connection.startTaskGraph("G1", proposed.graph.revision, person)
+            val view = connection.until("G1") { it.task("Accept").graph?.state == TaskState.Waiting }
+            assertEquals(2, runs)
+            assertEquals(listOf("small", "large"), codex.requests.map { it.agent.model })
+            assertTrue("verify-parser failed" in claude.requests[0].prompt)
+            assertEquals(TaskState.Succeeded, view.task("Check").graph?.state)
+            assertEquals(listOf("receipt-2"), view.task("Check").graph?.outcome?.checks?.map { it.receipt })
+            assertEquals("large", view.task("Build").graph?.seat?.model)
+            assertEquals("pass", view.task("Review").graph?.outcome?.verdict)
+        }
+    }
+
     @Test fun repairReusesTheWritingTaskAndCandidateCheckoutBeforeThePersonGate() {
         val codex = Scripted(RuntimeKind.Codex, listOf("Built the parser in Source.kt", "Handled empty input"))
         val claude = Scripted(RuntimeKind.ClaudeCode, listOf(

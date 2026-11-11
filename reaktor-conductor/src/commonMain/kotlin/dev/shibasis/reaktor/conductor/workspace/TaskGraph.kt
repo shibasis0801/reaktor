@@ -35,7 +35,12 @@ data class TaskSeat(
     val profile: String? = null,
     val lenses: List<String> = emptyList(),
     val budget: AgentBudget? = null,
-)
+    val escalate: List<TaskSeat> = emptyList(),
+) {
+    fun escalated(access: TaskAccess?): TaskSeat? = escalate.firstOrNull()?.let { rung ->
+        rung.copy(access = access ?: rung.access, escalate = escalate.drop(1))
+    }
+}
 
 @Serializable
 data class TaskDependency(val task: String, val condition: TaskCondition = TaskCondition.Succeeded, val required: Boolean = true)

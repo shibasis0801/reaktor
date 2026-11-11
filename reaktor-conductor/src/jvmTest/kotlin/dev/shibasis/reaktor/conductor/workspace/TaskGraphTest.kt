@@ -173,6 +173,27 @@ class TaskGraphTest {
         assertEquals(2, proposed(store).graph.number)
     }
 
+    @Test fun everyLadderRungFitsTheEnvelopeAndKeepsItsSeatAccess() {
+        val store = store()
+        proposed(store)
+        fun seat(vararg rungs: TaskSeat) = TaskGraphPatch(listOf(TaskGraphOp.Seat("T1",
+            TaskSeat(RuntimeKind.Codex, model = "small", access = TaskAccess.Write, escalate = rungs.toList()))), "Start cheap", store.graph("G1").revision)
+        val outside = assertFailsWith<TaskGraphOutside> { store.patch("G1", seat(TaskSeat(RuntimeKind.Gemini)), caller(store, lead)) }
+        assertTrue(outside.reasons.single().startsWith("Gemini is not one of the envelope's agents"))
+        assertFailsWith<IllegalArgumentException> { store.patch("G1", seat(TaskSeat(RuntimeKind.ClaudeCode, access = TaskAccess.Read)), caller(store, lead)) }
+        assertFailsWith<IllegalArgumentException> { store.patch("G1", seat(TaskSeat(RuntimeKind.ClaudeCode, escalate = listOf(TaskSeat(RuntimeKind.Codex)))), caller(store, lead)) }
+        assertFailsWith<IllegalArgumentException> { store.patch("G1", seat(TaskSeat(RuntimeKind.ClaudeCode, lead = true)), caller(store, lead)) }
+        assertFailsWith<IllegalArgumentException> { store.patch("G1", seat(*Array(TaskGraphRules.MaxRungs + 1) { TaskSeat(RuntimeKind.ClaudeCode) }), caller(store, lead)) }
+        store.patch("G1", seat(TaskSeat(RuntimeKind.ClaudeCode, model = "sonnet"), TaskSeat(RuntimeKind.ClaudeCode, model = "opus")), caller(store, lead))
+        val laddered = requireNotNull(store.get("T1").graph?.seat)
+        assertEquals(listOf("sonnet", "opus"), laddered.escalate.map { it.model })
+        assertEquals("Codex · small · write · then ClaudeCode · sonnet, then ClaudeCode · opus", laddered.describe())
+        val first = requireNotNull(laddered.escalated(TaskAccess.Write))
+        assertEquals(TaskSeat(RuntimeKind.ClaudeCode, model = "sonnet", access = TaskAccess.Write, escalate = listOf(TaskSeat(RuntimeKind.ClaudeCode, model = "opus"))), first)
+        assertEquals(TaskSeat(RuntimeKind.ClaudeCode, model = "opus", access = TaskAccess.Write), first.escalated(TaskAccess.Write))
+        assertEquals(null, first.escalated(TaskAccess.Write)?.escalated(TaskAccess.Write))
+    }
+
     @Test fun changesInsideTheEnvelopeApplyAndOutsideItWaitForAPerson() {
         val store = store()
         proposed(store)
