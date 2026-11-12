@@ -1,6 +1,12 @@
 package dev.shibasis.reaktor.conductor.cli
 
 import dev.shibasis.reaktor.conductor.RuntimeKind
+import dev.shibasis.reaktor.conductor.telemetry.ClaudeTelemetry
+import dev.shibasis.reaktor.conductor.telemetry.CodexTelemetry
+import dev.shibasis.reaktor.conductor.telemetry.GeminiTelemetry
+import dev.shibasis.reaktor.conductor.telemetry.ProviderTelemetry
+import dev.shibasis.reaktor.conductor.telemetry.TelemetryRollup
+import dev.shibasis.reaktor.conductor.telemetry.rollupTelemetry
 import dev.shibasis.reaktor.conductor.worklog.Checklist
 import dev.shibasis.reaktor.conductor.worklog.PlanItem
 import dev.shibasis.reaktor.conductor.worklog.PlanState
@@ -22,6 +28,8 @@ import dev.shibasis.reaktor.core.framework.lenientJson
 data class HarnessStep(val at: Long?, val tool: String, val detail: String?, val door: Boolean, val file: String? = null)
 
 data class HarnessEdit(val file: String, val at: Long?)
+
+data class SessionTotals(val steps: Int, val doorCalls: Int)
 
 data class HarnessCheck(val text: String, val state: PlanState, val files: List<String> = emptyList())
 
@@ -48,6 +56,7 @@ data class HarnessSession(
     val pid: Long? = null,
     val checklist: List<HarnessCheck> = emptyList(),
     val checklistAt: Long? = null,
+    val telemetry: TelemetryRollup? = null,
 ) {
     val doorCalls: Int get() = steps.count { it.door }
 
@@ -317,6 +326,16 @@ object HarnessSessions {
                 .mapNotNull { block -> (block as? JsonObject)?.takeIf { it.string("type") == "tool_use" }?.let { claudeStep(it, at, root) } }
         }
         val (checklist, checklistAt) = claudeChecklist(tail, root)
+        val model = tail.mapNotNull { record -> record.takeIf { it.string("type") == "assistant" }?.nested("message")?.string("model") }.lastOrNull { it != "<synthetic>" }
+        val window = if (file.length() <= TailBytes) tail else head + tail
+        val cursor = ClaudeTelemetry.SessionCursor(model)
+        val samples = window.filter { it.text("isSidechain") != "true" }.mapNotNull { record ->
+            cursor.ingest(record)?.delta?.takeIf { it.hasTokens || it.costUsd != null || it.compacted }
+        }
+        val rollup = samples.takeIf { it.isNotEmpty() }?.rollupTelemetry()
+        val totalTokens = rollup?.let {
+            if (it.inputTokens != null || it.outputTokens != null) (it.inputTokens ?: 0L) + (it.outputTokens ?: 0L) else null
+        }
         return ClaudeParsed(
             HarnessSession(
                 runtime = RuntimeKind.ClaudeCode,
@@ -328,14 +347,15 @@ object HarnessSessions {
                 origin = meta.string("entrypoint"),
                 version = meta.string("version"),
                 branch = meta.string("gitBranch"),
-                model = tail.mapNotNull { record -> record.takeIf { it.string("type") == "assistant" }?.nested("message")?.string("model") }.lastOrNull { it != "<synthetic>" },
+                model = model,
                 effort = null,
-                tokens = null,
+                tokens = totalTokens,
                 steps = steps.takeLast(StepsKept),
                 transcript = file.path,
                 files = steps.mapNotNull { it.file }.distinct(),
                 checklist = checklist,
                 checklistAt = checklistAt,
+                telemetry = rollup,
             ),
             customTitle = (head + tail).lastOrNull { it.string("type") == "custom-title" }?.string("customTitle"),
             prompt = head.firstNotNullOfOrNull(::claudePrompt),
@@ -471,6 +491,15 @@ object HarnessSessions {
         val events = tail.filter { it.string("type") == "event_msg" }.mapNotNull { it.nested("payload")?.string("type") }
             .filter { it != "token_count" && it != "thread_settings_applied" }
         val (checklist, checklistAt) = codexChecklist(tail, root)
+        val window = if (file.length() <= TailBytes) tail else head + tail
+        val cursor = CodexTelemetry.SessionCursor(context?.string("model"))
+        val samples = window.mapNotNull { record ->
+            cursor.ingest(record)?.record?.normalize()?.takeIf { it.hasTokens || it.costUsd != null || it.compacted }
+        }
+        val rollup = samples.takeIf { it.isNotEmpty() }?.rollupTelemetry()
+        val totalTokens = usage?.long("total_tokens") ?: rollup?.let {
+            if (it.inputTokens != null || it.outputTokens != null) (it.inputTokens ?: 0L) + (it.outputTokens ?: 0L) else null
+        }
         return CodexParsed(
             HarnessSession(
                 runtime = RuntimeKind.Codex,
@@ -484,12 +513,13 @@ object HarnessSessions {
                 branch = null,
                 model = context?.string("model"),
                 effort = context?.string("effort"),
-                tokens = usage?.long("total_tokens"),
+                tokens = totalTokens,
                 steps = steps.takeLast(StepsKept),
                 transcript = file.path,
                 files = steps.mapNotNull { it.file }.distinct(),
                 checklist = checklist,
                 checklistAt = checklistAt,
+                telemetry = rollup,
             ),
             prompt = items.firstNotNullOfOrNull { record ->
                 record.nested("payload")?.nested("item")?.takeIf { it.string("type") == "UserMessage" }?.let(::codexText)
@@ -524,8 +554,26 @@ object HarnessSessions {
         val paths = calls.mapNotNull { args -> args.string("Cwd") ?: args.string("TargetFile") ?: args.string("AbsolutePath") ?: args.string("Path") ?: args.string("SearchDirectory") }
         if (folder?.let { related(it, root) } != true && paths.none { related(it, root) }) return null
         val steps = tail.flatMap { antigravitySteps(it, root) }
-        val latest = tail.lastOrNull { it.string("type") == "PLANNER_RESPONSE" }
-        val tokens = latest?.let { (it.long("input_tokens") ?: 0L) + (it.long("cache_read_tokens") ?: 0L) + (it.long("output_tokens") ?: 0L) }?.takeIf { it > 0L }
+        val desktop = "/.gemini/antigravity/brain/" in file.path
+        val model = if (desktop) AntigravityConversationModels.of(id) else "gemini-4-argon-high"
+        val window = if (file.length() <= TailBytes) tail else head + tail
+        val deduplicated = linkedMapOf<String, ProviderTelemetry.Gemini>()
+        window.forEachIndexed { idx, record ->
+            val parsed = GeminiTelemetry.parseRecord(record, fallbackModel = model) as? ProviderTelemetry.Gemini ?: return@forEachIndexed
+            val key = parsed.stepIndex?.let { "step:$it" } ?: "idx:$idx"
+            val prior = deduplicated[key]
+            deduplicated[key] = if (prior == null) parsed else prior.copy(
+                freshInputTokens = listOfNotNull(prior.freshInputTokens, parsed.freshInputTokens).maxOrNull(),
+                cacheReadTokens = listOfNotNull(prior.cacheReadTokens, parsed.cacheReadTokens).maxOrNull(),
+                outputTokens = listOfNotNull(prior.outputTokens, parsed.outputTokens).maxOrNull(),
+                thinkingTokens = listOfNotNull(prior.thinkingTokens, parsed.thinkingTokens).maxOrNull(),
+            )
+        }
+        val samples = deduplicated.values.map { it.normalize() }.filter { it.hasTokens || it.costUsd != null }
+        val rollup = samples.takeIf { it.isNotEmpty() }?.rollupTelemetry()
+        val tokens = rollup?.let {
+            if (it.inputTokens != null || it.outputTokens != null) (it.inputTokens ?: 0L) + (it.outputTokens ?: 0L) else null
+        }
         return HarnessSession(
             runtime = RuntimeKind.Gemini,
             id = id,
@@ -533,15 +581,16 @@ object HarnessSessions {
             directory = folder ?: root,
             startedAt = head.firstNotNullOfOrNull { instant(it.string("created_at")) },
             lastActiveAt = file.lastModified(),
-            origin = if ("/.gemini/antigravity/brain/" in file.path) "ide" else "cli",
+            origin = if (desktop) "ide" else "cli",
             version = null,
             branch = null,
-            model = "gemini-4-argon-high",
-            effort = "high",
+            model = model,
+            effort = model?.substringAfterLast('-')?.takeIf { it in setOf("low", "medium", "high") },
             tokens = tokens,
             steps = steps.takeLast(StepsKept),
             transcript = file.path,
             files = steps.mapNotNull { it.file }.distinct(),
+            telemetry = rollup,
         )
     }
 
@@ -602,6 +651,38 @@ object HarnessSessions {
         }
     }
 
+    fun totals(session: HarnessSession): SessionTotals? {
+        val file = session.transcript.takeIf(String::isNotBlank)?.let(::File)?.takeIf(File::isFile) ?: return null
+        totalsRead[file.path]?.takeIf { it.modified == file.lastModified() && it.length == file.length() }?.let { return it.value as SessionTotals }
+        val marker = when (session.runtime) {
+            RuntimeKind.ClaudeCode -> "\"tool_use\""
+            RuntimeKind.Codex -> "item_completed"
+            RuntimeKind.Gemini -> "PLANNER_RESPONSE"
+            else -> return null
+        }
+        var steps = 0
+        var door = 0
+        file.useLines { lines ->
+            lines.filter { marker in it }.mapNotNull(::parse).forEach { record ->
+                recordSteps(session.runtime, record, session.directory).forEach { step ->
+                    steps++
+                    if (step.door) door++
+                }
+            }
+        }
+        return SessionTotals(steps, door).also { totalsRead[file.path] = Parsed(file.lastModified(), file.length(), it) }
+    }
+
+    private fun recordSteps(runtime: RuntimeKind, record: JsonObject, root: String): List<HarnessStep> = when (runtime) {
+        RuntimeKind.ClaudeCode -> if (record.string("type") != "assistant") emptyList()
+            else (record.nested("message")?.get("content") as? JsonArray).orEmpty()
+                .mapNotNull { block -> (block as? JsonObject)?.takeIf { it.string("type") == "tool_use" }?.let { claudeStep(it, null, root) } }
+        RuntimeKind.Codex -> if (record.string("type") == "event_msg" && record.nested("payload")?.string("type") == "item_completed")
+            codexSteps(record.nested("payload")?.nested("item"), null, root) else emptyList()
+        RuntimeKind.Gemini -> antigravitySteps(record, root)
+        else -> emptyList()
+    }
+
     private fun records(file: File, fromEnd: Boolean, limit: Int): List<JsonObject> = RandomAccessFile(file, "r").use { raf ->
         val length = raf.length()
         val size = minOf(length, limit.toLong()).toInt()
@@ -619,6 +700,8 @@ object HarnessSessions {
     private class Parsed(val modified: Long, val length: Long, val value: Any?)
 
     private val parsedFiles = ConcurrentHashMap<String, Parsed>()
+
+    private val totalsRead = ConcurrentHashMap<String, Parsed>()
 
     @Suppress("UNCHECKED_CAST")
     private fun <T : Any> parsed(file: File, root: String, parse: () -> T?): T? {

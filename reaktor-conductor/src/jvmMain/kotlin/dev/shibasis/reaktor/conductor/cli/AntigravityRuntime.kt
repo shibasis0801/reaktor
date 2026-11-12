@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.conductor.cli
 
 import dev.shibasis.reaktor.conductor.*
+import dev.shibasis.reaktor.conductor.telemetry.GeminiTelemetry
 import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -336,20 +337,14 @@ class AntigravityEventParser(
         // A reconstruction is evidence of activity, never evidence of success.
         val ok = exitCode == 0 && result?.text("status") == "SUCCESS" && reconstructed == null &&
             text.isNotBlank() && denied.isEmpty()
-        val input = usage?.get("input_tokens")?.jsonPrimitive?.longOrNull
-        val cached = usage?.get("cache_read_tokens")?.jsonPrimitive?.longOrNull
         val failure = result?.text("error")?.takeIf { it.isNotBlank() }
             ?: if (denied.isNotEmpty()) deniedDetail(denied) else stderr.takeLast(2000).ifBlank { blankAnswer(result?.text("status")) }
         return AgentOutcome(agent, text, ok,
             failure = if (ok) null else if (failure.contains("authentication failed or timed out", ignoreCase = true))
                 "$failure. Run agy in a terminal, complete Google sign-in there, then send a new turn in Hangar." else failure,
-            session = session, usage = usage?.let { AgentUsage(inputTokens = input,
-                outputTokens = it["output_tokens"]?.jsonPrimitive?.longOrNull,
-                cachedInputTokens = cached?.takeIf { value -> input != null && value <= input },
-                reasoningOutputTokens = it["thinking_tokens"]?.jsonPrimitive?.longOrNull,
-                scope = UsageScope.ProviderSessionTotal) },
+            session = session,
+            usage = usage?.let { GeminiTelemetry.parseApiUsage(it, model = model, scope = UsageScope.ProviderSessionTotal).toAgentUsage() },
             effort = EffortRecord(requested = effort, resolved = effort), interrupted = result?.text("status") in listOf("CANCELED", "INTERRUPTED"),
-            attributes = buildMap { put("executorHarness", "Antigravity"); put("entitlement", "GoogleAgent"); model?.let { put("model", it) }
-                if (cached != null && input != null && cached > input) put("usageNotice", "Native cache count exceeds reported input; inclusive cache accounting is unknown") })
+            attributes = buildMap { put("executorHarness", "Antigravity"); put("entitlement", "GoogleAgent"); model?.let { put("model", it) } })
     }
 }

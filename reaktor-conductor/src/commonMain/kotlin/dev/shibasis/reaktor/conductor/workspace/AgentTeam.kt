@@ -48,7 +48,6 @@ data class TeamStructure(
     val revision: Long = 0,
     val by: BoardActor? = null,
 ) {
-    val shape: StructureTemplate? get() = AgentStructures.template(template)
 }
 
 @Serializable
@@ -60,8 +59,17 @@ data class AgentTeam(
     val updatedAt: Long = 0,
     val changes: List<PlanChange> = emptyList(),
     val structures: List<TeamStructure> = emptyList(),
+    val templates: List<StructureTemplate> = emptyList(),
 ) {
     fun structure(key: String): TeamStructure? = structures.firstOrNull { it.key == key }
+
+    fun template(id: String): StructureTemplate? = templates.firstOrNull { it.id == id } ?: AgentStructures.template(id)
+
+    val shapes: List<StructureTemplate> get() = AgentStructures.templates + templates
+
+    fun shape(structure: TeamStructure): StructureTemplate? = template(structure.template)
+
+    fun variants(template: String): List<TeamStructure> = structures.filter { it.template == template }
 
     fun seated(profile: String): List<Pair<TeamStructure, String>> = structures.flatMap { structure ->
         structure.seats.filterValues { it == profile }.keys.map { structure to it }
@@ -144,6 +152,12 @@ sealed interface TeamOp {
 
     @Serializable @SerialName("unstructure")
     data class Unstructure(val key: String) : TeamOp
+
+    @Serializable @SerialName("template")
+    data class Template(val template: StructureTemplate) : TeamOp
+
+    @Serializable @SerialName("untemplate")
+    data class Untemplate(val id: String) : TeamOp
 }
 
 @Serializable
@@ -160,6 +174,27 @@ object TeamRules {
     const val MaxGroups = 32
     const val MaxLinks = 256
     const val MaxStructures = 24
+    const val MaxTemplates = 24
+    const val MaxSeats = 8
+    const val MaxShapeLinks = 24
+
+    fun shapeProblem(template: StructureTemplate): String? {
+        val keys = template.seats.map { it.key }
+        return when {
+            !PlanRules.Key.matches(template.id) -> "A structure id is 1 to 40 lowercase letters, digits or dashes, starting with a letter"
+            AgentStructures.template(template.id) != null -> "${template.id} is a built-in structure; start a new one from it under another id"
+            template.title.isBlank() -> "A structure needs a title"
+            template.seats.isEmpty() || template.seats.size > MaxSeats -> "A structure has 1 to $MaxSeats seats"
+            keys.any { !PlanRules.Key.matches(it) } -> "A seat key is 1 to 40 lowercase letters, digits or dashes, starting with a letter"
+            keys.toSet().size != keys.size -> "Two seats share a key"
+            template.seats.any { it.role.isBlank() || it.config.isBlank() } -> "Every seat needs a role and a config"
+            template.links.size > MaxShapeLinks -> "A structure has at most $MaxShapeLinks hand-offs"
+            template.links.any { it.from !in keys || it.to !in keys || it.from == it.to } -> "A hand-off joins two different seats of the structure"
+            template.links.any { it.label.isBlank() } -> "Every hand-off needs a label"
+            template.links.map { Triple(it.from, it.to, it.label) }.toSet().size != template.links.size -> "Two hand-offs repeat the same seats and label"
+            else -> null
+        }
+    }
 
     fun apply(
         team: AgentTeam,
@@ -175,7 +210,10 @@ object TeamRules {
         val groups = LinkedHashMap(team.groups.associateBy { it.key })
         val links = team.links.toMutableList()
         val structures = LinkedHashMap(team.structures.associateBy { it.key })
+        val templates = LinkedHashMap(team.templates.associateBy { it.id })
         val refused = mutableListOf<PlanRefusal>()
+
+        fun template(id: String): StructureTemplate? = templates[id] ?: AgentStructures.template(id)
         val summary = mutableListOf<String>()
 
         fun fresh(changed: Long, changer: BoardActor?, name: String): String? {
@@ -304,7 +342,7 @@ object TeamRules {
                     }
                     is TeamOp.Structure -> {
                         require(PlanRules.Key.matches(op.key)) { "A key is 1 to 40 lowercase letters, digits or dashes, starting with a letter" }
-                        val template = AgentStructures.template(op.template) ?: error("${op.template} is not a structure; pick one of ${AgentStructures.templates.joinToString { it.id }}")
+                        val template = template(op.template) ?: error("${op.template} is not a structure; pick one of ${(AgentStructures.templates.map { it.id } + templates.keys).joinToString()}")
                         val title = BoardText.title(op.title.ifBlank { template.title })
                         val current = structures[op.key]
                         if (current == null) {
@@ -312,7 +350,7 @@ object TeamRules {
                             structures[op.key] = TeamStructure(op.key, template.id, title, revision = revision, by = by)
                             "Added the ${template.title} structure as ${op.key} “$title”"
                         } else {
-                            require(current.template == template.id) { "${op.key} is a ${current.shape?.title ?: current.template}; remove it before reusing the key" }
+                            require(current.template == template.id) { "${op.key} is a ${template(current.template)?.title ?: current.template}; remove it before reusing the key" }
                             fresh(current.revision, current.by, op.key)?.let(::error)
                             if (current.title == title) null else {
                                 structures[op.key] = current.copy(title = title, revision = revision, by = by)
@@ -322,7 +360,7 @@ object TeamRules {
                     }
                     is TeamOp.Seat -> {
                         val current = structures[op.structure] ?: error("${op.structure} is not a structure on this team")
-                        val seat = current.shape?.seat(op.seat) ?: error("${current.title} has no ${op.seat} seat")
+                        val seat = template(current.template)?.seat(op.seat) ?: error("${current.title} has no ${op.seat} seat")
                         val profile = op.profile?.trim()?.takeIf(String::isNotEmpty)
                         if (current.seats[seat.key] == profile) null else {
                             if (profile != null) require(saved(profile)) { "$profile is not a saved profile; save it with profile.save first" }
@@ -337,6 +375,31 @@ object TeamRules {
                             fresh(current.revision, current.by, op.key)?.let(::error)
                             structures.remove(op.key)
                             "Removed the ${current.title} structure"
+                        }
+                    }
+                    is TeamOp.Template -> {
+                        val shape = op.template.copy(title = BoardText.title(op.template.title), summary = op.template.summary.trim())
+                        shapeProblem(shape)?.let(::error)
+                        val current = templates[shape.id]
+                        if (current == shape) null else {
+                            if (current == null) require(templates.size < MaxTemplates) { "A team keeps at most $MaxTemplates structures of its own" }
+                            templates[shape.id] = shape
+                            val kept = shape.seats.mapTo(HashSet()) { it.key }
+                            val emptied = structures.values.filter { it.template == shape.id && it.seats.keys.any { key -> key !in kept } }
+                            emptied.forEach { structures[it.key] = it.copy(seats = it.seats.filterKeys(kept::contains), revision = revision, by = by) }
+                            (if (current == null) "Added the structure ${shape.id} “${shape.title}”" else "Changed the structure ${shape.id} “${shape.title}”") +
+                                (if (emptied.isEmpty()) "" else "; emptied removed seats in ${emptied.joinToString { it.title }}")
+                        }
+                    }
+                    is TeamOp.Untemplate -> {
+                        if (templates[op.id] == null) {
+                            require(AgentStructures.template(op.id) == null) { "${op.id} is a built-in structure and stays" }
+                            null
+                        } else {
+                            val using = structures.values.filter { it.template == op.id }
+                            require(using.isEmpty()) { "Remove its ${using.size} variant${if (using.size == 1) "" else "s"} first: ${using.joinToString { it.title }}" }
+                            templates.remove(op.id)
+                            "Removed the structure ${op.id}"
                         }
                     }
                     is TeamOp.Ungroup -> {
@@ -365,6 +428,7 @@ object TeamRules {
             groups = groups.values.toList(),
             links = links.toList(),
             structures = structures.values.toList(),
+            templates = templates.values.toList(),
             revision = revision,
             updatedAt = now,
             changes = (team.changes + PlanChange(revision, now, by, summary)).takeLast(PlanRules.MaxChanges),
@@ -382,5 +446,7 @@ object TeamRules {
         is TeamOp.Structure -> key
         is TeamOp.Seat -> structure
         is TeamOp.Unstructure -> key
+        is TeamOp.Template -> template.id
+        is TeamOp.Untemplate -> id
     }
 }

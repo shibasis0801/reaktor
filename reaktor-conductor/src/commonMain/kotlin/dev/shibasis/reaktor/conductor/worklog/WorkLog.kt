@@ -23,24 +23,87 @@ data class WorkTurn(
     val steps: List<WorkStep>,
     val usage: WorkUsage? = null,
     val open: Boolean = false,
+    val usageSamples: List<WorkUsageSample> = emptyList(),
 ) {
     val files: List<String> get() = steps.flatMap(WorkStep::edits).map { it.file }.distinct()
     val millis: Long? get() = startedAt?.let { start -> endedAt?.minus(start)?.takeIf { it >= 0 } }
 }
 
 @Serializable
-data class WorkUsage(val context: Long? = null, val output: Long? = null, val reasoning: Long? = null, val input: Long? = null, val costUsd: Double? = null) {
-    operator fun plus(next: WorkUsage) = WorkUsage(next.context ?: context, sum(output, next.output), sum(reasoning, next.reasoning), sum(input, next.input),
-        if (costUsd == null && next.costUsd == null) null else (costUsd ?: 0.0) + (next.costUsd ?: 0.0))
+data class WorkUsageSample(
+    val id: String? = null,
+    val at: Long? = null,
+    val context: Long? = null,
+    val output: Long? = null,
+    val reasoning: Long? = null,
+    val input: Long? = null,
+    val costUsd: Double? = null,
+    val cached: Long? = null,
+    val fresh: Long? = null,
+    val cacheWrite: Long? = null,
+    val contextWindow: Long? = null,
+    val estimatedCostUsd: Double? = null,
+    val model: String? = null,
+) {
+    fun toWorkUsage(): WorkUsage = WorkUsage(
+        context = context,
+        output = output,
+        reasoning = reasoning,
+        input = input,
+        costUsd = costUsd,
+        cached = cached,
+        fresh = fresh,
+        cacheWrite = cacheWrite,
+        peakContext = context,
+        contextWindow = contextWindow,
+        estimatedCostUsd = estimatedCostUsd,
+    )
+}
 
-    private fun sum(a: Long?, b: Long?) = if (a == null && b == null) null else (a ?: 0) + (b ?: 0)
+@Serializable
+data class WorkUsage(
+    val context: Long? = null,
+    val output: Long? = null,
+    val reasoning: Long? = null,
+    val input: Long? = null,
+    val costUsd: Double? = null,
+    val cached: Long? = null,
+    val fresh: Long? = null,
+    val cacheWrite: Long? = null,
+    val peakContext: Long? = null,
+    val contextWindow: Long? = null,
+    val estimatedCostUsd: Double? = null,
+) {
+    operator fun plus(next: WorkUsage) = WorkUsage(
+        context = next.context ?: context,
+        output = sum(output, next.output),
+        reasoning = sum(reasoning, next.reasoning),
+        input = sum(input, next.input),
+        costUsd = sumDouble(costUsd, next.costUsd),
+        cached = sum(cached, next.cached),
+        fresh = sum(fresh, next.fresh),
+        cacheWrite = sum(cacheWrite, next.cacheWrite),
+        peakContext = listOfNotNull(peakContext ?: context, next.peakContext ?: next.context).maxOrNull(),
+        contextWindow = next.contextWindow ?: contextWindow,
+        estimatedCostUsd = sumDouble(estimatedCostUsd, next.estimatedCostUsd),
+    )
+
+    private fun sum(a: Long?, b: Long?) = if (a == null && b == null) null else (a ?: 0L) + (b ?: 0L)
+    private fun sumDouble(a: Double?, b: Double?) = if (a == null && b == null) null else (a ?: 0.0) + (b ?: 0.0)
 }
 
 @Serializable
 data class RateWindow(val usedPercent: Double, val minutes: Long? = null, val resetsAt: Long? = null)
 
 @Serializable
-data class RateLimits(val windows: List<RateWindow>, val plan: String? = null, val at: Long? = null)
+data class RateLimits(
+    val windows: List<RateWindow> = emptyList(),
+    val plan: String? = null,
+    val at: Long? = null,
+    val status: String? = null,
+    val resetsAt: Long? = null,
+    val overage: Boolean = false,
+)
 
 @Serializable
 enum class StepStatus { Running, Done, Failed, Interrupted }
@@ -183,3 +246,82 @@ val WorkLog.changes: List<FileChange>
         .filter { it.edit.status == StepStatus.Done || it.edit.status == StepStatus.Running }
         .groupBy { it.edit.file }
         .map { (file, edits) -> FileChange(file, edits) }
+
+fun WorkLog.slice(from: Long, until: Long): WorkLog {
+    fun inside(at: Long?) = at != null && at >= from && at < until
+    fun scoped(step: WorkStep): WorkStep? = when (step) {
+        is WorkStep.Subagent -> {
+            val steps = step.steps.mapNotNull(::scoped)
+            if (!inside(step.at) && steps.isEmpty()) null
+            else step.copy(
+                at = step.at?.takeIf(::inside) ?: steps.firstOrNull()?.at,
+                prompt = step.prompt.takeIf { inside(step.at) },
+                steps = steps,
+                result = null,
+            )
+        }
+        else -> step.takeIf { inside(it.at) }
+    }
+    val slicedTurns = turns.mapNotNull { turn ->
+        val steps = turn.steps.mapNotNull(::scoped)
+        val samples = turn.usageSamples.filter { inside(it.at) }
+        val prompt = turn.prompt.takeIf { inside(turn.startedAt) }
+        if (steps.isEmpty() && samples.isEmpty() && prompt == null) return@mapNotNull null
+        val wholeTurnInside = inside(turn.startedAt) && (turn.endedAt == null || turn.endedAt in from..until)
+        val slicedUsage = when {
+            turn.usageSamples.isNotEmpty() -> samples.map(WorkUsageSample::toWorkUsage).reduceOrNull(WorkUsage::plus)
+            wholeTurnInside -> turn.usage
+            else -> null
+        }
+        val timestamps = buildList {
+            turn.startedAt?.takeIf(::inside)?.let(::add)
+            steps.mapNotNull { it.at }.forEach(::add)
+            samples.mapNotNull { it.at }.forEach(::add)
+            if (wholeTurnInside && turn.endedAt != null) add(turn.endedAt)
+        }
+        val slicedStart = timestamps.minOrNull() ?: turn.startedAt?.takeIf(::inside)
+        val slicedEnd = timestamps.maxOrNull() ?: turn.endedAt?.takeIf { it in from..until }
+        turn.copy(
+            prompt = prompt,
+            startedAt = slicedStart,
+            endedAt = slicedEnd,
+            steps = steps,
+            usage = slicedUsage,
+            open = turn.open && until == Long.MAX_VALUE,
+            usageSamples = samples,
+        )
+    }
+    return WorkLog(slicedTurns, earlier)
+}
+
+fun mergeWorkLogs(logs: List<WorkLog>): WorkLog {
+    fun mergeSteps(steps: List<WorkStep>): List<WorkStep> = steps.groupBy { it.id }.values.map { versions ->
+        when (val step = versions.last()) {
+            is WorkStep.Subagent -> step.copy(steps = mergeSteps(versions.filterIsInstance<WorkStep.Subagent>().flatMap { it.steps }))
+            else -> step
+        }
+    }.sortedBy { it.at }
+
+    return WorkLog(
+        turns = logs.flatMap { it.turns }.groupBy { it.id }.values.map { versions ->
+            val samples = versions.flatMap { it.usageSamples }
+                .distinctBy { it.id ?: "${it.at}:${it.input}:${it.output}:${it.cached}:${it.costUsd}" }
+                .sortedBy { it.at }
+            val mergedUsage = if (samples.isNotEmpty()) {
+                samples.map(WorkUsageSample::toWorkUsage).reduce(WorkUsage::plus)
+            } else {
+                versions.mapNotNull { it.usage }.reduceOrNull(WorkUsage::plus)
+            }
+            versions.first().copy(
+                prompt = versions.firstNotNullOfOrNull { it.prompt },
+                startedAt = versions.mapNotNull { it.startedAt }.minOrNull(),
+                endedAt = versions.mapNotNull { it.endedAt }.maxOrNull(),
+                steps = mergeSteps(versions.flatMap { it.steps }),
+                usage = mergedUsage,
+                open = versions.any { it.open },
+                usageSamples = samples,
+            )
+        }.sortedBy { it.startedAt },
+        earlier = logs.any { it.earlier },
+    )
+}

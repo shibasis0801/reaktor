@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.conductor.worklog
 
+import dev.shibasis.reaktor.conductor.telemetry.CodexTelemetry
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -9,21 +10,24 @@ private val ExploreTypes = setOf("read", "search", "list_files")
 internal class CodexLog(private val root: String?) : LogParser {
     private val turns = Turns("codex-")
     private val asked = mutableListOf<Pair<Int, Int>>()
-    private var totalUsage: JsonObject? = null
-    private var lastUsage: Pair<Long?, JsonObject>? = null
+    private val telemetry = CodexTelemetry.SessionCursor()
 
     override fun line(record: JsonObject) {
         val at = instant(record.str("timestamp"))
-        val payload = record.obj("payload") ?: return
         when (record.str("type")) {
-            "event_msg" -> event(payload, at)
-            "response_item" -> response(payload, at)
+            "session_meta", "turn_context" -> { telemetry.ingest(record) }
+            "compacted" -> {
+                telemetry.ingest(record)
+                turns.ensure(at).add(WorkStep.Note("codex:compact:$at", at, NoteKind.Compaction, "Context compacted"))
+            }
+            "event_msg" -> record.obj("payload")?.let { event(record, it, at) }
+            "response_item" -> record.obj("payload")?.let { response(it, at) }
         }
     }
 
     override fun log(earlier: Boolean) = turns.build(earlier)
 
-    private fun event(payload: JsonObject, at: Long?) {
+    private fun event(record: JsonObject, payload: JsonObject, at: Long?) {
         when (payload.str("type")) {
             "item_completed" -> payload.obj("item")?.let { item(it, payload, at) }
             "task_started" -> turns.current?.open = true
@@ -36,16 +40,14 @@ internal class CodexLog(private val root: String?) : LogParser {
                 turn.add(WorkStep.Note("${turn.id}:aborted:${turn.steps.size}", at, NoteKind.Interrupted, "Turn interrupted"))
                 turn.open = false
             }
-            "token_count" -> payload.obj("info")?.let { info ->
-                val total = info.obj("total_token_usage")
-                val usage = info.obj("last_token_usage") ?: return@let
-                if (total != null && total == totalUsage || total == null && lastUsage == (at to usage)) return@let
-                fun count(key: String): Long? = if (total != null && totalUsage != null) total.num(key)?.let { value ->
-                    (value - (totalUsage?.num(key) ?: 0)).takeIf { it >= 0 }
-                } else usage.num(key)
-                turns.current?.use(WorkUsage(usage.num("input_tokens"), count("output_tokens"), count("reasoning_output_tokens"), input = count("input_tokens")))
-                totalUsage = total
-                lastUsage = at to usage
+            "context_compacted" -> {
+                telemetry.ingest(record)
+                turns.ensure(at).add(WorkStep.Note("codex:compact:$at", at, NoteKind.Compaction, "Context compacted"))
+            }
+            "token_count" -> telemetry.ingest(record)?.record?.normalize()?.let { sample ->
+                if (sample.hasTokens || sample.costUsd != null) {
+                    turns.current?.sample(sample.toWorkUsageSample())
+                }
             }
             "exec_approval_request", "apply_patch_approval_request", "request_user_input" -> {
                 val turn = turns.ensure(at)

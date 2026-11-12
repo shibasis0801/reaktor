@@ -23,7 +23,8 @@ class AgentBenchmarksTest {
             git(root, "add", ".")
             git(root, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "baseline")
             AgentWorkspace(root, data.toPath(), mapOf(RuntimeKind.Codex to EchoRuntime(RuntimeKind.Codex) { "fixture" },
-                RuntimeKind.ClaudeCode to EchoRuntime(RuntimeKind.ClaudeCode) { "fixture" }), discover = { ProviderCapability(it) },
+                RuntimeKind.ClaudeCode to EchoRuntime(RuntimeKind.ClaudeCode) { "fixture" },
+                RuntimeKind.Gemini to EchoRuntime(RuntimeKind.Gemini) { "fixture" }), discover = { ProviderCapability(it) },
                 kernelRead = { name, args ->
                     assertEquals("kernel", name)
                     assertEquals("taskgraph.score", args["operation"]?.jsonPrimitive?.content)
@@ -185,6 +186,168 @@ class AgentBenchmarksTest {
         assertEquals(1, result.single { it.kind == "unclassified" }.unmatchedConfirmed)
         assertEquals(1, result.single { it.kind == "unclassified" }.unconfirmed)
         assertTrue(result.all { it.revision == 7L && it.provider == RuntimeKind.ClaudeCode })
+    }
+
+    @Test fun geminiSeatsTriVendorPanelsAndPlantedDefectCountsPinCleanly() = fixture { workspace, root, _ ->
+        val reviewDraft = TaskGraphDraft(
+            title = "Tri-vendor fixture",
+            envelope = TaskEnvelope(tokens = 90_000L, repairRounds = 1),
+            tasks = listOf(
+                TaskGraphOp.Add(
+                    title = "Write",
+                    key = "writer",
+                    scope = listOf("Source.kt"),
+                    seat = TaskSeat(
+                        agent = RuntimeKind.Gemini,
+                        model = "gemini-4-argon-high",
+                        effort = "high",
+                        access = TaskAccess.Write,
+                        escalate = listOf(TaskSeat(RuntimeKind.Gemini, "gemini-4-carbon-high", "high", TaskAccess.Write)),
+                    ),
+                ),
+                TaskGraphOp.Add(
+                    title = "Review",
+                    key = "review",
+                    scope = listOf("Source.kt"),
+                    contract = WorkflowContract.Decision,
+                    dependsOn = listOf(TaskDependency("writer")),
+                    seat = TaskSeat(
+                        agent = RuntimeKind.Gemini,
+                        model = "gemini-4-carbon-high",
+                        effort = "high",
+                        access = TaskAccess.Read,
+                        lenses = listOf("codex-correctness", "claude-correctness", "gemini-correctness"),
+                    ),
+                ),
+            ),
+        )
+        val manifest = AgentBenchScenario(
+            id = "tri-vendor",
+            title = "Tri-vendor Gemini trial",
+            revisions = mapOf("." to git(root, "rev-parse", "HEAD")),
+            draft = reviewDraft,
+            defects = listOf(
+                AgentBenchDefect("d1", "correctness", "Source.kt", 1),
+                AgentBenchDefect("d2", "security", "Source.kt", 1),
+            ),
+            track = BenchTrack.BlindReview,
+            quotaTier = BenchQuotaTier.Micro,
+            summary = "Checks Gemini writer, ladder, and tri-vendor lens panel.",
+        )
+        write(root, manifest)
+        val catalogEntry = workspace.benchmarks.catalog().scenarios.single()
+        assertEquals(2, catalogEntry.plantedDefectCount)
+        assertTrue(catalogEntry.scenario.defects.isEmpty())
+        val presets = ReaktorPlusBench.presetsFor(catalogEntry.scenario)
+        assertTrue(presets.size >= 3)
+        val estimate = ReaktorPlusBench.estimateQuota(catalogEntry, presets.first(), 1)
+        assertEquals(BenchQuotaImpact.Low, estimate.impact)
+        assertEquals(90_000L, estimate.envelopeCapPerRun)
+
+        val proposed = workspace.benchmarks.propose(
+            "tri-vendor",
+            catalogEntry.revision,
+            listOf(AgentBenchConfiguration("gemini-tri", TaskGraphTemplates.slots(reviewDraft), 80_000L)),
+            1,
+            agent,
+        ).single()
+        assertEquals(TaskGraphStatus.Proposed, proposed.graph.status)
+        val writerTask = proposed.tasks.first { it.title == "Write" }
+        val writerGraph = requireNotNull(writerTask.graph)
+        val rung = requireNotNull(writerGraph.seat.escalated(TaskAccess.Write))
+        assertEquals("gemini-4-carbon-high", workspace.benchmarks.resolve(writerTask.copy(graph = writerGraph.copy(seat = rung)))?.seat?.model)
+
+        assertFailsWith<IllegalArgumentException> {
+            workspace.benchmarks.propose(
+                "tri-vendor",
+                catalogEntry.revision,
+                listOf(
+                    AgentBenchConfiguration(
+                        "gateway-rejected",
+                        mapOf(
+                            "writer" to TaskSeat(RuntimeKind.Gateway, "kimi", access = TaskAccess.Write),
+                            "review" to TaskSeat(RuntimeKind.Codex, "gpt-6.1-sol", access = TaskAccess.Read),
+                        ),
+                    )
+                ),
+                1,
+                agent,
+            )
+        }
+    }
+
+    @Test fun reaktorPlusStandingsAggregateQuotaEfficiencyAndFilterNonComparableRuns() {
+        val baseDraft = TaskGraphDraft(
+            title = "Bench",
+            envelope = TaskEnvelope(tokens = 150_000L),
+            tasks = listOf(
+                TaskGraphOp.Add("Write", "writer", seat = TaskSeat(RuntimeKind.Codex, "gpt-6.1-sol", "medium", TaskAccess.Write)),
+                TaskGraphOp.Add("Review", "review", seat = TaskSeat(RuntimeKind.Gemini, "gemini-4-carbon-high", "high", TaskAccess.Read), dependsOn = listOf(TaskDependency("writer"))),
+            ),
+        )
+        val scenario = AgentBenchScenario("s1", "Scenario 1", mapOf("." to "a".repeat(40)), baseDraft, quotaTier = BenchQuotaTier.Standard)
+        val entry = AgentBenchScenarioEntry(scenario, "rev1", plantedDefectCount = 1)
+        val seats = mapOf(
+            "writer" to ResolvedTaskSeat(TaskSeat(RuntimeKind.Codex, "gpt-6.1-sol", "medium", TaskAccess.Write)),
+            "review" to ResolvedTaskSeat(TaskSeat(RuntimeKind.Gemini, "gemini-4-carbon-high", "high", TaskAccess.Read)),
+        )
+        fun makeRun(graph: String, config: String, accepted: Int, inputTok: Long, cachedTok: Long, outTok: Long, estCost: Double, comparable: Boolean): AgentBenchRun {
+            val binding = AgentBenchBinding(scenario, "rev1", config, seats, 1, 1, "build-1", 120_000L)
+            val total = WorkScore(
+                startedAt = 1_000L,
+                endedAt = 11_000L,
+                wallMillis = 10_000L,
+                workingMillis = 9_000L,
+                personWaitMillis = 0L,
+                unknownWaits = 0,
+                turns = 2,
+                personPromptsAfterFirst = 0,
+                toolCalls = 6,
+                failedTools = 0,
+                builds = 0,
+                failedBuilds = 0,
+                tests = 1,
+                failedTests = 0,
+                files = listOf("Source.kt"),
+                added = 5,
+                removed = 1,
+                inputTokens = inputTok,
+                outputTokens = outTok,
+                reasoningTokens = 1_000L,
+                unknownUsageTurns = 0,
+                costUsd = null,
+                unknownCostTurns = 2,
+                outcome = if (accepted > 0) WorkOutcome.Accepted else WorkOutcome.Open,
+                partial = false,
+                cachedInputTokens = cachedTok,
+                freshInputTokens = inputTok - cachedTok,
+                peakContextTokens = 40_000L,
+                contextWindowTokens = 200_000L,
+                peakContextPercent = 20.0,
+                estimatedCostUsd = estCost,
+            )
+            val score = GraphWorkScore(graph, total, emptyMap(), listOf("T1"), 9_000L, emptyList())
+            val lenses = listOf(AgentBenchLensScore("gemini-correctness", 1L, RuntimeKind.Gemini, "correctness", 2, 2, 0, 0, 0))
+            val result = AgentBenchResult(graph, 1L, 12_000L, binding, score, true, accepted, 1, 0, lenses, comparable, emptyList())
+            return AgentBenchRun(graph, TaskGraphStatus.Finished, binding, result)
+        }
+        val catalog = AgentBenchCatalog(
+            scenarios = listOf(entry),
+            runs = listOf(
+                makeRun("G1", "tiered-fast", accepted = 1, inputTok = 80_000L, cachedTok = 60_000L, outTok = 5_000L, estCost = 0.18, comparable = true),
+                makeRun("G2", "frontier-solo", accepted = 1, inputTok = 190_000L, cachedTok = 95_000L, outTok = 10_000L, estCost = 0.95, comparable = true),
+                makeRun("G3", "tiered-fast", accepted = 1, inputTok = 999_000L, cachedTok = 0L, outTok = 1_000L, estCost = 9.0, comparable = false),
+            ),
+        )
+        val comparableStandings = ReaktorPlusBench.standings(catalog, scenarioId = "s1", comparableOnly = true)
+        assertEquals(listOf("tiered-fast", "frontier-solo"), comparableStandings.map { it.configuration })
+        val winner = comparableStandings.first()
+        assertEquals(1, winner.comparableRuns)
+        assertEquals(1, winner.nonComparableRuns)
+        assertEquals(85_000L, winner.tokensPerAccepted)
+        assertEquals(0.75, winner.meanCachedShare!!, 0.001)
+        assertEquals(1.0, winner.defectRecall!!, 0.001)
+        assertTrue(winner.usesEstimatedCost)
     }
 
     private fun git(root: File, vararg arguments: String): String {

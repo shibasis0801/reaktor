@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.conductor.worklog
 
+import dev.shibasis.reaktor.conductor.telemetry.GeminiTelemetry
 import kotlinx.serialization.json.JsonObject
 
 internal class AntigravityLog(private val root: String?) : LogParser {
@@ -20,10 +21,11 @@ internal class AntigravityLog(private val root: String?) : LogParser {
             }
             "PLANNER_RESPONSE" -> {
                 val turn = turns.ensure(at)
-                val input = record.num("input_tokens")
-                val cache = record.num("cache_read_tokens")
-                val output = record.num("output_tokens")
-                if (input != null || output != null) turn.use(WorkUsage(context = (input ?: 0L) + (cache ?: 0L), output = output, input = input))
+                GeminiTelemetry.parseRecord(record)?.normalize()?.let { sample ->
+                    if (sample.hasTokens || sample.costUsd != null) {
+                        turn.sample(sample.toWorkUsageSample())
+                    }
+                }
                 record.str("thinking")?.trim()?.takeIf(String::isNotEmpty)?.let { turn.add(WorkStep.Reasoning("agy:$index:thinking", at, it, summary = false)) }
                 record.str("content")?.trim()?.takeIf(String::isNotEmpty)?.let { turn.add(WorkStep.Message("agy:$index:text", at, it)) }
                 record.list("tool_calls").mapNotNull { it as? JsonObject }.forEachIndexed { position, call ->

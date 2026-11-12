@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.conductor.worklog
 
+import dev.shibasis.reaktor.conductor.telemetry.ClaudeTelemetry
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -9,7 +10,7 @@ internal class ClaudeLog(private val root: String?, private val subagent: (Strin
 
     private val turns = Turns("claude-")
     private val pending = mutableMapOf<String, Pending>()
-    private val counted = mutableMapOf<String, WorkUsage>()
+    private val telemetry = ClaudeTelemetry.SessionCursor()
     private val agents = mutableMapOf<String, Pair<Int, Int>>()
     private var plan = listOf<PlanItem>()
 
@@ -66,19 +67,10 @@ internal class ClaudeLog(private val root: String?, private val subagent: (Strin
         val message = record.obj("message") ?: return
         val turn = turns.ensure(at)
         val index = turns.lastIndex
-        message.str("id")?.let { id ->
-            message.obj("usage")?.let { usage ->
-                val previous = counted[id]
-                val context = listOf("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens").sumOf { usage.num(it) ?: 0 }
-                fun high(value: Long?, old: Long?) = listOfNotNull(value, old).maxOrNull()
-                val next = WorkUsage(context.takeIf { it > 0 }, high(usage.num("output_tokens"), previous?.output),
-                    high(usage.obj("output_tokens_details")?.num("thinking_tokens"), previous?.reasoning),
-                    high(context.takeIf { usage.num("input_tokens") != null }, previous?.input),
-                    listOfNotNull(record.text("costUSD")?.toDoubleOrNull()?.takeIf { it.isFinite() && it >= 0 }, previous?.costUsd).maxOrNull())
-                fun delta(value: Long?, old: Long?) = value?.minus(old ?: 0)
-                turn.use(WorkUsage(next.context, delta(next.output, previous?.output), delta(next.reasoning, previous?.reasoning),
-                    delta(next.input, previous?.input), next.costUsd?.minus(previous?.costUsd ?: 0.0)))
-                counted[id] = next
+        telemetry.ingest(record)?.let { update ->
+            val delta = update.delta
+            if (delta.hasTokens || delta.costUsd != null) {
+                turn.sample(delta.toWorkUsageSample().copy(context = update.merged.contextTokens))
             }
         }
         when (message.str("stop_reason")) {

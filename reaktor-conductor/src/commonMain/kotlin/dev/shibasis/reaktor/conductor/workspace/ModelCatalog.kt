@@ -21,7 +21,26 @@ data class CatalogVariant(
 )
 
 @Serializable
-data class CatalogModel(val key: String, val family: ModelFamily, val name: String, val routes: List<CatalogRoute>, val variants: List<CatalogVariant>) {
+data class CatalogPricing(
+    val source: CatalogSource,
+    val inputPerMillion: Double,
+    val outputPerMillion: Double,
+    val cachedInputPerMillion: Double,
+    val cacheWrite5mPerMillion: Double,
+    val cacheWrite1hPerMillion: Double,
+    val longContextAbove: Int? = null,
+    val longContextMultiplier: Double = 1.0,
+)
+
+@Serializable
+data class CatalogModel(
+    val key: String,
+    val family: ModelFamily,
+    val name: String,
+    val routes: List<CatalogRoute>,
+    val variants: List<CatalogVariant>,
+    val pricing: CatalogPricing? = null,
+) {
     val scored: Boolean get() = variants.any { it.intelligence != null }
 
     fun variant(effort: String?): CatalogVariant? = variants.firstOrNull { it.effort == effort }
@@ -43,6 +62,8 @@ object ModelCatalog {
     val intelligence = CatalogSource("Artificial Analysis model leaderboard", "https://artificialanalysis.ai/leaderboards/models", "11 Nov 2026")
     val codingAgents = CatalogSource("Artificial Analysis Coding Agent Index, captured by benchlm.ai", "https://benchlm.ai/benchmarks/aacodingagents", "10 Nov 2026")
 
+    val claudePricing = CatalogSource("Anthropic API pricing", "https://platform.claude.com/docs/en/about-claude/pricing", "12 Nov 2026")
+
     private val claude = listOf(CatalogRoute(RuntimeKind.ClaudeCode, "Claude plan"), CatalogRoute(RuntimeKind.Gateway, "AI Gateway · Anthropic API", "an Anthropic key"))
     private val gpt = listOf(CatalogRoute(RuntimeKind.Codex, "ChatGPT plan"), CatalogRoute(RuntimeKind.Gateway, "AI Gateway · OpenAI API", "an OpenAI key"))
     private val gemini = listOf(CatalogRoute(RuntimeKind.Gemini, "Google plan"), CatalogRoute(RuntimeKind.Gateway, "AI Gateway · Gemini API", "a Gemini key"))
@@ -56,16 +77,16 @@ object ModelCatalog {
     val models: List<CatalogModel> = listOf(
         CatalogModel("claude-fable-5-2", ModelFamily.Claude, "Fable 5.2", claude, listOf(v("max", "claude-fable-5-2", 65, 26.54, 45.0, 247.85), v("xhigh", "claude-fable-5-2", 62, 14.83, 25.8, 69.21),
             v("high", "claude-fable-5-2", 62, 9.08, 16.9, 30.02), v("medium", "claude-fable-5-2", 56, 3.80, 7.7, 12.88),
-            v("low", "claude-fable-5-2", 54, 3.10, 6.3, 8.14))),
+            v("low", "claude-fable-5-2", 54, 3.10, 6.3, 8.14)), pricing = CatalogPricing(claudePricing, 8.0, 40.0, 0.20, 10.0, 16.0)),
         CatalogModel("claude-opus-5-5", ModelFamily.Claude, "Opus 5.5", claude, listOf(v("max", "claude-opus-5-5", 59, 10.04, 25.0, 353.75, "Claude Code" to 61.7), v("xhigh", "claude-opus-5-5", 57, 6.05, 15.7, 81.58),
             v("high", "claude-opus-5-5", 52, 3.46, 9.5, 25.14), v("medium", "claude-opus-5-5", 48, 2.45, 7.1, 14.88),
-            v("low", "claude-opus-5-5", 35, 0.98, 2.9, 5.21))),
+            v("low", "claude-opus-5-5", 35, 0.98, 2.9, 5.21)), pricing = CatalogPricing(claudePricing, 4.0, 20.0, 0.20, 5.0, 8.0)),
         CatalogModel("claude-sonnet-5-5", ModelFamily.Claude, "Sonnet 5.5", claude, listOf(v("max", "claude-sonnet-5-5", 55, 10.02, 32.7, 254.92, "Claude Code" to 59.3), v("xhigh", "claude-sonnet-5-5", 50, 4.09, 14.6, 27.88),
             v("high", "claude-sonnet-5-5", 42, 1.64, 6.9, 10.07), v("medium", "claude-sonnet-5-5", 31, 0.78, 3.7, 5.00),
-            v("low", "claude-sonnet-5-5", 26, 0.51, 2.5, 2.82))),
+            v("low", "claude-sonnet-5-5", 26, 0.51, 2.5, 2.82)), pricing = CatalogPricing(claudePricing, 2.0, 10.0, 0.10, 2.5, 4.0)),
         CatalogModel("claude-haiku-5-5", ModelFamily.Claude, "Haiku 5.5", claude, listOf(v("max", "claude-haiku-5-5", 36, 0.41, 14.8, 185.68, "Claude Code" to 37.3), v("xhigh", "claude-haiku-5-5", 35, 0.25, 9.6, 57.64),
             v("high", "claude-haiku-5-5", 30, 0.16, 6.4, 21.41), v("medium", "claude-haiku-5-5", 25, 0.09, 4.0, 11.63),
-            v("low", "claude-haiku-5-5", 19, 0.04, 2.1, 7.26))),
+            v("low", "claude-haiku-5-5", 19, 0.04, 2.1, 7.26)), pricing = CatalogPricing(claudePricing, 0.10, 0.50, 0.01, 0.125, 0.20, longContextAbove = 100_000, longContextMultiplier = 5.0)),
         CatalogModel("gpt-6-astra", ModelFamily.Codex, "Astra 6", gpt, listOf(v("max", "gpt-6-astra", 57, 6.24, 23.0, 249.02, "Codex" to 54.7), v("xhigh", "gpt-6-astra", 55, 3.66, 11.3, 113.66),
             v("high", "gpt-6-astra", 55, 3.24, 9.7, 66.07), v("medium", "gpt-6-astra", 52, 2.73, 7.0, 6.03),
             v("low", "gpt-6-astra", 43, 1.42, 3.8, 3.59))),

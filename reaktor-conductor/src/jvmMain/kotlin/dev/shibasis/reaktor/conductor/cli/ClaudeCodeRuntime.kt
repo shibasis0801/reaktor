@@ -1,6 +1,8 @@
 package dev.shibasis.reaktor.conductor.cli
 
 import dev.shibasis.reaktor.conductor.NativeAgentState
+import dev.shibasis.reaktor.conductor.telemetry.ClaudeTelemetry
+import dev.shibasis.reaktor.conductor.telemetry.ProviderTelemetry
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 
@@ -168,7 +170,7 @@ class ClaudeCodeEventParser(
     private var result: String? = null
     private var failed: String? = null
     private var usage: AgentUsage? = null
-    private val messageUsage = linkedMapOf<String, AgentUsage>()
+    private val telemetry = ClaudeTelemetry.SessionCursor()
     private var budgetExceeded = false
     private var serviceTier: String? = null
     private var completed = false
@@ -260,20 +262,9 @@ class ClaudeCodeEventParser(
                 val isError = root.boolean("is_error") != false || root.string("subtype") != "success"
                 val body = root["structured_output"]?.takeIf { it !is JsonNull }?.toString() ?: root.string("result")
                 if (isError) failed = body ?: "Claude Code reported an error" else result = body
-                val reported = root.nested("usage")
-                val input = reported?.long("input_tokens")
-                val cached = reported?.long("cache_read_input_tokens")
-                val written = reported?.long("cache_creation_input_tokens")
-                usage = AgentUsage(
-                    inputTokens = if (input != null && cached != null && written != null) input + cached + written else null,
-                    cachedInputTokens = cached,
-                    cacheWriteInputTokens = written,
-                    outputTokens = reported?.long("output_tokens"),
-                    reasoningOutputTokens = reported?.nested("output_tokens_details")?.long("thinking_tokens"),
-                    costUsd = root.double("total_cost_usd"),
-                    durationMillis = root.long("duration_ms"),
-                )
-                serviceTier = reported?.string("service_tier")
+                val parsed = ClaudeTelemetry.parseRecord(root) as? ProviderTelemetry.Claude
+                usage = parsed?.toAgentUsage()
+                serviceTier = parsed?.serviceTier
                 emptyList()
             }
 
@@ -281,18 +272,9 @@ class ClaudeCodeEventParser(
         }
         val live = if (root.string("type") == "assistant" && root.string("parent_tool_use_id") == null) {
             val message = root.nested("message")
-            val id = message?.string("id")
-            val reported = message?.nested("usage")
-            if (id != null && reported != null) {
-                val input = reported.long("input_tokens")
-                val cached = reported.long("cache_read_input_tokens")
-                val written = reported.long("cache_creation_input_tokens")
-                messageUsage[id] = AgentUsage(
-                    inputTokens = if (input != null && cached != null && written != null) input + cached + written else null,
-                    outputTokens = reported.long("output_tokens"), cachedInputTokens = cached, cacheWriteInputTokens = written)
-                fun sum(field: (AgentUsage) -> Long?) = messageUsage.values.mapNotNull(field).takeIf { it.isNotEmpty() }?.sum()
-                listOf(AgentEvent.Usage(agent, AgentUsage(inputTokens = sum { it.inputTokens }, outputTokens = sum { it.outputTokens },
-                    cachedInputTokens = sum { it.cachedInputTokens }, cacheWriteInputTokens = sum { it.cacheWriteInputTokens })))
+            if (message?.string("id") != null && message.nested("usage") != null) {
+                telemetry.ingest(root)
+                listOf(AgentEvent.Usage(agent, telemetry.aggregatedLiveUsage()))
             } else emptyList()
         } else emptyList()
         return live + events.flatMap { event ->

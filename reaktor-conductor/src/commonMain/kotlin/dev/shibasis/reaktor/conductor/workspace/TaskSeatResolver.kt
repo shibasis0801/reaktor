@@ -62,9 +62,11 @@ class TaskSeatResolver(
         val lenses = request.lenses.map { resolve(TaskSeat(profile = it, access = TaskAccess.Read)) }
         require(budget?.maxCostUsd == null || lenses.isEmpty()) { "A mixed-provider panel has unknown Codex cost; use a token budget" }
         if (lenses.isNotEmpty()) {
+            val native = setOf(RuntimeKind.Codex, RuntimeKind.ClaudeCode, RuntimeKind.Gemini)
+            val providers = lenses.mapNotNull { it.seat.agent }.toSet()
             require(access == TaskAccess.Read) { "A review panel is read-only" }
-            require(lenses.map { it.seat.agent }.toSet() == setOf(RuntimeKind.Codex, RuntimeKind.ClaudeCode)) { "A review panel uses lenses from both Codex and Claude Code" }
-            require(runtime in setOf(RuntimeKind.Codex, RuntimeKind.ClaudeCode)) { "The panel verifier uses Codex or Claude Code" }
+            require(providers.size >= 2 && providers.all { it in native }) { "A review panel uses lenses from at least two native providers" }
+            require(runtime in native) { "The panel verifier uses a native provider" }
         }
         return ResolvedTaskSeat(
             request.copy(agent = runtime, model = model, effort = effort, access = access, budget = budget),

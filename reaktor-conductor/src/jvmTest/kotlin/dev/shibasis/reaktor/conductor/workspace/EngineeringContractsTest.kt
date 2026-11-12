@@ -23,7 +23,7 @@ class EngineeringContractsTest {
         val calls = listOf(AtlasApi(), ChangesApi(), ChecksApi(), RunsApi(), PlansApi()).flatMap { api ->
             api.operations.filterIsInstance<Call<*, *>>().map { call -> "${api.id.substringAfterLast('.')}.${call.name}" to call }
         }.toMap()
-        assertEquals(before.keys + setOf("plan.next", "plan.schedule"), calls.keys)
+        assertEquals(before.keys + setOf("plan.next", "plan.schedule", "plan.score", "plan.archive"), calls.keys)
         for ((id, expected) in before) {
             val call = calls.getValue(id)
             assertEquals(expected.getValue("summary").jsonPrimitive.content, call.summary, "$id summary")
@@ -34,9 +34,11 @@ class EngineeringContractsTest {
                 val ops = properties.getValue("ops").jsonObject
                 val description = ops.getValue("description").jsonPrimitive.content
                 for (field in listOf("priority", "reason", "replacement", "detail", "previews")) kotlin.test.assertTrue(field in description)
-                assertEquals("string", properties.getValue("documentPath").jsonObject.getValue("type").jsonPrimitive.content)
-                kotlin.test.assertTrue(input.getValue("required").jsonArray.none { it.jsonPrimitive.content == "documentPath" })
-                JsonObject(input + ("properties" to JsonObject((properties - "documentPath") + ("ops" to JsonObject(ops +
+                for (optional in listOf("documentPath", "requestId")) {
+                    assertEquals("string", properties.getValue(optional).jsonObject.getValue("type").jsonPrimitive.content)
+                    kotlin.test.assertTrue(input.getValue("required").jsonArray.none { it.jsonPrimitive.content == optional })
+                }
+                JsonObject(input + ("properties" to JsonObject((properties - "documentPath" - "requestId") + ("ops" to JsonObject(ops +
                     ("description" to expected.getValue("input").jsonObject.getValue("properties").jsonObject.getValue("ops").jsonObject.getValue("description")))))))
             } else input
             assertEquals(expected.getValue("input"), comparable, "$id input")

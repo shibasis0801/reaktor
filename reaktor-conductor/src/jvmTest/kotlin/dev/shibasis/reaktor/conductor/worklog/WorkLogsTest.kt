@@ -55,7 +55,7 @@ class WorkLogsTest {
         val turn = log.turns.single()
         assertEquals("Fix the login graph", turn.prompt)
         assertFalse(turn.open)
-        assertEquals(WorkUsage(910, 40, null, input = 910), turn.usage)
+        assertEquals(WorkUsage(910, 40, null, input = 910, cached = 900, fresh = 10, peakContext = 910), turn.usage)
         val steps = turn.steps
         assertIs<WorkStep.Reasoning>(steps[0])
         val command = assertIs<WorkStep.Command>(steps[1])
@@ -76,7 +76,8 @@ class WorkLogsTest {
         assertEquals(listOf("app/Login.kt"), log.files)
         val score = log.score()
         assertEquals(WorkScore(1792231200000, 1792231231000, 31_000, 31_000, 0, 0, 1, 0, 4, 1, 1, 1, 1, 1,
-            listOf("app/Login.kt"), 2, 1, 910, 40, null, 0, null, 1, WorkOutcome.Open, false, score.notes), score)
+            listOf("app/Login.kt"), 2, 1, 910, 40, null, 0, null, 1, WorkOutcome.Open, false, score.notes,
+            cachedInputTokens = 900, freshInputTokens = 10, peakContextTokens = 910), score)
 
         file.appendText(lines("""{"type":"user","timestamp":"2026-10-17T10:05:00Z","message":{"role":"user","content":"Now the logout"}}"""))
         assertEquals(listOf("Fix the login graph", "Now the logout"), WorkLogs.read(RuntimeKind.ClaudeCode, file, root).turns.map { it.prompt })
@@ -112,10 +113,11 @@ class WorkLogsTest {
         assertEquals("reaktor", tool.server)
         assertEquals("3 tasks", tool.output)
         assertEquals(PlanState.Active, assertIs<WorkStep.Plan>(turn.steps[4]).items.last().state)
-        assertEquals(WorkUsage(5000, 300, 100, input = 5000), turn.usage)
+        assertEquals(WorkUsage(5000, 300, 100, input = 5000, peakContext = 5000), turn.usage)
         val score = WorkLog(listOf(turn)).score()
         assertEquals(WorkScore(1792231200000, 1792231211000, 11_000, 11_000, 0, 0, 1, 0, 3, 1, 0, 0, 0, 0,
-            listOf("gateway/Route.kt"), 1, 1, 5000, 300, 100, 0, null, 1, WorkOutcome.Open, false, score.notes), score)
+            listOf("gateway/Route.kt"), 1, 1, 5000, 300, 100, 0, null, 1, WorkOutcome.Open, false, score.notes,
+            peakContextTokens = 5000), score)
     }
 
     @Test fun codexReadsSearchesAndListingsBecomeExplorationSteps() {
@@ -309,6 +311,33 @@ class WorkLogsTest {
         assertEquals(7_000L, card.personWaitMillis)
         assertNull(card.costUsd)
         assertEquals(2, card.unknownCostTurns)
+    }
+
+    @Test fun antigravityInclusiveTokensAndClaimWindowSlicingPreserveExactAttribution() {
+        val file = home.resolve(".gemini/antigravity-cli/brain/g3/.system_generated/logs/transcript.jsonl").apply { parentFile.mkdirs() }
+        file.writeText(lines(
+            """{"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-10-17T10:00:00Z","content":"<USER_REQUEST>\nImplement item A then B\n</USER_REQUEST>"}""",
+            """{"step_index":1,"source":"MODEL","type":"PLANNER_RESPONSE","status":"DONE","created_at":"2026-10-17T10:00:05Z","input_tokens":100,"cache_read_tokens":900,"output_tokens":40,"thinking_tokens":12,"content":"Working on A"}""",
+            """{"step_index":2,"source":"MODEL","type":"PLANNER_RESPONSE","status":"DONE","created_at":"2026-10-17T10:00:15Z","input_tokens":200,"cache_read_tokens":1800,"output_tokens":60,"thinking_tokens":18,"content":"Working on B"}""",
+        ))
+        val full = WorkLogs.read(RuntimeKind.Gemini, file, root)
+        val turn = full.turns.single()
+        assertEquals(3_000L, turn.usage?.input)
+        assertEquals(2_700L, turn.usage?.cached)
+        assertEquals(300L, turn.usage?.fresh)
+        assertEquals(100L, turn.usage?.output)
+        assertEquals(30L, turn.usage?.reasoning)
+        assertEquals(2_000L, turn.usage?.peakContext)
+
+        val windowA = full.slice(Instant.parse("2026-10-17T10:00:00Z").toEpochMilli(), Instant.parse("2026-10-17T10:00:10Z").toEpochMilli())
+        val windowB = full.slice(Instant.parse("2026-10-17T10:00:10Z").toEpochMilli(), Instant.parse("2026-10-17T10:00:20Z").toEpochMilli())
+        assertEquals(1_000L, windowA.score().inputTokens)
+        assertEquals(900L, windowA.score().cachedInputTokens)
+        assertEquals(100L, windowA.score().freshInputTokens)
+        assertEquals(2_000L, windowB.score().inputTokens)
+        assertEquals(1_800L, windowB.score().cachedInputTokens)
+        assertEquals(200L, windowB.score().freshInputTokens)
+        assertEquals(3_000L, mergeWorkLogs(listOf(windowA, windowB)).score().inputTokens)
     }
 
     private fun lines(vararg records: String) = records.joinToString("\n", postfix = "\n")

@@ -16,6 +16,7 @@ internal interface LogParser {
 
 internal class TurnBuilder(val id: String, val prompt: String?, val startedAt: Long?) {
     val steps = mutableListOf<WorkStep>()
+    val usageSamples = mutableListOf<WorkUsageSample>()
     var endedAt: Long? = startedAt
     var usage: WorkUsage? = null
     var open = true
@@ -38,7 +39,13 @@ internal class TurnBuilder(val id: String, val prompt: String?, val startedAt: L
         usage = usage?.plus(next) ?: next
     }
 
-    fun build() = WorkTurn(id, prompt, startedAt, endedAt, steps.toList(), usage, open)
+    fun sample(sample: WorkUsageSample) {
+        usageSamples += sample
+        touch(sample.at)
+        use(sample.toWorkUsage())
+    }
+
+    fun build() = WorkTurn(id, prompt, startedAt, endedAt, steps.toList(), usage, open, usageSamples.toList())
 }
 
 internal class Turns(private val prefix: String) {

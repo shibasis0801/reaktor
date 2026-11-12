@@ -390,8 +390,8 @@ class AgentWorkspaceConnection private constructor(
                 val graphDiscovery = directory.resolve("graph-connection.json")
                 if (graphUrl != null) atomicWrite(graphDiscovery, buildJsonObject { put("workspaceRoot", root.canonicalPath); put("url", graphUrl) }.toString())
                 else Files.deleteIfExists(graphDiscovery)
-                val batch = if (runtimes == null) AgentRuntimes.batch(SupervisedProcessExecutor().also { executor = it }) else emptyMap()
                 val configured = runtimes ?: AgentRuntimes.interactive(runtimeScope)
+                val batch = if (runtimes == null) AgentRuntimes.batch(SupervisedProcessExecutor().also { executor = it }) + configured.filterKeys(AgentRuntimes.Apps::contains) else emptyMap()
                 val mcpConfig = if (runtimes == null && harnessMcp != null) directory.resolve("harness-mcp.json").also { path ->
                     atomicWrite(path, buildJsonObject { putJsonObject("mcpServers") { put(AgentBundle.SERVER_NAME, harnessMcp) } }.toString())
                 }.toString() else null

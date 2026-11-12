@@ -12,6 +12,7 @@ import dev.shibasis.reaktor.conductor.RuntimeKind
 import dev.shibasis.reaktor.conductor.ToolPolicy
 import dev.shibasis.reaktor.conductor.UsageScope
 import dev.shibasis.reaktor.conductor.appserver.codexActivity
+import dev.shibasis.reaktor.conductor.telemetry.CodexTelemetry
 import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -145,14 +146,8 @@ class CodexEventParser(
             "turn.completed" -> {
                 completed = true
                 val reported = root.nested("usage")
-                usage = AgentUsage(
-                    scope = UsageScope.ProviderSessionTotal,
-                    inputTokens = reported?.long("input_tokens"),
-                    outputTokens = reported?.long("output_tokens"),
-                    cachedInputTokens = reported?.long("cached_input_tokens"),
-                    cacheWriteInputTokens = reported?.long("cache_write_input_tokens"),
-                    reasoningOutputTokens = reported?.long("reasoning_output_tokens"),
-                )
+                usage = reported?.let { CodexTelemetry.parseApiUsage(it, scope = UsageScope.ProviderSessionTotal).toAgentUsage() }
+                    ?: AgentUsage(scope = UsageScope.ProviderSessionTotal)
                 emptyList()
             }
 

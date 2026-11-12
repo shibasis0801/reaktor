@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.conductor.appserver
 
 import dev.shibasis.reaktor.conductor.*
 import dev.shibasis.reaktor.conductor.cli.codexApprovals
+import dev.shibasis.reaktor.conductor.telemetry.CodexTelemetry
 import dev.shibasis.reaktor.conductor.cli.codexMcpArgs
 import dev.shibasis.reaktor.conductor.cli.codexSandbox
 import kotlinx.coroutines.*
@@ -341,14 +342,8 @@ internal fun codexDesktopShortfall(tools: ToolPolicy, settings: JsonObject): Str
     }.takeIf { it.isNotEmpty() }?.joinToString(" and ")
 }
 
-private fun JsonObject.toAppUsage(): AgentUsage? = AgentUsage(
-    scope = UsageScope.ProviderSessionTotal,
-    inputTokens = this["input_tokens"]?.jsonPrimitive?.longOrNull,
-    cachedInputTokens = this["cached_input_tokens"]?.jsonPrimitive?.longOrNull,
-    cacheWriteInputTokens = this["cache_write_input_tokens"]?.jsonPrimitive?.longOrNull,
-    outputTokens = this["output_tokens"]?.jsonPrimitive?.longOrNull,
-    reasoningOutputTokens = this["reasoning_output_tokens"]?.jsonPrimitive?.longOrNull,
-)
+private fun JsonObject.toAppUsage(): AgentUsage? =
+    takeIf { isNotEmpty() }?.let { CodexTelemetry.parseApiUsage(it, scope = UsageScope.ProviderSessionTotal).toAgentUsage() }
 
 private class CodexAppServerSession(
     private val request: AgentRequest,
@@ -660,15 +655,5 @@ private class CodexAppServerSession(
  * the most recent turn. The session total is taken, because that is the convention the `exec`
  * adapter already reports and mixing the two would make a continuation look free.
  */
-private fun JsonObject.toUsage(): AgentUsage? {
-    val breakdown = (this["total"] as? JsonObject) ?: (this["last"] as? JsonObject) ?: return null
-    fun field(name: String) = breakdown[name]?.jsonPrimitive?.longOrNull
-    return AgentUsage(
-        scope = UsageScope.ProviderSessionTotal,
-        inputTokens = field("inputTokens"),
-        cachedInputTokens = field("cachedInputTokens"),
-        cacheWriteInputTokens = field("cacheWriteInputTokens"),
-        outputTokens = field("outputTokens"),
-        reasoningOutputTokens = field("reasoningOutputTokens"),
-    )
-}
+private fun JsonObject.toUsage(): AgentUsage? =
+    CodexTelemetry.parseAppServerTokenUsage(this)?.toAgentUsage()

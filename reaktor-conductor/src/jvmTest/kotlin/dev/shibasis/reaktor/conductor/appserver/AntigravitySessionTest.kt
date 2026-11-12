@@ -99,10 +99,10 @@ class AntigravitySessionTest {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         try {
             val runtimes = AgentRuntimes.interactive(scope)
-            assertIs<AntigravitySessionRuntime>(runtimes[RuntimeKind.Gemini])
+            assertIs<AntigravityAppRuntime>(runtimes[RuntimeKind.Gemini])
             val gemini = workspaceCapabilities(runtimes) { ProviderCapability(it, version = "1.4.7") }.single { it.runtime == RuntimeKind.Gemini }
             assertTrue(gemini.session.usable)
-            assertEquals(setOf("start", "interrupt", "queue"), gemini.controls.keys)
+            assertEquals(setOf("start", "steer", "interrupt", "queue"), gemini.controls.keys)
             assertTrue(gemini.controls.getValue("queue").usable)
         } finally { scope.cancel() }
     }

@@ -209,6 +209,20 @@ class HarnessSessionsTest {
         assertEquals(listOf(HarnessEdit("targets/botServer/wrangler.json", Instant.parse("2026-10-02T06:58:30Z").toEpochMilli())), HarnessSessions.edited(codex, workspace))
     }
 
+    @Test fun totalsCountEveryStepAndReaktorCallAcrossTheWholeTranscript() {
+        val ws = workspace.path
+        val door = """{"type":"assistant","sessionId":"c8","timestamp":"2026-10-02T06:10:00Z","message":{"content":[{"type":"tool_use","name":"mcp__reaktor__kernel","input":{}}]}}"""
+        val shell = """{"type":"assistant","sessionId":"c8","timestamp":"2026-10-02T06:20:00Z","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"ls"}}]}}"""
+        claude("-in-workspace", "c8", ws, now - 10_000,
+            """{"type":"user","cwd":"$ws","sessionId":"c8","timestamp":"2026-10-02T06:00:00Z","message":{"role":"user","content":"Count me"}}""",
+            *Array(30) { door }, *Array(50) { shell })
+        val sessions = HarnessSessions.read(workspace, home, now, processes())
+        val claude = sessions.first { it.id == "c8" }
+        assertEquals(0, claude.doorCalls)
+        assertEquals(SessionTotals(80, 30), HarnessSessions.totals(claude))
+        assertEquals(SessionTotals(3, 1), HarnessSessions.totals(sessions.first { it.id == "x1" }))
+    }
+
     @Test fun aThreadsOwnChecklistIsReadWithTheFilesEditedUnderEachStep() {
         val ws = workspace.path
         claude("-in-workspace", "c8", ws, now - 10_000,

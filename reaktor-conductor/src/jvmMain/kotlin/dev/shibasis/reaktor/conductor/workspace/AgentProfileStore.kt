@@ -13,10 +13,10 @@ class AgentProfileStore(private val directory: Path, private val clock: () -> Lo
 
     init { privateDirectory(directory) }
 
-    @Synchronized fun list(): List<AgentProfile> = (builtIns.values + Files.list(directory).use { files ->
+    @Synchronized fun list(): List<AgentProfile> = Files.list(directory).use { files ->
         files.filter { it.fileName.toString().matches(Regex("[a-z][a-z0-9-]{0,63}\\.json")) }
             .map { read(it.fileName.toString().removeSuffix(".json")) }.toList()
-    }).sortedBy { it.id }
+    }.sortedBy { it.id }
 
     @Synchronized fun read(id: String): AgentProfile {
         require(Id.matches(id)) { "A profile id is 1 to 64 lowercase letters, digits or dashes, starting with a letter" }

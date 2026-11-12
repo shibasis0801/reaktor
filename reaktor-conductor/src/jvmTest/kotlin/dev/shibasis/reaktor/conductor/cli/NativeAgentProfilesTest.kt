@@ -45,8 +45,7 @@ class NativeAgentProfilesTest {
         assertTrue(files.values.all { "parent session's permissions" in it.text && root.canonicalPath in it.text })
         assertTrue(AgentBundle.status(targets).profiles)
         assertTrue(AgentBundle.install(targets, command).filter { it.startsWith("profile/") }.all { it.endsWith("already installed") })
-        val lens = files.values.single { it.file.name.endsWith("-codex-correctness.toml") }.text
-        assertFalse(lens.lineSequence().any { it.startsWith("model =") || it.startsWith("model_reasoning_effort =") })
+        assertTrue(files.values.none { it.file.name.endsWith("-codex-correctness.toml") })
     }
 
     @Test fun revisionsUpdateOwnedExportsWhileUserEditsAndUnownedCollisionsSurvive() = fixture { root, home ->
@@ -70,7 +69,7 @@ class NativeAgentProfilesTest {
         AgentBundle.uninstall(targets)
         assertTrue(entry.file.readText().endsWith("Operator edit\n"))
         assertEquals(1, File(home, ".codex/agents").listFiles()!!.size)
-        assertTrue(File(home, ".claude/agents").listFiles()!!.isEmpty())
+        assertTrue(File(home, ".claude/agents").listFiles().orEmpty().isEmpty())
     }
 
     @Test fun separateWorkspacesHaveDistinctNamesAndUninstallCannotRemoveTheOthersProfiles() = fixture { root, home ->

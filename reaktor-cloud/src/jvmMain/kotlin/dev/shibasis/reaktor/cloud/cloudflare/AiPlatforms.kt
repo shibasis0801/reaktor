@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.cloud.cloudflare
 
 import dev.shibasis.reaktor.cloud.http.Transport
 import dev.shibasis.reaktor.core.framework.lenientJson
+import java.util.ServiceLoader
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.Serializable
@@ -100,6 +101,70 @@ data class AiPlatformModel(
     val cost7dUsd: Double = 0.0,
     val source: String = "catalog",
 )
+
+data class CodexCachedModel(
+    val slug: String,
+    val displayName: String,
+    val description: String,
+    val contextWindow: Long?,
+    val vision: Boolean,
+    val reasoning: Boolean,
+)
+
+data class LocalCodexTelemetry(
+    val cachedModels: List<CodexCachedModel> = emptyList(),
+    val sessionCount7d: Int = 0,
+    val requests7d: Long = 0,
+    val inputTokens7d: Long = 0,
+    val cachedTokens7d: Long = 0,
+    val outputTokens7d: Long = 0,
+    val reasoningTokens7d: Long = 0,
+    val cost7dUsd: Double = 0.0,
+    val compactions7d: Int = 0,
+    val primaryWindow: AiAllowanceWindow? = null,
+    val secondaryWindow: AiAllowanceWindow? = null,
+    val creditBalance: String? = null,
+    val planType: String? = null,
+)
+
+data class ClaudeModelStats(
+    var requests: Long = 0,
+    var inputTokens: Long = 0,
+    var cacheReadTokens: Long = 0,
+    var cacheCreationTokens: Long = 0,
+    var outputTokens: Long = 0,
+    var costUsd: Double = 0.0,
+)
+
+data class LocalClaudeTelemetry(
+    val sessionCount7d: Int = 0,
+    val requests7d: Long = 0,
+    val inputTokens7d: Long = 0,
+    val cacheReadTokens7d: Long = 0,
+    val cacheCreationTokens7d: Long = 0,
+    val outputTokens7d: Long = 0,
+    val thinkingTokens7d: Long = 0,
+    val cost7dUsd: Double = 0.0,
+    val compactions7d: Int = 0,
+    val byModel: Map<String, ClaudeModelStats> = emptyMap(),
+)
+
+data class LocalGeminiTelemetry(
+    val conversationCount7d: Int = 0,
+    val requests7d: Long = 0,
+    val inputTokens7d: Long = 0,
+    val cachedTokens7d: Long = 0,
+    val outputTokens7d: Long = 0,
+    val thinkingTokens7d: Long = 0,
+    val cost7dUsd: Double = 0.0,
+    val compactions7d: Int = 0,
+)
+
+interface LocalHarnessTelemetryProvider {
+    fun readCodex(codexDir: File, days: Int, now: Long): LocalCodexTelemetry
+    fun readClaude(claudeDir: File, days: Int, now: Long): LocalClaudeTelemetry
+    fun readGemini(geminiDir: File, days: Int, now: Long): LocalGeminiTelemetry
+}
 
 object AiPlatforms {
     private val http = Transport.Shared
@@ -452,9 +517,7 @@ object AiPlatforms {
         val totalCached = localCodex.cachedTokens7d
         val totalOutput = localCodex.outputTokens7d + gwTokensOut
         val totalReasoning = localCodex.reasoningTokens7d
-        val estimatedHarnessUsd = ((localCodex.inputTokens7d - localCodex.cachedTokens7d).coerceAtLeast(0L) / 1_000_000.0 * 2.50) +
-            (localCodex.cachedTokens7d / 1_000_000.0 * 0.625) +
-            (localCodex.outputTokens7d / 1_000_000.0 * 10.0)
+        val estimatedHarnessUsd = localCodex.cost7dUsd
         val used7dUsd = (liveProbe?.cost7dUsd ?: 0.0) + gwCost + estimatedHarnessUsd
 
         val allowances = buildList {
@@ -690,7 +753,7 @@ object AiPlatforms {
                 add(
                     AiAllowanceWindow(
                         label = "Claude Prompt Cache Hit Efficiency (7d)",
-                        usedPercent = if (totalInput + totalCached > 0) (totalCached.toDouble() / (totalInput + totalCached).toDouble() * 100.0).coerceIn(0.0, 100.0) else 0.0,
+                        usedPercent = if (localClaude.inputTokens7d > 0) (localClaude.cacheReadTokens7d.toDouble() / localClaude.inputTokens7d.toDouble() * 100.0).coerceIn(0.0, 100.0) else 0.0,
                         remaining = "${formatCompactTokens(totalCached)} cached tokens",
                         limit = "${localClaude.sessionCount7d} sessions active (7d)",
                     )
@@ -800,7 +863,7 @@ object AiPlatforms {
             inputTokens7d = totalInput,
             cachedTokens7d = totalCached,
             outputTokens7d = totalOutput,
-            reasoningTokens7d = 0,
+            reasoningTokens7d = localClaude.thinkingTokens7d,
             credits = AiCreditBalance(
                 status = if (apiKey != null) "Active · API Key + Max" else if (hasClaudeCli) "Active · Claude Max Plan" else "No API Key",
                 availableUsd = null,
@@ -855,7 +918,7 @@ object AiPlatforms {
 
         val totalInput = localGemini.inputTokens7d + gwTokensIn
         val totalOutput = localGemini.outputTokens7d + gwTokensOut
-        val estimatedCost7d = gwCost + (localGemini.inputTokens7d / 1_000_000.0 * 1.25) + (localGemini.outputTokens7d / 1_000_000.0 * 10.0)
+        val estimatedCost7d = gwCost + localGemini.cost7dUsd
 
         val allowances = buildList {
             add(
@@ -1153,30 +1216,11 @@ object AiPlatforms {
         GeminiProbeResult(ok = true, models = models)
     }.getOrElse { GeminiProbeResult(ok = false, error = it.message) }
 
-    private data class CodexCachedModel(
-        val slug: String,
-        val displayName: String,
-        val description: String,
-        val contextWindow: Long?,
-        val vision: Boolean,
-        val reasoning: Boolean,
-    )
+    private fun harnessProvider(): LocalHarnessTelemetryProvider? =
+        ServiceLoader.load(LocalHarnessTelemetryProvider::class.java, LocalHarnessTelemetryProvider::class.java.classLoader).firstOrNull()
+            ?: ServiceLoader.load(LocalHarnessTelemetryProvider::class.java).firstOrNull()
 
-    private data class LocalCodexTelemetry(
-        val cachedModels: List<CodexCachedModel> = emptyList(),
-        val sessionCount7d: Int = 0,
-        val requests7d: Long = 0,
-        val inputTokens7d: Long = 0,
-        val cachedTokens7d: Long = 0,
-        val outputTokens7d: Long = 0,
-        val reasoningTokens7d: Long = 0,
-        val primaryWindow: AiAllowanceWindow? = null,
-        val secondaryWindow: AiAllowanceWindow? = null,
-        val creditBalance: String? = null,
-        val planType: String? = null,
-    )
-
-    private fun readLocalCodexTelemetry(codexDir: File, days: Int): LocalCodexTelemetry {
+    fun readLocalCodexTelemetry(codexDir: File, days: Int, now: Long = System.currentTimeMillis()): LocalCodexTelemetry {
         val cacheFile = File(codexDir, "models_cache.json")
         val cachedModels = if (cacheFile.isFile) {
             runCatching {
@@ -1196,243 +1240,15 @@ object AiPlatforms {
                 }
             }.getOrDefault(emptyList())
         } else emptyList()
-
-        val cutoff = System.currentTimeMillis() - days * 86_400_000L
-        val sessionsDir = File(codexDir, "sessions")
-        if (!sessionsDir.isDirectory) return LocalCodexTelemetry(cachedModels = cachedModels)
-
-        val recentFiles = sessionsDir.walkTopDown()
-            .filter { it.isFile && it.extension == "jsonl" && it.lastModified() >= cutoff }
-            .sortedByDescending { it.lastModified() }
-            .take(80)
-            .toList()
-
-        var totalIn = 0L
-        var totalCached = 0L
-        var totalOut = 0L
-        var totalReasoning = 0L
-        var totalTurns = 0L
-        var latestPrimary: AiAllowanceWindow? = null
-        var latestSecondary: AiAllowanceWindow? = null
-        var latestCreditBalance: String? = null
-        var latestPlanType: String? = null
-
-        for (file in recentFiles) {
-            var fileMaxIn = 0L
-            var fileMaxCached = 0L
-            var fileMaxOut = 0L
-            var fileMaxReasoning = 0L
-            var fileTurns = 0L
-            runCatching {
-                file.useLines { lines ->
-                    lines.forEach { line ->
-                        if (!line.contains("\"token_count\"")) return@forEach
-                        val obj = runCatching { lenientJson.parseToJsonElement(line) as? JsonObject }.getOrNull() ?: return@forEach
-                        val payload = obj.obj("payload")
-                        if (payload.text("type") != "token_count") return@forEach
-                        fileTurns++
-                        val totalUsage = payload.obj("info").obj("total_token_usage")
-                        val inp = totalUsage.long("input_tokens") ?: 0L
-                        val cac = totalUsage.long("cached_input_tokens") ?: 0L
-                        val out = totalUsage.long("output_tokens") ?: 0L
-                        val rea = totalUsage.long("reasoning_output_tokens") ?: 0L
-                        if (inp >= fileMaxIn) {
-                            fileMaxIn = inp
-                            fileMaxCached = cac
-                            fileMaxOut = out
-                            fileMaxReasoning = rea
-                        }
-                        if (latestPrimary == null) {
-                            val rl = payload.obj("rate_limits")
-                            val pri = rl.obj("primary")
-                            val sec = rl.obj("secondary")
-                            val cred = rl.obj("credits")
-                            pri.number("used_percent")?.let { used ->
-                                val resetSec = pri.long("resets_at")
-                                val mins = pri.long("window_minutes") ?: 300L
-                                latestPrimary = AiAllowanceWindow(
-                                    label = "Codex ${mins / 60}h Allowance Window",
-                                    usedPercent = used,
-                                    remaining = "${"%.0f".format((100.0 - used).coerceAtLeast(0.0))}% available",
-                                    limit = "${mins / 60}h rolling window",
-                                    resetsAtMillis = resetSec?.let { it * 1000L },
-                                )
-                            }
-                            sec.number("used_percent")?.let { used ->
-                                val resetSec = sec.long("resets_at")
-                                val mins = sec.long("window_minutes") ?: 10080L
-                                latestSecondary = AiAllowanceWindow(
-                                    label = "Codex ${mins / 1440}d Weekly Allowance",
-                                    usedPercent = used,
-                                    remaining = "${"%.0f".format((100.0 - used).coerceAtLeast(0.0))}% available",
-                                    limit = "${mins / 1440}d rolling window",
-                                    resetsAtMillis = resetSec?.let { it * 1000L },
-                                )
-                            }
-                            latestPlanType = rl.text("plan_type") ?: cred.text("plan_type")
-                            latestCreditBalance = cred.text("balance")
-                        }
-                    }
-                }
-            }
-            totalIn += fileMaxIn
-            totalCached += fileMaxCached
-            totalOut += fileMaxOut
-            totalReasoning += fileMaxReasoning
-            totalTurns += fileTurns
-        }
-
-        return LocalCodexTelemetry(
-            cachedModels = cachedModels,
-            sessionCount7d = recentFiles.size,
-            requests7d = totalTurns,
-            inputTokens7d = totalIn,
-            cachedTokens7d = totalCached,
-            outputTokens7d = totalOut,
-            reasoningTokens7d = totalReasoning,
-            primaryWindow = latestPrimary,
-            secondaryWindow = latestSecondary,
-            creditBalance = latestCreditBalance,
-            planType = latestPlanType,
-        )
+        val loaded = harnessProvider()?.readCodex(codexDir, days, now) ?: LocalCodexTelemetry()
+        return loaded.copy(cachedModels = cachedModels)
     }
 
-    private data class ClaudeModelStats(
-        var requests: Long = 0,
-        var inputTokens: Long = 0,
-        var cacheReadTokens: Long = 0,
-        var cacheCreationTokens: Long = 0,
-        var outputTokens: Long = 0,
-    )
+    fun readLocalClaudeTelemetry(claudeDir: File, days: Int, now: Long = System.currentTimeMillis()): LocalClaudeTelemetry =
+        harnessProvider()?.readClaude(claudeDir, days, now) ?: LocalClaudeTelemetry()
 
-    private data class LocalClaudeTelemetry(
-        val sessionCount7d: Int = 0,
-        val requests7d: Long = 0,
-        val inputTokens7d: Long = 0,
-        val cacheReadTokens7d: Long = 0,
-        val cacheCreationTokens7d: Long = 0,
-        val outputTokens7d: Long = 0,
-        val cost7dUsd: Double = 0.0,
-        val byModel: Map<String, ClaudeModelStats> = emptyMap(),
-    )
-
-    private fun readLocalClaudeTelemetry(claudeDir: File, days: Int): LocalClaudeTelemetry {
-        val projectsDir = File(claudeDir, "projects")
-        if (!projectsDir.isDirectory) return LocalClaudeTelemetry()
-        val cutoff = System.currentTimeMillis() - days * 86_400_000L
-        val recentFiles = projectsDir.walkTopDown()
-            .filter { it.isFile && it.extension == "jsonl" && it.lastModified() >= cutoff }
-            .sortedByDescending { it.lastModified() }
-            .take(80)
-            .toList()
-
-        var requests = 0L
-        var inputTokens = 0L
-        var cacheRead = 0L
-        var cacheCreate = 0L
-        var outputTokens = 0L
-        val byModel = linkedMapOf<String, ClaudeModelStats>()
-
-        for (file in recentFiles) {
-            runCatching {
-                file.useLines { lines ->
-                    lines.forEach { line ->
-                        if (!line.contains("\"usage\"")) return@forEach
-                        val obj = runCatching { lenientJson.parseToJsonElement(line) as? JsonObject }.getOrNull() ?: return@forEach
-                        val msg = obj.obj("message")
-                        val usage = msg.obj("usage")
-                        val inp = usage.long("input_tokens") ?: return@forEach
-                        val out = usage.long("output_tokens") ?: 0L
-                        val cr = usage.long("cache_read_input_tokens") ?: 0L
-                        val cc = usage.long("cache_creation_input_tokens") ?: 0L
-                        val model = msg.text("model")?.takeIf { !it.startsWith("<") } ?: "claude-opus-5-5"
-                        requests++
-                        inputTokens += inp
-                        cacheRead += cr
-                        cacheCreate += cc
-                        outputTokens += out
-                        val stat = byModel.getOrPut(model) { ClaudeModelStats() }
-                        stat.requests++
-                        stat.inputTokens += inp + cr + cc
-                        stat.cacheReadTokens += cr
-                        stat.cacheCreationTokens += cc
-                        stat.outputTokens += out
-                    }
-                }
-            }
-        }
-
-        val estimatedUsd = (inputTokens / 1_000_000.0 * 5.0) +
-            (cacheRead / 1_000_000.0 * 0.50) +
-            (cacheCreate / 1_000_000.0 * 6.25) +
-            (outputTokens / 1_000_000.0 * 25.0)
-
-        return LocalClaudeTelemetry(
-            sessionCount7d = recentFiles.size,
-            requests7d = requests,
-            inputTokens7d = inputTokens,
-            cacheReadTokens7d = cacheRead,
-            cacheCreationTokens7d = cacheCreate,
-            outputTokens7d = outputTokens,
-            cost7dUsd = estimatedUsd,
-            byModel = byModel,
-        )
-    }
-
-    private data class LocalGeminiTelemetry(
-        val conversationCount7d: Int = 0,
-        val requests7d: Long = 0,
-        val inputTokens7d: Long = 0,
-        val cachedTokens7d: Long = 0,
-        val outputTokens7d: Long = 0,
-        val thinkingTokens7d: Long = 0,
-    )
-
-    private fun readLocalGeminiTelemetry(geminiDir: File, days: Int): LocalGeminiTelemetry {
-        val brainDir = File(geminiDir, "antigravity/brain")
-        if (!brainDir.isDirectory) return LocalGeminiTelemetry()
-        val cutoff = System.currentTimeMillis() - days * 86_400_000L
-        val transcripts = brainDir.listFiles().orEmpty()
-            .filter { it.isDirectory }
-            .mapNotNull { File(it, ".system_generated/logs/transcript.jsonl").takeIf(File::isFile) }
-            .filter { it.lastModified() >= cutoff }
-            .sortedByDescending { it.lastModified() }
-            .take(50)
-
-        var steps = 0L
-        var charsIn = 0L
-        var charsOut = 0L
-        var charsThinking = 0L
-
-        for (file in transcripts) {
-            runCatching {
-                file.useLines { lines ->
-                    lines.forEach { line ->
-                        if (line.contains("\"PLANNER_RESPONSE\"")) {
-                            steps++
-                            charsOut += (line.length / 2).toLong()
-                            if (line.contains("\"thinking\"")) {
-                                charsThinking += (line.length / 4).toLong()
-                            }
-                        } else {
-                            charsIn += (line.length / 3).toLong()
-                        }
-                    }
-                }
-            }
-        }
-        val inputTokens = charsIn / 4L
-        val outputTokens = charsOut / 4L
-        val thinkingTokens = charsThinking / 4L
-        return LocalGeminiTelemetry(
-            conversationCount7d = transcripts.size,
-            requests7d = steps,
-            inputTokens7d = inputTokens,
-            cachedTokens7d = (inputTokens * 3L) / 5L,
-            outputTokens7d = outputTokens,
-            thinkingTokens7d = thinkingTokens,
-        )
-    }
+    fun readLocalGeminiTelemetry(geminiDir: File, days: Int, now: Long = System.currentTimeMillis()): LocalGeminiTelemetry =
+        harnessProvider()?.readGemini(geminiDir, days, now) ?: LocalGeminiTelemetry()
 
     private fun mergeOpenAiModels(
         cached: List<CodexCachedModel>,

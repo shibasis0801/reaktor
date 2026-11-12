@@ -49,6 +49,8 @@ internal fun agentTeamTools(workspace: AgentWorkspace): List<McpTool> {
         McpTool("agent_team_write", "Change the agent team: add-member, retire-member (a person only), relate, unrelate, group and ungroup. " +
             "structure adds a structure from a template (${AgentStructures.templates.joinToString { it.id }}) under a key; seat puts a saved profile in one of its seats, " +
             "or empties the seat when profile is left out; unstructure removes it. " +
+            "template adds or replaces a structure of the team's own (id, title, summary, seats with key, role, duty, tier and config, links with from, to and label), usually copied from an existing one; " +
+            "a changed template empties seats it no longer has in its variants; untemplate removes one that no variant uses. " +
             "Pass base, the revision you read: an op on a member, link or group someone else changed after it is refused for that op only, and news lists their changes. " +
             "The answer lists what applied, what was refused and why, and the new revision.",
             withActor(api.write.request.descriptor.jsonSchema()),

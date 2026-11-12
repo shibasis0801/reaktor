@@ -37,8 +37,9 @@ class AntigravityParserTest {
         assertFalse(outcome.ok)
         assertEquals("Antigravity could not obtain required permissions to run a command.", outcome.failure)
         assertEquals(UsageScope.ProviderSessionTotal, outcome.usage?.scope)
-        assertNull(outcome.usage?.cachedInputTokens)
-        assertTrue(outcome.attributes.containsKey("usageNotice"))
+        assertEquals(30L, outcome.usage?.inputTokens)
+        assertEquals(20L, outcome.usage?.cachedInputTokens)
+        assertEquals(4L, outcome.usage?.outputTokens)
     }
 
     @Test fun everyTurnSkipsPermissionPromptsAndAnInspectionStaysInPlanMode() {

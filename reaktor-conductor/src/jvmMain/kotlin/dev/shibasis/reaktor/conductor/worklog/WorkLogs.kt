@@ -1,6 +1,8 @@
 package dev.shibasis.reaktor.conductor.worklog
 
 import dev.shibasis.reaktor.conductor.RuntimeKind
+import dev.shibasis.reaktor.conductor.telemetry.ClaudeTelemetry
+import dev.shibasis.reaktor.conductor.telemetry.CodexTelemetry
 import kotlinx.serialization.json.JsonObject
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -63,12 +65,7 @@ object WorkLogs {
         val start = maxOf(0L, file.length() - LimitBytes)
         var found: RateLimits? = null
         lines(file, start, skipFirst = start > 0) { record ->
-            val payload = record.obj("payload")?.takeIf { it.str("type") == "token_count" }
-            val limits = payload?.obj("rate_limits")
-            val windows = listOfNotNull(limits?.obj("primary"), limits?.obj("secondary")).mapNotNull { window ->
-                window.text("used_percent")?.toDoubleOrNull()?.let { RateWindow(it, window.num("window_minutes"), window.num("resets_at")?.times(1000)) }
-            }
-            if (windows.isNotEmpty()) found = RateLimits(windows, limits?.str("plan_type"), instant(record.str("timestamp")))
+            (CodexTelemetry.parseRateLimits(record) ?: ClaudeTelemetry.parseRateLimits(record))?.let { found = it }
         }
         return found
     }
