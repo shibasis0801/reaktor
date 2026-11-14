@@ -871,9 +871,20 @@ How it came out, against the plan:
   (`coffer@9671a3c`, house-style AC1). The walk itself still needs a person: taps from adb under
   TalkBack sometimes activate instead of focusing.
 
+**The redesign, 11–14 November 2026.** The owner designed Coffer in Claude Design; every screen
+was rebuilt to it (`coffer@1df13e5` … `coffer@7302146`, map in `coffer/docs/design/implementation.md`),
+and `DESIGN.md` now records it as the identity, which settles the ◆ item. Market-analysis gaps built
+alongside: payments shared with others (your share counted, "Owed to you", paid back), an overall
+budget, the person's own categories (add, rename, hide with Undo), rules with Forget and Undo, and
+mapping another app's categories onto Coffer's during an import. A fresh install opens on a
+two-step welcome and disclosure. Checked on the emulator (light, dark, font scale 2.0) and the iOS
+simulator at AX5; three TY4 findings fixed (house-style audit). Still waiting on the owner: IBM
+Plex Sans font files (a download needs a yes), sync (gate G1–G4), a support address, the free
+promise.
+
 Unchanged from Phase 1: the checkpoint is two weeks on the owner's phone, then the gate (§8).
-Phase 2 has not started. Also left: AC4 (TalkBack and VoiceOver walks, now over the new screens
-too), CP8, iOS AX5, the maker-specific keep-alive screens on real phones, the identity (◆).
+Phase 2 has not started. Also left: AC4 (TalkBack and VoiceOver walks over the new screens), CP8,
+the maker-specific keep-alive screens on real phones.
 
 Related: [app-portfolio.md](app-portfolio.md) · [hearth.md](hearth.md) · [cairn.md](cairn.md) ·
 [lector.md](lector.md)
