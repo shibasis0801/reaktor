@@ -310,6 +310,15 @@ Android's own backup runs in a restricted process **without your `Application` s
 `BackupAgent` cannot reach the graph. Mirror the one setting it needs into `SharedPreferences` from
 the app, and read it there (Coffer's `CofferBackupAgent`).
 
+### `Feature.X` slots are extension properties: import each one
+
+`Feature.Share`, `Feature.DocumentPicker`, `Feature.NotificationListener` and the rest are declared
+as `var Feature.X by CreateSlot<X>()` beside their interface, so each is an extension property that
+needs its own import (`import dev.shibasis.reaktor.io.adapters.Share`). An import cleanup that
+looks only for the type name drops it, and the compiler then reports `Unresolved reference
+'shareFile' on receiver of type 'Any'`, far from the cause. Keep the import even when the type
+itself is never named in the file.
+
 ### Write every actual, including the ones you do not ship
 
 An `expect` with no `actual` for jvm or js breaks those targets, and you will not notice until a
