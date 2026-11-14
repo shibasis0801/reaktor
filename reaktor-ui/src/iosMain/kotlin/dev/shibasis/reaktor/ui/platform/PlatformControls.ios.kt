@@ -19,11 +19,15 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.ObjCAction
 import kotlinx.cinterop.useContents
 import platform.Foundation.NSSelectorFromString
+import platform.UIKit.NSFontAttributeName
 import platform.UIKit.NSForegroundColorAttributeName
 import platform.UIKit.UIColor
 import platform.UIKit.UIControlEventValueChanged
 import platform.UIKit.UIControlStateNormal
 import platform.UIKit.UIControlStateSelected
+import platform.UIKit.UIFont
+import platform.UIKit.UIFontMetrics
+import platform.UIKit.UIFontWeightMedium
 import platform.UIKit.UISegmentedControl
 import platform.CoreGraphics.CGRectMake
 import platform.UIKit.NSLayoutConstraint
@@ -43,6 +47,16 @@ private fun Color.ui(): UIColor = UIColor.colorWithRed(red.toDouble(), green.toD
 private fun PlatformControlColors.style() = if (dark) UIUserInterfaceStyle.UIUserInterfaceStyleDark else UIUserInterfaceStyle.UIUserInterfaceStyleLight
 
 // Points are dp on iOS: a control's own size, read once, is the size Compose gives it.
+
+/**
+ * A segmented control's titles follow the person's text size, to 1.3× at most: each segment is a
+ * fixed share of the width, so beyond that a label would truncate (house-style TY4). UIKit leaves
+ * them at 13pt whatever the setting, which at the largest sizes sits small beside everything else.
+ */
+private fun segmentFont(): UIFont = UIFontMetrics.defaultMetrics.scaledFontForFont(
+    UIFont.systemFontOfSize(13.0, UIFontWeightMedium),
+    maximumPointSize = 13.0 * 1.3,
+)
 private fun UISwitch.naturalSize() = intrinsicContentSize.useContents { width.dp to height.dp }
 
 /**
@@ -112,6 +126,8 @@ actual fun PlatformChoice(
     val control = remember(options) {
         UISegmentedControl(items = options).apply {
             addTarget(target, NSSelectorFromString("changed"), UIControlEventValueChanged)
+            // Set before the height is read below, so the control is as tall as its text.
+            setTitleTextAttributes(mapOf(NSFontAttributeName to segmentFont()), UIControlStateNormal)
         }
     }
     val holder = remember(control) { Holder(control) }
@@ -124,8 +140,9 @@ actual fun PlatformChoice(
             view.paint(colors)
             control.backgroundColor = colors.track.ui()
             control.selectedSegmentTintColor = colors.selected.ui()
-            control.setTitleTextAttributes(mapOf(NSForegroundColorAttributeName to colors.ink.ui()), UIControlStateNormal)
-            control.setTitleTextAttributes(mapOf(NSForegroundColorAttributeName to colors.onSelected.ui()), UIControlStateSelected)
+            val font = segmentFont()
+            control.setTitleTextAttributes(mapOf(NSFontAttributeName to font, NSForegroundColorAttributeName to colors.ink.ui()), UIControlStateNormal)
+            control.setTitleTextAttributes(mapOf(NSFontAttributeName to font, NSForegroundColorAttributeName to colors.onSelected.ui()), UIControlStateSelected)
             if (control.selectedSegmentIndex.toInt() != selected) control.selectedSegmentIndex = selected.toLong()
         },
         properties = UIKitInteropProperties(
