@@ -558,6 +558,21 @@ and restores the whole database. The server half is `reaktor-cloudflare`'s `D1Sy
   load `skiko.mjs`. An empty `export const skikoApi = {};` in `src/jsTest/resources/skiko.mjs`
   satisfies the import (see reaktor-cloudflare).
 
+## Bundling a typeface
+
+Put the font files in the app module's `src/commonMain/composeResources/font/` (lower-case names,
+`ibm_plex_sans_regular.ttf`), add `ComposeLibraries.Resources`, and set the `Res` package with
+`ResourcesExtension.packageOfResClass`. The licence goes beside them under `files/`. On iOS the
+CocoaPods podspec dependeasy generates already lists `build/compose/cocoapods/compose-resources`,
+so the files reach the app bundle with no Xcode change.
+
+`org.jetbrains.compose.resources.Font` is `@Composable`, and loads at once on Android but a moment
+later on iOS. So a type scale cannot be plain `val TextStyle`s with the family baked in: give the
+family a `staticCompositionLocalOf`, fill it in the app's theme, and make each style a
+`@Composable @ReadOnlyComposable get()` that reads it. Text then sets itself again when the font
+arrives. Pass the same family to `MaterialTheme(typography = …)` or the platform dialogs keep the
+system face. Coffer's `design/Tokens.kt` and `Theme.kt` are the worked example.
+
 ## Files people bring from other apps
 
 `reaktor-io`'s `archive` package reads them in common code: `Zip` (stored and deflated entries),
