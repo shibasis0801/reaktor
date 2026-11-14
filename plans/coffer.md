@@ -882,6 +882,15 @@ simulator at AX5; three TY4 findings fixed (house-style audit). Still waiting on
 Plex Sans font files (a download needs a yes), sync (gate G1–G4), a support address, the free
 promise.
 
+**Gap features, 15 November 2026.** Built without new modules (`coffer@7d8f622` … `coffer@274040a`):
+saved and invested left out of spending, regular payments found from history, a page per payee
+with Rename for every payment, a page per category, search by amount, spending by account, the
+year so far, payees and categories shared as spreadsheets, a due-soon or late card on Home, and
+who owes what with a reminder to send. The ones that need reaktor first (app lock, a widget,
+opt-in reminders, PDF statements, Excel export, receipt photos) are listed for the owner in
+`coffer/docs/gaps.md`. Also: Plex checked at font scale 2.0, iOS AX5, dark, `de-DE` and `ar-EG`
+(`coffer@ad35990`), and iOS `PlatformChoice` titles follow Dynamic Type (`ce8ed781`).
+
 Unchanged from Phase 1: the checkpoint is two weeks on the owner's phone, then the gate (§8).
 Phase 2 has not started. Also left: AC4 (TalkBack and VoiceOver walks over the new screens), CP8,
 the maker-specific keep-alive screens on real phones.
