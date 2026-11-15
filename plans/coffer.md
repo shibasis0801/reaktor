@@ -891,6 +891,11 @@ opt-in reminders, PDF statements, Excel export, receipt photos) are listed for t
 `coffer/docs/gaps.md`. Also: Plex checked at font scale 2.0, iOS AX5, dark, `de-DE` and `ar-EG`
 (`coffer@ad35990`), and iOS `PlatformChoice` titles follow Dynamic Type (`ce8ed781`).
 
+**Reaktor work planned, 15 November 2026:** [coffer-modules.md](coffer-modules.md) places the seven
+features Coffer can't build alone (forms, Excel export, app lock, reminders, receipt photos, a
+widget, PDF statements). Three need a module of their own; reminders need sealed notices moved out
+of `reaktor-notification`, which also takes BoringSSL and MLS++ out of GymBuddy.
+
 Unchanged from Phase 1: the checkpoint is two weeks on the owner's phone, then the gate (§8).
 Phase 2 has not started. Also left: AC4 (TalkBack and VoiceOver walks over the new screens), CP8,
 the maker-specific keep-alive screens on real phones.
