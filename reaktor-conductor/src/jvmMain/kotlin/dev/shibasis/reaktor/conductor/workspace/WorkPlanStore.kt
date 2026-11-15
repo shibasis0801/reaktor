@@ -1,20 +1,100 @@
 package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.conductor.ConductorJson
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.concurrent.Semaphore
+import java.util.logging.Level
+import java.util.logging.Logger
+import java.util.concurrent.locks.ReentrantLock
 
 class WorkPlanStore(private val directory: Path, inbox: Path? = null,
     private val identity: (BoardActor) -> BoardActor = { it }, private val clock: () -> Long = System::currentTimeMillis,
     private val activity: (String) -> Long? = { null },
+    private val resolveRefs: suspend (List<String>) -> Map<String, List<String>> = { refs -> refs.associateWith(AgentSourceScope::local) },
+    private val cachedRefs: (List<String>) -> Map<String, List<String>> = { emptyMap() },
     private val messages: ((WorkPlan, WorkPlan?, BoardActor) -> Unit)? = null) {
     private val inbox = inbox?.let(::ThreadInbox)
-    private val plans = java.util.concurrent.ConcurrentHashMap<String, WorkPlan>()
+    private val plans = ConcurrentHashMap<String, WorkPlan>()
     private val changed = MutableStateFlow(0L)
     val changes: StateFlow<Long> = changed.asStateFlow()
+
+    private class StoreCall(val waiting: Boolean) {
+        var notifications = 0
+        val failures = ConcurrentLinkedQueue<Throwable>()
+    }
+    private data class Notification(val plan: WorkPlan, val previous: WorkPlan?, val by: BoardActor, val call: StoreCall)
+    private val notifications = ArrayDeque<Notification>()
+    private val caller = ThreadLocal<StoreCall>()
+    private val delivery = ReentrantLock(true)
+    private val delivering = ThreadLocal.withInitial { false }
+    private val readDelivery by lazy {
+        Semaphore(0).also { wake ->
+            Thread({
+                while (true) {
+                    wake.acquire()
+                    wake.drainPermits()
+                    deliver()
+                }
+            }, "WorkPlanStore-notifications").apply { isDaemon = true; start() }
+        }
+    }
+    internal val pendingNotifications: Int get() = synchronized(this) { notifications.size }
+    internal val deliveringNotification: Boolean get() = delivering.get()
+
+    private fun <T> access(wait: Boolean = false, body: () -> T): T = call(wait) { synchronized(this) { body() } }
+
+    private fun <T> call(wait: Boolean = false, body: () -> T): T {
+        if (caller.get() != null) return body()
+        val call = StoreCall(wait && !delivering.get())
+        caller.set(call)
+        var failure: Throwable? = null
+        try {
+            return body()
+        } catch (error: Throwable) {
+            failure = error
+            throw error
+        } finally {
+            caller.remove()
+            if (!delivering.get()) {
+                if (call.notifications > 0) {
+                    if (call.waiting) deliver() else readDelivery.release()
+                }
+                call.failures.poll()?.let { error ->
+                    call.failures.forEach(error::addSuppressed)
+                    if (failure == null) throw error else failure.addSuppressed(error)
+                }
+            }
+        }
+    }
+
+    private fun deliver() {
+        check(!Thread.holdsLock(this))
+        do {
+            delivery.lock()
+            try {
+                delivering.set(true)
+                while (true) {
+                    val notification = synchronized(this) { notifications.removeFirstOrNull() } ?: break
+                    try {
+                        notify(notification.plan, notification.previous, notification.by)
+                    } catch (error: Throwable) {
+                        if (notification.call.waiting) notification.call.failures.add(error)
+                        else runCatching { Logger.getLogger(WorkPlanStore::class.java.name).log(Level.SEVERE, "Plan notification failed", error) }
+                    }
+                }
+            } finally {
+                delivering.remove()
+                delivery.unlock()
+            }
+        } while (synchronized(this) { notifications.isNotEmpty() })
+    }
 
     init {
         privateDirectory(directory)
@@ -23,9 +103,9 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
         }
     }
 
-    @Synchronized fun list(): List<PlanSummary> { expire(); return plans.values.sortedByDescending { it.updatedAt }.map(WorkPlan::summary) }
+    fun list(): List<PlanSummary> = access { expire(); plans.values.sortedByDescending { it.updatedAt }.map(WorkPlan::summary) }
 
-    @Synchronized fun plan(thread: String): WorkPlan? { expire(); return plans[thread]?.let(::identified) }
+    fun plan(thread: String): WorkPlan? = access { expire(); plans[thread]?.let(::identified) }
 
     fun candidate(reference: String, ready: Boolean = false): PlanCandidate? {
         require(reference.startsWith("plan:") && reference.count { it == '#' } == 1) { "Use plan:<thread>#<item> for planItem" }
@@ -50,24 +130,58 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
         )
     }
 
-    @Synchronized fun read(thread: String, since: Long? = null, reader: BoardActor? = null): PlanRead {
+    fun read(thread: String, since: Long? = null, reader: BoardActor? = null): PlanRead = access {
         val plan = plan(thread) ?: error("$thread has no plan yet; its agent draws one with plan.write")
-        return PlanRead(plan, since?.let { plan.news(it, reader?.let(identity)) }.orEmpty())
+        PlanRead(plan, since?.let { plan.news(it, reader?.let(identity)) }.orEmpty())
     }
 
-    @Synchronized fun write(thread: String, patch: PlanPatch, by: BoardActor): PlanApplied {
+    fun write(thread: String, patch: PlanPatch, by: BoardActor): PlanApplied = access(true) {
         val now = clock()
         val current = plan(thread)
         val writer = identity(by)
         val applied = PlanRules.apply(current ?: PlanRules.start(thread, patch, writer, now), patch, writer, now)
         if (current == null && (applied.plan.items.isNotEmpty() || applied.refused.isEmpty()) || current != null && applied.plan != current) {
-            return applied.copy(plan = identified(save(applied.plan, current, writer)))
+            return@access applied.copy(plan = identified(save(applied.plan, current, writer)))
         }
-        return applied
+        applied
     }
 
-    @Synchronized fun next(thread: String?, by: BoardActor, seat: String? = null, take: Boolean = false,
-        item: String? = null, profile: (String) -> AgentProfile): PlanNext {
+    fun next(thread: String?, by: BoardActor, seat: String? = null, take: Boolean = false,
+        item: String? = null, profile: (String) -> AgentProfile): PlanNext = call(take) {
+        require(item == null || thread != null && PlanRules.Key.matches(item)) { "Choosing an item requires a plan thread and a valid item key" }
+        val actor = identity(by)
+        require(!take || actor.kind == BoardActorKind.Agent && actor.agent != null) { "Taking work requires a canonical agent identity" }
+        val resolved = HashMap<String, List<String>>()
+        fun resolveMissing() {
+            val missing = access { scopeRefs(thread, by, seat, item, profile).filterNot(resolved::containsKey) }
+            if (missing.isNotEmpty()) {
+                val found = if (deliveringNotification) cachedRefs(missing) else runBlocking { resolveRefs(missing) }
+                missing.forEach { resolved[it] = found[it] ?: AgentSourceScope.local(it) }
+            }
+        }
+        repeat(2) {
+            resolveMissing()
+            val answer = access(take) {
+                if (scopeRefs(thread, by, seat, item, profile).any { it !in resolved }) null
+                else nextResolved(thread, by, seat, take, item, profile, resolved)
+            }
+            if (answer != null) return@call answer
+        }
+        resolveMissing()
+        nextResolved(thread, by, seat, take, item, profile, resolved)
+    }
+
+    private fun scopeRefs(thread: String?, by: BoardActor, seat: String?, item: String?, profile: (String) -> AgentProfile): List<String> {
+        expire()
+        val every = plans.values.sortedBy { it.thread }.map(::identified)
+        val all = if (thread == null) every else listOf(requireNotNull(every.find { it.thread == thread }) { "$thread has no plan yet; its agent draws one with plan.write" })
+        val busy = every.flatMap { plan -> plan.leaves().filter { it.status == PlanStatus.Doing && it.kind != PlanKind.Component }.map { plan to it } }
+        val ready = eligible(all, identity(by), seat, item, profile).map { candidate -> all.single { it.thread == candidate.thread } to candidate.item }
+        return (busy + ready).flatMap { (plan, item) -> AgentSourceScope.refs(plan, item) }.distinct()
+    }
+
+    private fun nextResolved(thread: String?, by: BoardActor, seat: String?, take: Boolean,
+        item: String?, profile: (String) -> AgentProfile, resolved: Map<String, List<String>>): PlanNext = access(take) {
         val actor = identity(by)
         require(item == null || thread != null && PlanRules.Key.matches(item)) { "Choosing an item requires a plan thread and a valid item key" }
         expire()
@@ -86,18 +200,35 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
                 if (item != null) {
                     val sameItem = held.thread == thread && held.item.id == item
                     val insideSeat = requestedSeat == null || requestedSeat.items.any { item in all.single().under(it) }
-                    if (!sameItem || !insideSeat) return PlanNext(reason = reason)
-                    if (!PlanSchedule.unblocked(all.single(), held.item)) return PlanNext(reason = "$item is leased to you but its dependencies are not complete")
+                    if (!sameItem || !insideSeat) return@access PlanNext(reason = reason)
+                    if (!PlanSchedule.unblocked(all.single(), held.item)) return@access PlanNext(reason = "$item is leased to you but its dependencies are not complete")
                 }
-                return PlanNext(held, reason)
+                return@access PlanNext(held, reason)
             }
         }
-        fun footprint(plan: WorkPlan, item: PlanItem): List<String> =
-            if (item.refs.any { it.startsWith("file:") }) item.refs
-            else generateSequence(item) { it.parent?.let(plan::item) }.flatMap { it.refs }.distinct().toList()
+        fun footprint(plan: WorkPlan, item: PlanItem): List<String> = AgentSourceScope.footprint(plan, item, resolved)
         val busy = every.flatMap { plan -> plan.leaves().filter { it.status == PlanStatus.Doing && it.kind != PlanKind.Component && it.holder?.same(actor) != true }.map { footprint(plan, it) } }
+        val candidates = eligible(all, actor, seat, item, profile).filter { candidate ->
+            val plan = all.single { it.thread == candidate.thread }
+            busy.none { AgentSourceScope.conflicts(footprint(plan, candidate.item), it) }
+        }
+        val candidate = candidates.minWithOrNull(compareByDescending<PlanCandidate> { it.priority }.thenByDescending { it.unblocks }.thenBy { it.age })
+        if (!take || candidate == null) return@access PlanNext(candidate, if (candidate == null) "No ready item matches this agent, its seat, profile and free files" else "")
+        val current = read(candidate.thread).plan
+        val now = clock()
+        val applied = PlanRules.apply(current, PlanPatch(base = current.revision, seat = seat,
+            ops = listOf(PlanOp.Status(candidate.item.id, PlanStatus.Doing, reason = ""))), actor, now)
+        require(applied.refused.isEmpty()) { applied.refused.joinToString { it.reason } }
+        val leased = applied.plan.copy(items = applied.plan.items.map {
+            if (it.id == candidate.item.id) it.copy(lease = PlanLease(actor, now, now + PlanLease.DurationMillis)) else it
+        })
+        val saved = identified(save(leased, current, actor))
+        PlanNext(candidate.copy(revision = saved.revision, item = requireNotNull(saved.item(candidate.item.id))))
+    }
+
+    private fun eligible(all: List<WorkPlan>, actor: BoardActor, seat: String?, item: String?, profile: (String) -> AgentProfile): List<PlanCandidate> {
         val seated = all.any { plan -> plan.seats.any { it.heldBy(actor) } }
-        val candidates = all.flatMap { plan ->
+        return all.flatMap { plan ->
             val mine = plan.seats.filter { it.heldBy(actor) && (seat == null || it.id == seat) }
             if ((seated || seat != null) && mine.isEmpty()) return@flatMap emptyList()
             val covered = mine.flatMapTo(HashSet()) { it.items.flatMap(plan::under) }
@@ -108,23 +239,10 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
                 val chosen = (owner?.takeIf { it.heldBy(actor) }?.profile ?: actor.profile)?.let(profile)
                 (actor.kind == BoardActorKind.Person || item.kind != PlanKind.Decision) &&
                     (owner == null || owner.heldBy(actor)) && (mine.isEmpty() || item.id in covered) &&
-                      busy.none { PlanSchedule.conflicts(footprint(plan, item), it) } &&
                     (chosen == null || (chosen.planKinds.isEmpty() || item.kind in chosen.planKinds) &&
                         (chosen.planRefs.isEmpty() || chosen.planRefs.any { wanted -> item.refs.any { it == wanted || it.startsWith("$wanted/") } }))
             }
         }
-        val candidate = candidates.minWithOrNull(compareByDescending<PlanCandidate> { it.priority }.thenByDescending { it.unblocks }.thenBy { it.age })
-        if (!take || candidate == null) return PlanNext(candidate, if (candidate == null) "No ready item matches this agent, its seat, profile and free files" else "")
-        val current = read(candidate.thread).plan
-        val now = clock()
-        val applied = PlanRules.apply(current, PlanPatch(base = current.revision, seat = seat,
-            ops = listOf(PlanOp.Status(candidate.item.id, PlanStatus.Doing, reason = ""))), actor, now)
-        require(applied.refused.isEmpty()) { applied.refused.joinToString { it.reason } }
-        val leased = applied.plan.copy(items = applied.plan.items.map {
-            if (it.id == candidate.item.id) it.copy(lease = PlanLease(actor, now, now + PlanLease.DurationMillis)) else it
-        })
-        val saved = identified(save(leased, current, actor))
-        return PlanNext(candidate.copy(revision = saved.revision, item = requireNotNull(saved.item(candidate.item.id))))
     }
 
     private fun expire() {
@@ -132,7 +250,7 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
         requeue("Lease expired after quiet activity") { item -> item.lease?.let { it.until(PlanIdentity.agent(it.by)?.let(activity)) <= now } == true }
     }
 
-    @Synchronized fun release(agent: String, note: String): List<String> = requeue(note) { it.holder?.let(PlanIdentity::agent) == agent }
+    fun release(agent: String, note: String): List<String> = access(true) { requeue(note) { it.holder?.let(PlanIdentity::agent) == agent } }
 
     private fun requeue(note: String, pick: (PlanItem) -> Boolean): List<String> {
         val now = clock()
@@ -148,26 +266,26 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
         }
     }
 
-    @Synchronized fun attach(thread: String, seat: (WorkPlan) -> PlanSeat): Pair<WorkPlan, PlanSeat> = attachAdmitted(thread, seat) { _, _ -> null }
+    fun attach(thread: String, seat: (WorkPlan) -> PlanSeat): Pair<WorkPlan, PlanSeat> = attachAdmitted(thread, seat) { _, _ -> null }
 
-    @Synchronized internal fun attachAdmitted(thread: String, seat: (WorkPlan) -> PlanSeat,
-        admit: (WorkPlan, PlanSeat) -> String?): Pair<WorkPlan, PlanSeat> {
-        val plan = plans[thread] ?: error("$thread has no plan to attach an agent to")
+    internal fun attachAdmitted(thread: String, seat: (WorkPlan) -> PlanSeat,
+        admit: (WorkPlan, PlanSeat) -> String?): Pair<WorkPlan, PlanSeat> = access(true) {
+        val plan = plans[thread] ?: error("$thread has no plan to attach an agent to.")
         val made = seat(plan)
         val proposed = PlanRules.attach(plan, made, clock())
         val admitted = made.copy(run = admit(proposed, made) ?: made.run)
         val next = proposed.copy(seats = proposed.seats.map { if (it.id == admitted.id) admitted else it })
         save(next, plan, admitted.by)
-        return next to admitted
+        next to admitted
     }
 
-    @Synchronized fun bind(thread: String, seat: String, run: String): WorkPlan {
+    fun bind(thread: String, seat: String, run: String): WorkPlan = access(true) {
         val plan = plans[thread] ?: error("$thread has no plan")
         requireNotNull(plan.seat(seat)) { "$seat is not an active seat on this plan" }
-        return plan.copy(seats = plan.seats.map { if (it.id == seat) it.copy(run = run) else it }).also { save(it, plan, null) }
+        plan.copy(seats = plan.seats.map { if (it.id == seat) it.copy(run = run) else it }).also { save(it, plan, null) }
     }
 
-    @Synchronized fun archive(thread: String, by: BoardActor): List<String> {
+    fun archive(thread: String, by: BoardActor): List<String> = access(true) {
         val writer = identity(by)
         val current = plan(thread) ?: error("$thread has no plan")
         require(writer.kind == BoardActorKind.Person || writer.session == thread || thread.startsWith(BoardRefs.Hangar)) {
@@ -179,7 +297,7 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
             item.id !in parents && item.kind != PlanKind.Component && item.status in closed &&
                 current.items.none { other -> item.id in other.after && other.status !in closed }
         }
-        if (archivable.isEmpty()) return emptyList()
+        if (archivable.isEmpty()) return@access emptyList()
         val archiveDir = directory.resolve("archive").also(::privateDirectory)
         val archiveFile = archiveDir.resolve("${thread.replace(':', '-')}.json")
         val existing = if (Files.isRegularFile(archiveFile))
@@ -203,7 +321,7 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
             changes = (current.changes + PlanChange(revision, now, writer, listOf(summary))).takeLast(PlanRules.MaxChanges),
         )
         save(next, current, writer)
-        return archivable.map { it.id }
+        archivable.map { it.id }
     }
 
     private fun logged(next: WorkPlan, previous: WorkPlan?): WorkPlan {
@@ -235,7 +353,11 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
         atomicWrite(file(next.thread), text)
         plans[next.thread] = stored
         changed.value += 1
-        if (by != null) notify(stored, previous, by)
+        if (by != null) {
+            val call = requireNotNull(caller.get())
+            call.notifications++
+            notifications.addLast(Notification(stored, previous, by, call))
+        }
         return stored
     }
 

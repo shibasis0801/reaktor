@@ -59,7 +59,7 @@ class PlanAttachmentAdmissionTest {
         assertTrue(prompts.isEmpty())
     }
 
-    @Test fun unrelatedCoveredFilesCanRunTogetherAndConflictsLeaveNoSeat() = fixture { workspace, _ ->
+    @Test fun unrelatedCoveredFilesShareAndAnOverlappingSeatUsesAWorktree() = fixture { workspace, _ ->
         val first = workspace.attachPlan(thread, listOf("area", "area"), "writer", "", owner)
         val second = workspace.attachPlan(thread, listOf("second"), "writer", "", owner)
         assertEquals(listOf("area"), first.seat.items)
@@ -69,17 +69,17 @@ class PlanAttachmentAdmissionTest {
         assertEquals(second.run.id, second.seat.run)
         assertEquals(listOf("src/first.kt"), workspace.submission(first.run.id).scope)
         assertEquals(listOf("src/second.kt"), workspace.submission(second.run.id).scope)
-        val before = workspace.plans.read(thread).plan
-        repeat(3) {
-            val refused = assertFailsWith<IllegalArgumentException> { workspace.attachPlan(thread, listOf("first"), "writer", "", owner) }
-            assertTrue(refused.message.orEmpty().contains("Source scope"))
-            assertEquals(before, workspace.plans.read(thread).plan)
-        }
+        assertEquals(AgentIsolation.Shared, first.run.isolation)
+        assertEquals(AgentIsolation.Shared, second.run.isolation)
         val persisted = workspace.plans.read(thread).plan
         assertTrue(persisted.seats.all { it.agent != null })
         val stored = persisted.copy(seats = persisted.seats.map { it.copy(agent = null) })
         assertEquals(listOf(first.seat, second.seat), stored.seats)
         assertEquals(stored, second.plan)
+        val overlap = workspace.attachPlan(thread, listOf("first"), "writer", "", owner)
+        assertEquals(AgentIsolation.Worktree, overlap.run.isolation)
+        assertEquals(listOf("src/first.kt"), workspace.submission(overlap.run.id).scope)
+        assertEquals(3, workspace.plans.read(thread).plan.seats.size)
     }
 
     @Test fun concurrentAttachmentsChooseDistinctBoundSeats() = fixture { workspace, _ ->
@@ -94,12 +94,13 @@ class PlanAttachmentAdmissionTest {
         assertTrue(attached.all { it.seat.run == it.run.id })
     }
 
-    @Test fun missingFileRefsKeepTheWholeWorkspaceReservation() = fixture { workspace, _ ->
+    @Test fun missingRefsUseAWorktreeAndLeaveTheCheckoutFree() = fixture { workspace, _ ->
         workspace.plans.write(thread, PlanPatch(ops = listOf(PlanOp.Add("Unscoped", key = "unscoped"))), owner)
         val attached = workspace.attachPlan(thread, listOf("unscoped"), "writer", "", owner)
         assertTrue(workspace.submission(attached.run.id).scope.isEmpty())
-        val before = workspace.plans.read(thread).plan
-        assertFailsWith<IllegalArgumentException> { workspace.attachPlan(thread, listOf("first"), "writer", "", owner) }
-        assertEquals(before, workspace.plans.read(thread).plan)
+        assertEquals(AgentIsolation.Worktree, attached.run.isolation)
+        val scoped = workspace.attachPlan(thread, listOf("first"), "writer", "", owner)
+        assertEquals(AgentIsolation.Shared, scoped.run.isolation)
+        assertEquals(2, workspace.plans.read(thread).plan.seats.size)
     }
 }

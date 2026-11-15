@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.conductor.workspace
 
+import kotlinx.coroutines.runBlocking
 import dev.shibasis.reaktor.mcp.*
 import dev.shibasis.reaktor.tooling.operation.jsonSchema
 import kotlinx.serialization.builtins.ListSerializer
@@ -90,7 +91,7 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
             val person = args.actor() ?: error("by is required")
             val items = (args["items"] as? JsonArray)?.map { it.jsonPrimitive.content }.orEmpty()
             AgentWorkspaceJson.encodeToJsonElement(PlanAttached.serializer(),
-                workspace.attachPlan(args.thread(person), items, args.text("profile") ?: error("Choose a profile"), args.text("note").orEmpty(), person))
+                runBlocking { workspace.attachPlan(args.thread(person), items, args.text("profile") ?: error("Choose a profile"), args.text("note").orEmpty(), person) })
         },
         McpTool("agent_plan_shape", "Read plans as one reaktor-graph: a graph per plan with a child graph per component, a node per item wired to what it waits on and what it relates to, " +
             "and a node per Reaktor link (file, symbol, module, graph, operation, flow) it touches, naming the atlas call that explores it. Without threads it reads every plan.",

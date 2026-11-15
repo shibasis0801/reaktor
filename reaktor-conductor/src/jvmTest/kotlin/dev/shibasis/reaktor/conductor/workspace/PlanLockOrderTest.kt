@@ -6,6 +6,7 @@ import java.lang.management.ManagementFactory
 import java.nio.file.Files
 import kotlinx.coroutines.flow.emptyFlow
 import kotlin.concurrent.thread
+import kotlinx.coroutines.runBlocking
 import kotlin.test.*
 
 class PlanLockOrderTest {
@@ -25,7 +26,7 @@ class PlanLockOrderTest {
         workspace.plans.write(planThread, PlanPatch(title = "Lock order", ops = listOf(PlanOp.Add("Area", key = "area", kind = PlanKind.Component))), owner)
         workspace.plans.write(planThread, PlanPatch(ops = listOf(PlanOp.Add("Written by an agent", key = "written", parent = "area"))), agent)
         val attaching = thread(isDaemon = true) {
-            repeat(1_000) { runCatching { workspace.attachPlan(planThread, listOf("missing"), "writer", "", owner) } }
+            runBlocking { repeat(1_000) { runCatching { workspace.attachPlan(planThread, listOf("missing"), "writer", "", owner) } } }
         }
         val reading = thread(isDaemon = true) { repeat(1_000) { workspace.plans.read(planThread) } }
         attaching.join(60_000)

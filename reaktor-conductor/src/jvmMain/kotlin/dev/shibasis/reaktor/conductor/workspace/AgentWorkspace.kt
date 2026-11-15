@@ -75,8 +75,10 @@ class AgentWorkspace(
     val board = AgentBoardStore(directory.resolve("board"), resolveSeat = ::resolveSeat, scopeModules = scopeModules, summarize = ::summarize)
     private val messageStorage = lazy { dev.shibasis.reaktor.conductor.message.WorkspaceMessages(this, directory) }
     val messages get() = messageStorage.value
+    private val planScopes = PlanRefResolver(root, kernelRead, scopeModules)
     val plans = WorkPlanStore(directory.resolve("plans"), Path.of(System.getProperty("user.home"), ".reaktor", "inbox"),
-        identity = ::planIdentity, activity = presence::lastSeen, messages = { plan, previous, by ->
+        identity = ::planIdentity, activity = presence::lastSeen,
+        resolveRefs = planScopes::resolve, cachedRefs = planScopes::cached, messages = { plan, previous, by ->
             messages.planChanged(plan, previous, by)
             preemptPlans()
         })
@@ -140,18 +142,53 @@ class AgentWorkspace(
         return plans.next(thread, actor, seat, take, item) { id -> configured?.takeIf { it.id == id } ?: profiles.read(id) }
     }
 
-    fun attachPlan(thread: String, items: List<String>, profile: String, note: String, by: BoardActor): PlanAttached {
+    suspend fun attachPlan(thread: String, items: List<String>, profile: String, note: String, by: BoardActor): PlanAttached {
         val chosen = profiles.read(profile)
         val resolved = resolveSeat(TaskSeat(profile = chosen.id))
         val provider = requireNotNull(resolved.seat.agent) { "Profile ${chosen.id} names no runtime" }
+        fun leaves(plan: WorkPlan, covered: Set<String>) = plan.items.filter { it.id in covered && plan.parts(it.id).isEmpty() }
+        fun competitors(all: List<WorkPlan>, covered: Set<String>): List<Pair<WorkPlan, PlanItem>> = all.flatMap { plan ->
+            val doing = plan.leaves().filter { it.status == PlanStatus.Doing && it.kind != PlanKind.Component && (plan.thread != thread || it.id !in covered) }
+            val ready = PlanSchedule.ready(plan).filter { candidate ->
+                val item = candidate.item
+                val owner = generateSequence(item) { it.parent?.let(plan::item) }.mapNotNull { it.seat?.let(plan::seat) }.firstOrNull()
+                val candidateProfile = owner?.profile?.let(profiles::read) ?: chosen
+                (plan.thread != thread || item.id !in covered) && item.kind != PlanKind.Decision &&
+                    (candidateProfile.planKinds.isEmpty() || item.kind in candidateProfile.planKinds) &&
+                    (candidateProfile.planRefs.isEmpty() || candidateProfile.planRefs.any { wanted -> item.refs.any { it == wanted || it.startsWith("$wanted/") } })
+            }.map { it.item }
+            (doing + ready).distinctBy { it.id }.map { plan to it }
+        }
+        fun needed(all: List<WorkPlan>): List<String> {
+            val plan = all.firstOrNull { it.thread == thread } ?: error("$thread has no plan to attach an agent to.")
+            val covered = items.flatMapTo(HashSet(), plan::under)
+            return (leaves(plan, covered).map { plan to it } + competitors(all, covered))
+                .flatMap { (current, item) -> AgentSourceScope.refs(current, item) }.distinct()
+        }
+        val resolvedRefs = HashMap<String, List<String>>()
+        for (round in 0..2) {
+            val snapshots = plans.list().mapNotNull { plans.plan(it.thread) }
+            val missing = needed(snapshots).filterNot(resolvedRefs::containsKey)
+            if (missing.isEmpty()) break
+            val found = planScopes.resolve(missing)
+            missing.forEach { resolvedRefs[it] = found[it].orEmpty() }
+        }
         lateinit var run: AgentRunRecord
         val (plan, seat) = plans.attachAdmitted(thread,
             { plan -> PlanSeat("s${plan.seats.size + 1}", chosen.id, items.distinct(), by, System.currentTimeMillis()) }) { proposed, made ->
             val covered = made.items.flatMapTo(HashSet(), proposed::under)
-            val scope = proposed.items.filter { it.id in covered }.flatMap { it.refs }
-                .filter { it.startsWith("file:") }.map { it.removePrefix("file:") }.distinct()
+            val selected = leaves(proposed, covered)
+            val unresolved = selected.any { !AgentSourceScope.complete(proposed, it, resolvedRefs) }
+            val scope = selected.flatMap { AgentSourceScope.files(proposed, it, resolvedRefs) }.distinct()
+            val footprint = selected.flatMap { AgentSourceScope.footprint(proposed, it, resolvedRefs) }.distinct()
+            val overlapping = competitors(plans.list().mapNotNull { plans.plan(it.thread) }, covered).any { (other, item) ->
+                AgentSourceScope.refs(other, item).any { !it.startsWith("file:") && it !in resolvedRefs } ||
+                    AgentSourceScope.conflicts(footprint, AgentSourceScope.footprint(other, item, resolvedRefs))
+            }
+            val isolation = if (scope.isEmpty() || unresolved || overlapping ||
+                synchronized(lock) { holder(sourceScope(scope), runningTasks(), ownedRuns()) != null }) AgentIsolation.Worktree else AgentIsolation.Shared
             run = admit(AgentSubmission(requestId = "plan:${digest(thread).take(16)}:${made.id}", provider = provider,
-                prompt = PlanBrief.seat(proposed, made, chosen.name, note), model = resolved.seat.model, scope = scope,
+                prompt = PlanBrief.seat(proposed, made, chosen.name, note), model = resolved.seat.model, scope = scope, isolation = isolation,
                 allowWrites = resolved.seat.access == TaskAccess.Write, effort = resolved.seat.effort?.let(::NativeEffort),
                 resolvedSeat = resolved, timeoutMillis = resolved.seat.budget?.timeoutMillis ?: (60 * 60 * 1000L)), keepWorkingPlan = thread)
             run.id
@@ -1505,6 +1542,7 @@ class AgentWorkspace(
     private fun persist(record: AgentRunRecord) = atomicWrite(runPath(record.id), ConductorJson.encodeToString(AgentRunRecord.serializer(), record))
 
     override fun close() {
+        planScopes.close()
         val (jobs, finishing) = synchronized(lock) {
             closed = true
             active.values.toList() to active.filter { (id, _) ->
