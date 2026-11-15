@@ -8,6 +8,9 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Modifier
@@ -99,7 +102,13 @@ internal fun MaterialPlatformSwitch(
     ),
 )
 
-/** Material 3's single-choice segmented buttons, for every platform but iOS. */
+/**
+ * Material 3's single-choice segmented buttons, for every platform but iOS.
+ *
+ * A segment is a fixed share of the row, so its label follows the system text size only to 1.3x,
+ * as the iOS control's titles do: past that a word like "Summary" is cut to "Summ…", which is
+ * worse to read than the smaller word.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun MaterialPlatformChoice(
@@ -122,7 +131,15 @@ internal fun MaterialPlatformChoice(
                 inactiveContentColor = colors.ink,
                 inactiveBorderColor = colors.edge,
             ),
-            label = { Text(option, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            label = {
+                val density = LocalDensity.current
+                CompositionLocalProvider(LocalDensity provides Density(density.density, density.fontScale.coerceAtMost(SEGMENT_TEXT_SCALE))) {
+                    Text(option, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            },
         )
     }
 }
+
+/** The most a segment's label grows with the system text size, on every platform. */
+internal const val SEGMENT_TEXT_SCALE = 1.3f
