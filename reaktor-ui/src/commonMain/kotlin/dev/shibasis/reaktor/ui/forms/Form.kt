@@ -83,12 +83,22 @@ class Form(val fields: List<FormField<*>>) {
         require(fields.map { it.name }.toSet().size == fields.size) { "Field names must be unique" }
     }
 
-    /** Checks every field and shows every error. Returns the first invalid field, to focus, or null. */
-    fun validate(): FormField<*>? {
+    /**
+     * Checks every field and shows every error. Returns the first invalid field, to focus, or null
+     * when the form is good to save.
+     */
+    fun firstInvalid(): FormField<*>? {
         var first: FormField<*>? = null
         for (field in fields) if (!field.validate() && first == null) first = field
         return first
     }
+
+    /**
+     * The old name for [firstInvalid]. [FormField.validate] returns whether the field is valid, so
+     * `validate() == null` on a field compiles and is never true: one name, two meanings.
+     */
+    @Deprecated("Returns the first invalid field, not whether the form is valid.", ReplaceWith("firstInvalid()"))
+    fun validate(): FormField<*>? = firstInvalid()
 
     /** What has been typed, by field name. Save it on every change (ST4). */
     fun draft(): Map<String, String> = fields.associate { it.name to it.text }

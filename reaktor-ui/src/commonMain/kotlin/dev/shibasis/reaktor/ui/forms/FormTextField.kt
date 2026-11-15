@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.KeyboardActionHandler
 import androidx.compose.foundation.text.input.TextFieldDecorator
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.background
@@ -22,6 +23,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -36,6 +38,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -64,6 +67,10 @@ data class FormFieldStyle(
  * - the hit area is at least [FormFieldStyle.minHeight].
  *
  * [leading] and [trailing] sit inside the outline (a currency symbol, a clear button).
+ *
+ * [onDone] is what the keyboard's action key does: save the dialog, add the tag. Giving it makes
+ * that key read "Done" unless [keyboard] names another action; without it the key does what the
+ * platform does (next field, or hide the keyboard).
  */
 @Composable
 fun FormTextField(
@@ -77,8 +84,19 @@ fun FormTextField(
     focusRequester: FocusRequester = remember { FocusRequester() },
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
+    onDone: (() -> Unit)? = null,
 ) {
     var focused by remember { mutableStateOf(false) }
+    // The newest onDone, without rebuilding the handler when the caller passes a fresh lambda.
+    val done = rememberUpdatedState(onDone)
+    val action = remember {
+        // An object, not a lambda, for the same reason as the decorator below.
+        object : KeyboardActionHandler {
+            override fun onKeyboardAction(performDefaultAction: () -> Unit) {
+                done.value?.invoke() ?: performDefaultAction()
+            }
+        }
+    }
     LaunchedEffect(field) {
         snapshotFlow { field.state.text.toString() }.collect { field.edited() }
     }
@@ -104,7 +122,8 @@ fun FormTextField(
                     if (error != null) error(error)
                 },
             textStyle = style.text,
-            keyboardOptions = keyboard,
+            keyboardOptions = if (onDone != null && keyboard.imeAction == ImeAction.Unspecified) keyboard.copy(imeAction = ImeAction.Done) else keyboard,
+            onKeyboardAction = if (onDone != null) action else null,
             inputTransformation = inputTransformation,
             lineLimits = if (singleLine) TextFieldLineLimits.SingleLine else TextFieldLineLimits.Default,
             cursorBrush = SolidColor(style.cursor),

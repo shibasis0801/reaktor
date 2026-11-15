@@ -58,12 +58,12 @@ class FormTest {
         val amount = amount()
         val form = Form(payee, amount)
         amount.set("0")
-        assertSame(payee, form.validate())
+        assertSame(payee, form.firstInvalid())
         assertEquals("Enter who you paid.", payee.error)
         assertEquals("Enter an amount above zero.", amount.error)
         payee.set("Swiggy")
         amount.set("1,499.50")
-        assertNull(form.validate())
+        assertNull(form.firstInvalid())
         assertEquals(Money(149_950, "INR"), amount.value())
     }
 
