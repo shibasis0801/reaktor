@@ -8,8 +8,8 @@ internal fun projectAgentEvent(current: AgentRunRecord, event: AgentEvent, provi
         is AgentEvent.Started -> participant.copy(status = AgentRunStatus.Running, session = event.session, output = "", outputTruncated = false, lastTool = null, usageLimit = null)
         is AgentEvent.TurnStarted -> participant.copy(activeTurn = event.turnId)
         is AgentEvent.Usage -> participant
-        is AgentEvent.Delta -> participant.copy(output = (participant.output + event.text).takeLast(6000),
-            outputTruncated = participant.outputTruncated || participant.output.length + event.text.length > 6000)
+        is AgentEvent.Delta -> participant.copy(output = participant.output + event.text,
+            outputTruncated = false)
         is AgentEvent.ToolUse -> participant.copy(lastTool = event.tool)
         is AgentEvent.Activity -> participant.copy(lastTool = event.item.title.takeIf { event.item.kind == ActivityKind.Tool } ?: participant.lastTool)
         // Kept out of `output` so a view can collapse it, and tagged with the
@@ -21,14 +21,14 @@ internal fun projectAgentEvent(current: AgentRunRecord, event: AgentEvent, provi
         is AgentEvent.RequestResolved -> participant.copy(
             pending = participant.pending.filterNot { it.id == event.requestId })
         is AgentEvent.Reasoning -> participant.copy(
-            reasoning = (participant.reasoning + event.text).takeLast(6000),
-            reasoningTruncated = participant.reasoningTruncated || participant.reasoning.length + event.text.length > 6000,
+            reasoning = participant.reasoning + event.text,
+            reasoningTruncated = false,
             reasoningFidelity = event.fidelity,
         )
         is AgentEvent.Finished -> participant.copy(status = if (event.outcome.interrupted) AgentRunStatus.Interrupted else if (event.outcome.ok) AgentRunStatus.Completed else if (event.outcome.usageLimit != null) AgentRunStatus.Limited else AgentRunStatus.Failed,
             activeTurn = null, pending = emptyList(), effort = event.outcome.effort, usageLimit = event.outcome.usageLimit.takeUnless { event.outcome.ok || event.outcome.interrupted },
-            output = (event.outcome.failure ?: event.outcome.text).takeLast(6000),
-            outputTruncated = (event.outcome.failure ?: event.outcome.text).length > 6000,
+            output = event.outcome.failure ?: event.outcome.text,
+            outputTruncated = false,
             session = event.outcome.session ?: participant.session)
     }
     val withParticipant = current.copy(participants = current.participants + (event.agent.value to next))
@@ -36,8 +36,8 @@ internal fun projectAgentEvent(current: AgentRunRecord, event: AgentEvent, provi
         is AgentEvent.Started -> withParticipant.copy(session = event.session)
         is AgentEvent.TurnStarted -> withParticipant
         is AgentEvent.Usage -> withParticipant
-        is AgentEvent.Delta -> withParticipant.copy(output = (current.output + event.text).takeLast(12000),
-            outputTruncated = current.outputTruncated || current.output.length + event.text.length > 12000)
+        is AgentEvent.Delta -> withParticipant.copy(output = current.output + event.text,
+            outputTruncated = false)
         is AgentEvent.ToolUse -> withParticipant.copy(lastTool = event.tool)
         is AgentEvent.Activity -> withParticipant.copy(lastTool = next.lastTool)
         is AgentEvent.RequestPending -> withParticipant.copy(
@@ -45,8 +45,8 @@ internal fun projectAgentEvent(current: AgentRunRecord, event: AgentEvent, provi
         is AgentEvent.RequestResolved -> withParticipant.copy(
             pending = current.pending.filterNot { it.id == event.requestId })
         is AgentEvent.Reasoning -> withParticipant.copy(
-            reasoning = (current.reasoning + event.text).takeLast(12000),
-            reasoningTruncated = current.reasoningTruncated || current.reasoning.length + event.text.length > 12000,
+            reasoning = current.reasoning + event.text,
+            reasoningTruncated = false,
             reasoningFidelity = event.fidelity)
         is AgentEvent.Finished -> withParticipant.copy(usage = event.outcome.usage, session = event.outcome.session ?: current.session,
             effort = event.outcome.effort.takeIf { it != EffortRecord.none } ?: current.effort,
