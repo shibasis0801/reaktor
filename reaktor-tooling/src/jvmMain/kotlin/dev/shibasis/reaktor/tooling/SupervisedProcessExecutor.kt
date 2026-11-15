@@ -26,6 +26,12 @@ import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.selects.select
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.intOrNull
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.File
@@ -281,7 +287,14 @@ class SupervisedProcessExecutor(
         }
 
         val captureFailure = AtomicReference<String?>(null)
-        var startedAt: Long? = null
+        val startedAt = AtomicReference<Long?>(null)
+        val admitted = CompletableDeferred<Unit>()
+        suspend fun markStarted() {
+            if (!startedAt.compareAndSet(null, clock())) return
+            emit { number, timestamp -> RunEvent.Started(queuedRun.id, number, timestamp,
+                queuedRun.copy(status = RunStatus.Running, startedAtEpochMillis = startedAt.get()), request.plan) }
+            admitted.complete(Unit)
+        }
         var outputJobs: List<Job> = emptyList()
         var finalRun: TaskRun? = null
         try {
@@ -296,7 +309,8 @@ class SupervisedProcessExecutor(
                 .redirectErrorStream(false)
             processBuilder.environment().clear()
             processBuilder.environment().putAll(request.environment)
-            val gradle = request.plan.artifacts.any { it.kind == "gradle-result" }
+            val waitsForAdmission = request.plan.artifacts.any { it.kind == "gradle-admission" }
+            val gradle = waitsForAdmission || request.plan.artifacts.any { it.kind == "gradle-result" }
             if (gradle) processBuilder.environment()[GradleProtocol.OperationRunVariable] = queuedRun.id.value
             val process = processBuilder.start()
             processReference.set(process)
@@ -309,27 +323,47 @@ class SupervisedProcessExecutor(
                 throw CancellationException("Cancelled during process start")
             }
 
-            startedAt = clock()
-            val running = queuedRun.copy(status = RunStatus.Running, startedAtEpochMillis = startedAt)
-            emit { sequenceNumber, timestamp ->
-                RunEvent.Started(queuedRun.id, sequenceNumber, timestamp, running, request.plan)
-            }
+            if (!waitsForAdmission) markStarted()
             val processScope = CoroutineScope(currentCoroutineContext())
+            val admission: (suspend (String) -> Unit)? = if (!waitsForAdmission) null else { payload ->
+                val value = BuildModelReader.json.parseToJsonElement(payload).jsonObject
+                require(value["schema"]?.jsonPrimitive?.intOrNull == 1 &&
+                    value["runId"]?.jsonPrimitive?.content == queuedRun.id.value) { "Build admission does not match this run" }
+                when (value["phase"]?.jsonPrimitive?.content) {
+                    "Queued" -> if (startedAt.get() == null) {
+                        val reason = value["reason"]?.jsonPrimitive?.content?.takeIf(String::isNotBlank)?.take(512)
+                            ?: "Waiting for build admission"
+                        val project = value["project"]?.jsonPrimitive?.content?.takeIf(String::isNotBlank)?.take(256)
+                            ?: request.workingDirectory.name
+                        emit { number, timestamp -> RunEvent.Progress(queuedRun.id, number, timestamp,
+                            redactor.redact("$reason · $project · ${request.plan.taskId.value}")) }
+                    }
+                    "Admitted" -> markStarted()
+                    else -> error("Unknown build admission phase")
+                }
+            }
             outputJobs = listOf(
                 stream(process.inputStream, OutputChannel.Stdout, redactor, processScope, queuedRun.id, ::emit,
-                    request.captureStdoutChars, request.captureStdoutLineChars, gradleProgress = gradle) { captureFailure.compareAndSet(null, it) },
+                    request.captureStdoutChars, request.captureStdoutLineChars, gradleProgress = gradle,
+                    admission = admission) { captureFailure.compareAndSet(null, it) },
                 stream(process.errorStream, OutputChannel.Stderr, redactor, processScope, queuedRun.id, ::emit),
             )
 
-            val exitCode = if (request.timeoutMillis != null) {
-                withTimeout(request.timeoutMillis) {
-                    runInterruptible(Dispatchers.IO) { process.waitFor() }
+            val exitCode = coroutineScope {
+                val completion = async { runInterruptible(Dispatchers.IO) { process.waitFor() } }
+                if (waitsForAdmission) select<Unit> {
+                    admitted.onAwait { }
+                    completion.onAwait { }
                 }
-            } else {
-                runInterruptible(Dispatchers.IO) { process.waitFor() }
+                if (request.timeoutMillis != null && admitted.isCompleted) {
+                    withTimeout(request.timeoutMillis) { completion.await() }
+                } else completion.await()
             }
             joinReaders(outputJobs)
             captureFailure.get()?.let { error(it) }
+            check(!waitsForAdmission || startedAt.get() != null || exitCode != 0) {
+                "Build process exited without a correlated admission receipt"
+            }
             val artifacts = GradleReceiptEvidence.collect(request, queuedRun.id)
             check(exitCode != 0 || !request.plan.artifacts.any { it.kind == "gradle-result" && it.required } || artifacts.isNotEmpty()) {
                 "Gradle succeeded without a correlated run receipt"
@@ -338,7 +372,8 @@ class SupervisedProcessExecutor(
                 RunEvent.ArtifactProduced(queuedRun.id, sequenceNumber, timestamp, artifact)
             }
             val status = if (exitCode == 0) RunStatus.Succeeded else RunStatus.Failed
-            finalRun = running.copy(
+            finalRun = queuedRun.copy(
+                startedAtEpochMillis = startedAt.get(),
                 status = status,
                 artifacts = artifacts,
                 finishedAtEpochMillis = clock(),
@@ -354,7 +389,7 @@ class SupervisedProcessExecutor(
             joinReaders(outputJobs)
             finalRun = queuedRun.copy(
                 status = RunStatus.TimedOut,
-                startedAtEpochMillis = startedAt,
+                startedAtEpochMillis = startedAt.get(),
                 finishedAtEpochMillis = clock(),
                 failure = RunFailure("process-timeout", "Process exceeded ${request.timeoutMillis}ms", true),
             )
@@ -365,7 +400,7 @@ class SupervisedProcessExecutor(
             }
             finalRun = queuedRun.copy(
                 status = RunStatus.Cancelled,
-                startedAtEpochMillis = startedAt,
+                startedAtEpochMillis = startedAt.get(),
                 finishedAtEpochMillis = clock(),
                 failure = RunFailure("process-cancelled", "Process was cancelled", true),
             )
@@ -374,7 +409,7 @@ class SupervisedProcessExecutor(
             joinReaders(outputJobs)
             finalRun = queuedRun.copy(
                 status = RunStatus.Failed,
-                startedAtEpochMillis = startedAt,
+                startedAtEpochMillis = startedAt.get(),
                 finishedAtEpochMillis = clock(),
                 failure = RunFailure(
                     code = "process-start-or-io",
@@ -414,6 +449,7 @@ class SupervisedProcessExecutor(
         captureLimit: Int? = null,
         captureLineLimit: Int? = null,
         gradleProgress: Boolean = false,
+        admission: (suspend (String) -> Unit)? = null,
         onCaptureFailure: (String) -> Unit = {},
     ): Job = outputScope.launch(Dispatchers.IO) {
         try {
@@ -446,6 +482,18 @@ class SupervisedProcessExecutor(
                     val suffix = if (truncated) " …[truncated]" else ""
                     val available = (lineLimit - suffix.length).coerceAtLeast(0)
                     val text = line.take(available).toString() + suffix
+                    if (admission != null && text.startsWith(GradleProtocol.AdmissionPrefix)) {
+                        try {
+                            require(!truncated)
+                            admission(text.removePrefix(GradleProtocol.AdmissionPrefix))
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                            onCaptureFailure("Build admission receipt is invalid or does not match this run")
+                        }
+                        line.clear(); truncated = false
+                        return
+                    }
                     if (gradleProgress && text.startsWith(GradleProtocol.ProgressPrefix)) {
                         val progress = BuildModelReader.json.decodeFromString<GradleTaskProgress>(text.removePrefix(GradleProtocol.ProgressPrefix))
                         require(progress.schema == 1)

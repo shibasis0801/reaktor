@@ -134,6 +134,13 @@ class LoopbackMcpServer private constructor(
                     responseHeaders.set("MCP-Protocol-Version", versions?.singleOrNull() ?: REAKTOR_MCP_PROTOCOL_VERSION)
                     val body = requestBody.readNBytes(REAKTOR_MCP_MAX_REQUEST_BYTES + 1)
                     if (body.size > REAKTOR_MCP_MAX_REQUEST_BYTES) { send(413, error("Request body is too large")); return }
+                    val custom = if (browserPath) null else postWithHeaders?.invoke(requestURI.path, body.decodeToString(),
+                        requestHeaders.entries.associate { it.key.lowercase() to it.value.toList() })
+                    if (custom != null) {
+                        custom.headers.forEach { (name, value) -> responseHeaders.set(name, value) }
+                        send(custom.status, custom.body)
+                        return
+                    }
                     val response = (if (browserPath) requireNotNull(browser).handler else mcp()).handle(body.decodeToString())
                     send(if (response == null) 202 else 200, response)
                 }

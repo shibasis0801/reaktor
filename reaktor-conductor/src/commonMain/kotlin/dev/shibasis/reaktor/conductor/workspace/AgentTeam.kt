@@ -40,14 +40,51 @@ data class TeamLink(val from: String, val to: String, val kind: TeamLinkKind, va
 }
 
 @Serializable
-data class TeamStructure(
+data class TeamVariant(
     val key: String,
-    val template: String,
+    val topology: String,
     val title: String,
-    val seats: Map<String, String> = emptyMap(),
+    val prompt: String = "",
+    val agents: Map<String, String> = emptyMap(),
+    val models: Map<String, String> = emptyMap(),
+    val nodePrompts: Map<String, String> = emptyMap(),
     val revision: Long = 0,
     val by: BoardActor? = null,
 ) {
+    fun model(node: String): CatalogPick? = models[node]?.let(ModelCatalog::pick)
+
+    fun occupied(node: String): Boolean = node in agents || node in models
+
+    fun occupant(node: String, profile: (String) -> AgentProfile?): String? =
+        agents[node]?.let { id -> profile(id)?.name ?: id } ?: models[node]?.let { key -> model(node)?.label ?: key }
+
+    fun brief(topology: Topology, node: String, profile: (String) -> AgentProfile?): NodeBrief {
+        fun who(key: String): String = topology.name(key) + " (${occupant(key, profile) ?: "empty"})"
+        fun phrases(edges: List<TopologyEdge>, plain: String, joiner: String, end: (TopologyEdge) -> String): List<String> {
+            val (labelled, unlabelled) = edges.partition { it.label.isNotBlank() }
+            return listOfNotNull(unlabelled.takeIf { it.isNotEmpty() }?.let { "$plain ${natural(it.map(end).map(::who))}" }) +
+                labelled.map { "${it.label} $joiner ${who(end(it))}" }
+        }
+        val inputs = phrases(topology.into(node), "work from", "from") { it.from }
+        val outputs = phrases(topology.outOf(node), "your output to", "to") { it.to }
+        val position = buildString {
+            append("You are ${topology.name(node)} in “$title”, which follows the ${topology.title} topology (${topology.nodes.size} node${if (topology.nodes.size == 1) "" else "s"}).")
+            if (inputs.isNotEmpty()) append(" You receive ${natural(inputs)}.")
+            if (outputs.isNotEmpty()) append(" You hand ${natural(outputs)}.")
+        }
+        return NodeBrief(agents[node]?.let(profile)?.instructions.orEmpty().trim(), nodePrompts[node].orEmpty().trim(), position, prompt.trim())
+    }
+
+    private fun natural(items: List<String>): String = when (items.size) {
+        0 -> ""
+        1 -> items.single()
+        else -> items.dropLast(1).joinToString(", ") + " and " + items.last()
+    }
+}
+
+@Serializable
+data class NodeBrief(val agent: String, val node: String, val position: String, val shared: String) {
+    val text: String get() = listOf(agent, node, position, shared).filter(String::isNotBlank).joinToString("\n\n")
 }
 
 @Serializable
@@ -58,22 +95,27 @@ data class AgentTeam(
     val revision: Long = 0,
     val updatedAt: Long = 0,
     val changes: List<PlanChange> = emptyList(),
-    val structures: List<TeamStructure> = emptyList(),
-    val templates: List<StructureTemplate> = emptyList(),
+    val variants: List<TeamVariant> = emptyList(),
+    val topologies: List<Topology> = emptyList(),
 ) {
-    fun structure(key: String): TeamStructure? = structures.firstOrNull { it.key == key }
+    fun variant(key: String): TeamVariant? = variants.firstOrNull { it.key == key }
 
-    fun template(id: String): StructureTemplate? = templates.firstOrNull { it.id == id } ?: AgentStructures.template(id)
+    fun topology(id: String): Topology? = topologies.firstOrNull { it.id == id } ?: Topologies.builtIn(id)
 
-    val shapes: List<StructureTemplate> get() = AgentStructures.templates + templates
+    fun topology(variant: TeamVariant): Topology? = topology(variant.topology)
 
-    fun shape(structure: TeamStructure): StructureTemplate? = template(structure.template)
+    val library: List<Topology> get() = Topologies.builtIns + topologies
 
-    fun variants(template: String): List<TeamStructure> = structures.filter { it.template == template }
+    fun custom(id: String): Boolean = topologies.any { it.id == id }
 
-    fun seated(profile: String): List<Pair<TeamStructure, String>> = structures.flatMap { structure ->
-        structure.seats.filterValues { it == profile }.keys.map { structure to it }
+    fun variantsOf(topology: String): List<TeamVariant> = variants.filter { it.topology == topology }
+
+    fun attached(profile: String): List<Pair<TeamVariant, String>> = variants.flatMap { variant ->
+        variant.agents.filterValues { it == profile }.keys.map { variant to it }
     }
+
+    fun briefs(variant: TeamVariant, profile: (String) -> AgentProfile?): Map<String, NodeBrief> =
+        topology(variant)?.let { topology -> topology.nodes.associate { it.key to variant.brief(topology, it.key, profile) } }.orEmpty()
 
     val active: List<TeamMember> get() = members.filter { it.retired == null }
 
@@ -144,20 +186,23 @@ sealed interface TeamOp {
     @Serializable @SerialName("ungroup")
     data class Ungroup(val key: String) : TeamOp
 
-    @Serializable @SerialName("structure")
-    data class Structure(val key: String, val template: String, val title: String = "") : TeamOp
+    @Serializable @SerialName("topology")
+    data class SaveTopology(val topology: Topology) : TeamOp
 
-    @Serializable @SerialName("seat")
-    data class Seat(val structure: String, val seat: String, val profile: String? = null) : TeamOp
+    @Serializable @SerialName("untopology")
+    data class RemoveTopology(val id: String) : TeamOp
 
-    @Serializable @SerialName("unstructure")
-    data class Unstructure(val key: String) : TeamOp
+    @Serializable @SerialName("variant")
+    data class SaveVariant(val key: String, val topology: String, val title: String = "", val prompt: String? = null) : TeamOp
 
-    @Serializable @SerialName("template")
-    data class Template(val template: StructureTemplate) : TeamOp
+    @Serializable @SerialName("unvariant")
+    data class RemoveVariant(val key: String) : TeamOp
 
-    @Serializable @SerialName("untemplate")
-    data class Untemplate(val id: String) : TeamOp
+    @Serializable @SerialName("attach")
+    data class Attach(val variant: String, val node: String, val profile: String? = null, val model: String? = null) : TeamOp
+
+    @Serializable @SerialName("node-prompt")
+    data class NodePrompt(val variant: String, val node: String, val prompt: String = "") : TeamOp
 }
 
 @Serializable
@@ -173,25 +218,27 @@ object TeamRules {
     const val MaxMembers = 64
     const val MaxGroups = 32
     const val MaxLinks = 256
-    const val MaxStructures = 24
-    const val MaxTemplates = 24
-    const val MaxSeats = 8
-    const val MaxShapeLinks = 24
+    const val MaxVariants = 48
+    const val MaxTopologies = 24
+    const val MaxNodes = 12
+    const val MaxEdges = 48
+    const val MaxPrompt = 8_000
+    const val MaxNodePrompt = 4_000
 
-    fun shapeProblem(template: StructureTemplate): String? {
-        val keys = template.seats.map { it.key }
+    fun topologyProblem(topology: Topology): String? {
+        val keys = topology.nodes.map { it.key }
         return when {
-            !PlanRules.Key.matches(template.id) -> "A structure id is 1 to 40 lowercase letters, digits or dashes, starting with a letter"
-            AgentStructures.template(template.id) != null -> "${template.id} is a built-in structure; start a new one from it under another id"
-            template.title.isBlank() -> "A structure needs a title"
-            template.seats.isEmpty() || template.seats.size > MaxSeats -> "A structure has 1 to $MaxSeats seats"
-            keys.any { !PlanRules.Key.matches(it) } -> "A seat key is 1 to 40 lowercase letters, digits or dashes, starting with a letter"
-            keys.toSet().size != keys.size -> "Two seats share a key"
-            template.seats.any { it.role.isBlank() || it.config.isBlank() } -> "Every seat needs a role and a config"
-            template.links.size > MaxShapeLinks -> "A structure has at most $MaxShapeLinks hand-offs"
-            template.links.any { it.from !in keys || it.to !in keys || it.from == it.to } -> "A hand-off joins two different seats of the structure"
-            template.links.any { it.label.isBlank() } -> "Every hand-off needs a label"
-            template.links.map { Triple(it.from, it.to, it.label) }.toSet().size != template.links.size -> "Two hand-offs repeat the same seats and label"
+            !PlanRules.Key.matches(topology.id) -> "A topology id is 1 to 40 lowercase letters, digits or dashes, starting with a letter"
+            Topologies.builtIn(topology.id) != null -> "${topology.id} is a built-in topology; copy it under another id to change it"
+            topology.title.isBlank() -> "A topology needs a title"
+            topology.nodes.isEmpty() || topology.nodes.size > MaxNodes -> "A topology has 1 to $MaxNodes nodes"
+            keys.any { !PlanRules.Key.matches(it) } -> "A node key is 1 to 40 lowercase letters, digits or dashes, starting with a letter"
+            keys.toSet().size != keys.size -> "Two nodes share a key"
+            topology.nodes.any { it.name.isBlank() || it.name.length > 60 || '\n' in it.name } -> "Every node needs a one-line name of at most 60 characters"
+            topology.edges.size > MaxEdges -> "A topology has at most $MaxEdges edges"
+            topology.edges.any { it.from !in keys || it.to !in keys || it.from == it.to } -> "An edge joins two different nodes of the topology"
+            topology.edges.map { it.from to it.to }.toSet().size != topology.edges.size -> "Two edges join the same nodes in the same direction"
+            topology.edges.any { it.label.length > 60 || '\n' in it.label } -> "An edge label is one line of at most 60 characters"
             else -> null
         }
     }
@@ -209,11 +256,14 @@ object TeamRules {
         val members = LinkedHashMap(team.members.associateBy { it.profile })
         val groups = LinkedHashMap(team.groups.associateBy { it.key })
         val links = team.links.toMutableList()
-        val structures = LinkedHashMap(team.structures.associateBy { it.key })
-        val templates = LinkedHashMap(team.templates.associateBy { it.id })
+        val variants = LinkedHashMap(team.variants.associateBy { it.key })
+        val topologies = LinkedHashMap(team.topologies.associateBy { it.id })
         val refused = mutableListOf<PlanRefusal>()
 
-        fun template(id: String): StructureTemplate? = templates[id] ?: AgentStructures.template(id)
+        fun topology(id: String): Topology? = topologies[id] ?: Topologies.builtIn(id)
+
+        fun node(variant: TeamVariant, key: String): TopologyNode =
+            topology(variant.topology)?.node(key) ?: error("${variant.title} has no $key node")
         val summary = mutableListOf<String>()
 
         fun fresh(changed: Long, changer: BoardActor?, name: String): String? {
@@ -340,66 +390,92 @@ object TeamRules {
                                 moved.joinToString("") { "; $it" })
                         }
                     }
-                    is TeamOp.Structure -> {
-                        require(PlanRules.Key.matches(op.key)) { "A key is 1 to 40 lowercase letters, digits or dashes, starting with a letter" }
-                        val template = template(op.template) ?: error("${op.template} is not a structure; pick one of ${(AgentStructures.templates.map { it.id } + templates.keys).joinToString()}")
-                        val title = BoardText.title(op.title.ifBlank { template.title })
-                        val current = structures[op.key]
-                        if (current == null) {
-                            require(structures.size < MaxStructures) { "A team has at most $MaxStructures structures" }
-                            structures[op.key] = TeamStructure(op.key, template.id, title, revision = revision, by = by)
-                            "Added the ${template.title} structure as ${op.key} “$title”"
+                    is TeamOp.SaveTopology -> {
+                        val shape = op.topology.copy(title = BoardText.title(op.topology.title), summary = op.topology.summary.trim(),
+                            nodes = op.topology.nodes.map { it.copy(name = it.name.trim()) }, edges = op.topology.edges.map { it.copy(label = it.label.trim()) })
+                        topologyProblem(shape)?.let(::error)
+                        val current = topologies[shape.id]
+                        if (current == shape) null else {
+                            if (current == null) require(topologies.size < MaxTopologies) { "A team keeps at most $MaxTopologies topologies of its own" }
+                            topologies[shape.id] = shape
+                            val kept = shape.nodes.mapTo(HashSet()) { it.key }
+                            val cleared = variants.values.filter { it.topology == shape.id && (it.agents.keys + it.models.keys + it.nodePrompts.keys).any { key -> key !in kept } }
+                            cleared.forEach {
+                                variants[it.key] = it.copy(agents = it.agents.filterKeys(kept::contains), models = it.models.filterKeys(kept::contains),
+                                    nodePrompts = it.nodePrompts.filterKeys(kept::contains), revision = revision, by = by)
+                            }
+                            (if (current == null) "Added the topology ${shape.id} “${shape.title}”" else "Changed the topology ${shape.id} “${shape.title}”") +
+                                (if (cleared.isEmpty()) "" else "; cleared removed nodes in ${cleared.joinToString { it.title }}")
+                        }
+                    }
+                    is TeamOp.RemoveTopology -> {
+                        if (topologies[op.id] == null) {
+                            require(Topologies.builtIn(op.id) == null) { "${op.id} is a built-in topology and stays" }
+                            null
                         } else {
-                            require(current.template == template.id) { "${op.key} is a ${template(current.template)?.title ?: current.template}; remove it before reusing the key" }
+                            val using = variants.values.filter { it.topology == op.id }
+                            require(using.isEmpty()) { "Remove its ${using.size} variant${if (using.size == 1) "" else "s"} first: ${using.joinToString { it.title }}" }
+                            topologies.remove(op.id)
+                            "Removed the topology ${op.id}"
+                        }
+                    }
+                    is TeamOp.SaveVariant -> {
+                        require(PlanRules.Key.matches(op.key)) { "A key is 1 to 40 lowercase letters, digits or dashes, starting with a letter" }
+                        val shape = topology(op.topology) ?: error("${op.topology} is not a topology; pick one of ${(Topologies.builtIns.map { it.id } + topologies.keys).joinToString()}")
+                        val title = BoardText.title(op.title.ifBlank { shape.title })
+                        val prompt = op.prompt?.let { BoardText.bounded(it, "A variant prompt", MaxPrompt) }
+                        val current = variants[op.key]
+                        if (current == null) {
+                            require(variants.size < MaxVariants) { "A team has at most $MaxVariants variants" }
+                            variants[op.key] = TeamVariant(op.key, shape.id, title, prompt.orEmpty(), revision = revision, by = by)
+                            "Added the variant ${op.key} “$title” of ${shape.title}"
+                        } else {
+                            require(current.topology == shape.id) { "${op.key} is a variant of ${topology(current.topology)?.title ?: current.topology}; remove it before reusing the key" }
                             fresh(current.revision, current.by, op.key)?.let(::error)
-                            if (current.title == title) null else {
-                                structures[op.key] = current.copy(title = title, revision = revision, by = by)
-                                "Renamed ${op.key} to “$title”"
+                            val renamed = current.title != title
+                            val prompted = prompt != null && prompt != current.prompt
+                            if (!renamed && !prompted) null else {
+                                variants[current.key] = current.copy(title = title, prompt = prompt ?: current.prompt, revision = revision, by = by)
+                                listOfNotNull(if (renamed) "Renamed ${op.key} to “$title”" else null,
+                                    if (prompted) (if (prompt.isNullOrEmpty()) "Cleared the prompt of “$title”" else "Changed the prompt of “$title”") else null).joinToString("; ")
                             }
                         }
                     }
-                    is TeamOp.Seat -> {
-                        val current = structures[op.structure] ?: error("${op.structure} is not a structure on this team")
-                        val seat = template(current.template)?.seat(op.seat) ?: error("${current.title} has no ${op.seat} seat")
-                        val profile = op.profile?.trim()?.takeIf(String::isNotEmpty)
-                        if (current.seats[seat.key] == profile) null else {
-                            if (profile != null) require(saved(profile)) { "$profile is not a saved profile; save it with profile.save first" }
-                            val seats = if (profile == null) current.seats - seat.key else current.seats + (seat.key to profile)
-                            structures[current.key] = current.copy(seats = seats, revision = revision, by = by)
-                            if (profile == null) "Emptied the ${seat.role} seat in ${current.title}" else "Seated $profile as ${seat.role} in ${current.title}"
-                        }
-                    }
-                    is TeamOp.Unstructure -> {
-                        val current = structures[op.key]
+                    is TeamOp.RemoveVariant -> {
+                        val current = variants[op.key]
                         if (current == null) null else {
                             fresh(current.revision, current.by, op.key)?.let(::error)
-                            structures.remove(op.key)
-                            "Removed the ${current.title} structure"
+                            variants.remove(op.key)
+                            "Removed the variant “${current.title}”"
                         }
                     }
-                    is TeamOp.Template -> {
-                        val shape = op.template.copy(title = BoardText.title(op.template.title), summary = op.template.summary.trim())
-                        shapeProblem(shape)?.let(::error)
-                        val current = templates[shape.id]
-                        if (current == shape) null else {
-                            if (current == null) require(templates.size < MaxTemplates) { "A team keeps at most $MaxTemplates structures of its own" }
-                            templates[shape.id] = shape
-                            val kept = shape.seats.mapTo(HashSet()) { it.key }
-                            val emptied = structures.values.filter { it.template == shape.id && it.seats.keys.any { key -> key !in kept } }
-                            emptied.forEach { structures[it.key] = it.copy(seats = it.seats.filterKeys(kept::contains), revision = revision, by = by) }
-                            (if (current == null) "Added the structure ${shape.id} “${shape.title}”" else "Changed the structure ${shape.id} “${shape.title}”") +
-                                (if (emptied.isEmpty()) "" else "; emptied removed seats in ${emptied.joinToString { it.title }}")
+                    is TeamOp.Attach -> {
+                        val current = variants[op.variant] ?: error("${op.variant} is not a variant on this team")
+                        val node = node(current, op.node)
+                        val profile = op.profile?.trim()?.takeIf(String::isNotEmpty)
+                        val model = op.model?.trim()?.takeIf(String::isNotEmpty)
+                        require(profile == null || model == null) { "Attach one occupant to a node: a saved agent or a model level" }
+                        if (current.agents[node.key] == profile && current.models[node.key] == model) null else {
+                            if (profile != null) require(saved(profile)) { "$profile is not a saved agent; save it with profile.save first" }
+                            val pick = model?.let { key -> ModelCatalog.pick(key) ?: error("$key is not a model level in the catalog; use a key such as claude-opus-5-5:max") }
+                            val agents = if (profile == null) current.agents - node.key else current.agents + (node.key to profile)
+                            val models = if (pick == null) current.models - node.key else current.models + (node.key to pick.key)
+                            variants[current.key] = current.copy(agents = agents, models = models, revision = revision, by = by)
+                            when {
+                                profile != null -> "Attached $profile to ${node.name} in “${current.title}”"
+                                pick != null -> "Attached ${pick.label} to ${node.name} in “${current.title}”"
+                                else -> "Cleared ${node.name} in “${current.title}”"
+                            }
                         }
                     }
-                    is TeamOp.Untemplate -> {
-                        if (templates[op.id] == null) {
-                            require(AgentStructures.template(op.id) == null) { "${op.id} is a built-in structure and stays" }
-                            null
-                        } else {
-                            val using = structures.values.filter { it.template == op.id }
-                            require(using.isEmpty()) { "Remove its ${using.size} variant${if (using.size == 1) "" else "s"} first: ${using.joinToString { it.title }}" }
-                            templates.remove(op.id)
-                            "Removed the structure ${op.id}"
+                    is TeamOp.NodePrompt -> {
+                        val current = variants[op.variant] ?: error("${op.variant} is not a variant on this team")
+                        val node = node(current, op.node)
+                        val prompt = BoardText.bounded(op.prompt, "A node prompt", MaxNodePrompt)
+                        if (current.nodePrompts[node.key].orEmpty() == prompt) null else {
+                            val prompts = if (prompt.isEmpty()) current.nodePrompts - node.key else current.nodePrompts + (node.key to prompt)
+                            variants[current.key] = current.copy(nodePrompts = prompts, revision = revision, by = by)
+                            if (prompt.isEmpty()) "Cleared the prompt of ${node.name} in “${current.title}”" else "Changed the prompt of ${node.name} in “${current.title}”"
                         }
                     }
                     is TeamOp.Ungroup -> {
@@ -427,8 +503,8 @@ object TeamRules {
             members = members.values.toList(),
             groups = groups.values.toList(),
             links = links.toList(),
-            structures = structures.values.toList(),
-            templates = templates.values.toList(),
+            variants = variants.values.toList(),
+            topologies = topologies.values.toList(),
             revision = revision,
             updatedAt = now,
             changes = (team.changes + PlanChange(revision, now, by, summary)).takeLast(PlanRules.MaxChanges),
@@ -443,10 +519,11 @@ object TeamRules {
         is TeamOp.Unrelate -> from
         is TeamOp.Group -> key
         is TeamOp.Ungroup -> key
-        is TeamOp.Structure -> key
-        is TeamOp.Seat -> structure
-        is TeamOp.Unstructure -> key
-        is TeamOp.Template -> template.id
-        is TeamOp.Untemplate -> id
+        is TeamOp.SaveTopology -> topology.id
+        is TeamOp.RemoveTopology -> id
+        is TeamOp.SaveVariant -> key
+        is TeamOp.RemoveVariant -> key
+        is TeamOp.Attach -> variant
+        is TeamOp.NodePrompt -> variant
     }
 }

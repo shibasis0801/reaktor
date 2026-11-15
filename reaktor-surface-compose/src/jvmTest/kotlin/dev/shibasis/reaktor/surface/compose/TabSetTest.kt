@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -253,6 +254,124 @@ class TabSetTest {
         onRoot().performKeyInput { pressKey(Key.DirectionRight) }
         onNodeWithTag("docs/cloud").assertIsFocused().assertState("focused visible")
         onNodeWithTag("docs/data").assertState("")
+    }
+
+    @Test
+    fun aLayoutRevealsHiddenKeyboardTargetsWithoutSwitchingTheSelection() = runComposeUiTest {
+        val documents = listOf("one", "two", "three")
+        var selected by mutableStateOf("one")
+        setContent {
+            Column {
+                Button({}, Modifier.testTag("before")) { BasicText("Before") }
+                AutomationScope("layout") {
+                    TabSetLayout(documents, selected, { selected = it }) {
+                        BasicText("Project group", Modifier.testTag("group"))
+                        documents.filter { it == selected || it == active }.forEach { key ->
+                            key(key) {
+                                Tab(key) { BasicText(key) }
+                            }
+                        }
+                    }
+                }
+                Button({}, Modifier.testTag("after")) { BasicText("After") }
+            }
+        }
+        onNodeWithTag("before").requestFocus()
+        onRoot().performKeyInput { pressKey(Key.Tab) }
+        onNodeWithTag("layout/one").assertIsFocused().assertIsSelected()
+        onRoot().performKeyInput { pressKey(Key.DirectionRight) }
+        onNodeWithTag("layout/two").assertIsFocused().assertIsNotSelected()
+        assertEquals("one", selected)
+        onRoot().performKeyInput { pressKey(Key.DirectionRight) }
+        onNodeWithTag("layout/three").assertIsFocused().assertIsNotSelected()
+        onRoot().performKeyInput { pressKey(Key.Enter) }
+        assertEquals("three", selected)
+        onNodeWithTag("layout/three").assertIsSelected()
+        onRoot().performKeyInput { pressKey(Key.Tab) }
+        onNodeWithTag("after").assertIsFocused()
+    }
+
+    @Test
+    fun anExternalSelectionRevealsItsExactPartAndKeepsCloseIdentity() = runComposeUiTest {
+        val documents = listOf("one", "two", "three")
+        var selected by mutableStateOf("one")
+        val closed = mutableListOf<String>()
+        setContent {
+            AutomationScope("layout") {
+                TabSetLayout(documents, selected, { selected = it }, onClose = { closed += it }) {
+                    documents.filter { it == selected || it == active }.forEach { key ->
+                        key(key) {
+                            Tab(key) {
+                                BasicText(key)
+                                Close(Modifier.testTag("close-$key")) { BasicText("Close") }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        selected = "three"
+        waitForIdle()
+        onNodeWithTag("layout/three").assertIsDisplayed().assertIsSelected()
+        onNodeWithTag("close-three").performClick()
+        assertEquals(listOf("three"), closed)
+        assertEquals("three", selected)
+    }
+
+    @Test
+    fun closingTheOnlyVisibleTabRevealsAndFocusesItsHiddenNeighbor() = runComposeUiTest {
+        var open by mutableStateOf(listOf("one", "two", "three"))
+        val closed = mutableListOf<String>()
+        setContent {
+            AutomationScope("layout") {
+                TabSetLayout(open, "one", {}, onClose = { closed += it; open = open - it }) {
+                    open.filter { it == "one" || it == active }.forEach { key ->
+                        key(key) {
+                            Tab(key) {
+                                BasicText(key)
+                                Close { BasicText("Close") }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        onNodeWithTag("layout/one").requestFocus()
+        onRoot().performKeyInput { pressKey(Key.Delete) }
+        assertEquals(listOf("one"), closed)
+        onNodeWithTag("layout/two").assertIsFocused()
+        onRoot().performKeyInput { pressKey(Key.Delete) }
+        assertEquals(listOf("one", "two"), closed)
+        onNodeWithTag("layout/three").assertIsFocused()
+    }
+
+    @Test
+    fun groupControlsKeepTheirOwnKeyboardActionsWithoutClosingATab() = runComposeUiTest {
+        val closed = mutableListOf<String>()
+        var toggled = 0
+        setContent {
+            AutomationScope("layout") {
+                TabSetLayout(documents, "data", {}, onClose = { closed += it }) {
+                    Button({ toggled += 1 }, Modifier.testTag("group")) { BasicText("Project") }
+                    documents.forEach { item ->
+                        key(item) {
+                            Tab(item) {
+                                BasicText(item)
+                                Close { BasicText("Close") }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        onNodeWithTag("layout/data").requestFocus()
+        onNodeWithTag("group").requestFocus()
+        onRoot().performKeyInput { pressKey(Key.Delete); pressKey(Key.DirectionRight) }
+        assertTrue(closed.isEmpty())
+        onNodeWithTag("group").assertIsFocused()
+        onRoot().performKeyInput { pressKey(Key.Enter) }
+        assertEquals(1, toggled)
+        onNodeWithTag("group").assertIsFocused()
     }
 
     private fun PressState.described() = listOfNotNull("hovered".takeIf { hovered }, "pressed".takeIf { pressed }, "focused".takeIf { focused }, "visible".takeIf { focusVisible }).joinToString(" ")

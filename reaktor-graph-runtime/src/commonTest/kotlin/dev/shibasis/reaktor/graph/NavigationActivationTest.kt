@@ -8,6 +8,7 @@ import dev.shibasis.reaktor.graph.navigation.Payload
 import dev.shibasis.reaktor.graph.navigation.Pop
 import dev.shibasis.reaktor.graph.navigation.Push
 import dev.shibasis.reaktor.graph.navigation.Replace
+import dev.shibasis.reaktor.portgraph.port.flattenedValues
 import kotlinx.coroutines.CoroutineName
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
@@ -98,6 +99,30 @@ class NavigationActivationTest {
         left.close()
         right.close()
         root.close()
+    }
+
+    @Test fun removingADynamicNavigationEdgeReleasesItsPortAndAllowsReconnection() {
+        Reaktor.web()
+        val graph = Graph(label = "dynamic navigation")
+        try {
+            val first = graph.Route("/first") { RouteBinding(Payload()) }
+            val second = graph.Route("/second") { RouteBinding(Payload()) }
+            val baseline = first.consumerPorts.flattenedValues().size
+            val original = first.edge(second)
+            assertEquals(baseline + 1, first.consumerPorts.flattenedValues().size)
+            assertTrue(first.removeNavigationTo(second))
+            assertFalse(first.removeNavigationTo(second))
+            assertEquals(baseline, first.consumerPorts.flattenedValues().size)
+            assertTrue(second.navBinding.edges.isEmpty())
+            val replacement = first.edge(second)
+            assertNotSame(original, replacement)
+            assertTrue(replacement.consumer.isConnected())
+            assertTrue(first.removeNavigationTo(second))
+            graph.detach(second)
+            assertEquals(baseline, first.consumerPorts.flattenedValues().size)
+        } finally {
+            graph.close()
+        }
     }
 
     @Test fun navigationWithoutAnObserverDoesNotRetainAnActivation() {

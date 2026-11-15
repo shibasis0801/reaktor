@@ -771,7 +771,10 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
             "elk.partitioning.activate" to (group.mode == Lanes.Columns || columns != null).toString(),
             "elk.hierarchyHandling" to "SEPARATE_CHILDREN",
         )
-        if (options.ordered) graph["elk.layered.considerModelOrder.strategy"] = "NODES_AND_EDGES"
+        if (options.ordered) {
+            graph["elk.layered.considerModelOrder.strategy"] = "NODES_AND_EDGES"
+            graph["elk.layered.cycleBreaking.strategy"] = "GREEDY_MODEL_ORDER"
+        }
         if (group.loose) graph["elk.aspectRatio"] = "1.4"
         if (group.wrap) graph[LayeredFrameLayouter.Wrap] = "true"
         if (doors.isNotEmpty()) graph["elk.separateConnectedComponents"] = "false"

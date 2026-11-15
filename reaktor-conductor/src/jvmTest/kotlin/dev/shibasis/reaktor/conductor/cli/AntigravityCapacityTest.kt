@@ -90,6 +90,10 @@ class AntigravityCapacityTest {
             antigravityModelOrder(null, defaultAntigravityModels))
         assertEquals(listOf("gemini-4-carbon-high", "gemini-4-carbon-medium", "gemini-4-carbon-low"),
             antigravityModelOrder("gemini-4-carbon-high", defaultAntigravityModels))
+        assertEquals(listOf("gemini-4-hydrogen-xhigh", "gemini-4-hydrogen-high", "gemini-4-hydrogen-medium", "gemini-4-hydrogen-low"),
+            antigravityModelOrder("gemini-4-hydrogen-xhigh", defaultAntigravityModels))
+        assertEquals(listOf("gemini-4-hydrogen-high", "gemini-4-hydrogen-xhigh", "gemini-4-hydrogen-medium", "gemini-4-hydrogen-low"),
+            antigravityModelOrder("gemini-4-hydrogen-high", defaultAntigravityModels))
 
         val preferred = request(File("/tmp")).withPreferred()
         val explicit = preferred.copy(agent = preferred.agent.copy(effort = NativeEffort("high")))

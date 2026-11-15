@@ -254,7 +254,7 @@ class AgentBenchmarksTest {
         assertEquals(TaskGraphStatus.Proposed, proposed.graph.status)
         val writerTask = proposed.tasks.first { it.title == "Write" }
         val writerGraph = requireNotNull(writerTask.graph)
-        val rung = requireNotNull(writerGraph.seat.escalated(TaskAccess.Write))
+        val rung = requireNotNull(writerGraph.seat?.escalated(TaskAccess.Write))
         assertEquals("gemini-4-carbon-high", workspace.benchmarks.resolve(writerTask.copy(graph = writerGraph.copy(seat = rung)))?.seat?.model)
 
         assertFailsWith<IllegalArgumentException> {

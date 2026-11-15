@@ -51,8 +51,11 @@ data class SystemContext(
     val reaktor: ReaktorAccess = ReaktorAccess.Full,
     val memory: TeamMemory? = null,
     val variant: String? = null,
+    val group: String? = null,
 ) {
     val level: AgentPermission get() = permission ?: if (access == TaskAccess.Write) AgentPermission.Admin else AgentPermission.Read
+
+    val shelf: String get() = group?.trim()?.takeIf(String::isNotEmpty) ?: category.label
 
     fun withLevel(level: AgentPermission): SystemContext = copy(
         permission = level,
@@ -75,15 +78,17 @@ data class SystemContext(
                 current
             }
         }
+        val enforced = runtime == RuntimeKind.ClaudeCode
+        val blocked = tools.deny.takeIf { !enforced && it.isNotEmpty() }?.let { "Do not use these tools: ${it.joinToString()}." }
         return AgentProfile(
             id = profileId,
             name = profileName,
             runtime = runtime,
             model = model?.trim()?.ifEmpty { null },
             effort = effort?.trim()?.ifEmpty { null },
-            instructions = listOfNotNull(instructions.trim().ifEmpty { null }, reaktor.instruction).joinToString("\n\n"),
+            instructions = listOfNotNull(instructions.trim().ifEmpty { null }, reaktor.instruction, blocked).joinToString("\n\n"),
             access = if (level.writes) TaskAccess.Write else TaskAccess.Read,
-            tools = tools.copy(allowWrites = level.writes, sandboxed = level.sandboxed, deny = (tools.deny + reaktor.denied).distinct()),
+            tools = tools.copy(allowWrites = level.writes, sandboxed = level.sandboxed, deny = if (enforced) (tools.deny + reaktor.denied).distinct() else emptyList()),
             revision = existingRevision,
             builtIn = false,
             budget = adaptedBudget,
@@ -106,7 +111,8 @@ object SystemContexts {
         planKinds: Set<PlanKind>,
         reaktor: ReaktorAccess = ReaktorAccess.Full,
         planRefs: List<String> = emptyList(),
-    ) = SystemContext(id, name, category, summary, instructions, planKinds = planKinds, planRefs = planRefs, revision = 1, builtIn = true, reaktor = reaktor)
+        group: String? = null,
+    ) = SystemContext(id, name, category, summary, instructions, planKinds = planKinds, planRefs = planRefs, revision = 1, builtIn = true, reaktor = reaktor, group = group)
         .withLevel(level)
 
     val builtIns: List<SystemContext> = listOf(
@@ -177,6 +183,20 @@ object SystemContexts {
             "Check trust boundaries before they ship: capability checks, caller identity, path handling, secrets and token storage, sandboxing, and anything that crosses a process or network boundary. " +
                 "For each finding state the attacker, the entry point, what they gain and the fix. Never print a secret or token; name where it lives instead.",
             setOf(PlanKind.Decision, PlanKind.Check)),
+        role("researcher", "Researcher", ContextCategory.Architecture, AgentPermission.Read,
+            "Answers one question with evidence from the code, the docs and the web, and says how sure it is.",
+            "Answer the question you are given and nothing else. Gather the evidence first: the code through atlas_query and atlas_read, the docs in the repository, " +
+                "and the web when the question reaches outside it. Back each point with the smallest piece of evidence that settles it and say where it came from: a file and line, or a link. " +
+                "Keep what you checked apart from what you infer, and say how sure you are of each. Change nothing. " +
+                "You are done when every part of the question has an answer or a plain statement of what is still unknown.",
+            setOf(PlanKind.Decision), ReaktorAccess.Atlas, group = "Research"),
+        role("writer", "Writer", ContextCategory.Implementation, AgentPermission.Write,
+            "Writes and edits docs, release notes and product copy in plain language.",
+            "Write for the reader the task names, in plain, direct sentences: the answer first, then what supports it. " +
+                "Check every claim against the code or its source before you write it, and link to it. Keep the structure and voice of the document you edit. " +
+                "Leave out jargon the reader would not know and any sentence that adds nothing. Change only the documents the task names. " +
+                "You are done when a reader could act on the text without asking you anything.",
+            setOf(PlanKind.Task), group = "Writing"),
     )
 
     private val byId: Map<String, SystemContext> = builtIns.associateBy { it.id }

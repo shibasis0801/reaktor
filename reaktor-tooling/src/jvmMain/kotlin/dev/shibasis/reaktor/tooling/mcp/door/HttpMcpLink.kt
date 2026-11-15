@@ -35,10 +35,12 @@ class HttpMcpLink(
     /** Called when the server refuses the credential, so a cached one is fetched again next time. */
     private val onRejected: () -> Unit = {},
     private val signIn: String? = null,
+    private val onEndpointLost: () -> Unit = {},
 ) : McpLink {
     private val http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build()
     private val generations = AtomicLong()
     @Volatile private var session: String? = null
+    @Volatile private var sessionEndpoint: URI? = null
     @Volatile private var last = ToolingProviderState(provider, ProviderAvailability.Unknown)
 
     override val generation: Long get() = generations.get()
@@ -48,6 +50,10 @@ class HttpMcpLink(
     override suspend fun exchange(request: JsonObject): JsonObject? = withContext(Dispatchers.IO) {
         try {
             val target = endpoint() ?: error(whenMissing)
+            if (sessionEndpoint != target) {
+                if (session != null) { session = null; generations.incrementAndGet() }
+                sessionEndpoint = target
+            }
             val builder = HttpRequest.newBuilder(target).timeout(timeout)
                 .header("Content-Type", "application/json").header("Accept", "application/json, text/event-stream")
                 .header("MCP-Protocol-Version", protocolVersion)
@@ -57,7 +63,11 @@ class HttpMcpLink(
             val bytes = response.body().use { it.readNBytes(MAX_BYTES + 1) }
             check(bytes.size <= MAX_BYTES) { "the response is over ${MAX_BYTES / 1_000_000}MB" }
             val status = response.statusCode()
-            if (status == 404 && session != null) { session = null; generations.incrementAndGet(); error("the server forgot this session; the next call starts a new one") }
+            if (status == 404) {
+                val forgotten = session != null
+                endpointLost()
+                if (forgotten) error("the server forgot this session; the next call starts a new one")
+            }
             if (status == 401 || status == 403) {
                 // Some servers answer a refused call with a proper message and an error status: the sign-in is fine,
                 // the caller lacks a permission, and the server says which. That sentence is worth more than ours.
@@ -72,10 +82,18 @@ class HttpMcpLink(
             val answer = if (response.headers().firstValue("Content-Type").orElse("").contains("text/event-stream")) fromEvents(body, request["id"]) else DoorJson.parseToJsonElement(body) as? JsonObject
             answer.also { available() }
         } catch (failure: Exception) {
+            if (failure is java.io.IOException) endpointLost()
             val reason = failure.message ?: failure::class.simpleName.orEmpty()
             unavailable(if (failure is CredentialMissing) ProviderAvailability.AuthRequired else ProviderAvailability.Unavailable, reason)
             throw IllegalStateException("$provider: $reason")
         }
+    }
+
+    private fun endpointLost() {
+        session = null
+        sessionEndpoint = null
+        generations.incrementAndGet()
+        onEndpointLost()
     }
 
     override suspend fun close() { http.shutdownNow() }

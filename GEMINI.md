@@ -17,6 +17,14 @@ Use the `reaktor` MCP server tools before shell searches or raw file edits:
 3. `check_run` to run narrowed affected test classes through the code graph.
 4. `kernel` (`plan.read`, `plan.write`, `plan.next`, `plan.archive`, `team.send`, `team.inbox`) to coordinate on Hangar plans and peer threads.
 
+## Quota & Token Efficiency
+
+Preserve high-tier Gemini quota (`Carbon` / `Argon`) during multi-step work:
+- **Prefer graph-bounded reads and batched edits over raw file loops:** Use `code.investigate` (`tool.workspace`) for definitions + references + affected files in one call, batch up to 16 files in `atlas_read {paths: [...]}`, batch up to 64 edits or cross-module refactors in `change_plan` (`edit` / `rename` / `structural` / `change-type`), and run `check_run` (narrow by default) instead of full Gradle suites via `run_command`.
+- **Use lighter models for `research` subagents:** Pass `Model: "flash"` (or `"flash_lite"`) to `invoke_subagent` for exploration so subagents do not inherit `Carbon (High)` on cold caches.
+- **Keep sessions scoped and budgeted:** Split large refactors into Hangar DAG leaves instead of 250K+ context marathons, set `budget: {maxTokens, timeoutMillis}` on managed seats in `agent.taskgraph.propose` for unattended/overnight runs, and use `agent.entitlements` to route or pause seats (`GoogleAgent`, `GeminiCli`, `Codex`, `ClaudeSubscription`) when a quota pool is tight.
+- **Audit burn before scaling up:** Check `session.score` and `agent.evaluations` to spot high-input/low-output loops early.
+
 ## Building on Reaktor
 
 Three skills carry what this framework costs people who learn it by crashing. Load them before touching their domain:

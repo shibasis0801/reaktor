@@ -52,6 +52,7 @@ class AntigravityAppTest {
             {"plannerConfig":{"planModel":"MODEL_PLACEHOLDER_M417"}}}},"numSteps":3}""").jsonObject))
         assertNull(AntigravityApp.planModel(Json.parseToJsonElement("""{"metadata":{}}""").jsonObject))
         assertEquals("gemini-4-carbon-high", AntigravityApp.variant("Gemini 4 Carbon (High)"))
+        assertEquals("gemini-4-hydrogen-xhigh", AntigravityApp.variant("Gemini 4 Hydrogen (XHigh)"))
         assertEquals("gemini-3.8-flash-medium", AntigravityApp.variant("Gemini 3.8 Flash (Medium)"))
         val labels = AntigravityApp.modelLabels(Json.parseToJsonElement("""{"clientModelConfigs":[
             {"label":"Gemini 4 Carbon (High)","modelOrAlias":{"model":"MODEL_PLACEHOLDER_M427"}},
@@ -68,6 +69,8 @@ class AntigravityAppTest {
     @Test fun aModelWithoutItsLevelTakesTheRequestedEffort() {
         assertEquals("gemini-4-argon-high", antigravityAppModel("gemini-4-argon", NativeEffort("high")))
         assertEquals("gemini-4-carbon-high", antigravityAppModel("gemini-4-carbon-high", NativeEffort("low")))
+        assertEquals("gemini-4-hydrogen-xhigh", antigravityAppModel("gemini-4-hydrogen-xhigh", NativeEffort("xhigh")))
+        assertEquals("gemini-4-hydrogen-xhigh", antigravityAppModel("gemini-4-hydrogen", NativeEffort("xhigh")))
         assertEquals("gemini-4-carbon", antigravityAppModel("gemini-4-carbon", null))
     }
 

@@ -46,6 +46,7 @@ object ModelTelemetryCatalog {
     private val codexReasoning200k = ModelRateCard(ModelFamily.Codex, 200_000L, 2.00, 0.50, 2.00, 8.00)
 
     private val geminiCarbon2M = ModelRateCard(ModelFamily.Gemini, 2_000_000L, 2.00, 0.20, 2.00, 12.00)
+    private val geminiHydrogen1M = ModelRateCard(ModelFamily.Gemini, 1_000_000L, 1.50, 0.075, 1.50, 7.50)
     private val geminiPro2M = ModelRateCard(ModelFamily.Gemini, 2_000_000L, 1.25, 0.125, 1.25, 10.00)
     private val geminiFlash1M = ModelRateCard(ModelFamily.Gemini, 1_000_000L, 0.30, 0.03, 0.30, 2.50)
     private val geminiFlashLite1M = ModelRateCard(ModelFamily.Gemini, 1_000_000L, 0.10, 0.01, 0.10, 0.40)
@@ -65,6 +66,7 @@ object ModelTelemetryCatalog {
             "gpt-5" in id || "codex" in id -> codex54Flagship
             id.startsWith("o3") || id.startsWith("o4") || id.startsWith("o1") -> codexReasoning200k
             "carbon" in id -> geminiCarbon2M
+            "hydrogen" in id -> geminiHydrogen1M
             "flash-lite" in id || "flash_lite" in id -> geminiFlashLite1M
             "flash" in id -> geminiFlash1M
             "argon" in id || "gemini" in id -> geminiPro2M

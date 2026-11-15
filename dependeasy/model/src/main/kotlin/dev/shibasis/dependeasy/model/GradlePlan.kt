@@ -53,4 +53,5 @@ object GradleProtocol {
     const val ResultDirectory = "build/dependeasy/runs"
     const val OperationRunVariable = "DEPENDEASY_OPERATION_RUN_ID"
     const val ProgressPrefix = "@dependeasy-task "
+    const val AdmissionPrefix = "@reaktor-build "
 }

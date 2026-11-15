@@ -923,7 +923,7 @@ object AiPlatforms {
         val allowances = buildList {
             add(
                 AiAllowanceWindow(
-                    label = "Antigravity Seat (Carbon High / Argon High)",
+                    label = "Antigravity Seat (Carbon / Argon / Hydrogen)",
                     usedPercent = null,
                     remaining = "Active OAuth Seat",
                     limit = "${localGemini.conversationCount7d} conversations · ${localGemini.requests7d} turns (7d)",
@@ -1035,7 +1035,7 @@ object AiPlatforms {
                 available = connected,
                 rateLimitSummary = "${models.size} Gemini & Antigravity models",
                 requests7d = 0,
-                summary = "Lists Gemini 4 Carbon/Argon, Gemini 2.5 Pro/Flash, Imagen, and Veo models with token limits and supported methods",
+                summary = "Lists Gemini 4 Carbon/Argon/Hydrogen, Gemini 2.5 Pro/Flash, Imagen, and Veo models with token limits and supported methods",
                 docsUrl = "https://ai.google.dev/api/models",
             ),
         )
@@ -1063,11 +1063,11 @@ object AiPlatforms {
                 limitUsd = null,
                 neurons7d = null,
                 planTier = if (gcpProject != null) "GCP Billing ($gcpProject) + Antigravity" else "Antigravity Ultra + AI Studio",
-                summary = "Gemini 4 Carbon High & Argon High active · ${localGemini.conversationCount7d} brain sessions (7d) · est. value ${"$%.2f".format(estimatedCost7d)}",
+                summary = "Gemini 4 Carbon, Argon & Hydrogen active · ${localGemini.conversationCount7d} brain sessions (7d) · est. value ${"$%.2f".format(estimatedCost7d)}",
             ),
             allowances = allowances,
-            capabilities = listOf("Gemini 4 Carbon & Argon High", "1M–2M Context Window", "Context Caching (75% off)", "Multimodal Live WS", "Google Search Grounding", "Imagen 3 & Veo 2"),
-            note = "Gemini 4 Carbon High (active) & Gemini 4 Argon High first-class in Reaktor+ (${localGemini.requests7d} steps in 7d)",
+            capabilities = listOf("Gemini 4 Carbon, Argon & Hydrogen", "1M–2M Context Window", "Context Caching (75% off)", "Multimodal Live WS", "Google Search Grounding", "Imagen 3 & Veo 2"),
+            note = "Gemini 4 Carbon, Argon & Hydrogen first-class in Reaktor+ (${localGemini.requests7d} steps in 7d)",
             error = liveProbe?.error,
         )
         return PlatformBundle(snapshot, endpoints, models)
@@ -1413,6 +1413,8 @@ object AiPlatforms {
         val defaults = listOf(
             AiPlatformModel("gemini-4-carbon-high", "gemini", "Gemini 4 Carbon (High)", "Frontier Agentic & Deep Thinking", "Active Reaktor+ Gemini 4 Carbon High model with deep reasoning, multimodal vision, and native MCP orchestration", true, true, true, 2_000_000L, 1.25, 10.00, 0.31, remReq, remIn, remOut, (remIn / 1_000_000.0 * 1.25) + (remOut / 1_000_000.0 * 10.0), "reaktor+"),
             AiPlatformModel("gemini-4-argon-high", "gemini", "Gemini 4 Argon (High)", "Frontier Multimodal & Synthesis", "Default Reaktor+ Gemini 4 Argon High model for long-context repository synthesis, UI inspection, and high-capacity execution", true, true, true, 2_000_000L, 1.25, 10.00, 0.31, halfReq, halfIn, halfOut, (halfIn / 1_000_000.0 * 1.25) + (halfOut / 1_000_000.0 * 10.0), "reaktor+"),
+            AiPlatformModel("gemini-4-hydrogen-xhigh", "gemini", "Gemini 4 Hydrogen (XHigh)", "High-Efficiency Deep Reasoning", "Reaktor+ Gemini 4 Hydrogen XHigh reasoning workhorse with 1M context window for complex verification and fast synthesis", true, true, true, 1_048_576L, 1.50, 7.50, 0.075, 0, 0, 0, 0.0, "reaktor+"),
+            AiPlatformModel("gemini-4-hydrogen-high", "gemini", "Gemini 4 Hydrogen (High)", "High-Efficiency Agentic Coding", "Fast Reaktor+ Gemini 4 Hydrogen daily-driver model with 1M context window for rapid implementation and verification", true, true, true, 1_048_576L, 1.50, 7.50, 0.075, 0, 0, 0, 0.0, "reaktor+"),
             AiPlatformModel("gemini-2.5-pro", "gemini", "Gemini 2.5 Pro", "Complex Reasoning & Coding", "2M token context window model with adaptive thinking budget, Google Search grounding, and code execution", true, true, true, 2_097_152L, 1.25, 10.00, 0.31, 0, 0, 0, 0.0, "catalog"),
             AiPlatformModel("gemini-2.5-flash", "gemini", "Gemini 2.5 Flash", "High-Throughput Multimodal Thinking", "1M token context hybrid reasoning model with controllable thinking budget and low latency", true, true, true, 1_048_576L, 0.15, 0.60, 0.0375, 0, 0, 0, 0.0, "catalog"),
             AiPlatformModel("gemini-2.5-flash-lite", "gemini", "Gemini 2.5 Flash-Lite", "Ultra-Fast High-Volume", "Lowest-cost high-concurrency Gemini model for classification, extraction, and sub-agent fan-out", true, false, true, 1_048_576L, 0.075, 0.30, 0.018, 0, 0, 0, 0.0, "catalog"),
@@ -1549,6 +1551,7 @@ object AiPlatforms {
         return runCatching {
             val apiModel = when (model) {
                 "gemini-4-carbon-high", "gemini-4-argon-high" -> "gemini-2.5-pro"
+                "gemini-4-hydrogen-xhigh", "gemini-4-hydrogen-high", "gemini-4-hydrogen-medium", "gemini-4-hydrogen-low" -> "gemini-2.5-flash"
                 else -> model
             }
             val payload = buildJsonObject {

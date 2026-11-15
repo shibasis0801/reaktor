@@ -56,28 +56,29 @@ class DisplayTest {
     private fun Recorded(content: @Composable () -> Unit) = CompositionLocalProvider(LocalAppearances provides recording, content = content)
 
     @Test
-    fun marksKeepTheirSizeAndDrawNothingWithFewerThanTwoValues() = runComposeUiTest {
+    fun singlePointTrendsAndEmptyBarsKeepTheirSize() = runComposeUiTest {
         setContent {
             Recorded {
-                Sparkline(listOf(3f), Modifier.size(40.dp, 12.dp).testTag("sparkline"))
-                Bars(emptyList(), Modifier.size(30.dp, 10.dp).testTag("bars"))
+                Sparkline(listOf(3f), Modifier.size(40.dp, 12.dp).testTag("sparkline"), summary = null)
+                Bars(emptyList(), Modifier.size(30.dp, 10.dp).testTag("bars"), summary = null)
             }
         }
         val sparkline = onNodeWithTag("sparkline").fetchSemanticsNode().size
         val bar = onNodeWithTag("bars").fetchSemanticsNode().size
         assertEquals(with(density) { 40.dp.roundToPx() to 12.dp.roundToPx() }, sparkline.width to sparkline.height)
         assertEquals(with(density) { 30.dp.roundToPx() to 10.dp.roundToPx() }, bar.width to bar.height)
-        assertTrue(sparklines.isEmpty() && bars.isEmpty())
+        assertTrue(sparklines.isEmpty())
+        assertEquals(listOf(emptyList()), bars)
     }
 
     @Test
     fun valuesScaleFromZeroToTheLargestValueOrTheThreshold() = runComposeUiTest {
         setContent {
             Recorded {
-                Sparkline(listOf(2f, 4f), Modifier.size(40.dp, 12.dp))
-                Sparkline(listOf(2f, 4f), Modifier.size(40.dp, 12.dp), threshold = 8f)
-                Bars(listOf(1f, 3f, 6f), Modifier.size(30.dp, 10.dp))
-                Sparkline(listOf(0f, 0f), Modifier.size(40.dp, 12.dp))
+                Sparkline(listOf(2f, 4f), Modifier.size(40.dp, 12.dp), summary = null)
+                Sparkline(listOf(2f, 4f), Modifier.size(40.dp, 12.dp), threshold = 8f, summary = null)
+                Bars(listOf(1f, 3f, 6f), Modifier.size(30.dp, 10.dp), summary = null)
+                Sparkline(listOf(0f, 0f), Modifier.size(40.dp, 12.dp), summary = null)
             }
         }
         waitForIdle()
@@ -91,8 +92,8 @@ class DisplayTest {
     fun aRangeClampsToZeroAndOne() = runComposeUiTest {
         setContent {
             Recorded {
-                RangeBar(-0.5f, 1.5f, Modifier.size(40.dp, 6.dp))
-                RangeBar(0.8f, 0.2f, Modifier.size(40.dp, 6.dp))
+                RangeBar(-0.5f, 1.5f, Modifier.size(40.dp, 6.dp), summary = null)
+                RangeBar(0.8f, 0.2f, Modifier.size(40.dp, 6.dp), summary = null)
             }
         }
         waitForIdle()
@@ -111,4 +112,19 @@ class DisplayTest {
         val three = onNodeWithText("3", useUnmergedTree = true).fetchSemanticsNode()
         assertEquals("row", three.parent?.config?.getOrNull(SemanticsProperties.TestTag))
     }
+    @Test fun marksAnnounceSummariesOrExplicitlyRemainDecorativeAndOneBucketDraws() = runComposeUiTest {
+        setContent {
+            Recorded {
+                Bars(listOf(5f), Modifier.size(30.dp, 10.dp).testTag("single"), summary = "Fixture · one bucket · 5 requests")
+                Sparkline(listOf(1f, 2f), Modifier.size(30.dp, 10.dp).testTag("trend"), summary = "Retained sample · 1 to 2 requests")
+                RangeBar(0f, 0f, Modifier.size(30.dp, 10.dp).testTag("decoration"), summary = null)
+            }
+        }
+        waitForIdle()
+        assertEquals(listOf(1f), bars.single())
+        assertEquals(listOf("Fixture · one bucket · 5 requests"), onNodeWithTag("single").fetchSemanticsNode().config[SemanticsProperties.ContentDescription])
+        assertEquals(listOf("Retained sample · 1 to 2 requests"), onNodeWithTag("trend").fetchSemanticsNode().config[SemanticsProperties.ContentDescription])
+        assertEquals(null, onNodeWithTag("decoration").fetchSemanticsNode().config.getOrNull(SemanticsProperties.ContentDescription))
+    }
+
 }

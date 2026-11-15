@@ -180,6 +180,13 @@ open class RouteNode<P: Payload, Binding: RouteBinding<P>>(
             NavigationEdge(this, destination)
         } as NavigationEdge<D>
 
+    fun removeNavigationTo(destination: RouteNode<*, *>): Boolean {
+        val edge = navigationEdges.remove(destination.id.toString()) ?: return false
+        edge.consumer.close()
+        consumerPorts.remove(edge.consumer.type, edge.consumer.key)
+        return true
+    }
+
     companion object {
         operator fun invoke(graph: Graph, pattern: String) =
             RouteNode(graph, pattern) { RouteBinding(Payload()) }

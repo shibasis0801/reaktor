@@ -30,6 +30,7 @@ class StateViewTest {
         ViewState.entries.forEach { state ->
             shown = state
             waitForIdle()
+            assertEquals(state.name, onNodeWithTag("view", useUnmergedTree = true).fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription))
             assertEquals(
                 if (state == ViewState.Loading) ProgressBarRangeInfo.Indeterminate else null,
                 onNodeWithTag("view", useUnmergedTree = true).fetchSemanticsNode().config.getOrNull(SemanticsProperties.ProgressBarRangeInfo),

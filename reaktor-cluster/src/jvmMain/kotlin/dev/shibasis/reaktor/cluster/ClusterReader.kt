@@ -115,10 +115,11 @@ class ClusterReader(
                 truthOverride ?: if (status == "Unknown") "Partial" else "Source", phase, executionHost, phaseHost)
         }
         val waiting = queue(problems).map { waiter ->
-            Job(waiter.id, "Unknown", emptyList(), "Queued",
+            Job(waiter.id, waiter.project ?: "Unknown", waiter.tasks, "Queued",
                 "Unknown", null, Requester(pid = waiter.pid), waiter.queuedAt, null, null,
                 waiter.queuedAt?.let { (now() - it).coerceAtLeast(0) / 1000.0 }, null,
-                state.resolve("local-gradle.line").resolve(waiter.id).toString(), null, "Pending", truthOverride ?: "Partial",
+                state.resolve("local-gradle.line").resolve(waiter.id).toString(), null, "Pending",
+                truthOverride ?: if (waiter.project == null) "Partial" else "Source",
                 phase = "Queued", blocker = JobBlocker(
                     if (waiter.reason.startsWith("Waiting for available host capacity")) "Capacity" else "LocalLease",
                     waiter.reason, host = if (waiter.reason.startsWith("Waiting for available host capacity")) null else "local"))
@@ -156,10 +157,19 @@ class ClusterReader(
         if (pid == null || !alive(pid)) return@mapNotNull null
         val held = inspect(path)
         if (held.state != "Held") return@mapNotNull null
-        val aside = runCatching { Files.readString(path).trim() == "aside" }.getOrDefault(false)
+        val text = runCatching {
+            require(Files.size(path) <= 32768)
+            Files.readString(path).trim()
+        }.getOrDefault("")
+        val details = runCatching { Json.parseToJsonElement(text) as? JsonObject }.getOrNull()
+        val project = details?.string("project")?.takeIf { it.isNotBlank() && it.length <= 256 }
+        val tasks = runCatching { details?.get("tasks")?.jsonArray?.take(128)?.mapNotNull {
+            (it as? JsonPrimitive)?.content?.takeIf { task -> task.isNotBlank() && task.length <= 1024 }
+        } }.getOrNull().orEmpty()
+        val aside = text == "aside" || (details?.get("aside") as? JsonPrimitive)?.booleanOrNull == true
         Waiter(name, pid, match.groupValues[1].toLongOrNull()?.div(1_000_000),
             if (aside) "Waiting for available host capacity" else "Waiting for the local Gradle lease",
-            truthOverride ?: "Live")
+            truthOverride ?: "Live", project, tasks)
     }.sortedBy { it.id }
 
     private fun storage(problems: MutableList<String>): Storage {

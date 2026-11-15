@@ -37,28 +37,28 @@ class TeamGraph(val team: AgentTeam, profiles: (String) -> AgentProfile? = { nul
         val scope: Graph = team.groupOf(member.profile)?.key?.let(groups::get) ?: graph
         member.profile to scope.Node { TeamMemberNode(it, team, member, profiles(member.profile)) }
     }
-    val structures: Map<String, StructureScope> = team.structures.filter { team.shape(it) != null }.associate { structure ->
-        structure.key to graph.Graph { StructureScope(it, structure) }
+    val variants: Map<String, VariantScope> = team.variants.filter { team.topology(it) != null }.associate { variant ->
+        variant.key to graph.Graph { VariantScope(it, variant) }
     }
-    val seats: Map<String, StructureSeatNode> = team.structures.flatMap { structure ->
-        val scope = structures[structure.key] ?: return@flatMap emptyList()
-        val shape = team.shape(structure) ?: return@flatMap emptyList()
-        shape.seats.map { seat ->
-            StructureSeatNode.key(structure.key, seat.key) to scope.Node { StructureSeatNode(it, structure, shape, seat, structure.seats[seat.key]?.let(profiles)) }
+    val nodes: Map<String, VariantNode> = team.variants.flatMap { variant ->
+        val scope = variants[variant.key] ?: return@flatMap emptyList()
+        val topology = team.topology(variant) ?: return@flatMap emptyList()
+        topology.nodes.map { node ->
+            VariantNode.key(variant.key, node.key) to scope.Node { VariantNode(it, variant, topology, node, variant.agents[node.key]?.let(profiles)) }
         }
     }.toMap()
 
     init {
         members.values.forEach { it.wire(members) }
-        seats.values.forEach { it.wire(seats) }
+        nodes.values.forEach { it.wire(nodes) }
     }
 
     fun shape(project: (Graph) -> GraphShape = Graph::shape): GraphShape = project(graph).stable(buildMap {
         put(graph.id.toString(), "team")
         groups.forEach { (key, scope) -> put(scope.id.toString(), "team group $key") }
         members.forEach { (profile, node) -> put(node.id.toString(), "team member $profile") }
-        structures.forEach { (key, scope) -> put(scope.id.toString(), "team structure $key") }
-        seats.forEach { (key, node) -> put(node.id.toString(), "team seat $key") }
+        variants.forEach { (key, scope) -> put(scope.id.toString(), "team variant $key") }
+        nodes.forEach { (key, node) -> put(node.id.toString(), "team node $key") }
     })
 
     override fun close() = graph.close()
@@ -67,86 +67,86 @@ class TeamGraph(val team: AgentTeam, profiles: (String) -> AgentProfile? = { nul
 fun AgentTeam.shape(profiles: (String) -> AgentProfile? = { null }, project: (Graph) -> GraphShape = Graph::shape): GraphShape =
     TeamGraph(this, profiles).use { it.shape(project) }
 
-class ShapesGraph(val team: AgentTeam) : AutoCloseable {
-    val graph = Graph(dependencyAdapter = KoinDependencyAdapter(koinApplication {}), label = "Structures")
-    val scopes: Map<String, ShapeScope> = team.shapes.associate { shape ->
-        shape.id to graph.Graph { ShapeScope(it, shape, team.variants(shape.id).size, team.templates.any { custom -> custom.id == shape.id }) }
+class TopologiesGraph(val team: AgentTeam) : AutoCloseable {
+    val graph = Graph(dependencyAdapter = KoinDependencyAdapter(koinApplication {}), label = "Topologies")
+    val scopes: Map<String, TopologyScope> = team.library.associate { topology ->
+        topology.id to graph.Graph { TopologyScope(it, topology, team.variantsOf(topology.id).size, team.custom(topology.id)) }
     }
-    val seats: Map<String, ShapeSeatNode> = team.shapes.flatMap { shape ->
-        shape.seats.map { seat -> ShapeSeatNode.key(shape.id, seat.key) to scopes.getValue(shape.id).Node { ShapeSeatNode(it, scopes.getValue(shape.id), seat) } }
+    val nodes: Map<String, TopologyNodeView> = team.library.flatMap { topology ->
+        val scope = scopes.getValue(topology.id)
+        topology.nodes.map { node -> TopologyNodeView.key(topology.id, node.key) to scope.Node { TopologyNodeView(it, scope, node) } }
     }.toMap()
 
     init {
-        seats.values.forEach { it.wire(seats) }
+        nodes.values.forEach { it.wire(nodes) }
     }
 
     fun shape(project: (Graph) -> GraphShape = Graph::shape): GraphShape = project(graph).stable(buildMap {
-        put(graph.id.toString(), "structures")
-        scopes.forEach { (id, scope) -> put(scope.id.toString(), "structure shape $id") }
-        seats.forEach { (key, node) -> put(node.id.toString(), "structure shape seat $key") }
+        put(graph.id.toString(), "topologies")
+        scopes.forEach { (id, scope) -> put(scope.id.toString(), "topology $id") }
+        nodes.forEach { (key, node) -> put(node.id.toString(), "topology node $key") }
     })
 
     override fun close() = graph.close()
 }
 
-fun AgentTeam.shapesShape(project: (Graph) -> GraphShape = Graph::shape): GraphShape = ShapesGraph(this).use { it.shape(project) }
+fun AgentTeam.topologiesShape(project: (Graph) -> GraphShape = Graph::shape): GraphShape = TopologiesGraph(this).use { it.shape(project) }
 
-class ShapeScope(parent: Graph, val template: StructureTemplate, val variants: Int, val custom: Boolean) : Graph(parentGraph = parent, label = template.title)
+class TopologyScope(parent: Graph, val topology: Topology, val variants: Int, val custom: Boolean) : Graph(parentGraph = parent, label = topology.title)
 
-class ShapeSeatNode(graph: Graph, private val scope: ShapeScope, val seat: StructureSeat) : BasicNode(graph), ShapeAttributes {
-    override val label: String = seat.role
+class TopologyNodeView(graph: Graph, private val scope: TopologyScope, val node: TopologyNode) : BasicNode(graph), ShapeAttributes {
+    override val label: String = node.name
     override val kind: NodeKind = NodeKind.Actor
-    val provided = registerProvider(Key(seat.key), SeatType, this)
+    val provided = registerProvider(Key(TopologyNodeView.Output), NodeType, this)
 
     override val shapeAttributes: Map<String, String>
         get() = buildMap {
-            put("shape", scope.template.id)
-            put("shapeSeat", seat.key)
-            put("role", seat.role)
-            put("duty", seat.duty)
-            put("tier", seat.tier.name)
-            put("config", seat.config)
+            put("topology", scope.topology.id)
+            put("topologyNode", node.key)
+            put("order", scope.topology.nodes.indexOfFirst { it.key == node.key }.toString())
             put("variants", scope.variants.toString())
             put("face", "prose")
             if (scope.custom) put("custom", "true")
         }
 
-    fun wire(seats: Map<String, ShapeSeatNode>) {
-        val incoming = scope.template.links.filter { it.to == seat.key && key(scope.template.id, it.from) in seats }
-        val counts = incoming.groupingBy { it.label }.eachCount()
-        incoming.forEach { link ->
-            val port = if (counts.getValue(link.label) > 1) "${link.label}${StructureSeatNode.Split}${link.from}" else link.label
-            connect(registerConsumer<ShapeSeatNode>(Key(port), SeatType), seats.getValue(key(scope.template.id, link.from)).provided).getOrThrow()
+    fun wire(nodes: Map<String, TopologyNodeView>) {
+        scope.topology.into(node.key).forEach { edge ->
+            nodes[key(scope.topology.id, edge.from)]?.let { from ->
+                connect(registerConsumer<TopologyNodeView>(Key(scope.topology.port(edge)), NodeType), from.provided).getOrThrow()
+            }
         }
     }
 
     companion object {
-        val SeatType = Type("Seat", ShapeSeatNode::class)
-        fun key(shape: String, seat: String): String = "$shape/$seat"
+        const val Output = "output"
+        val NodeType = Type("Node", TopologyNodeView::class)
+        fun key(topology: String, node: String): String = "$topology/$node"
     }
 }
 
 class TeamScope(parent: Graph, val group: TeamGroup) : Graph(parentGraph = parent, label = group.title)
 
-class StructureScope(parent: Graph, val structure: TeamStructure) : Graph(parentGraph = parent, label = structure.title)
+class VariantScope(parent: Graph, val variant: TeamVariant) : Graph(parentGraph = parent, label = variant.title)
 
-class StructureSeatNode(graph: Graph, val structure: TeamStructure, val shape: StructureTemplate, val seat: StructureSeat, val profile: AgentProfile?) : BasicNode(graph), ShapeAttributes {
-    private val occupant: String? = structure.seats[seat.key]
-    private val tuple: AgentTuple? = profile?.let(AgentLabel::tuple)
-    override val label: String = profile?.name ?: occupant ?: seat.role
+class VariantNode(graph: Graph, val variant: TeamVariant, val topology: Topology, val node: TopologyNode, val profile: AgentProfile?) : BasicNode(graph), ShapeAttributes {
+    private val agent: String? = variant.agents[node.key]
+    private val pick: CatalogPick? = variant.model(node.key)
+    private val tuple: AgentTuple? = profile?.let(AgentLabel::tuple) ?: pick?.let { AgentLabel.tuple(it.runtime, it.variant.effort, null, it.variant.model) }
+    override val label: String = node.name
     override val kind: NodeKind = NodeKind.Actor
-    val provided = registerProvider(Key(seat.key), SeatType, this)
+    val provided = registerProvider(Key(TopologyNodeView.Output), NodeType, this)
 
     override val shapeAttributes: Map<String, String>
         get() = buildMap {
-            put("seat", key(structure.key, seat.key))
-            put("structure", structure.key)
-            put("role", seat.role)
-            put("duty", seat.duty)
-            put("tier", seat.tier.name)
-            put("config", seat.config)
+            put("node", key(variant.key, node.key))
+            put("variant", variant.key)
+            put("topology", topology.id)
+            put("topologyNode", node.key)
+            put("order", topology.nodes.indexOfFirst { it.key == node.key }.toString())
             put("face", "prose")
-            occupant?.let { put("occupant", it) }
+            agent?.let { put("agent", it) }
+            pick?.let { put("pick", it.key) }
+            if (variant.nodePrompts[node.key].orEmpty().isNotBlank()) put("prompted", "true")
             tuple?.let { tuple ->
                 tuple.family?.let { put("family", it) }
                 tuple.effort?.let { put("effort", it) }
@@ -154,20 +154,17 @@ class StructureSeatNode(graph: Graph, val structure: TeamStructure, val shape: S
             }
         }
 
-    fun wire(seats: Map<String, StructureSeatNode>) {
-        val incoming = shape.links.filter { it.to == seat.key && key(structure.key, it.from) in seats }
-        val counts = incoming.groupingBy { it.label }.eachCount()
-        incoming.forEach { link ->
-            val port = if (counts.getValue(link.label) > 1) "${link.label}$Split${link.from}" else link.label
-            connect(registerConsumer<StructureSeatNode>(Key(port), SeatType), seats.getValue(key(structure.key, link.from)).provided).getOrThrow()
+    fun wire(nodes: Map<String, VariantNode>) {
+        topology.into(node.key).forEach { edge ->
+            nodes[key(variant.key, edge.from)]?.let { from ->
+                connect(registerConsumer<VariantNode>(Key(topology.port(edge)), NodeType), from.provided).getOrThrow()
+            }
         }
     }
 
     companion object {
-        const val Split = " · "
-        val SeatType = Type("Seat", StructureSeatNode::class)
-        fun key(structure: String, seat: String): String = "$structure/$seat"
-        fun label(port: String): String = port.substringBefore(Split)
+        val NodeType = Type("Node", VariantNode::class)
+        fun key(variant: String, node: String): String = "$variant/$node"
     }
 }
 

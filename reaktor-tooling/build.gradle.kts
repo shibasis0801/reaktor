@@ -7,6 +7,13 @@ import dev.shibasis.dependeasy.common.commonSerialization
 
 plugins { id("dev.shibasis.dependeasy.library") }
 
+tasks.withType<org.gradle.language.jvm.tasks.ProcessResources>().matching { it.name == "jvmProcessResources" }.configureEach {
+    from(rootProject.file("reaktor-cluster/tooling")) {
+        include("gradle-lease", "remote_build.py", "remote_retention.py", "cluster_locations.py")
+        into("dev/shibasis/reaktor/tooling/gradle-admission")
+    }
+}
+
 library(namespace = "dev.shibasis.reaktor.tooling", targets = Targets.All) {
     dependencies {
         common {

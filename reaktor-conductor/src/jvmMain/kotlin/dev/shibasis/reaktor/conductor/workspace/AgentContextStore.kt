@@ -57,6 +57,7 @@ class AgentContextStore(
                 mcpConfig = context.tools.mcpConfig?.let { BoardText.bounded(it, "MCP config", 1_000) },
             ),
             planRefs = BoardText.lines(context.planRefs, "plan refs", 64, 240),
+            group = context.group?.let { BoardText.bounded(it, "role group", 60) }?.takeIf(String::isNotEmpty),
             revision = (current?.revision ?: 0) + 1,
             by = by,
             updatedAt = clock(),
@@ -66,6 +67,19 @@ class AgentContextStore(
         require(encoded.toByteArray().size <= MaxBytes) { "A system context is at most 64 KB" }
         atomicWrite(directory.resolve("${next.id}.json"), encoded)
         return next
+    }
+
+    @Synchronized
+    fun delete(id: String, by: BoardActor, expectedRevision: Long): SystemContext? {
+        val current = read(id)
+        val file = directory.resolve("$id.json")
+        require(Files.isRegularFile(file)) { "$id is a built-in role with no saved changes; there is nothing to delete" }
+        require(by.name.isNotBlank() && by.name.length <= 100) { "Name who deletes the system context" }
+        require(expectedRevision == current.revision) { "System context $id changed; read its current revision before deleting" }
+        val retired = directory.resolve("retired")
+        privateDirectory(retired)
+        Files.move(file, retired.resolve("$id-${clock()}.json"))
+        return builtIns[id]
     }
 
     companion object {

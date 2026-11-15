@@ -191,6 +191,7 @@ class CliCapabilitiesTest {
         }
         val resolver = TaskSeatResolver(capability = { capability })
         assertFailsWith<UnsupportedEffortException> { resolver.resolve(TaskSeat(agent = RuntimeKind.Gemini, effort = "xhigh")) }
+        assertEquals("xhigh", resolver.resolve(TaskSeat(agent = RuntimeKind.Gemini, model = "gemini-4-hydrogen-xhigh", effort = "xhigh")).seat.effort)
         assertEquals("low", resolver.resolve(TaskSeat(agent = RuntimeKind.Gemini, model = "gemini-4-argon-low", effort = "low")).seat.effort)
         assertEquals(listOf(NativeEffort("low")), capability.model("claude-sonnet-5-5-low")?.effort?.supported)
         assertFailsWith<UnsupportedEffortException> {

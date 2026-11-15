@@ -146,6 +146,34 @@ class LoopbackMcpServerTest {
         }
     }
 
+    @Test fun aDetachedMcpOwnerCanRefuseWithoutConstructingAnotherHandler() {
+        val attached = java.util.concurrent.atomic.AtomicBoolean(false)
+        val handlers = java.util.concurrent.atomic.AtomicInteger()
+        val intercepted = java.util.concurrent.atomic.AtomicInteger()
+        HttpClient.newHttpClient().use { client ->
+            LoopbackMcpServer.start(0, { handlers.incrementAndGet(); registry() }, post = { _, _ -> null },
+                postWithHeaders = { path, _, _ ->
+                    intercepted.incrementAndGet()
+                    if (path == "/mcp" && !attached.get()) LoopbackHttpResponse(JsonNull, 404) else null
+                }).use { server ->
+                fun send(version: String? = null): HttpResponse<String> {
+                    val request = HttpRequest.newBuilder(URI("http://127.0.0.1:${server.port()}/mcp"))
+                    version?.let { request.header("MCP-Protocol-Version", it) }
+                    return client.send(request.POST(HttpRequest.BodyPublishers.ofString(
+                        """{"jsonrpc":"2.0","id":1,"method":"tools/list"}""")).build(), HttpResponse.BodyHandlers.ofString())
+                }
+                assertEquals(404, send().statusCode())
+                assertEquals(0, handlers.get())
+                attached.set(true)
+                assertEquals(200, send().statusCode())
+                assertEquals(1, handlers.get())
+                assertEquals(400, send("unsupported").statusCode())
+                assertEquals(2, intercepted.get())
+                assertEquals(1, handlers.get())
+            }
+        }
+    }
+
     @Test fun closeReleasesTheBoundPortAndIsIdempotent() {
         val server = LoopbackMcpServer.start(0, { registry() })
         val port = server.port()

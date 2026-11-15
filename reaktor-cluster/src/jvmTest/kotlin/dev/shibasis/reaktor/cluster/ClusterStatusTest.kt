@@ -177,6 +177,36 @@ class ClusterStatusTest {
         assertEquals(3L, Files.list(line).use { it.count() })
     }
 
+    @Test fun waitingMetadataKeepsProjectTasksAndQueueTime() = temporary { root ->
+        val line = Files.createDirectories(root.resolve("local-gradle.line"))
+        val ticket = line.resolve("01793480000000000000-11-abc")
+        Files.writeString(ticket, """{"project":"sample","tasks":[":sample:test"],"aside":false}""")
+        NativeLease.tryAcquire(ticket)!!.use {
+            val waiter = reader(root).status().queue.single()
+            assertEquals("sample", waiter.project)
+            assertEquals(listOf(":sample:test"), waiter.tasks)
+            assertEquals(at, waiter.queuedAt)
+            val job = reader(root).jobs(since = 0).jobs.single()
+            assertEquals("sample", job.project)
+            assertEquals(listOf(":sample:test"), job.tasks)
+            assertEquals("Queued", job.state)
+        }
+    }
+
+    @Test fun legacyAndInvalidWaitingMetadataRemainQualified() = temporary { root ->
+        val line = Files.createDirectories(root.resolve("local-gradle.line"))
+        val ticket = line.resolve("01793480000000000000-11-abc")
+        for (text in listOf("", "invalid", "x".repeat(32_769), """{"project":"","tasks":"invalid"}""")) {
+            Files.writeString(ticket, text)
+            NativeLease.tryAcquire(ticket)!!.use {
+                val waiter = reader(root).status().queue.single()
+                assertEquals(null, waiter.project)
+                assertEquals(emptyList(), waiter.tasks)
+                assertEquals("Unknown", reader(root).jobs(since = 0).jobs.single().project)
+            }
+        }
+    }
+
     @Test fun aReusedPidDoesNotMakeAnOldReceiptRunning() = temporary { root ->
         receipt(root, "reused", pid = 11)
         val reader = ClusterReader(root, now = { at }, alive = { true }, processStart = { "a different process" }, truthOverride = "Fixture")

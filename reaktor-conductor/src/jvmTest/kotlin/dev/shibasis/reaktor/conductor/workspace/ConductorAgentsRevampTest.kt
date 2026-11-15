@@ -1,11 +1,13 @@
 package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.conductor.RuntimeKind
+import dev.shibasis.reaktor.conductor.ToolPolicy
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import java.io.File
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -51,6 +53,38 @@ class ConductorAgentsRevampTest {
 
             val claudeComposed = saved.composeProfile("claude-ffi", "Claude FFI Architect", RuntimeKind.ClaudeCode, "claude-opus-5-5", "max")
             assertEquals(2.5, claudeComposed.budget?.maxCostUsd)
+        } finally {
+            dir.toFile().deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")).canonicalFile)
+        }
+    }
+
+    @Test
+    fun rolesKeepTheirGroupAndDeletingOneRetiresItsFileOrRestoresTheBuiltIn() {
+        val dir = Files.createTempDirectory("agent-contexts")
+        try {
+            val store = AgentContextStore(dir, clock = { 42L })
+            assertEquals("Research", store.read("researcher").shelf)
+            assertEquals("Build", store.read("systems-builder").shelf)
+            val mine = store.save(SystemContext("release-checker", "Release checker", group = "  Shipping  ",
+                tools = ToolPolicy(deny = listOf("WebFetch"), additionalDirectories = listOf("~/dev/reaktor"))), person)
+            assertEquals("Shipping", mine.shelf)
+            assertEquals(listOf("WebFetch"), store.read("release-checker").tools.deny)
+            assertEquals(listOf("~/dev/reaktor"), store.read("release-checker").tools.additionalDirectories)
+            val atlas = mine.copy(reaktor = ReaktorAccess.Atlas)
+            val codex = atlas.composeProfile("codex-checker", "Checker", RuntimeKind.Codex, "gpt-6.1-sol", "xhigh")
+            assertTrue(codex.tools.deny.isEmpty())
+            assertTrue(codex.instructions.endsWith("Do not use these tools: WebFetch."))
+            assertEquals(listOf("WebFetch", "mcp__reaktor__kernel", "mcp__reaktor__change_apply"),
+                atlas.composeProfile("claude-checker", "Checker", RuntimeKind.ClaudeCode, "claude-opus-5-5", "max").tools.deny)
+            assertTrue(ConfigHarness.effects(atlas).single { it.runtime == RuntimeKind.Codex }.flags.contains("--add-dir ~/dev/reaktor"))
+            assertFailsWith<IllegalArgumentException> { store.delete("release-checker", person, expectedRevision = 2) }
+            assertNull(store.delete("release-checker", person, expectedRevision = 1))
+            assertTrue(store.list().none { it.id == "release-checker" })
+            assertTrue(Files.exists(dir.resolve("retired/release-checker-42.json")))
+            val tester = store.save(store.read("verification-gate").copy(summary = "Proves releases"), person)
+            assertEquals("verification-gate", store.delete("verification-gate", person, tester.revision)?.id)
+            assertTrue(store.read("verification-gate").builtIn)
+            assertFailsWith<IllegalArgumentException> { store.delete("verification-gate", person, expectedRevision = 1) }
         } finally {
             dir.toFile().deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")).canonicalFile)
         }
@@ -111,102 +145,133 @@ class ConductorAgentsRevampTest {
     }
 
     @Test
-    fun structuresSeatSavedProfilesAndDrawSeatsOnTheTeamGraph() {
-        val engineer = SystemContexts.builtIns.first { it.id == "systems-builder" }
-            .composeProfile("engineer", "Engineer · Sonnet", RuntimeKind.ClaudeCode, "claude-sonnet-5-5", "high")
-        val saved = mapOf(engineer.id to engineer)
-        val added = TeamRules.apply(AgentTeam(), TeamPatch(listOf(TeamOp.Structure("pet", "planner-engineer-tester"), TeamOp.Seat("pet", "engineer", "engineer"))),
-            person, 1_000L, saved = saved::containsKey)
+    fun variantsAttachAnyAgentToATopologyAndTellEachNodeWhereItSits() {
+        val contexts = SystemContexts.builtIns.associateBy { it.id }
+        fun agent(id: String, role: String, model: String) = contexts.getValue(role).composeProfile(id, id, RuntimeKind.ClaudeCode, model, "high")
+        val saved = listOf(agent("architect-opus", "principal-architect", "claude-opus-5-5"), agent("engineer-sonnet", "systems-builder", "claude-sonnet-5-5"),
+            agent("judge-sonnet", "judge", "claude-sonnet-5-5")).associateBy { it.id }
+        val added = TeamRules.apply(AgentTeam(), TeamPatch(listOf(
+            TeamOp.SaveVariant("council", "fan-in", "Council", prompt = "Decide how the plan store keeps history."),
+            TeamOp.Attach("council", "branch-1", "architect-opus"), TeamOp.Attach("council", "branch-2", "engineer-sonnet"),
+            TeamOp.Attach("council", "join", "judge-sonnet"), TeamOp.NodePrompt("council", "branch-1", "Favour the smallest change."),
+            TeamOp.Attach("council", "branch-3", model = "claude-opus-5-5:max"),
+        )), person, 1_000L, saved = saved::containsKey)
         assertTrue(added.refused.isEmpty(), "${added.refused}")
-        val structure = assertNotNull(added.team.structure("pet"))
-        assertEquals("Planner · Engineer · Tester", structure.title)
-        assertEquals(mapOf("engineer" to "engineer"), structure.seats)
-        assertEquals(listOf(structure to "engineer"), added.team.seated("engineer"))
+        val team = added.team
+        val council = assertNotNull(team.variant("council"))
+        assertEquals("fan-in", council.topology)
+        assertEquals(mapOf("branch-1" to "architect-opus", "branch-2" to "engineer-sonnet", "join" to "judge-sonnet"), council.agents)
+        assertEquals(listOf(council to "branch-2"), team.attached("engineer-sonnet"))
+        assertEquals(mapOf("branch-3" to "claude-opus-5-5:max"), council.models)
+        assertEquals("Opus 5.5 · max", council.model("branch-3")?.label)
 
-        val refused = TeamRules.apply(added.team, TeamPatch(listOf(TeamOp.Seat("pet", "tester", "ghost"), TeamOp.Seat("pet", "chair", "engineer"),
-            TeamOp.Structure("other", "no-such-template"))), person, 2_000L, saved = saved::containsKey)
-        assertEquals(3, refused.refused.size)
+        val refused = TeamRules.apply(team, TeamPatch(listOf(TeamOp.Attach("council", "branch-3", "ghost"), TeamOp.Attach("council", "chair", "judge-sonnet"),
+            TeamOp.SaveVariant("other", "no-such-topology"), TeamOp.SaveVariant("council", "pair"), TeamOp.Attach("council", "branch-3", "judge-sonnet", "claude-opus-5-5:max"),
+            TeamOp.Attach("council", "branch-3", model = "no-such-model:max"))), person, 2_000L, saved = saved::containsKey)
+        assertEquals(listOf(0, 1, 2, 3, 4, 5), refused.refused.map { it.op })
 
-        val shape = added.team.shape(saved::get)
-        assertNotNull(shape.scopes.firstOrNull { it.id == "team structure pet" })
-        val seats = shape.nodes.filter { it.attributes["structure"] == "pet" }
-        assertEquals(setOf("pet/planner", "pet/engineer", "pet/tester"), seats.mapNotNull { it.attributes["seat"] }.toSet())
-        assertEquals("Engineer · Sonnet", seats.first { it.attributes["seat"] == "pet/engineer" }.label)
-        assertEquals("Tester", seats.first { it.attributes["seat"] == "pet/tester" }.label)
-        val seatIds = seats.mapTo(HashSet()) { it.id }
-        assertEquals(setOf("plan", "change", "failures", "result"), shape.wires.filter { it.consumer in seatIds }.map { StructureSeatNode.label(it.consumerPort) }.toSet())
-        fun seatOf(node: String): String? = seats.firstOrNull { it.id == node }?.attributes?.get("seat")
-        val handOffs = shape.wires.filter { it.consumer in seatIds }.map { Triple(seatOf(it.provider), StructureSeatNode.label(it.consumerPort), seatOf(it.consumer)) }.toSet()
-        assertEquals(setOf(Triple("pet/planner", "plan", "pet/engineer"), Triple("pet/engineer", "change", "pet/tester"),
-            Triple("pet/tester", "failures", "pet/engineer"), Triple("pet/tester", "result", "pet/planner")), handOffs)
-        val workers = TeamRules.apply(AgentTeam(), TeamPatch(listOf(TeamOp.Structure("crew", "lead-workers"))), person, 1_000L).team.shape()
-        assertEquals(setOf("result · worker-a", "result · worker-b", "result · worker-c", "task"),
-            workers.wires.filter { wire -> workers.nodes.any { it.id == wire.consumer && it.attributes["seat"] == "crew/lead" } || wire.consumerPort == "task" }.map { it.consumerPort }.toSet())
+        val briefs = team.briefs(council, saved::get)
+        val join = briefs.getValue("join")
+        assertEquals(saved.getValue("judge-sonnet").instructions, join.agent)
+        assertEquals("You are Join in “Council”, which follows the Fan-in topology (4 nodes). " +
+            "You receive work from Branch 1 (architect-opus), Branch 2 (engineer-sonnet) and Branch 3 (Opus 5.5 · max).", join.position)
+        assertTrue(join.text.endsWith("Decide how the plan store keeps history."))
+        val branch = briefs.getValue("branch-1")
+        assertEquals("Favour the smallest change.", branch.node)
+        assertEquals("You are Branch 1 in “Council”, which follows the Fan-in topology (4 nodes). You hand your output to Join (judge-sonnet).", branch.position)
+        assertEquals(listOf(branch.agent, branch.node, branch.position, branch.shared).joinToString("\n\n"), branch.text)
+        val bare = briefs.getValue("branch-3")
+        assertEquals("", bare.agent)
+        assertEquals(bare.position + "\n\nDecide how the plan store keeps history.", bare.text)
 
-        val emptied = TeamRules.apply(added.team, TeamPatch(listOf(TeamOp.Seat("pet", "engineer")), base = added.team.revision), person, 3_000L).team
-        assertTrue(emptied.structure("pet")?.seats.orEmpty().isEmpty())
-        val removed = TeamRules.apply(emptied, TeamPatch(listOf(TeamOp.Unstructure("pet")), base = emptied.revision), person, 4_000L).team
-        assertTrue(removed.structures.isEmpty())
+        val shape = team.shape(saved::get)
+        assertNotNull(shape.scopes.firstOrNull { it.id == "team variant council" })
+        val nodes = shape.nodes.filter { it.attributes["variant"] == "council" }
+        assertEquals(setOf("council/branch-1", "council/branch-2", "council/branch-3", "council/join"), nodes.mapNotNull { it.attributes["node"] }.toSet())
+        assertEquals("judge-sonnet", nodes.first { it.attributes["node"] == "council/join" }.attributes["agent"])
+        assertEquals("true", nodes.first { it.attributes["node"] == "council/branch-1" }.attributes["prompted"])
+        assertEquals("claude-opus-5-5:max", nodes.first { it.attributes["node"] == "council/branch-3" }.attributes["pick"])
+        val joinId = nodes.first { it.attributes["node"] == "council/join" }.id
+        assertEquals(setOf("Branch 1", "Branch 2", "Branch 3"), shape.wires.filter { it.consumer == joinId }.map { it.consumerPort }.toSet())
+
+        val cleared = TeamRules.apply(team, TeamPatch(listOf(TeamOp.Attach("council", "branch-2"), TeamOp.Attach("council", "branch-3"), TeamOp.NodePrompt("council", "branch-1", ""),
+            TeamOp.SaveVariant("council", "fan-in", "Council", prompt = "")), base = team.revision), person, 3_000L).team.variant("council")
+        assertEquals(mapOf("branch-1" to "architect-opus", "join" to "judge-sonnet"), cleared?.agents)
+        assertTrue(cleared?.nodePrompts.orEmpty().isEmpty())
+        assertTrue(cleared?.models.orEmpty().isEmpty())
+        assertEquals("", cleared?.prompt)
+        val removed = TeamRules.apply(team, TeamPatch(listOf(TeamOp.RemoveVariant("council")), base = team.revision), person, 4_000L).team
+        assertTrue(removed.variants.isEmpty())
     }
 
     @Test
-    fun ownStructuresStartFromAnExistingOneAndCarryTheirVariants() {
-        val source = assertNotNull(AgentStructures.template("planner-engineer-optimiser-regulariser"))
-        val peo = source.copy(id = "planner-engineer-optimiser", title = "Planner · Engineer · Optimiser", summary = "Build it, make it fast, loop back to the plan.",
-            seats = source.seats.filter { it.key != "regulariser" },
-            links = source.links.filter { it.from != "regulariser" && it.to != "regulariser" } + StructureLink("optimiser", "planner", "faster change"))
-        val profiles = listOf("planner-opus", "engineer-sol", "optimiser-carbon", "engineer-terra")
-        val saved = profiles.toSet()
-        val added = TeamRules.apply(AgentTeam(), TeamPatch(listOf(TeamOp.Template(peo),
-            TeamOp.Structure("peo", peo.id, "Opus · Sol · Carbon"), TeamOp.Seat("peo", "planner", "planner-opus"),
-            TeamOp.Seat("peo", "engineer", "engineer-sol"), TeamOp.Seat("peo", "optimiser", "optimiser-carbon"),
-            TeamOp.Structure("peo-2", peo.id, "Sol · Terra · Argon"), TeamOp.Seat("peo-2", "engineer", "engineer-terra"))), person, 1_000L, saved = saved::contains)
+    fun ownTopologiesCopyABuiltInAndKeepTheirVariants() {
+        val fanIn = assertNotNull(Topologies.builtIn("fan-in"))
+        val wide = fanIn.duplicate("branch-3").copy(id = "fan-in-4", title = "Fan-in of four")
+        assertEquals(listOf("branch-1", "branch-2", "branch-3", "join", "branch-4"), wide.nodes.map { it.key })
+        assertEquals("Branch 4", wide.name("branch-4"))
+        assertEquals(TopologyEdge("branch-4", "join"), wide.edges.last())
+        val saved = setOf("a", "b", "c", "d")
+        val added = TeamRules.apply(AgentTeam(), TeamPatch(listOf(TeamOp.SaveTopology(wide), TeamOp.SaveVariant("best", wide.id, "Best of four"),
+            TeamOp.Attach("best", "branch-4", "d"), TeamOp.SaveVariant("best-2", wide.id))), person, 1_000L, saved = saved::contains)
         assertTrue(added.refused.isEmpty(), "${added.refused}")
         val team = added.team
-        assertEquals(listOf(peo), team.templates)
-        assertEquals(peo, team.template(peo.id))
-        assertEquals(source, team.template(source.id))
-        assertEquals(AgentStructures.templates.size + 1, team.shapes.size)
-        assertEquals(listOf("peo", "peo-2"), team.variants(peo.id).map { it.key })
-        assertEquals("Added the structure planner-engineer-optimiser “Planner · Engineer · Optimiser”", added.applied.first())
+        assertEquals(listOf(wide), team.topologies)
+        assertEquals(Topologies.builtIns.size + 1, team.library.size)
+        assertEquals("Fan-in of four", team.variant("best-2")?.title)
+        assertEquals(listOf("best", "best-2"), team.variantsOf(wide.id).map { it.key })
 
         val refused = TeamRules.apply(team, TeamPatch(listOf(
-            TeamOp.Template(source),
-            TeamOp.Template(peo.copy(id = "Bad Id")),
-            TeamOp.Template(peo.copy(id = "empty", seats = emptyList(), links = emptyList())),
-            TeamOp.Template(peo.copy(id = "loose", links = listOf(StructureLink("planner", "ghost", "plan")))),
-            TeamOp.Template(peo.copy(id = "twins", seats = peo.seats + peo.seats.first())),
-            TeamOp.Untemplate(peo.id),
-            TeamOp.Untemplate(source.id),
+            TeamOp.SaveTopology(fanIn),
+            TeamOp.SaveTopology(wide.copy(id = "Bad Id")),
+            TeamOp.SaveTopology(wide.copy(id = "empty", nodes = emptyList(), edges = emptyList())),
+            TeamOp.SaveTopology(wide.copy(id = "loose", edges = listOf(TopologyEdge("join", "ghost")))),
+            TeamOp.SaveTopology(wide.copy(id = "twins", nodes = wide.nodes + wide.nodes.first())),
+            TeamOp.SaveTopology(wide.copy(id = "doubled", edges = wide.edges + wide.edges.first().copy(label = "again"))),
+            TeamOp.RemoveTopology(wide.id),
+            TeamOp.RemoveTopology("fan-in"),
         )), person, 2_000L)
-        assertEquals(listOf(0, 1, 2, 3, 4, 5, 6), refused.refused.map { it.op })
-        assertTrue(refused.refused[5].reason.startsWith("Remove its 2 variants first"), refused.refused[5].reason)
+        assertEquals(listOf(0, 1, 2, 3, 4, 5, 6, 7), refused.refused.map { it.op })
+        assertTrue(refused.refused[6].reason.startsWith("Remove its 2 variants first"), refused.refused[6].reason)
 
-        val trimmed = peo.copy(seats = peo.seats.filter { it.key != "optimiser" }, links = peo.links.filter { it.from != "optimiser" && it.to != "optimiser" })
-        val changed = TeamRules.apply(team, TeamPatch(listOf(TeamOp.Template(trimmed)), base = team.revision), person, 3_000L)
-        assertEquals("Changed the structure planner-engineer-optimiser “Planner · Engineer · Optimiser”; emptied removed seats in Opus · Sol · Carbon", changed.applied.single())
-        assertEquals(mapOf("planner" to "planner-opus", "engineer" to "engineer-sol"), changed.team.structure("peo")?.seats)
-        assertEquals(changed.team, TeamRules.apply(changed.team, TeamPatch(listOf(TeamOp.Template(trimmed))), person, 4_000L).team)
+        val trimmed = wide.without("branch-4")
+        val changed = TeamRules.apply(team, TeamPatch(listOf(TeamOp.SaveTopology(trimmed)), base = team.revision), person, 3_000L)
+        assertEquals("Changed the topology fan-in-4 “Fan-in of four”; cleared removed nodes in Best of four", changed.applied.single())
+        assertTrue(changed.team.variant("best")?.agents.orEmpty().isEmpty())
 
-        val graph = team.shapesShape()
-        val frame = assertNotNull(graph.scopes.firstOrNull { it.id == "structure shape ${peo.id}" })
-        assertEquals("Planner · Engineer · Optimiser", frame.label)
-        val seats = graph.nodes.filter { it.attributes["shape"] == peo.id }
-        assertEquals(setOf("planner", "engineer", "optimiser"), seats.mapNotNull { it.attributes["shapeSeat"] }.toSet())
-        assertTrue(seats.all { it.attributes["variants"] == "2" && it.attributes["custom"] == "true" })
-        assertTrue(graph.nodes.filter { it.attributes["shape"] == source.id }.none { "custom" in it.attributes })
-        assertEquals(AgentStructures.templates.sumOf { it.seats.size } + 3, graph.nodes.size)
-        fun seatOf(node: String) = graph.nodes.first { it.id == node }.attributes["shapeSeat"]
-        val ids = seats.mapTo(HashSet()) { it.id }
-        assertEquals(setOf(Triple("planner", "plan", "engineer"), Triple("engineer", "working change", "optimiser"), Triple("optimiser", "faster change", "planner")),
-            graph.wires.filter { it.consumer in ids }.map { Triple(seatOf(it.provider), StructureSeatNode.label(it.consumerPort), seatOf(it.consumer)) }.toSet())
+        val graph = team.topologiesShape()
+        assertEquals("Fan-in of four", graph.scopes.first { it.id == "topology fan-in-4" }.label)
+        val own = graph.nodes.filter { it.attributes["topology"] == wide.id }
+        assertTrue(own.all { it.attributes["variants"] == "2" && it.attributes["custom"] == "true" })
+        assertTrue(graph.nodes.filter { it.attributes["topology"] == "fan-in" }.none { "custom" in it.attributes })
+        assertEquals(Topologies.builtIns.sumOf { it.nodes.size } + wide.nodes.size, graph.nodes.size)
+    }
 
-        val variants = team.shape()
-        assertEquals(setOf("peo/planner", "peo/engineer", "peo/optimiser", "peo-2/planner", "peo-2/engineer", "peo-2/optimiser"),
-            variants.nodes.mapNotNull { it.attributes["seat"] }.toSet())
-
-        val emptiedVariants = TeamRules.apply(team, TeamPatch(listOf(TeamOp.Unstructure("peo"), TeamOp.Unstructure("peo-2"), TeamOp.Untemplate(peo.id))), person, 5_000L)
-        assertTrue(emptiedVariants.refused.isEmpty(), "${emptiedVariants.refused}")
-        assertTrue(emptiedVariants.team.templates.isEmpty())
+    @Test
+    fun legacyTeamFilesMoveToTopologiesAndVariants() {
+        val dir = Files.createTempDirectory("agent-team-legacy")
+        try {
+            val legacy = """{"revision":31,"members":[{"profile":"planner-opus"}],"structures":[
+                {"key":"council","template":"council","title":"Council","seats":{"member-a":"planner-opus","chair":"planner-fable"},"revision":20},
+                {"key":"pair-2","template":"pair","title":"Pair 2","revision":21},
+                {"key":"peo","template":"planner-engineer-optimiser","title":"Opus · Sol · Carbon","seats":{"planner":"planner-opus","engineer":"engineer-sol"}}],
+                "templates":[{"id":"planner-engineer-optimiser","title":"Planner · Engineer · Optimiser","summary":"Build it, make it fast.",
+                "seats":[{"key":"planner","role":"Planner","duty":"Plans","tier":"Frontier","config":"planner"},{"key":"engineer","role":"Engineer","duty":"Builds","tier":"Strong","config":"systems-builder"}],
+                "links":[{"from":"planner","to":"engineer","label":"plan"}]}]}"""
+            Files.writeString(dir.resolve("team.json"), legacy)
+            val team = AgentTeamStore(dir).team()
+            assertEquals(31L, team.revision)
+            assertEquals(listOf("planner-opus"), team.members.map { it.profile })
+            assertEquals(listOf("council", "peo"), team.variants.map { it.key })
+            assertEquals(TeamVariant("council", "fan-in", "Council", agents = mapOf("branch-1" to "planner-opus", "join" to "planner-fable"), revision = 20), team.variant("council"))
+            assertEquals(mapOf("planner" to "planner-opus", "engineer" to "engineer-sol"), team.variant("peo")?.agents)
+            val own = team.topologies.single()
+            assertEquals(listOf(TopologyNode("planner", "Planner"), TopologyNode("engineer", "Engineer")), own.nodes)
+            assertEquals(listOf(TopologyEdge("planner", "engineer", "plan")), own.edges)
+            assertEquals(legacy, Files.readString(dir.resolve("team-legacy.json")))
+            assertEquals(team, AgentTeamStore(dir).team())
+        } finally {
+            dir.toFile().deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")).canonicalFile)
+        }
     }
 }

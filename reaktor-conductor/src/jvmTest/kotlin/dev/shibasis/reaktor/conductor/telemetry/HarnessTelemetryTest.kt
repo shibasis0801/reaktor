@@ -98,6 +98,19 @@ class HarnessTelemetryTest {
         assertEquals(2_000_000L, gemini.contextWindowTokens)
         assertEquals(5.0, gemini.contextUtilizationPercent!!, 1e-6)
         assertEquals(0.98, gemini.cacheHitRatio!!, 1e-6)
+
+        val hydrogen = ProviderTelemetry.Gemini(
+            requestId = "g2",
+            model = "gemini-4-hydrogen-xhigh",
+            freshInputTokens = 10_000,
+            cacheReadTokens = 40_000,
+            outputTokens = 1_000,
+            thinkingTokens = 400,
+        ).normalize()
+        assertEquals(50_000L, hydrogen.inputTokens)
+        assertEquals(1_000_000L, hydrogen.contextWindowTokens)
+        assertEquals(5.0, hydrogen.contextUtilizationPercent!!, 1e-6)
+        assertEquals(0.0255, hydrogen.estimatedCostUsd!!, 1e-6)
     }
 
     @Test fun claudeSessionCursorDeduplicatesStreamingSnapshotsAndEmitsExactDeltas() {

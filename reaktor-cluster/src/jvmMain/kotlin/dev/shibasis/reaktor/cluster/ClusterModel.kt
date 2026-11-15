@@ -63,7 +63,8 @@ data class Job(val id: String, val project: String, val tasks: List<String>, val
 data class JobBlocker(val kind: String, val reason: String, val host: String? = null, val jobId: String? = null)
 
 @Serializable
-data class Waiter(val id: String, val pid: Long? = null, val queuedAt: Long? = null, val reason: String, val truth: String)
+data class Waiter(val id: String, val pid: Long? = null, val queuedAt: Long? = null, val reason: String, val truth: String,
+    val project: String? = null, val tasks: List<String> = emptyList())
 
 @Serializable
 data class StorageBudget(val name: String, val limitBytes: Long? = null, val bytes: Long? = null, val withinLimit: Boolean? = null,

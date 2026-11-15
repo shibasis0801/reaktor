@@ -65,7 +65,7 @@ class AntigravityAppRuntime(
 }
 
 internal fun antigravityAppModel(model: String, effort: NativeEffort?): String =
-    if (effort == null || model.substringAfterLast('-') in setOf("low", "medium", "high")) model else "$model-${effort.value}"
+    if (effort == null || model.substringAfterLast('-') in setOf("low", "medium", "high", "xhigh")) model else "$model-${effort.value}"
 
 private class Headless(private val session: AgentSession, private val agent: AgentId, private val reason: String) : AgentSession by session {
     override val events: Flow<AgentEvent> = flow {

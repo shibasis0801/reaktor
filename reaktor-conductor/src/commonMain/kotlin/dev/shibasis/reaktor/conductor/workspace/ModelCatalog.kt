@@ -54,12 +54,28 @@ data class CatalogPick(val model: CatalogModel, val variant: CatalogVariant) {
 
 enum class CatalogLens(val title: String) { Intelligence("Intelligence Index"), CodingAgent("Coding Agent Index") }
 
+@Serializable
+enum class ModelTier(val title: String, val summary: String, val floor: Int, val ceiling: Int?) {
+    Frontier("Frontier", "Index 55 or more; spend it where judgement matters", 55, null),
+    Strong("Strong", "Index 45 to 54; most building work", 45, 54),
+    Fast("Fast", "Index 30 to 44; cheap and quick, for narrow tasks", 30, 44);
+
+    fun fits(index: Int?): Boolean = index != null && index >= floor && (ceiling == null || index <= ceiling)
+
+    fun cheapest(): CatalogPick? = ModelCatalog.picks.filter { fits(it.variant.intelligence) && it.variant.costPerTask != null }
+        .minWithOrNull(compareBy<CatalogPick>({ it.variant.costPerTask }, { -(it.variant.intelligence ?: 0) }))
+
+    companion object {
+        fun of(pick: CatalogPick): ModelTier? = entries.firstOrNull { it.fits(pick.variant.intelligence) }
+    }
+}
+
 data class CatalogPoint(val pick: CatalogPick, val score: Double, val harness: String? = null) {
     val key: String get() = harness?.let { "${pick.key}@$it" } ?: pick.key
 }
 
 object ModelCatalog {
-    val intelligence = CatalogSource("Artificial Analysis model leaderboard", "https://artificialanalysis.ai/leaderboards/models", "11 Nov 2026")
+    val intelligence = CatalogSource("Artificial Analysis model leaderboard", "https://artificialanalysis.ai/leaderboards/models", "12 Nov 2026")
     val codingAgents = CatalogSource("Artificial Analysis Coding Agent Index, captured by benchlm.ai", "https://benchlm.ai/benchmarks/aacodingagents", "10 Nov 2026")
 
     val claudePricing = CatalogSource("Anthropic API pricing", "https://platform.claude.com/docs/en/about-claude/pricing", "12 Nov 2026")
@@ -102,6 +118,8 @@ object ModelCatalog {
         CatalogModel("gemini-4-carbon", ModelFamily.Gemini, "Gemini 4 Carbon", gemini, listOf(v("high", "gemini-4-carbon-high", 60, 7.76, 26.1, 66.01, "Antigravity" to 59.4), v("medium", "gemini-4-carbon-medium", 58, 6.59, 23.8, 23.21),
             v("low", "gemini-4-carbon-low", 54, 7.19, 23.3, 12.24))),
         CatalogModel("gemini-4-argon", ModelFamily.Gemini, "Gemini 4 Argon", gemini, listOf(v("high", "gemini-4-argon-high", 50, 9.95, 29.6, 39.35, "Antigravity" to 53.2))),
+        CatalogModel("gemini-4-hydrogen", ModelFamily.Gemini, "Gemini 4 Hydrogen", gemini, listOf(v("xhigh", "gemini-4-hydrogen-xhigh", 54, 3.16, null, null), v("high", "gemini-4-hydrogen-high", 51, 1.87, null, null),
+            v("medium", "gemini-4-hydrogen-medium", 41, 0.80, null, null), v("low", "gemini-4-hydrogen-low", 27, 0.29, null, null))),
         CatalogModel("deepseek-v4.1-flash", ModelFamily.DeepSeek, "DeepSeek V4.1 Flash", deepseek, listOf(v("max", "deepseek-v4.1-flash", 33, 0.60, 16.3, 49.42, "Codex" to 47.3, "DeepSeek harness" to 46.3), v("high", "deepseek-v4.1-flash", 29, 0.46, 12.6, 23.67),
             v("none", "deepseek-v4.1-flash", 19, 0.43, 8.3, 1.33))),
         CatalogModel("deepseek-v4-pro", ModelFamily.DeepSeek, "DeepSeek V4 Pro", deepseek, listOf(v("max", "deepseek-v4-pro", 23, 1.77, 23.4, 63.61), v("none", "deepseek-v4-pro", 13, 0.98, 17.7, 3.37))),

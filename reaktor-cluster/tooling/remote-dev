@@ -135,6 +135,8 @@ def declared_gradle_runtime(name, relative, args):
 
 
 def local_gradle(name, relative, args, log=None, on_line=None, local_slot=0):
+    import remote_build
+    remote_build.emit_admission(name, gradle_tasks(args), 'Admitted')
     import workspace_storage
     global LAST_RUN_ID
     workspace_storage.automatic(sys.modules[__name__], held_locks={f'local-slot-{local_slot}' if local_slot else 'local-gradle'})
@@ -432,8 +434,15 @@ def queued_worker_gradle(name, relative, args, local=lambda: None):
     import remote_build
     waiting = None
     unreachable_since = None
-    with remote_build.place_in_line(STATE) as ticket:
+    selected = read_gradle_request(name, relative, args)
+    tasks = gradle_tasks(args)
+    if selected is not None:
+        node = selected[2]['node']
+        tasks = [node['project'].rstrip(':') + ':' + node['name']]
+    details = {'project': name, 'tasks': tasks, 'runId': os.environ.get('DEPENDEASY_OPERATION_RUN_ID')}
+    with remote_build.place_in_line(STATE, details) as ticket:
         LINE = ticket
+        remote_build.emit_admission(name, tasks, 'Queued', 'Waiting for local build lease')
         try:
             while True:
                 result = local()
@@ -455,6 +464,7 @@ def queued_worker_gradle(name, relative, args, local=lambda: None):
                 else:
                     unreachable_since = None
                 if reason.partition(':')[0] != waiting:
+                    remote_build.emit_admission(name, tasks, 'Queued', reason)
                     print(reason, flush=True)
                     waiting = reason.partition(':')[0]
                 time.sleep(5)
@@ -627,6 +637,8 @@ def worker_slot(index, publication=None, prepare=True):
 
 
 def slot_build(name, relative, args, index, lock):
+    import remote_build
+    remote_build.emit_admission(name, gradle_tasks(args), 'Admitted')
     remote_retention.require_admission(STATE)
     import workspace_storage
     workspace_storage.automatic(sys.modules[__name__], held_locks={slot_lock_name(index)})

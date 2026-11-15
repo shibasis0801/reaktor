@@ -282,6 +282,23 @@ object ReaktorPlusBench {
                         tokens = (budget * 3L / 4L).coerceAtLeast(60_000L),
                     )
                 )
+                add(
+                    bind(
+                        id = "tiered-hydrogen-carbon",
+                        label = "Tiered Hydrogen -> Carbon + Claude Opus review",
+                        description = "Fast Gemini 4 Hydrogen primary builder escalating to Carbon High on repair, verified by Claude Opus 5.5.",
+                        writer = TaskSeat(
+                            agent = RuntimeKind.Gemini,
+                            model = "gemini-4-hydrogen-high",
+                            effort = "high",
+                            access = TaskAccess.Write,
+                            escalate = listOf(TaskSeat(RuntimeKind.Gemini, "gemini-4-carbon-high", "high", TaskAccess.Write)),
+                        ),
+                        reviewer = TaskSeat(RuntimeKind.ClaudeCode, "claude-opus-5-5", "medium", TaskAccess.Read),
+                        panel = triPanel,
+                        tokens = (budget * 3L / 4L).coerceAtLeast(60_000L),
+                    )
+                )
             }
         }
     }

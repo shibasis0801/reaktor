@@ -101,15 +101,23 @@ val defaultAntigravityModels: List<String> = listOf(
     "gemini-4-carbon-high",
     "gemini-4-carbon-medium",
     "gemini-4-carbon-low",
+    "gemini-4-hydrogen-xhigh",
+    "gemini-4-hydrogen-high",
+    "gemini-4-hydrogen-medium",
+    "gemini-4-hydrogen-low",
 )
 
 val antigravityModelNames: Map<String, String> = linkedMapOf(
     "gemini-4-carbon-high" to "Gemini 4 Carbon (High)",
     "gemini-4-argon-high" to "Gemini 4 Argon (High)",
+    "gemini-4-hydrogen-xhigh" to "Gemini 4 Hydrogen (XHigh)",
+    "gemini-4-hydrogen-high" to "Gemini 4 Hydrogen (High)",
     "gemini-4-carbon-medium" to "Gemini 4 Carbon (Medium)",
     "gemini-4-argon-medium" to "Gemini 4 Argon (Medium)",
+    "gemini-4-hydrogen-medium" to "Gemini 4 Hydrogen (Medium)",
     "gemini-4-carbon-low" to "Gemini 4 Carbon (Low)",
     "gemini-4-argon-low" to "Gemini 4 Argon (Low)",
+    "gemini-4-hydrogen-low" to "Gemini 4 Hydrogen (Low)",
 )
 
 fun antigravityModels(executable: String = "agy", timeoutSeconds: Long = 30): Map<String, String> {

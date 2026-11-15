@@ -585,7 +585,7 @@ object HarnessSessions {
             version = null,
             branch = null,
             model = model,
-            effort = model?.substringAfterLast('-')?.takeIf { it in setOf("low", "medium", "high") },
+            effort = model?.substringAfterLast('-')?.takeIf { it in setOf("low", "medium", "high", "xhigh") },
             tokens = tokens,
             steps = steps.takeLast(StepsKept),
             transcript = file.path,
