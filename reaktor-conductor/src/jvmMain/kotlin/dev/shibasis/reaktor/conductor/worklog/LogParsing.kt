@@ -14,7 +14,8 @@ internal interface LogParser {
     fun log(earlier: Boolean): WorkLog
 }
 
-internal class TurnBuilder(val id: String, val prompt: String?, val startedAt: Long?) {
+internal class TurnBuilder(val id: String, val prompt: String?, val startedAt: Long?, sent: String? = prompt) {
+    private val parsed = WorkPrompts.of(sent)
     val steps = mutableListOf<WorkStep>()
     val usageSamples = mutableListOf<WorkUsageSample>()
     var endedAt: Long? = startedAt
@@ -45,7 +46,9 @@ internal class TurnBuilder(val id: String, val prompt: String?, val startedAt: L
         use(sample.toWorkUsage())
     }
 
-    fun build() = WorkTurn(id, prompt, startedAt, endedAt, steps.toList(), usage, open, usageSamples.toList())
+    fun build(): WorkTurn {
+        return WorkTurn(id, if (parsed.context == null) prompt else parsed.text, startedAt, endedAt, steps.toList(), usage, open, usageSamples.toList(), parsed.context)
+    }
 }
 
 internal class Turns(private val prefix: String) {
@@ -53,9 +56,9 @@ internal class Turns(private val prefix: String) {
 
     val current: TurnBuilder? get() = turns.lastOrNull()
 
-    fun start(prompt: String?, at: Long?): TurnBuilder {
+    fun start(prompt: String?, at: Long?, sent: String? = prompt): TurnBuilder {
         turns.lastOrNull()?.open = false
-        return TurnBuilder("$prefix${turns.size}", prompt, at).also { turns += it }
+        return TurnBuilder("$prefix${turns.size}", prompt, at, sent).also { turns += it }
     }
 
     fun ensure(at: Long?): TurnBuilder = current ?: start(null, at)

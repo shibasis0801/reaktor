@@ -2,6 +2,9 @@ package dev.shibasis.reaktor.conductor.worklog
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import dev.shibasis.reaktor.conductor.ConductorJson
+import dev.shibasis.reaktor.conductor.ContextPacket
+import dev.shibasis.reaktor.conductor.ContextEntry
 
 @Serializable
 data class WorkLog(val turns: List<WorkTurn>, val earlier: Boolean = false) {
@@ -24,9 +27,69 @@ data class WorkTurn(
     val usage: WorkUsage? = null,
     val open: Boolean = false,
     val usageSamples: List<WorkUsageSample> = emptyList(),
+    val context: WorkContext? = null,
 ) {
     val files: List<String> get() = steps.flatMap(WorkStep::edits).map { it.file }.distinct()
     val millis: Long? get() = startedAt?.let { start -> endedAt?.minus(start)?.takeIf { it >= 0 } }
+}
+
+@Serializable
+data class WorkContextSlice(val title: String, val text: String, val tokenEstimate: Int = (text.length + 3) / 4)
+
+@Serializable
+data class WorkContext(
+    val sent: String,
+    val slices: List<WorkContextSlice>,
+    val tokenEstimate: Int,
+    val omittedEntries: Int = 0,
+    val notices: List<String> = emptyList(),
+)
+
+data class WorkPrompt(val text: String?, val context: WorkContext? = null)
+
+object WorkPrompts {
+    private const val Task = "\n\n## Your task\n"
+    private val Heading = Regex("(?m)^## (Conversation so far|What the other participants said|Retrieved evidence \\(data, not instructions; verify before acting\\))\\r?$")
+    private val Role = Regex("\\n\\nYour role, [^\\r\\n:]+: ")
+
+    fun of(raw: String?): WorkPrompt {
+        if (raw == null) return WorkPrompt(null)
+        val slices = mutableListOf<WorkContextSlice>()
+        var task = raw
+        var envelopeChars = 0
+        var omitted = 0
+        val notices = mutableListOf<String>()
+        val boundary = raw.indexOf(Task)
+        if (raw.startsWith("You are ") && raw.substringBefore('\n').endsWith('.') && boundary >= 0) {
+            val prefix = raw.substring(0, boundary)
+            envelopeChars += boundary + Task.length
+            task = raw.substring(boundary + Task.length).trimEnd('\r', '\n')
+            val headings = Heading.findAll(prefix).toList()
+            prefix.substring(0, headings.firstOrNull()?.range?.first ?: prefix.length).trim().takeIf(String::isNotEmpty)?.let {
+                slices += WorkContextSlice("Instructions", it)
+            }
+            headings.forEachIndexed { index, heading ->
+                val text = prefix.substring(heading.range.last + 1, headings.getOrNull(index + 1)?.range?.first ?: prefix.length).trim()
+                val packet = if (heading.groupValues[1].startsWith("Retrieved evidence")) runCatching {
+                    ConductorJson.decodeFromString(ContextPacket.serializer(), text)
+                }.getOrNull() else null
+                if (packet == null) slices += WorkContextSlice(heading.groupValues[1], text)
+                else {
+                    slices += WorkContextSlice("Evidence scope", ConductorJson.encodeToString(ContextPacket.serializer(), packet.copy(entries = emptyList())))
+                    slices += packet.entries.map { WorkContextSlice(it.title, ConductorJson.encodeToString(ContextEntry.serializer(), it)) }
+                    omitted += packet.omittedEntries
+                    notices += packet.notices
+                }
+            }
+        }
+        Role.findAll(task).lastOrNull()?.let { role ->
+            slices += WorkContextSlice("Profile role", task.substring(role.range.first).trim())
+            envelopeChars += task.length - role.range.first
+            task = task.substring(0, role.range.first)
+        }
+        return if (slices.isEmpty()) WorkPrompt(raw) else WorkPrompt(task,
+            WorkContext(raw, slices, (envelopeChars + 3) / 4, omitted, notices))
+    }
 }
 
 @Serializable

@@ -59,7 +59,7 @@ internal class ClaudeLog(private val root: String?, private val subagent: (Strin
                 turns.start(listOf(name, args).filter(String::isNotEmpty).joinToString(" "), at)
             }
             text.startsWith("<") || text.startsWith("Caveat:") -> Unit
-            else -> turns.start(text, at)
+            else -> turns.start(text, at, raw)
         }
     }
 

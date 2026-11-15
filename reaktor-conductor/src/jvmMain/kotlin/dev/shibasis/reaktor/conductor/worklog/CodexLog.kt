@@ -73,7 +73,7 @@ internal class CodexLog(private val root: String?) : LogParser {
         val stamp = started ?: at
         val id = item.str("id") ?: "${turns.lastIndex}:${item.str("type")}:$at"
         if (item.str("type") == "UserMessage") {
-            turns.start(text(item), stamp)
+            turns.start(text(item), stamp, item["content"].plain())
             return
         }
         val turn = turns.ensure(stamp)

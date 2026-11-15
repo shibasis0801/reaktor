@@ -36,7 +36,7 @@ internal fun projectAgentEvent(current: AgentRunRecord, event: AgentEvent, provi
         is AgentEvent.Started -> withParticipant.copy(session = event.session)
         is AgentEvent.TurnStarted -> withParticipant
         is AgentEvent.Usage -> withParticipant
-        is AgentEvent.Delta -> withParticipant.copy(output = current.output + event.text,
+        is AgentEvent.Delta -> withParticipant.copy(output = if (current.output === participant.output) next.output else current.output + event.text,
             outputTruncated = false)
         is AgentEvent.ToolUse -> withParticipant.copy(lastTool = event.tool)
         is AgentEvent.Activity -> withParticipant.copy(lastTool = next.lastTool)
@@ -45,7 +45,7 @@ internal fun projectAgentEvent(current: AgentRunRecord, event: AgentEvent, provi
         is AgentEvent.RequestResolved -> withParticipant.copy(
             pending = current.pending.filterNot { it.id == event.requestId })
         is AgentEvent.Reasoning -> withParticipant.copy(
-            reasoning = current.reasoning + event.text,
+            reasoning = if (current.reasoning === participant.reasoning) next.reasoning else current.reasoning + event.text,
             reasoningTruncated = false,
             reasoningFidelity = event.fidelity)
         is AgentEvent.Finished -> withParticipant.copy(usage = event.outcome.usage, session = event.outcome.session ?: current.session,

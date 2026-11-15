@@ -43,7 +43,10 @@ object RunLogs {
     fun prompts(log: WorkLog, events: List<ThreadEvent>): WorkLog {
         val asked = events.filter { it.author is Author.Human }.map { it.text }
         if (asked.size != log.turns.size) return log
-        return log.copy(turns = log.turns.zip(asked) { turn, prompt -> turn.copy(prompt = prompt) })
+        return log.copy(turns = log.turns.zip(asked) { turn, prompt ->
+            val parsed = WorkPrompts.of(prompt)
+            turn.copy(prompt = parsed.text, context = turn.context ?: parsed.context)
+        })
     }
 
     private class Turn(val id: String, val prompt: String?, val at: Long?) {
@@ -52,9 +55,12 @@ object RunLogs {
         val said = mutableListOf<WorkStep>()
         var ended: Long? = at
 
-        fun build() = WorkTurn(id, prompt, at, ended, did + listOfNotNull(contributions.takeIf { it.isNotEmpty() }?.let { steps ->
-            WorkStep.Subagent("$id:council", steps.first().at, "${steps.size} council contributions · proposals and cross-review", steps = steps, status = StepStatus.Done)
-        }) + said)
+        fun build(): WorkTurn {
+            val parsed = WorkPrompts.of(prompt)
+            return WorkTurn(id, parsed.text, at, ended, did + listOfNotNull(contributions.takeIf { it.isNotEmpty() }?.let { steps ->
+                WorkStep.Subagent("$id:council", steps.first().at, "${steps.size} council contributions · proposals and cross-review", steps = steps, status = StepStatus.Done)
+            }) + said, context = parsed.context)
+        }
     }
 
     private fun MutableList<Turn>.ensure(at: Long?): Turn = lastOrNull() ?: Turn("run-start", null, at).also { add(it) }

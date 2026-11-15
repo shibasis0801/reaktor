@@ -17,7 +17,7 @@ internal class AntigravityLog(private val root: String?) : LogParser {
             "USER_INPUT" -> request(record.str("content"))?.let { prompt ->
                 waiting.forEach { pending -> turns.at(pending.turn).settle(pending.step) }
                 waiting.clear()
-                turns.start(prompt, at)
+                turns.start(prompt.trim(), at, prompt)
             }
             "PLANNER_RESPONSE" -> {
                 val turn = turns.ensure(at)
@@ -50,8 +50,8 @@ internal class AntigravityLog(private val root: String?) : LogParser {
     private fun request(content: String?): String? {
         val text = content?.trim().orEmpty()
         if (text.isEmpty()) return null
-        if (!text.startsWith("<")) return text
-        return Regex("<USER_REQUEST>(.*?)</USER_REQUEST>", RegexOption.DOT_MATCHES_ALL).find(text)?.groupValues?.get(1)?.trim()?.takeIf(String::isNotEmpty)
+        if (!text.startsWith("<")) return content
+        return Regex("<USER_REQUEST>(.*?)</USER_REQUEST>", RegexOption.DOT_MATCHES_ALL).find(text)?.groupValues?.get(1)?.trimStart()?.takeIf(String::isNotBlank)
     }
 
     private fun call(id: String, at: Long?, name: String, args: JsonObject): WorkStep {
