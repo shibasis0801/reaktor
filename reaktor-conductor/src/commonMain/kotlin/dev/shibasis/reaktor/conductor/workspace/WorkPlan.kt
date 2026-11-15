@@ -351,7 +351,7 @@ object PlanRules {
     const val MaxResultSummary = 1_000
     const val MaxResultPath = 500
     val Key = Regex("[a-z][a-z0-9-]{0,39}")
-    val Ref = Regex("(file|symbol|module|graph|op|flow|task|url|person|agent):\\S.{0,299}")
+    val Ref = Regex("(file|symbol|module|graph|op|flow|task|url|person|agent|unit|source|skill):\\S.{0,299}")
 
     fun validDocumentPath(path: String): Boolean =
         path.length <= 500 && path.startsWith("plans/") && path.endsWith(".md") &&
@@ -454,7 +454,7 @@ object PlanRules {
 
         fun refs(values: List<String>): List<String> = values.map(String::trim).filter(String::isNotEmpty).distinct().also { list ->
             require(list.size <= MaxRefs) { "An item links at most $MaxRefs things" }
-            list.firstOrNull { !Ref.matches(it) }?.let { error("$it is not a link: use file:, symbol:, module:, graph:, op:, flow:, task:, url:, person: or agent:") }
+            list.firstOrNull { !Ref.matches(it) }?.let { error("$it is not a link: use file:, symbol:, module:, graph:, op:, flow:, task:, url:, person:, agent:, unit:, source: or skill:") }
         }
 
         fun note(value: String): String = value.also { require(it.length <= MaxNote) { "A note is at most $MaxNote characters" } }
@@ -658,7 +658,7 @@ object PlanRules {
                 }
             }
             outcome.onSuccess { line -> line?.let(summary::add) }
-                .onFailure { failure -> refused += PlanRefusal(index, op.target(), failure.message ?: "Refused") }
+                .onFailure { failure -> refused += PlanRefusal(index, op.target, failure.message ?: "Refused") }
         }
         val title = patch.title?.let(BoardText::title)?.takeIf { it != plan.title }
         val goal = patch.goal?.let { BoardText.bounded(it, "A goal", 2_000) }?.takeIf { it != plan.goal }
@@ -701,15 +701,16 @@ object PlanRules {
         )
     }
 
-    private fun PlanOp.target(): String? = when (this) {
-        is PlanOp.Add -> key
-        is PlanOp.Update -> item
-        is PlanOp.Status -> item
-        is PlanOp.Connect -> to
-        is PlanOp.Disconnect -> to
-        is PlanOp.Relate -> from
-        is PlanOp.Unrelate -> from
-        is PlanOp.Remove -> item
-        is PlanOp.RetireSeat -> seat
-    }
+}
+
+val PlanOp.target: String? get() = when (this) {
+    is PlanOp.Add -> key
+    is PlanOp.Update -> item
+    is PlanOp.Status -> item
+    is PlanOp.Connect -> to
+    is PlanOp.Disconnect -> to
+    is PlanOp.Relate -> from
+    is PlanOp.Unrelate -> from
+    is PlanOp.Remove -> item
+    is PlanOp.RetireSeat -> seat
 }

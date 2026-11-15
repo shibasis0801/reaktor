@@ -410,4 +410,26 @@ class WorkPlanTest {
         assertTrue(Files.exists(board.resolve("archive/graphs/G1.json")))
         assertEquals(emptyList(), AgentBoardStore(board, clock::get).graphs())
     }
+    private fun learnerRef(ref: String) {
+        val empty = WorkPlan("hangar:refs", "Refs", createdBy = person, createdAt = 1, updatedAt = 1)
+        val added = PlanRules.apply(empty, PlanPatch(ops = listOf(PlanOp.Add("Linked item", key = "linked", refs = listOf(ref)))), person, 2)
+        assertTrue(added.refused.isEmpty(), added.refused.toString())
+        assertEquals(listOf(ref), added.plan.item("linked")!!.refs)
+        val updated = PlanRules.apply(added.plan, PlanPatch(ops = listOf(PlanOp.Update("linked", refs = listOf(ref, "file:proof.kt")))), person, 3)
+        assertTrue(updated.refused.isEmpty(), updated.refused.toString())
+        assertEquals(listOf(ref, "file:proof.kt"), updated.plan.item("linked")!!.refs)
+    }
+
+    @Test fun unitRefsPassOnAddAndUpdate() = learnerRef("unit:a#0")
+    @Test fun sourceRefsPassOnAddAndUpdate() = learnerRef("source:a")
+    @Test fun skillRefsPassOnAddAndUpdate() = learnerRef("skill:x")
+    @Test fun anEmptyUnitAndAnExistingBadLinkStayRefused() {
+        val empty = WorkPlan("hangar:refs", "Refs", createdBy = person, createdAt = 1, updatedAt = 1)
+        for (ref in listOf("unit:", "C:/bad")) {
+            val result = PlanRules.apply(empty, PlanPatch(ops = listOf(PlanOp.Add("Bad", key = "bad", refs = listOf(ref)))), person, 2)
+            assertEquals(1, result.refused.size)
+            assertTrue(result.plan.items.isEmpty())
+        }
+    }
+
 }
