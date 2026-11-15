@@ -7,8 +7,10 @@ import dev.shibasis.reaktor.io.xml.XmlToken
 data class SheetRow(val number: Int, val cells: List<String>)
 
 /**
- * The first sheet of an Excel workbook (`.xlsx`), as text: enough to import what another app
- * exported. Money apps export to Excel more often than to CSV.
+ * Excel workbooks (`.xlsx`), read and written.
+ *
+ * Reading gives the first sheet as text: enough to import what another app exported. Money apps
+ * export to Excel more often than to CSV. [write] is the way out: see there.
  *
  * Every cell comes back as the text it holds: shared and inline strings as written, numbers as
  * Excel stores them ("1450.5"). A date is a number of days since 30 December 1899, because that is
@@ -23,6 +25,20 @@ object Xlsx {
         val xml = zip[sheet]?.decodeToString() ?: throw ArchiveException("No sheet in this workbook")
         return rows(xml, strings)
     }
+
+    /**
+     * A workbook from [sheets], as the bytes of an `.xlsx`: text as text, numbers and dates as
+     * Excel's own, so a column of amounts adds up and a column of dates sorts. Each sheet's header
+     * is bold and stays put while the rows scroll.
+     *
+     * The same on every target, with nothing platform-specific under it. Share the result under
+     * [MIME] with a name ending `.xlsx`.
+     */
+    fun write(sheets: List<XlsxSheet>): ByteArray = XlsxWriter.write(sheets)
+
+    fun write(sheet: XlsxSheet): ByteArray = write(listOf(sheet))
+
+    const val MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
     /**
      * Excel's day number as (year, month, day, seconds into the day), or null when [text] isn't one.
