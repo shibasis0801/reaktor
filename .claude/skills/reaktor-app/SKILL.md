@@ -573,6 +573,14 @@ family a `staticCompositionLocalOf`, fill it in the app's theme, and make each s
 arrives. Pass the same family to `MaterialTheme(typography = …)` or the platform dialogs keep the
 system face. Coffer's `design/Tokens.kt` and `Theme.kt` are the worked example.
 
+## Forms: two `validate()`s
+
+`FormField.validate()` returns `true` or `false`; `Form.validate()` returns the first field that
+failed, or `null`. They read alike and compile alike, so `if (field.validate() == null)` is always
+false and the button does nothing, with no error anywhere. Coffer's budget dialog shipped that way
+for weeks. For a single field write `if (field.validate())`; for a form, `if (form.validate() != null) return`.
+A zero amount needs `moneyReader(..., positive = false)`, or the field rejects it.
+
 ## Files people bring from other apps
 
 `reaktor-io`'s `archive` package reads them in common code: `Zip` (stored and deflated entries),
