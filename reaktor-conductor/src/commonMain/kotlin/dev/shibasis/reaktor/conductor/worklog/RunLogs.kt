@@ -41,11 +41,25 @@ object RunLogs {
     }
 
     fun prompts(log: WorkLog, events: List<ThreadEvent>): WorkLog {
-        val asked = events.filter { it.author is Author.Human }.map { it.text }
+        val asked = events.filter { it.author is Author.Human }.map { WorkPrompts.of(it.text) }
+        val normalized = log.turns.map { it.prompt?.trim()?.replace(Regex("\\s+"), " ") }
+        val turns = log.turns.toMutableList()
+        var next = 0
+        var matched = false
+        asked.forEach { prompt ->
+            val text = prompt.text?.trim()?.replace(Regex("\\s+"), " ")
+            val index = (next until turns.size).firstOrNull { normalized[it] == text }
+            if (index != null) {
+                val turn = turns[index]
+                turns[index] = turn.copy(prompt = prompt.text, context = turn.context ?: prompt.context)
+                next = index + 1
+                matched = true
+            }
+        }
+        if (matched) return log.copy(turns = turns)
         if (asked.size != log.turns.size) return log
         return log.copy(turns = log.turns.zip(asked) { turn, prompt ->
-            val parsed = WorkPrompts.of(prompt)
-            turn.copy(prompt = parsed.text, context = turn.context ?: parsed.context)
+            turn.copy(prompt = prompt.text, context = turn.context ?: prompt.context)
         })
     }
 

@@ -14,7 +14,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class AgentEventProjectionTest {
-    @Test fun aMegabyteStubMeasuresActualRunSavesAndPaneSnapshots() = runBlocking {
+    @Test fun theTransportDeliversFortyNineSamplesAndRefusesOnlyTheLiveMegabyte() = runBlocking {
         val directory = Files.createTempDirectory("stream-record-cost").toFile()
         val data = directory.resolve("plane").toPath()
         val checkpoints = kotlinx.coroutines.channels.Channel<kotlinx.coroutines.CompletableDeferred<Unit>>()
@@ -46,6 +46,7 @@ class AgentEventProjectionTest {
                 var modified: java.nio.file.attribute.FileTime? = null
                 val snapshots = mutableListOf<Int>()
                 val received = mutableListOf<Int>()
+                val deliveredCharacters = mutableListOf<Int>()
                 val transportFailures = mutableListOf<Pair<Int, String>>()
                 fun save() {
                     val attributes = Files.readAttributes(file, java.nio.file.attribute.BasicFileAttributes::class.java)
@@ -63,6 +64,7 @@ class AgentEventProjectionTest {
                     try {
                         val delivered = pane.get(current.id)
                         assertEquals(current.output, delivered.output)
+                        deliveredCharacters += delivered.output.length
                         received += ConductorJson.encodeToString(AgentRunRecord.serializer(), delivered).encodeToByteArray().size
                     } catch (failure: IllegalStateException) {
                         if (failure.message != "Workspace response exceeded the transport budget") throw failure
@@ -70,6 +72,9 @@ class AgentEventProjectionTest {
                     }
                     release.complete(Unit)
                 }
+                assertEquals((1..49).map { it * 20_000 }, deliveredCharacters)
+                assertEquals(49, received.size)
+                assertEquals(listOf(1_000_000 to "Workspace response exceeded the transport budget"), transportFailures)
                 assertEquals(1_000_000, current.output.length)
                 while (current.status == AgentRunStatus.Running) current = workspace.awaitChange(current.id, current.revision, 30_000)
                 save()
