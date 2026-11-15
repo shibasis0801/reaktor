@@ -11,6 +11,7 @@ plugins { id("dev.shibasis.dependeasy.library") }
 library(namespace = "dev.shibasis.reaktor.conductor", targets = Targets.All) {
     dependencies {
         common {
+            api(Reaktor.GraphRuntime)
             commonCoroutines()
             commonSerialization(protobuf = false)
         }

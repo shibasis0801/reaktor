@@ -80,9 +80,9 @@ data class LedgerStanding(
     val meanEffectiveCostUsd: Double? = null,
     val usesEstimatedCost: Boolean = false,
 ) {
-    val tokensPerSession: Long get() = if (sessions == 0) 0 else tokens / sessions
-    val finished: Double? get() = if (checks == 0) null else done.toDouble() / checks
-    val doorRatio: Double? get() = if (steps == 0) null else doorCalls.toDouble() / steps.toDouble()
+    val tokensPerSession: Long get() = LedgerScoring.tokensPerSession(tokens, sessions)
+    val finished: Double? get() = LedgerScoring.finished(checks, done)
+    val doorRatio: Double? get() = LedgerScoring.doorRatio(steps, doorCalls)
 }
 
 class AgentLedger(private val directory: Path) {
@@ -120,32 +120,10 @@ class AgentLedger(private val directory: Path) {
 
         fun directory(root: File): Path = AgentWorkspaceConnection.defaultDirectory(root).resolve("ledger")
 
-        fun standings(records: Collection<LedgerRecord>): List<LedgerStanding> =
-            records.mapNotNull { record -> record.model?.let { Triple(record.harness, it, record.effort) to record } }
-                .groupBy({ it.first }, { it.second })
-                .map { (key, rows) ->
-                    val cachedShares = rows.mapNotNull { row ->
-                        val inp = row.inputTokens?.takeIf { it > 0L } ?: return@mapNotNull null
-                        val cached = row.cachedInputTokens ?: return@mapNotNull null
-                        (cached.toDouble() / inp.toDouble()).coerceIn(0.0, 1.0)
-                    }
-                    val costs = rows.mapNotNull { it.costUsd ?: it.estimatedCostUsd }
-                    val estimated = rows.any { it.costUsd == null && it.estimatedCostUsd != null }
-                    LedgerStanding(
-                        harness = key.first,
-                        model = key.second,
-                        effort = key.third,
-                        sessions = rows.size,
-                        tokens = rows.sumOf { it.tokens ?: ((it.inputTokens ?: 0L) + (it.outputTokens ?: 0L)) },
-                        checks = rows.sumOf { it.checks },
-                        done = rows.sumOf { it.done },
-                        steps = rows.sumOf { it.steps },
-                        doorCalls = rows.sumOf { it.doorCalls },
-                        cachedShare = cachedShares.takeIf { it.isNotEmpty() }?.average(),
-                        meanEffectiveCostUsd = costs.takeIf { it.isNotEmpty() }?.average(),
-                        usesEstimatedCost = estimated,
-                    )
-                }
-                .sortedWith(compareByDescending<LedgerStanding> { it.sessions }.thenBy { it.model }.thenBy { it.effort.orEmpty() })
+        fun standings(records: Collection<LedgerRecord>): List<LedgerStanding> = LedgerScoring.standings(records.map { row ->
+            LedgerSample(LedgerRuntime(row.harness.name), row.model, row.effort, row.tokens, row.checks, row.done, row.steps, row.doorCalls,
+                row.inputTokens, row.cachedInputTokens, row.outputTokens, row.costUsd, row.estimatedCostUsd)
+        }).map { band -> LedgerStanding(RuntimeKind.valueOf(band.harness.name), band.model, band.effort, band.sessions, band.tokens, band.checks, band.done,
+            band.steps, band.doorCalls, band.cachedShare, band.meanEffectiveCostUsd, band.usesEstimatedCost) }
     }
 }
