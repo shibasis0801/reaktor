@@ -3,40 +3,46 @@ package dev.shibasis.reaktor.io.archive
 /**
  * Writes a zip in memory, the other half of [Zip]: add files, then take the [bytes].
  *
- * Entries are stored, not compressed. Every reader accepts that (Excel, Numbers, LibreOffice and
- * Google Sheets open a stored `.xlsx`), it is the same code on every target, and it needs no
- * platform zlib. A stored file is as large as what is in it, so this suits the small files an app
- * shares (a spreadsheet, a handful of documents) and not a large archive. No zip64 (4 GB, 65,535
- * entries) and no encryption, as with the reader.
+ * Entries are compressed with [Deflate] when that makes them smaller, and stored as they are when
+ * it doesn't (a photo, a few bytes). It is the same code on every target and needs no platform
+ * zlib; it holds everything in memory, so it suits what an app shares (a spreadsheet, a handful of
+ * documents) and not a large archive. No zip64 (4 GB, 65,535 entries) and no encryption, as with
+ * the reader.
  *
  * The same files give the same bytes: every entry carries one fixed date (1 January 1980, the
  * earliest a zip can hold), so a test can compare output and a share doesn't leak the clock.
  */
 class ZipWriter {
-    private class Entry(val name: ByteArray, val crc: Int, val size: Int, val offset: Int)
+    private class Entry(val name: ByteArray, val crc: Int, val size: Int, val packed: Int, val method: Int, val offset: Int)
 
     private val out = ByteSink()
     private val entries = mutableListOf<Entry>()
     private val names = mutableSetOf<String>()
 
-    /** Adds [bytes] as [name], a path with forward slashes ("xl/workbook.xml"). */
-    fun add(name: String, bytes: ByteArray): ZipWriter {
+    /**
+     * Adds [bytes] as [name], a path with forward slashes ("xl/workbook.xml"). [compress] false
+     * stores them untouched, for what is compressed already (a JPEG, another zip).
+     */
+    fun add(name: String, bytes: ByteArray, compress: Boolean = true): ZipWriter {
         require(name.isNotEmpty() && !name.startsWith("/") && '\\' !in name) { "A zip entry's name is a relative path with forward slashes: $name" }
         require(names.add(name)) { "$name is already in this zip" }
         require(entries.size < 0xFFFF) { "Too many entries for a zip without zip64" }
         val encoded = name.encodeToByteArray()
-        val entry = Entry(encoded, Crc32.of(bytes), bytes.size, out.size)
+        // Below a few dozen bytes the codes cost more than they save.
+        val deflated = if (compress && bytes.size > 32) Deflate.deflate(bytes).takeIf { it.size < bytes.size } else null
+        val body = deflated ?: bytes
+        val entry = Entry(encoded, Crc32.of(bytes), bytes.size, body.size, if (deflated != null) DEFLATED else STORED, out.size)
         out.u32(LOCAL)
         header(entry)
         out.u16(encoded.size)
         out.u16(0) // no extra field
         out.bytes(encoded)
-        out.bytes(bytes)
+        out.bytes(body)
         entries += entry
         return this
     }
 
-    fun add(name: String, text: String): ZipWriter = add(name, text.encodeToByteArray())
+    fun add(name: String, text: String): ZipWriter = add(name, text.encodeToByteArray(), compress = true)
 
     /** The finished zip. The writer can go on adding afterwards; each call gives a whole zip. */
     fun bytes(): ByteArray {
@@ -72,11 +78,11 @@ class ZipWriter {
     private fun ByteSink.header(entry: Entry) {
         u16(VERSION)
         u16(UTF8_NAMES)
-        u16(0) // stored
+        u16(entry.method)
         u16(0) // time: midnight
         u16(DOS_EPOCH)
         u32(entry.crc.toLong() and 0xFFFFFFFFL)
-        u32(entry.size.toLong())
+        u32(entry.packed.toLong())
         u32(entry.size.toLong())
     }
 
@@ -87,6 +93,8 @@ class ZipWriter {
         const val CENTRAL = 0x02014b50L
         const val END = 0x06054b50L
         const val VERSION = 20
+        const val STORED = 0
+        const val DEFLATED = 8
         const val UTF8_NAMES = 0x0800
         const val DOS_EPOCH = 0x0021 // 1 January 1980
     }

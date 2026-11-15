@@ -1,6 +1,8 @@
 package dev.shibasis.reaktor.io
 
 import dev.shibasis.reaktor.io.archive.Crc32
+import dev.shibasis.reaktor.io.archive.Deflate
+import dev.shibasis.reaktor.io.archive.Inflate
 import dev.shibasis.reaktor.io.archive.Xlsx
 import dev.shibasis.reaktor.io.archive.XlsxCell
 import dev.shibasis.reaktor.io.archive.XlsxSheet
@@ -36,6 +38,36 @@ class XlsxWriteTest {
         assertEquals("नमस्ते, Coffer", zip["notes/पहला.txt"]?.decodeToString())
         assertContentEquals(picture, zip["picture.bin"])
         assertEquals(0, zip["empty.txt"]?.size)
+    }
+
+    @Test
+    fun whatIsDeflatedInflatesToItself() {
+        val row = "<row r=\"7\"><c r=\"A7\" s=\"2\"><v>46332</v></c><c r=\"B7\" t=\"s\"><v>14</v></c></row>"
+        val samples = listOf(
+            ByteArray(0),
+            "a".encodeToByteArray(),
+            "ab".encodeToByteArray(),
+            "abcabcabcabcabcabc".encodeToByteArray(),
+            ByteArray(70_000) { 0 }, // matches at the longest length, over and over
+            ByteArray(5_000) { (it * 31 + it / 7).toByte() }, // little to find
+            ByteArray(300) { it.toByte() }, // every byte value, both code lengths
+            row.repeat(3_000).encodeToByteArray(), // further back than one window
+            (1..4_000).joinToString("") { "$it,Swiggy,${it * 37 % 900}.50\n" }.encodeToByteArray(),
+        )
+        for (data in samples) assertContentEquals(data, Inflate.inflate(Deflate.deflate(data)), "size ${data.size}")
+        // A spreadsheet's XML is where it pays: a tenth or less.
+        val xml = row.repeat(3_000).encodeToByteArray()
+        assertTrue(Deflate.deflate(xml).size < xml.size / 10)
+    }
+
+    @Test
+    fun aZipKeepsWhicheverIsSmaller() {
+        val text = "Swiggy,Eating out,649.00\n".repeat(400)
+        val noise = ByteArray(2_000) { (it * 131 + it * it).toByte() }
+        val zip = Zip(ZipWriter().add("text.csv", text).add("noise.bin", noise).add("kept.csv", text.encodeToByteArray(), compress = false).bytes())
+        assertEquals(text, zip["text.csv"]?.decodeToString())
+        assertContentEquals(noise, zip["noise.bin"])
+        assertEquals(text, zip["kept.csv"]?.decodeToString())
     }
 
     @Test
