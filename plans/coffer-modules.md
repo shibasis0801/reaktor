@@ -9,9 +9,9 @@ internet permission, nothing leaves the phone. Surveyed 15 November 2026.
 
 | # | Feature | Where it goes | New module? | Size | Waits on |
 |---|---|---|---|---|---|
-| 1 | Done key in forms; `validate()` naming | `reaktor-ui` forms | no | S | nothing |
-| 2 | Excel export | `reaktor-io` archive: a zip writer and an xlsx writer | no | S | nothing |
-| 3 | App lock | new `reaktor-unlock` | **yes** | S–M | nothing |
+| 1 | Done key in forms; `validate()` naming | `reaktor-ui` forms | no | S | **done, 15 Nov** |
+| 2 | Excel export | `reaktor-io` archive: a zip writer and an xlsx writer | no | S | **done, 15 Nov** |
+| 3 | App lock | new `reaktor-unlock` | **yes** | S–M | **done, 15 Nov** (iOS not run against Face ID) |
 | 4 | Opt-in reminders | `reaktor-notification`, after moving sealed notices out to `reaktor-notification-sealed` | **yes** (a split) | M | BestBuds moving its dependency |
 | 5 | Receipt photos | `reaktor-io`: photo picker, system camera, downscale | no | M | nothing |
 | 6 | Home-screen widget | new `reaktor-widget`; an iOS widget extension per app | **yes** | M–L | an Xcode target per app |
@@ -30,6 +30,10 @@ GymBuddy about 2.6 MB smaller on every phone; 7 is the largest and can't be fini
   apps (Coffer's Edit screen).
 - Check: the forms tests on JVM and JS; Coffer's tag field adds on Done.
 
+**Done (d8b025ad).** As planned. Coffer's tag, name and budget dialogs use `onDone`. One more fix
+came out of using it: `PlatformChoice`'s Material segments now cap their label at 1.3× text, as the
+iOS control does (6e91cd39); "Summary" was being cut to "Summ…" at 2×.
+
 ## 2. Excel export · `reaktor-io` · S
 
 `reaktor-io` reads `.xlsx` (`Xlsx.firstSheet`, over `Zip` and `Inflate`), but can't write one.
@@ -41,6 +45,14 @@ GymBuddy about 2.6 MB smaller on every phone; 7 is the largest and can't be fini
 - Check: write, then read back with `Xlsx.firstSheet` (JVM, JS, iOS simulator); open the file in
   LibreOffice on the JVM test machine if it's there.
 - Coffer: "Export as Excel" beside CSV; payee, category and trip spreadsheets offered as `.xlsx`.
+
+**Done (8c9fa6c8, 130cd110).** One change from the plan: stored entries weren't enough. Coffer's
+five-year export came to 4.7 MB, so `reaktor-io` gained `Deflate` (one fixed-Huffman block, greedy
+back-references, common code) and `ZipWriter` keeps whichever of the deflated and plain bytes is
+smaller: 729 KB for the same file. Numbers are written from an unscaled value and a scale, never
+through a float; repeated text goes in once (shared strings). Read back by `Zip`/`Xlsx.firstSheet`
+on JVM and JS, by the JDK's zlib and zip reader, and opened by macOS's Office importer. Not opened
+in Excel itself or in Google Sheets: neither is on the build machine.
 
 ## 3. App lock · new `reaktor-unlock` · S–M
 
@@ -62,6 +74,21 @@ accounts and sign-in. A new module, because what it needs shouldn't reach apps t
 - Check: unit tests for the policy; on the emulator with a PIN set; on the iOS simulator with
   enrolled Face ID (Features → Face ID → Matching / Non-matching).
 - Coffer: Settings → "Lock Coffer". Off by default.
+
+**Done (ad178c2e).** Three changes from the plan:
+- **No `androidx.biometric`.** Its prompt needs a `FragmentActivity`; a Compose app's
+  `ComponentActivity` isn't one. The module uses the platform's `BiometricPrompt` with the device
+  credential allowed on API 29+, and the keyguard's confirm screen on 26 to 28. It adds no library.
+- **`AppLock` draws nothing.** A lock screen in the module would have made it a Compose module
+  with its own look. It holds the policy (locked at start, again after a minute away, not by
+  turning it on, open on a phone with no screen lock) and the app draws its own screen.
+- **Android 13+ hides only the app switcher's picture** (`setRecentsScreenshotEnabled`), leaving
+  screenshots to the person; below 13 it is `FLAG_SECURE`, which stops both.
+
+Checked: six policy tests on the JVM; on an API 36 emulator with a PIN, from Coffer: turning on
+and off, a cold start, backing out of the prompt, 20 seconds away (stays open) and 66 (asks). Not
+checked: an API 26 to 29 emulator, a real fingerprint, and the iOS half beyond compiling for device
+and simulator (Face ID on the simulator needs a person at its menu).
 
 ## 4. Opt-in reminders · `reaktor-notification`, split · M
 

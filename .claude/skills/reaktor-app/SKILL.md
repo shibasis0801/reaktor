@@ -508,6 +508,10 @@ first frame.
   for any interface whose single method is `@Composable`. The crash only prints to stdout, so launch
   with `xcrun simctl launch --console-pty <device> <bundle id>` to read it. The `.ips` report shows
   only `MetalRedrawer.draw`.
+- **An Objective-C category's members need their own import.** `UIColor.systemBackgroundColor`
+  is `Unresolved reference` until `import platform.UIKit.systemBackgroundColor` is added beside
+  `import platform.UIKit.UIColor`: system colours live in a category, and Kotlin exposes each
+  category member as an extension. Android Studio adds the import; a hand-written file doesn't have it.
 - **Text fields autocorrect unless told not to.** iOS rewrote "darknet diaries" as "Darnley
   diaries" before the search ran. Search, address, code and name fields need
   `KeyboardOptions(KeyboardCapitalization.None, autoCorrectEnabled = false)`.
@@ -573,13 +577,46 @@ family a `staticCompositionLocalOf`, fill it in the app's theme, and make each s
 arrives. Pass the same family to `MaterialTheme(typography = …)` or the platform dialogs keep the
 system face. Coffer's `design/Tokens.kt` and `Theme.kt` are the worked example.
 
-## Forms: two `validate()`s
+## Forms: the form's check, and the Done key
 
-`FormField.validate()` returns `true` or `false`; `Form.validate()` returns the first field that
-failed, or `null`. They read alike and compile alike, so `if (field.validate() == null)` is always
-false and the button does nothing, with no error anywhere. Coffer's budget dialog shipped that way
-for weeks. For a single field write `if (field.validate())`; for a form, `if (form.validate() != null) return`.
+`FormField.validate()` returns `true` or `false`. A whole form's check is `Form.firstInvalid()`:
+the first field that failed, to focus, or `null`. It used to be called `Form.validate()` too, and
+`if (field.validate() == null)` compiled, was always false, and left Coffer's budget dialog doing
+nothing for weeks; that name is deprecated now and the compiler offers the replacement. For one
+field write `if (field.validate())`; for a form, `if (form.firstInvalid() != null) return`.
 A zero amount needs `moneyReader(..., positive = false)`, or the field rejects it.
+
+`FormTextField(onDone = { … })` is what the keyboard's action key does: save the dialog, add the
+tag. Giving it makes the key read Done. A dialog with one field should always pass it, or the key
+only hides the keyboard and the person has to find the button.
+
+## A table to share: `Xlsx.write`
+
+`reaktor-io` writes `.xlsx` as well as reading it: `Xlsx.write(XlsxSheet(name, header, rows))`
+gives the bytes, shared under `Xlsx.MIME`. Use `XlsxCell.Number(unscaled, scale)` for money (minor
+units and the currency's decimals, never a `Double`), `XlsxCell.Date` for dates, and
+`XlsxCell.Text` for anything with digits that isn't a quantity (a reference, an account's last
+four), or Excel shows it as 4.31E+11. On a phone an `.xlsx` opens as a table; a `.csv` often opens
+as text, so prefer it for anything a person will look at. `ZipWriter` is there for other zips.
+
+## Locking an app: `reaktor-unlock`
+
+`Feature.Unlock` is the phone's own unlock (fingerprint, face, or the screen lock), and `AppLock`
+is when to ask. Coffer is the worked example (`CofferRoot.kt`, `LockScreen.kt`).
+
+- **One `AppLock` per process**, in whatever holds the session, not in a screen: the Activity comes
+  and goes while the lock's state carries on.
+- **Don't draw the app under a cover.** While `locked` is true, don't compose the screens at all,
+  or a screen reader still reads them. While it is `null` (settings not read yet) draw nothing.
+- **Tell it about the screen** with `LifecycleStartEffect { lock.returned(); onStopOrDispose { lock.left() } }`.
+- **Ask from `LifecycleStartEffect`, not `LaunchedEffect` or resume.** On Android 8 and 9 the
+  prompt is a screen of its own, so backing out of it "returns" to the app: guard the automatic ask
+  with the time the last prompt ended, or it loops.
+- **On Android, install `AndroidDeviceUnlock(this)` in `onCreate`** with the other Activity-bound
+  adapters. On iOS add `NSFaceIDUsageDescription` to Info.plist; iOS ends an app that asks without it.
+- **Testing on an emulator:** `adb shell locksettings set-pin 1234`, then `adb shell input text 1234`
+  and `input keyevent 66` at the prompt. The prompt is a secure window, so a screenshot of it is
+  black: read it with `uiautomator dump` instead. Clear the PIN after (`locksettings clear --old 1234`).
 
 ## Files people bring from other apps
 

@@ -14,7 +14,7 @@ Work down this ladder. Stop at the first answer.
 
 ## 1. Does an existing module already own it?
 
-Thirty-two modules exist. Check before building. This map is a starting point for the search, not
+Thirty-three modules exist. Check before building. This map is a starting point for the search, not
 a specification — open the module and read its sources before depending on what its name implies.
 
 | Concern | Modules |
@@ -24,7 +24,7 @@ a specification — open the module and read its sources before depending on wha
 | Files, storage, serialization | `reaktor-io`, `reaktor-db`, `reaktor-flexbuffer`, `reaktor-ffi`, `reaktor-pdf` |
 | UI and feedback | `reaktor-ui`, `reaktor-tactile`, `reaktor-media` |
 | Device capabilities | `reaktor-notification`, `reaktor-notification-fcm`, `reaktor-location`, `reaktor-sensors`, `reaktor-health`, `reaktor-work`, `reaktor-performance` |
-| Identity and secrets | `reaktor-auth`, `reaktor-crypto`, `reaktor-secrets`, `reaktor-security` |
+| Identity and secrets | `reaktor-auth`, `reaktor-crypto`, `reaktor-secrets`, `reaktor-security`, `reaktor-unlock` (the device's own unlock, for an app lock) |
 | Network and cloud | `reaktor-web`, `reaktor-cloud`, `reaktor-cloudflare`, `reaktor-google`, `reaktor-service`, `reaktor-mcp` |
 | Observability | `reaktor-telemetry` |
 
@@ -148,45 +148,40 @@ include(":reaktor-<name>")
 ```
 
 **2. `reaktor-<name>/build.gradle.kts`.** The build uses the in-repo `dependeasy` convention
-plugin, so a module declares platforms as blocks rather than configuring source sets by hand:
+plugin: one `library(...)` call names the namespace and the targets, and the plugin sets up the
+source sets. `reaktor-unlock` and `reaktor-notification-listener` are small ones to copy:
 
 ```kotlin
-import dev.shibasis.dependeasy.android.*
-import dev.shibasis.dependeasy.common.*
-import dev.shibasis.dependeasy.dependencies.useKoin
+import dev.shibasis.dependeasy.Versions
+import dev.shibasis.dependeasy.common.commonCoroutines
+import dev.shibasis.dependeasy.components.library
+import dev.shibasis.dependeasy.model.Targets
 
-plugins {
-    id("com.android.library")
-    id("dev.shibasis.dependeasy.library")
-}
+plugins { id("dev.shibasis.dependeasy.library") }
 
-kotlin {
-    common {
-        dependencies {
-            api(project(":reaktor-core"))
-            api(project(":reaktor-graph"))
+// Say here why this is a module of its own: what it would cost an app that didn't ask for it.
+library(namespace = "dev.shibasis.reaktor.<name>", targets = Targets.Android + Targets.Apple + Targets.Jvm) {
+    dependencies {
+        common {
+            api(projects.reaktorCore)
             commonCoroutines()
-            commonSerialization()
         }
+        commonTest { implementation(Versions.Kotlin.CoroutinesTest) }
     }
-    droid {}
-    darwin {}
-    web {}
-    server {}
-    useKoin()
-
-    sourceSets {
-        jvmTest.dependencies { implementation(kotlin("test")) }
-    }
-}
-
-android {
-    defaults("dev.shibasis.reaktor.<name>")
 }
 ```
 
-Add `id("org.jetbrains.compose")` and `id("org.jetbrains.kotlin.plugin.compose")` only if the
-module actually draws UI. A platform capability usually should not.
+`Targets.All` adds the web. Leave it out until an app with a web target needs the module: a new
+JS target changes the pnpm lockfile every JS build shares. Use the
+`dev.shibasis.dependeasy.compose-library` plugin instead only if the module draws UI; a platform
+capability usually should not. The app that takes the module also has to name it in its own
+`settings.gradle.kts` substitution list (`"reaktor-<name>"`), or Gradle looks for it in a registry.
+
+**Committing it when `settings.gradle.kts` holds another session's line.** `git commit --only`
+takes the whole file. Build the commit in a throwaway index instead: `GIT_INDEX_FILE=<tmp>`,
+`git read-tree HEAD`, `git update-index --cacheinfo 100644,<blob of HEAD's file plus your line>,settings.gradle.kts`,
+`git add reaktor-<name>`, `git write-tree`, `git commit-tree`, `git update-ref`; then give the real
+index the same blob and files so it doesn't show them as deleted.
 
 **3. Source sets**, matching the platforms declared above:
 
@@ -288,7 +283,7 @@ say plainly in its README what the app has to add.
 
 ## Before you call it done
 
-- [ ] Checked the 31 existing modules, and the toolkit, before creating anything.
+- [ ] Checked the existing modules, and the toolkit, before creating anything.
 - [ ] A new module is justified by a cost it keeps off other apps — not by tidiness.
 - [ ] Every `expect` has an `actual` on every declared platform, no-ops written and commented.
 - [ ] `./gradlew :reaktor-<name>:build` passes, and so does the app that needed it.
