@@ -21,7 +21,9 @@ data class PlanNext(
 )
 
 object PlanSchedule {
-    fun ranked(plan: WorkPlan): List<PlanCandidate> {
+    fun ranked(plan: WorkPlan): List<PlanCandidate> = PlanAnalysis.ranked(plan)
+
+    internal fun calculateRanking(plan: WorkPlan): List<PlanCandidate> {
         val items = plan.items.associateBy { it.id }
         val children = plan.items.groupBy { it.parent }
         val states = plan.items.associate { it.id to plan.state(it.id) }

@@ -78,11 +78,20 @@ class PlanBacklogBaselineTest {
                     put("thread", plan.thread)
                     put("by", AgentWorkspaceJson.encodeToJsonElement(BoardActor.serializer(), reader))
                 }
-                val read = timed("read_cold_ms") { tools.getValue("agent_plan_read").invoke(args) }
+                val fullArgs = buildJsonObject {
+                    put("thread", plan.thread)
+                    put("by", AgentWorkspaceJson.encodeToJsonElement(BoardActor.serializer(), plan.createdBy!!))
+                }
+                val read = timed("read_cold_ms") { tools.getValue("agent_plan_read").invoke(fullArgs) }
                 val bytes = timed("read_encode_ms") { read.toString().toByteArray().size }
                 record("read_bytes", bytes)
                 assertEquals(1600, read.jsonObject.getValue("plan").jsonObject.getValue("items").jsonArray.size)
-                timed("read_warm_ms") { tools.getValue("agent_plan_read").invoke(args) }
+                timed("read_warm_ms") { tools.getValue("agent_plan_read").invoke(fullArgs) }
+                val agentRead = timed("agent_read_ms") { tools.getValue("agent_plan_read").invoke(args) }
+                val agentBytes = agentRead.toString().toByteArray(Charsets.UTF_8).size
+                record("agent_read_bytes", agentBytes)
+                assertTrue(agentBytes <= plan.limits.readBytes)
+                assertTrue(agentRead.jsonObject.getValue("plan").jsonObject.getValue("items").jsonArray.size < plan.items.size)
                 val next = timed("next_cold_ms") { tools.getValue("agent_plan_next").invoke(args) }
                 assertTrue(next.jsonObject["candidate"] != null && next.jsonObject["candidate"] != JsonNull)
                 timed("next_warm_ms") { tools.getValue("agent_plan_next").invoke(args) }

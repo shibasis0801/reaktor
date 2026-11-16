@@ -35,7 +35,7 @@ object PlanAnalysis {
         val kind: PlanKind, val priority: PlanPriority, val createdAt: Long, val reason: String, val replacement: String?)
     private data class Key(val thread: String, val revision: Long, val createdAt: Long, val items: List<Part>)
     private class Entry(val key: Key, val plan: WorkPlan) {
-        val ranked by lazy { PlanSchedule.ranked(plan) }
+        val ranked by lazy { PlanSchedule.calculateRanking(plan) }
         val ready by lazy { ranked.filter { it.item.status == PlanStatus.Todo && PlanSchedule.unblocked(plan, it.item) } }
         val report by lazy { calculate(plan, ranked, ready) }
     }

@@ -10,6 +10,11 @@ import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class PlanAnalysisRevisionTest {
+    @Test fun schedulerAndPreemptionShareTheRevisionRanking() {
+        val plan = plan(listOf(PlanItem("first", "First")))
+        assertSame(PlanAnalysis.ranked(plan), PlanSchedule.ranked(plan))
+    }
+
     private val owner = BoardActor(BoardActorKind.Person, "Fixture owner")
     private fun plan(items: List<PlanItem>, revision: Long = 1) = WorkPlan("hangar:analysis-revision", "Analysis", items = items,
         revision = revision, createdBy = owner, createdAt = 1, updatedAt = 1)

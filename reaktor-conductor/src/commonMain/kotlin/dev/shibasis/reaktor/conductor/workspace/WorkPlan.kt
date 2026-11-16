@@ -97,7 +97,7 @@ data class PlanSeatRetirement(val by: BoardActor, val at: Long, val reason: Stri
 data class PlanChange(val revision: Long, val at: Long, val by: BoardActor, val summary: List<String>, val requestId: String? = null)
 
 @Serializable
-data class PlanLimits(val doingPerHolder: Int = 5)
+data class PlanLimits(val doingPerHolder: Int = 5, val readBytes: Int = 65_536, val maxReadBytes: Int = 262_144)
 
 @Serializable
 data class WorkPlan(
@@ -255,6 +255,7 @@ data class PlanPatch(
     val message: String? = null,
     val documentPath: String? = null,
     val requestId: String? = null,
+    val limits: PlanLimits? = null,
 )
 
 @Serializable
@@ -517,7 +518,12 @@ object PlanRules {
 
         fun touch(item: PlanItem) = item.copy(revision = revision, by = by, changedAt = now)
 
-        val limits = plan.limits
+        val limits = patch.limits?.also {
+            require(it.doingPerHolder > 0) { "A holder must be allowed at least one Doing leaf" }
+            require(it.readBytes in 4096..it.maxReadBytes && it.maxReadBytes <= 262_144) { "Plan read budgets must be between 4096 and 262144 bytes" }
+            require(by.kind == BoardActorKind.Person || by.same(plan.createdBy) || threadAgent) { "Only the plan's owner can change its limits" }
+            require(plan.revision == 0L || patch.base == plan.revision) { "Read the current plan and pass its revision as base before changing its limits" }
+        } ?: plan.limits
         require(limits.doingPerHolder > 0) { "A holder must be allowed at least one Doing leaf" }
 
 
@@ -699,6 +705,7 @@ object PlanRules {
                     refused += PlanRefusal(index, op.target, failure.message ?: "Refused")
                 }
         }
+        require(limits == plan.limits || holders(items).values.all { it <= limits.doingPerHolder }) { "The configured Doing limit is below the work still held; finish or release work first" }
         val title = patch.title?.let(BoardText::title)?.takeIf { it != plan.title }
         val goal = patch.goal?.let { BoardText.bounded(it, "A goal", 2_000) }?.takeIf { it != plan.goal }
         var documentPath = plan.documentPath
@@ -712,6 +719,7 @@ object PlanRules {
                 summary += if (nextPath == null) "Unlinked the plan document" else "Linked plan document $nextPath"
             }
         }
+        if (limits != plan.limits) summary += "Changed the plan limits"
         if (title != null) summary += "Renamed the plan “$title”"
         if (goal != null) summary += "Changed the goal"
         patch.message?.replace(Regex("\\s+"), " ")?.trim()?.takeIf(String::isNotEmpty)?.let { summary += "Says: ${BoardText.bounded(it, "A message", 2_000)}" }

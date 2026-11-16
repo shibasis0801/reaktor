@@ -44,6 +44,9 @@ data class PlanReadRequest(
     @Describe("The revision you last read") @Schema(minimum = 0, nullable = false) val since: Long? = null,
     @Describe("Include the last 200 changes") val history: Boolean = false,
     @Schema(nullable = false) val by: PlanReader? = null,
+    @Describe("Encoded UTF-8 answer budget; defaults to the plan's 64 KB budget, at most 256 KB") @Schema(nullable = false) val budgetBytes: Int? = null,
+    @Describe("Read this component and its descendants") @Schema(nullable = false) val frame: String? = null,
+    @Describe("Continue an answer at the same plan revision; a changed plan requires restarting") @Schema(nullable = false) val continuation: String? = null,
 )
 
 @Serializable
@@ -63,6 +66,9 @@ data class PlanNextRequest(
     @Describe("An attached seat held by this agent") @Schema(nullable = false) val seat: String? = null,
     @Describe("Atomically take the candidate as a lease, renewed by authenticated activity") val take: Boolean = false,
     @Describe("Only consider this item key in the named thread; the same readiness, seat and lease rules apply") @Schema(nullable = false) val item: String? = null,
+    @Describe("Encoded UTF-8 answer budget; defaults to the plan's 64 KB budget, at most 256 KB") @Schema(nullable = false) val budgetBytes: Int? = null,
+    @Describe("Read this component and its descendants") @Schema(nullable = false) val frame: String? = null,
+    @Describe("Continue an answer at the same plan revision; a changed plan requires restarting") @Schema(nullable = false) val continuation: String? = null,
 )
 
 @Serializable
@@ -78,6 +84,7 @@ data class PlanWriteRequest(
     @Describe("A note to the others on this plan: kept in its log and delivered to them at their next step") @Schema(nullable = false) val message: String? = null,
     @Describe("Workspace-relative Markdown document under plans/, such as plans/launch.md. Headings with {#item-key} link to matching DAG items. Omit to keep the link; empty string unlinks it. Changing an existing plan's link requires its current base revision.") @Schema(nullable = false) val documentPath: String? = null,
     @Describe("Optional idempotency key; repeating the same requestId from the same writer returns the already-applied revision without re-applying") @Schema(nullable = false) val requestId: String? = null,
+    @Describe("Per-plan Doing and read budgets; requires the current base and the plan owner") @Schema(nullable = false) val limits: PlanLimits? = null,
 )
 
 @Serializable

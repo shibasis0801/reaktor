@@ -46,10 +46,18 @@ data class BoardItem(
     val relations: List<BoardRelation> = emptyList(),
     val priority: Int = 0,
     val resolution: String = "",
+    val people: List<BoardPerson> = emptyList(),
+    val frame: String = "",
+    val refs: List<String> = emptyList(),
 )
 
 @Serializable
+data class BoardPerson(val key: String, val name: String, val person: Boolean = false, val activity: String = "Assigned",
+                       val runtime: String? = null, val portraitMark: String = "")
+
+@Serializable
 data class BoardRelation(val to: String, val label: String)
+
 
 data class BoardRect(val x: Double, val y: Double, val width: Double, val height: Double) {
     val right: Double get() = x + width

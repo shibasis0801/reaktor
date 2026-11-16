@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.blueprint.product
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -31,27 +32,36 @@ fun SurfaceGraphBoard(
     threads: Set<String>? = null,
     sceneKey: String = "board",
     onMove: ((String, String) -> Boolean)? = null,
+    onMoveResult: (suspend (String, String) -> EditReceipt)? = null,
+    onOpen: (String) -> Unit = {},
+    onClear: () -> Unit = {},
+    onNotice: ((String) -> Unit)? = null,
+    visible: (SurfaceGraphNode) -> Boolean = { true },
+    closingReasonOf: (SurfaceGraphNode) -> String? = { null },
 ) {
     val model = remember(sceneKey, nodes, appearance) { SurfaceGraphSimple(nodes, emptyList(), appearance) }
     val lane by rememberUpdatedState(laneOf)
     val thread by rememberUpdatedState(threadOf)
-    val projection = remember(model, lanes, threads) {
+    val projection by remember(model, lanes, threads, visible, closingReasonOf) { derivedStateOf {
         KanbanProjection.from(model.editor.shape, lanes, laneOf = { shape -> model.nodes[shape.id]?.let(lane) },
-            threadOf = { shape -> model.nodes[shape.id]?.let(thread) ?: shape.scope }, threads = threads)
-    }
+            threadOf = { shape -> model.nodes[shape.id]?.let(thread) ?: shape.scope }, threads = threads,
+            visible = { shape -> model.nodes[shape.id]?.let(visible) == true },
+            closingReasonOf = { shape -> model.nodes[shape.id]?.let(closingReasonOf) })
+    } }
     val state = rememberBlueprintKanbanState()
     val select by rememberUpdatedState(onSelect)
     val move by rememberUpdatedState(onMove)
     SideEffect {
-        model.editor.onSelect = { id -> id?.let(select) }
+        model.editor.onSelect = { id -> if (id == null) onClear() else select(id) }
         if (model.editor.selection.nodes.singleOrNull() != selectedId && (selectedId == null || selectedId in model.nodes))
             model.editor.select(Selection(nodes = selectedId?.let(::setOf).orEmpty()))
     }
     MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact,
         mode = if (appearance.canvas.luminance() > .5f) MachineSignalMode.Light else MachineSignalMode.Dark) {
         BlueprintKanban(sceneKey, projection, model.editor, cardLook = { shape -> model.look(shape.id, appearance) }, modifier, state,
-            onMove = if (onMove == null) null else { node, to ->
-                if (move?.invoke(node.id, to.id) == true) EditReceipt.Accepted(model.editor.editRevision) else EditReceipt.Refused("This move was not saved")
-            })
+            onMove = if (onMove == null && onMoveResult == null) null else { node, to ->
+                onMoveResult?.invoke(node.id, to.id) ?: if (move?.invoke(node.id, to.id) == true)
+                    EditReceipt.Accepted(model.editor.editRevision) else EditReceipt.Refused("This move was not saved")
+            }, onOpen = onOpen, onClear = onClear, onNotice = onNotice)
     }
 }

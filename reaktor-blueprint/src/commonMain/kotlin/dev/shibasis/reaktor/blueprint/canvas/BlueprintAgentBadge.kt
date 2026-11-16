@@ -99,10 +99,11 @@ fun BlueprintAgentBadge(
     }
 }
 
-internal fun agentBadgeState(agent: BlueprintAgent): String = listOfNotNull(
-    agent.label.takeIf(String::isNotBlank),
-    agent.activity.takeUnless { it == BlueprintAgent.Activity.Unavailable }?.label,
-).distinct().joinToString(" · ") + if (agent.otherAgents > 0) " · +${agent.otherAgents}" else ""
+internal fun agentBadgeState(agent: BlueprintAgent): String = (if (agent.activity == BlueprintAgent.Activity.LastChangedBy)
+    listOf(agent.activity.label, agent.label).filter(String::isNotBlank).joinToString(" ")
+else listOfNotNull(agent.label.takeIf(String::isNotBlank),
+    agent.activity.takeUnless { it == BlueprintAgent.Activity.Unavailable }?.label).distinct().joinToString(" · ")) +
+    if (agent.otherAgents > 0) " · +${agent.otherAgents}" else ""
 
 internal fun agentBadgeTuple(agent: BlueprintAgent): String =
     listOfNotNull(agent.model?.takeIf(String::isNotBlank), agent.role?.takeIf(String::isNotBlank))

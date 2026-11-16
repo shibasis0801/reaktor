@@ -68,6 +68,22 @@ class PlanBacklogRulesTest {
         assertEquals(10, answer.plan.items.size)
     }
 
+    @Test fun loweringALimitRequiresACompliantFinalPlanAndARevisionCheckedOwner() {
+        val held = apply(empty(), *Array(3) { PlanOp.Add("Active", key = "p$it", status = PlanStatus.Doing) }).plan
+        fun configuredPatch(limit: Int, base: Long, ops: List<PlanOp> = emptyList()): PlanPatch {
+            val source = ConductorJson.encodeToJsonElement(PlanPatch.serializer(), PlanPatch(base = base, ops = ops)).jsonObject
+            return ConductorJson.decodeFromJsonElement(PlanPatch.serializer(), JsonObject(source + ("limits" to buildJsonObject { put("doingPerHolder", limit) })))
+        }
+        assertFailsWith<IllegalArgumentException> { PlanRules.apply(held, configuredPatch(2, held.revision), owner, 200) }
+        assertFailsWith<IllegalArgumentException> { PlanRules.apply(held, configuredPatch(4, held.revision - 1), owner, 200) }
+        val visitor = BoardActor(BoardActorKind.Agent, "Visitor", "codex:visitor")
+        assertFailsWith<IllegalArgumentException> { PlanRules.apply(held, configuredPatch(4, held.revision), visitor, 200) }
+        val closed = PlanRules.apply(held, configuredPatch(2, held.revision, listOf(PlanOp.Status("p0", PlanStatus.Todo))), owner, 200)
+        assertTrue(closed.refused.isEmpty())
+        val encoded = ConductorJson.encodeToJsonElement(WorkPlan.serializer(), closed.plan).jsonObject
+        assertEquals("2", encoded.getValue("limits").jsonObject.getValue("doingPerHolder").toString())
+    }
+
     @Test fun assignedFramesGiveTheirLeavesTheNamedHoldersLimit() {
         val frames = apply(empty(), PlanOp.Add("Alpha", key = "alpha", kind = PlanKind.Component, refs = listOf("agent:alpha")),
             PlanOp.Add("Beta", key = "beta", kind = PlanKind.Component, refs = listOf("agent:beta"))).plan

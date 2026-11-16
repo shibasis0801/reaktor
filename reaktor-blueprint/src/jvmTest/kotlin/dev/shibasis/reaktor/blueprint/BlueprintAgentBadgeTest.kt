@@ -61,6 +61,10 @@ class BlueprintAgentBadgeTest {
     private val agent = BlueprintAgent(null, "(codex, xhigh, sol 6.1, designer)", BlueprintAgent.Activity.Claimed,
         effort = "xhigh", model = "sol 6.1", role = "designer")
 
+    @Test fun lastChangedByNamesThePersonAfterTheLabel() {
+        assertEquals("Last changed by Fixture owner (Hangar)", agentBadgeState(agent.copy(label = "Fixture owner (Hangar)", activity = BlueprintAgent.Activity.LastChangedBy)))
+    }
+
     @Test fun mixedParticipantsHaveSeparateSideBySideIconsAndActions() {
         val companions = listOf(BlueprintAgent(null, "Claude", BlueprintAgent.Activity.Assigned, key = "claude"),
             BlueprintAgent(null, "Ada", BlueprintAgent.Activity.Completed, key = "ada", person = true))

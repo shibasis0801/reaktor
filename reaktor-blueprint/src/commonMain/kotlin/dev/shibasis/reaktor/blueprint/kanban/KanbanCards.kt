@@ -23,12 +23,12 @@ import dev.shibasis.reaktor.ui.machinesignal.colors
 
 @Composable
 internal fun KanbanCard(node: NodeShape, look: BlueprintCardLook, selected: Boolean, closingReason: String?,
-                        onSelect: () -> Unit, onAgentOpen: (BlueprintAgent) -> Unit, modifier: Modifier = Modifier) {
+                        onSelect: () -> Unit, onAgentOpen: (BlueprintAgent) -> Unit, modifier: Modifier = Modifier, tag: String = "kanban-card-${node.id}") {
     val colors = MachineSignal.colors
     val shape = RoundedCornerShape(MachineSignal.Radius.node)
     Column(modifier.fillMaxWidth().clip(shape).background(colors.surface)
         .border(MachineSignal.Stroke.hairline, if (selected) colors.controlAccent else colors.line, shape)
-        .clickable(onClick = onSelect).semantics { this.selected = selected }.testTag("kanban-card-${node.id}")
+        .clickable(onClick = onSelect).semantics { this.selected = selected }.testTag(tag)
         .padding(MachineSignal.Space.s3), verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2)) {
         Text(look.title, Modifier.fillMaxWidth().testTag("kanban-title-${node.id}"), role = Type.Body, lines = Int.MAX_VALUE)
         if (look.subtitle.isNotBlank()) Text(look.subtitle, Modifier.fillMaxWidth(), role = Type.Meta, ink = Ink.Muted, lines = Int.MAX_VALUE)
