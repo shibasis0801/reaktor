@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntSize
@@ -56,7 +57,7 @@ open class GraphCanvasState(val zoomRange: ClosedFloatingPointRange<Double> = 0.
     internal var readableZoom: (Double, Double, Double, Double) -> Double? = { _, _, _, _ -> null }
     internal var pinRequest by mutableStateOf<PinRef?>(null)
         private set
-    internal var density = 1.0
+    internal var density by mutableStateOf(1.0)
         private set
     private var fitted: Any? = null
     private var fittedScene: Any? = null
@@ -289,15 +290,18 @@ open class GraphCanvasState(val zoomRange: ClosedFloatingPointRange<Double> = 0.
     }
 
     internal fun density(value: Double) {
-        if (value == density) return
-        val ratio = value / density
-        fun Viewport.scaled() = copy(x = x * ratio, y = y * ratio, zoom = zoom * ratio)
-        flow.setViewport(flow.viewport.scaled())
-        history.indices.forEach { history[it] = history[it].scaled() }
-        restored = restored?.scaled()
-        framed = framed?.scaled()
-        density = value
-        glide = glide?.scaled()
+        Snapshot.withMutableSnapshot {
+            if (value != density) {
+                val ratio = value / density
+                fun Viewport.scaled() = copy(x = x * ratio, y = y * ratio, zoom = zoom * ratio)
+                flow.setViewport(flow.viewport.scaled())
+                history.indices.forEach { history[it] = history[it].scaled() }
+                restored = restored?.scaled()
+                framed = framed?.scaled()
+                density = value
+                glide = glide?.scaled()
+            }
+        }
     }
 
     internal fun record(view: Viewport = aimed) {
