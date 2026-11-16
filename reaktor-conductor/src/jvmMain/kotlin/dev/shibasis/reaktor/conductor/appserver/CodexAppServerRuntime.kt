@@ -71,6 +71,10 @@ class CodexAppServerRuntime(
         require(!request.agent.tools.strictMcpConfig && request.agent.tools.allow.isEmpty() && request.agent.tools.deny.isEmpty()) {
             "These tool restrictions have no App Server mapping; use native configuration or a supported transport"
         }
+        if (request.resume?.runtime == RuntimeKind.Codex) {
+            codexContinuationUnavailable(request.agent.tools, binary)?.let { error(it) }
+            require(request.outputSchema == null) { "The Codex desktop app cannot enforce this response schema." }
+        }
         if (codexDesktopAppAvailable(binary) && request.outputSchema == null && codexDesktopHonours(request.agent.tools, codexDesktopDefaults())) {
             return CodexDesktopSession(request, binary, scope)
         }
@@ -300,10 +304,30 @@ internal class CodexDesktopSession(
     override fun close() = Unit
 }
 
+fun codexContinuationUnavailable(allowWrites: Boolean): String? = codexContinuationUnavailable(ToolPolicy(allowWrites = allowWrites), "codex")
+
+private fun codexContinuationUnavailable(tools: ToolPolicy, binary: String): String? =
+    codexContinuationProblem(tools, codexDesktopAppAvailable(binary), codexDesktopAppRunning(), codexDesktopDefaults())
+
+internal fun codexContinuationProblem(tools: ToolPolicy, installed: Boolean, running: Boolean, defaults: CodexDesktopDefaults): String? = when {
+    !installed || !running -> "Open the Codex desktop app before continuing this thread."
+    !codexDesktopHonours(tools, defaults) -> "The Codex desktop app must use matching ${tools.codexSandbox()} permissions and never ask for approvals before this thread can continue."
+    else -> null
+}
+
 private fun codexDesktopAppAvailable(binary: String): Boolean = binary == "codex" &&
     System.getProperty("os.name").startsWith("Mac", ignoreCase = true) &&
     listOf(File("/Applications/ChatGPT.app"), File(System.getProperty("user.home"), "Applications/ChatGPT.app"))
         .any(File::isDirectory)
+
+private fun codexDesktopAppRunning(): Boolean {
+    val roots = listOf(File("/Applications/ChatGPT.app"), File(System.getProperty("user.home"), "Applications/ChatGPT.app"))
+        .map { it.absolutePath + "/Contents/" }
+    return ProcessHandle.allProcesses().use { processes -> processes.anyMatch { process ->
+        val command = process.info().command().orElse("")
+        roots.any(command::startsWith)
+    } }
+}
 
 private const val DesktopStallMillis = 20 * 60_000L
 

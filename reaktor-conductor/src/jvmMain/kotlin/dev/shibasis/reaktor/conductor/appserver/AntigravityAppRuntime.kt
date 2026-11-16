@@ -43,13 +43,16 @@ class AntigravityAppRuntime(
         val directory = File(request.workingDirectory)
         require(directory.isDirectory) { "Working directory does not exist: ${directory.absolutePath}" }
         antigravityGuard(request)
-        headlessReason(request)?.let { return Headless(headless.open(request), request.agent.id, it) }
-        val hub = app.connect()
+        val resume = request.resume?.takeIf { it.runtime == RuntimeKind.Gemini }?.sessionId
+        headlessReason(request)?.let { reason ->
+            if (resume != null) error("Cannot continue this conversation in the Antigravity app because $reason.")
+            return Headless(headless.open(request), request.agent.id, reason)
+        }
+        val hub = if (resume != null) app.hub() ?: error("Open the Antigravity app before continuing this conversation.") else app.connect()
         val project = withContext(Dispatchers.IO) { app.project(hub, directory) }
             ?: error("No Antigravity project holds ${directory.canonicalPath}. Open that folder in Antigravity once, then start the run again.")
-        val resume = request.resume?.takeIf { it.runtime == RuntimeKind.Gemini }?.sessionId
         if (resume != null && withContext(Dispatchers.IO) { app.run(hub, resume) } == null)
-            return Headless(headless.open(request), request.agent.id, "the conversation it continues was started headless")
+            error("This conversation is unavailable in the Antigravity app; CLI-root conversations cannot be continued there.")
         return AntigravityAppSession(app, hub, project, request, directory, resume, antigravityModelOrder(request.agent.model, candidates))
     }
 
@@ -61,6 +64,20 @@ class AntigravityAppRuntime(
 
     private companion object {
         val PromptLimit = if (System.getProperty("os.name").orEmpty().startsWith("Mac")) 800_000 else 120_000
+    }
+}
+
+suspend fun antigravityContinuationUnavailable(directory: File, session: String, app: AntigravityApp = AntigravityApp()): String? = withContext(Dispatchers.IO) {
+    when {
+        !app.installed -> "The Antigravity app is not installed."
+        else -> {
+            val hub = app.hub() ?: return@withContext "Open the Antigravity app before continuing this conversation."
+            when {
+                app.project(hub, directory) == null -> "Open this folder in the Antigravity app before continuing this conversation."
+                app.run(hub, session) == null -> "This conversation is unavailable in the Antigravity app; CLI-root conversations cannot be continued there."
+                else -> null
+            }
+        }
     }
 }
 

@@ -11,6 +11,15 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class WorkPromptTest {
+    @Test fun aRoleParagraphTypedOutsideAProfileRunStaysInTheBubble() {
+        val typed = "Discuss this role.\n\nYour role, reviewer: be strict about naming"
+        assertEquals(typed, WorkPrompts.of(typed).text)
+        assertNull(WorkPrompts.of(typed).context)
+        val sent = "You are Assistant.\n\n## Your task\n$typed\n"
+        assertEquals(typed, WorkPrompts.of(sent).text)
+        assertEquals(listOf("Instructions"), WorkPrompts.of(sent).context?.slices?.map { it.title })
+    }
+
     @Test fun recordedClaudeLinesKeepTheEnvelopeOutsideTheTypedPrompt() = recorded("claude", RuntimeKind.ClaudeCode)
     @Test fun recordedCodexLinesKeepTheEnvelopeOutsideTheTypedPrompt() = recorded("codex", RuntimeKind.Codex)
     @Test fun recordedAntigravityLinesKeepTheEnvelopeOutsideTheTypedPrompt() = recorded("antigravity", RuntimeKind.Gemini)
@@ -20,7 +29,7 @@ class WorkPromptTest {
         try {
             val file = directory.resolve("transcript.jsonl")
             javaClass.getResourceAsStream("/worklog/chat-envelopes/$fixture.jsonl")!!.use { input -> file.outputStream().use(input::copyTo) }
-            val log = WorkLogs.read(runtime, file, directory.path)
+            val log = RunLogs.prompts(WorkLogs.read(runtime, file, directory.path), emptyList(), profile = true)
             assertEquals(3, log.turns.size)
             assertEquals("Inspect the fixture graph.", log.turns[0].prompt)
             val context = assertNotNull(log.turns[0].context)
@@ -40,13 +49,13 @@ class WorkPromptTest {
 
     @Test fun canonicalPromptsKeepTheNativeContextWhenTheyReplaceTheMachinePrompt() {
         val sent = "You are Reviewer.\n\nInspect the ports.\n\n## Your task\nA typed question\n\nYour role, Reviewer: Preserve source intent.\n"
-        val parsed = WorkPrompts.of(sent)
+        val parsed = WorkPrompts.of(sent, profile = true)
         val events = listOf(ThreadEvent(EventId("human"), Author.Human(), EventKind.Prompt, "A typed question"))
         val native = WorkLog(listOf(WorkTurn("native", parsed.text, 1, 2, emptyList(), context = parsed.context)))
         val rebuilt = RunLogs.prompts(native, events).turns.single()
         assertEquals("A typed question", rebuilt.prompt)
         assertTrue(rebuilt.context === parsed.context)
-        val canonical = RunLogs.of(listOf(events.single().copy(text = sent)), emptyList(), false).turns.single()
+        val canonical = RunLogs.of(listOf(events.single().copy(text = sent)), emptyList(), false, profile = true).turns.single()
         assertEquals("A typed question", canonical.prompt)
         assertTrue(canonical.context?.sent == sent)
         assertEquals(2, canonical.context?.slices?.size)

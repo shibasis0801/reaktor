@@ -22,7 +22,7 @@ object RunLogs {
         else -> provider
     }
 
-    fun of(events: List<ThreadEvent>, activity: List<AgentActivityRecord>, partial: Boolean, council: Boolean = false, name: (String) -> String = ::agentName): WorkLog {
+    fun of(events: List<ThreadEvent>, activity: List<AgentActivityRecord>, partial: Boolean, council: Boolean = false, profile: Boolean = false, name: (String) -> String = ::agentName): WorkLog {
         val turns = mutableListOf<Turn>()
         events.forEach { event ->
             val at = event.createdAtEpochMillis.takeIf { it > 0 }
@@ -40,13 +40,17 @@ object RunLogs {
             turn.did += step(record, name)
             if (turn.ended == null || record.recordedAt > turn.ended!!) turn.ended = record.recordedAt
         }
-        return WorkLog(turns.map { it.build() }, partial)
+        return WorkLog(turns.map { it.build(profile) }, partial)
     }
 
-    fun prompts(log: WorkLog, events: List<ThreadEvent>): WorkLog {
-        val asked = events.filter { it.author is Author.Human }.map { WorkPrompts.of(it.text) }
-        val normalized = log.turns.map { it.prompt?.trim()?.replace(Whitespace, " ") }
-        val turns = log.turns.toMutableList()
+    fun prompts(log: WorkLog, events: List<ThreadEvent>, profile: Boolean = false): WorkLog {
+        val source = if (!profile) log else log.copy(turns = log.turns.map { turn ->
+            val parsed = WorkPrompts.of(turn.context?.sent ?: turn.prompt, profile = true)
+            if (parsed.text == turn.prompt) turn else turn.copy(prompt = parsed.text, context = parsed.context ?: turn.context)
+        })
+        val asked = events.filter { it.author is Author.Human }.map { WorkPrompts.of(it.text, profile) }
+        val normalized = source.turns.map { it.prompt?.trim()?.replace(Whitespace, " ") }
+        val turns = source.turns.toMutableList()
         var next = 0
         var matched = false
         var aligned = true
@@ -70,9 +74,9 @@ object RunLogs {
                     turns[index] = turn.copy(prompt = prompt.text, context = turn.context ?: prompt.context)
                 }
             }
-            return log.copy(turns = turns)
+            return source.copy(turns = turns)
         }
-        return if (matched) log.copy(turns = turns) else log
+        return if (matched) source.copy(turns = turns) else source
     }
 
     private class Turn(val id: String, val prompt: String?, val at: Long?) {
@@ -81,8 +85,8 @@ object RunLogs {
         val said = mutableListOf<WorkStep>()
         var ended: Long? = at
 
-        fun build(): WorkTurn {
-            val parsed = WorkPrompts.of(prompt)
+        fun build(profile: Boolean): WorkTurn {
+            val parsed = WorkPrompts.of(prompt, profile)
             return WorkTurn(id, parsed.text, at, ended, did + listOfNotNull(contributions.takeIf { it.isNotEmpty() }?.let { steps ->
                 WorkStep.Subagent("$id:council", steps.first().at, "${steps.size} council contributions · proposals and cross-review", steps = steps, status = StepStatus.Done)
             }) + said, context = parsed.context)

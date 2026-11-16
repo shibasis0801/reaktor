@@ -62,7 +62,7 @@ object WorkPrompts {
         generateSequence(ContextHeadings.find(text)) { ContextHeadings.find(text, it.end) }
             .any { it.heading == ContextHeadings.Task && taskBoundary(text, it.start) }
 
-    fun of(raw: String?): WorkPrompt {
+    fun of(raw: String?, profile: Boolean = false): WorkPrompt {
         if (raw == null) return WorkPrompt(null)
         val slices = mutableListOf<WorkContextSlice>()
         var task = raw
@@ -94,7 +94,7 @@ object WorkPrompts {
                 }
             }
         }
-        Role.findAll(task).lastOrNull()?.let { role ->
+        if (profile) Role.findAll(task).lastOrNull()?.let { role ->
             slices += WorkContextSlice("Profile role", task.substring(role.range.first).trim())
             envelopeChars += task.length - role.range.first
             task = task.substring(0, role.range.first)

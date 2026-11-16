@@ -108,10 +108,10 @@ class ContextHeadingTest {
         assertEquals(expected, compile(history = "Earlier question", peer = "Peer answer"))
     }
 
-    @Test fun typedLegacyRoleLookAlikesKeepTheirDocumentedMisfire() {
+    @Test fun profileRunsKeepTheLegacyRoleTailRule() {
         val task = "Draft:\n\nYour role, reviewer: check the diff\n\nKeep the next paragraph too."
         for (sent in listOf(task, compile(task = task))) {
-            val parsed = WorkPrompts.of(sent)
+            val parsed = WorkPrompts.of(sent, profile = true)
             assertEquals("Draft:", parsed.text)
             assertEquals("Profile role", parsed.context!!.slices.last().title)
             assertTrue(parsed.context!!.slices.last().text.endsWith("Keep the next paragraph too."))
