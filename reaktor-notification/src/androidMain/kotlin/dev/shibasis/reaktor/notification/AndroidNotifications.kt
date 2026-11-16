@@ -36,7 +36,8 @@ data class AndroidNotificationsConfig(
     val pushTransport: AndroidPushTransport? = null,
     val selfName: String = "You",
     val categories: List<NotificationCategorySpec> = emptyList(),
-    val sealedPreviews: SealedNoticePreviews? = null,
+    /** `AndroidSealedNoticePreviews(...)` from `:reaktor-notification-sealed`, or null for no previews. */
+    val sealedPreviews: NoticePreviews? = null,
     val sealedPreviewBody: ((SealedNotice, ByteArray) -> String?)? = null,
 )
 
@@ -44,7 +45,7 @@ class AndroidNotificationsClient(
     context: Context,
     private val config: AndroidNotificationsConfig = AndroidNotificationsConfig(),
 ) : NotificationAdapter<Context>(context.applicationContext, AndroidPermissionAdapter(context)) {
-    override val sealedPreviews: SealedNoticePreviews? get() = config.sealedPreviews
+    override val sealedPreviews: NoticePreviews? get() = config.sealedPreviews
     private val appContext = context.applicationContext
 
     // Process-wide rather than per-instance. What delivers a notification response on Android is

@@ -17,7 +17,8 @@ abstract class NotificationAdapter<Controller>(
 var Feature.Notifications by CreateSlot<NotificationsClient>()
 
 interface NotificationsClient : NotificationPermissionClient {
-    val sealedPreviews: SealedNoticePreviews?
+    /** What opens sealed notices on this device, when `:reaktor-notification-sealed` is linked and set up. */
+    val sealedPreviews: NoticePreviews?
         get() = null
 
     val devHarness: NotificationDevHarness?

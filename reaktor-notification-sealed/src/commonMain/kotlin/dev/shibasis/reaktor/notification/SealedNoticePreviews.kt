@@ -13,11 +13,16 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.io.encoding.Base64
 
+/**
+ * The keys that open sealed notices, kept on the device under [protection], and the person's
+ * choice to hide previews. [read] and [write] are where the one sealed record lives: a file the
+ * platform's factory picks (`AndroidSealedNoticePreviews`, `DarwinSealedNoticePreviews`).
+ */
 class SealedNoticePreviews(
     private val protection: PlatformSecretBox,
     private val read: () -> String?,
     private val write: (String?) -> Unit,
-) {
+) : NoticePreviews {
     suspend fun activate(session: SecuritySession) = lock.withLock {
         val previous = record()
         if (previous?.session?.samePrincipal(session) != true) {
@@ -34,20 +39,20 @@ class SealedNoticePreviews(
     private fun SecuritySession.samePrincipal(other: SecuritySession): Boolean =
         tenantId == other.tenantId && appId == other.appId && userId == other.userId
 
-    suspend fun clear() = lock.withLock {
+    override suspend fun clear() = lock.withLock {
         val hidden = record()?.hidden ?: true
         write(null)
         runCatching { save(PreviewRecord(hidden = hidden)) }
         Unit
     }
 
-    suspend fun hidden(): Boolean = lock.withLock { record()?.hidden ?: true }
+    override suspend fun hidden(): Boolean = lock.withLock { record()?.hidden ?: true }
 
-    suspend fun setHidden(hidden: Boolean) = lock.withLock {
+    override suspend fun setHidden(hidden: Boolean) = lock.withLock {
         save((record() ?: PreviewRecord()).copy(hidden = hidden))
     }
 
-    suspend fun open(notice: SealedNotice, body: (SealedNotice, ByteArray) -> String?): String? = runCatching {
+    override suspend fun open(notice: SealedNotice, body: (SealedNotice, ByteArray) -> String?): String? = runCatching {
         if (notice.encode() == null) return null
         val saved = lock.withLock { record() } ?: return null
         if (saved.hidden) return null

@@ -1641,6 +1641,137 @@ importers:
         specifier: 6.0.3
         version: 6.0.3
 
+  build/js/packages/reaktor-reaktor-notification-sealed:
+    dependencies:
+      '@emotion/css':
+        specifier: ^11.13.5
+        version: 11.13.5(supports-color@10.2.2)
+      '@emotion/react':
+        specifier: ^11.14.0
+        version: 11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2)
+      '@emotion/utils':
+        specifier: ^1.4.2
+        version: 1.4.2
+      '@js-joda/core':
+        specifier: 3.2.0
+        version: 3.2.0
+      '@remix-run/router':
+        specifier: ^1.21.1
+        version: 1.23.4
+      '@sqlite.org/sqlite-wasm':
+        specifier: 3.53.4-build2
+        version: 3.53.4-build2
+      abort-controller:
+        specifier: 3.0.0
+        version: 3.0.0
+      format-util:
+        specifier: ^1.0.5
+        version: 1.0.5
+      hono:
+        specifier: 4.12.23
+        version: 4.12.23
+      node-fetch:
+        specifier: 2.7.0
+        version: 2.7.0
+      partyserver:
+        specifier: 0.5.6
+        version: 0.5.6(@cloudflare/workers-types@4.20260702.1)
+      postgres:
+        specifier: 3.4.9
+        version: 3.4.9
+      react:
+        specifier: ^19.2.0
+        version: 19.3.0
+      react-dom:
+        specifier: ^19.2.0
+        version: 19.3.0(react@19.3.0)
+      react-router:
+        specifier: ^6.28.2
+        version: 6.30.6(react@19.3.0)
+      react-router-dom:
+        specifier: ^6.28.2
+        version: 6.30.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      reaktor-core:
+        specifier: link:../../../../reaktor-core
+        version: link:../../../../reaktor-core
+      ws:
+        specifier: 8.18.0
+        version: 8.18.0
+    devDependencies:
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+
+  build/js/packages/reaktor-reaktor-notification-sealed-test:
+    dependencies:
+      '@emotion/css':
+        specifier: ^11.13.5
+        version: 11.13.5(supports-color@10.2.2)
+      '@emotion/react':
+        specifier: ^11.14.0
+        version: 11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@10.2.2)
+      '@emotion/utils':
+        specifier: ^1.4.2
+        version: 1.4.2
+      '@js-joda/core':
+        specifier: 3.2.0
+        version: 3.2.0
+      '@remix-run/router':
+        specifier: ^1.21.1
+        version: 1.23.4
+      '@sqlite.org/sqlite-wasm':
+        specifier: 3.53.4-build2
+        version: 3.53.4-build2
+      abort-controller:
+        specifier: 3.0.0
+        version: 3.0.0
+      format-util:
+        specifier: ^1.0.5
+        version: 1.0.5
+      hono:
+        specifier: 4.12.23
+        version: 4.12.23
+      node-fetch:
+        specifier: 2.7.0
+        version: 2.7.0
+      partyserver:
+        specifier: 0.5.6
+        version: 0.5.6(@cloudflare/workers-types@4.20260702.1)
+      postgres:
+        specifier: 3.4.9
+        version: 3.4.9
+      react:
+        specifier: ^19.2.0
+        version: 19.3.0
+      react-dom:
+        specifier: ^19.2.0
+        version: 19.3.0(react@19.3.0)
+      react-router:
+        specifier: ^6.28.2
+        version: 6.30.6(react@19.3.0)
+      react-router-dom:
+        specifier: ^6.28.2
+        version: 6.30.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      reaktor-core:
+        specifier: link:../../../../reaktor-core
+        version: link:../../../../reaktor-core
+      ws:
+        specifier: 8.18.0
+        version: 8.18.0
+    devDependencies:
+      kotlin-web-helpers:
+        specifier: 3.3.0
+        version: 3.3.0
+      mocha:
+        specifier: 11.7.6
+        version: 11.7.6
+      source-map-support:
+        specifier: 0.5.21
+        version: 0.5.21
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+
   build/js/packages/reaktor-reaktor-notification-test:
     dependencies:
       '@emotion/css':

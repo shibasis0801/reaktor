@@ -11,12 +11,16 @@ library(namespace = "dev.shibasis.reaktor.notification", targets = Targets.All) 
     // FirebaseMessaging pod, and the INTERNET / c2dm.RECEIVE permissions they merge into an
     // app's manifest — lives in :reaktor-notification-fcm. Apps that receive remote push depend
     // on that module; apps that only schedule reminders no longer pay for it.
+    //
+    // The same goes for sealed notices. Opening one needs :reaktor-security (BoringSSL and MLS++,
+    // about 2.6 MB of native code per ABI), so SealedNoticePreviews lives in
+    // :reaktor-notification-sealed and this module keeps only the hook it plugs into
+    // (NoticePreviews) and the wire shape (SealedNotice).
     dependencies {
         common {
             api(projects.reaktorCore)
             api(projects.reaktorGraph)
             api(projects.reaktorUi)
-            api(projects.reaktorSecurity)
             commonCoroutines()
             commonSerialization()
             commonKoin()

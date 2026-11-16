@@ -61,6 +61,8 @@ packages:
   - "build/js/packages/reaktor-reaktor-media"
   - "build/js/packages/reaktor-reaktor-media-test"
   - "build/js/packages/reaktor-reaktor-notification"
+  - "build/js/packages/reaktor-reaktor-notification-sealed"
+  - "build/js/packages/reaktor-reaktor-notification-sealed-test"
   - "build/js/packages/reaktor-reaktor-notification-test"
   - "build/js/packages/reaktor-reaktor-pdf"
   - "build/js/packages/reaktor-reaktor-pdf-test"
