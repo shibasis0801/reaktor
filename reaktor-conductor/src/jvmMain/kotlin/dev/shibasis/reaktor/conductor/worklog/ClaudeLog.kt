@@ -112,14 +112,14 @@ internal class ClaudeLog(private val root: String?, private val subagent: (Strin
                 .map { LogText.replacement(it.str("old_string").orEmpty(), it.str("new_string").orEmpty()) })
             "Write" -> edit(id, at, file, EditKind.Add, listOf(LogText.lines(input.str("content").orEmpty(), '+').let { (lines, cut) -> DiffHunk(null, 1, lines) to cut }), content = input.str("content")?.takeIf { it.length <= 1_000_000 })
             "NotebookEdit" -> edit(id, at, file, EditKind.Update, listOf(LogText.lines(input.str("new_source").orEmpty(), '+').let { (lines, cut) -> DiffHunk(null, null, lines) to cut }))
-            "Read" -> WorkStep.Tool(id, at, ToolKind.Read, "Read", readSummary(file, input))
-            "Grep" -> WorkStep.Tool(id, at, ToolKind.Search, "Search", listOfNotNull(input.str("pattern"), LogText.relative(input.str("path"), root), input.str("glob")).joinToString(" · "))
-            "Glob" -> WorkStep.Tool(id, at, ToolKind.Search, "Find files", listOfNotNull(input.str("pattern"), LogText.relative(input.str("path"), root)).joinToString(" · "))
-            "WebFetch" -> WorkStep.Tool(id, at, ToolKind.Web, "Fetch", input.str("url"))
-            "WebSearch" -> WorkStep.Tool(id, at, ToolKind.Web, "Web search", input.str("query"))
+            "Read" -> WorkStep.Tool(id, at, ToolKind.Read, "Read", readSummary(file, input), input = LogText.clip(input.toString()))
+            "Grep" -> WorkStep.Tool(id, at, ToolKind.Search, "Search", listOfNotNull(input.str("pattern"), LogText.relative(input.str("path"), root), input.str("glob")).joinToString(" · "), input = LogText.clip(input.toString()))
+            "Glob" -> WorkStep.Tool(id, at, ToolKind.Search, "Find files", listOfNotNull(input.str("pattern"), LogText.relative(input.str("path"), root)).joinToString(" · "), input = LogText.clip(input.toString()))
+            "WebFetch" -> WorkStep.Tool(id, at, ToolKind.Web, "Fetch", input.str("url"), input = LogText.clip(input.toString()))
+            "WebSearch" -> WorkStep.Tool(id, at, ToolKind.Web, "Web search", input.str("query"), input = LogText.clip(input.toString()))
             in Checklist.ClaudeTools -> WorkStep.Plan(id, at, Checklist.claude(name, input, plan).orEmpty().also { plan = it })
             "Agent", "Task" -> WorkStep.Subagent(id, at, input.str("description") ?: input.str("subagent_type") ?: "Subagent", input.str("prompt"), input.str("model"))
-            "AskUserQuestion" -> WorkStep.Question(id, at, input.list("questions").mapNotNull { (it as? JsonObject)?.str("question") }.joinToString("\n").ifBlank { "A question for the person" })
+            "AskUserQuestion" -> WorkStep.Question(id, at, input.list("questions").mapNotNull { (it as? JsonObject)?.str("question") }.joinToString("\n").ifBlank { "A question for the person" }, questions = workQuestions(input, "q"))
             "ExitPlanMode" -> WorkStep.Question(id, at, input.str("plan") ?: "Approve the plan")
             else -> if (name.startsWith("mcp__")) {
                 val (server, tool) = name.removePrefix("mcp__").split("__", limit = 2).let { parts -> parts.first() to parts.getOrElse(1) { parts.first() } }
@@ -182,7 +182,7 @@ internal class ClaudeLog(private val root: String?, private val subagent: (Strin
             }
             is WorkStep.Question -> step.copy(answer = LogText.oneLine(text), status = if (failed) StepStatus.Failed else StepStatus.Done, answeredAt = at)
             is WorkStep.Tool -> {
-                val (shown, cut) = LogText.cut(if (step.kind == ToolKind.Read && !failed) null else text)
+                val (shown, cut) = LogText.cut(text)
                 step.copy(output = shown, cut = cut, millis = millis, status = if (failed) StepStatus.Failed else StepStatus.Done)
             }
             else -> step

@@ -77,11 +77,11 @@ internal class AntigravityLog(private val root: String?) : LogParser {
                 WorkStep.Edit(id, at, file ?: "(unknown file)", if (args.flag("Overwrite")) EditKind.Update else EditKind.Add, listOf(DiffHunk(null, 1, lines)), cut = cut)
             }
             "view_file", "view_file_outline", "view_code_item", "read_file" -> WorkStep.Tool(id, at, ToolKind.Read, "Read",
-                listOfNotNull(file, args.num("StartLine")?.let { start -> "lines $start–${args.num("EndLine") ?: start}" }).joinToString(" · ").ifEmpty { purpose })
+                listOfNotNull(file, args.num("StartLine")?.let { start -> "lines $start–${args.num("EndLine") ?: start}" }).joinToString(" · ").ifEmpty { purpose }, input = LogText.clip(args.toString()))
             "find_by_name", "grep_search", "list_dir", "codebase_search" -> WorkStep.Tool(id, at, ToolKind.Search, if (name == "list_dir") "List folder" else "Search",
-                listOfNotNull(args.str("Pattern") ?: args.str("Query"), LogText.relative(args.str("SearchDirectory") ?: args.str("SearchPath") ?: args.str("DirectoryPath"), root)).joinToString(" · ").ifEmpty { purpose })
+                listOfNotNull(args.str("Pattern") ?: args.str("Query"), LogText.relative(args.str("SearchDirectory") ?: args.str("SearchPath") ?: args.str("DirectoryPath"), root)).joinToString(" · ").ifEmpty { purpose }, input = LogText.clip(args.toString()))
             "search_web", "read_url_content", "read_browser_page" -> WorkStep.Tool(id, at, ToolKind.Web, if (name == "search_web") "Web search" else "Fetch",
-                args.str("query") ?: args.str("Url") ?: purpose)
+                args.str("query") ?: args.str("Url") ?: purpose, input = LogText.clip(args.toString()))
             "call_mcp_tool" -> WorkStep.Tool(id, at, ToolKind.Mcp, args.str("ToolName") ?: "MCP tool", purpose, LogText.clip(args["Arguments"]?.toString()), server = args.str("ServerName"))
             else -> if (name.startsWith("mcp_")) WorkStep.Tool(id, at, ToolKind.Mcp, name.removePrefix("mcp_"), purpose, LogText.clip(args.toString()))
             else WorkStep.Tool(id, at, ToolKind.Other, name.replace('_', ' ').replaceFirstChar(Char::uppercase), purpose, LogText.clip(args.toString()))
@@ -98,7 +98,7 @@ internal class AntigravityLog(private val root: String?) : LogParser {
             is WorkStep.Command -> step.copy(output = output, cut = cut || truncated, millis = millis, status = status,
                 exitCode = Regex("[Ee]xit code:? (\\d+)").find(content.orEmpty())?.groupValues?.get(1)?.toIntOrNull())
             is WorkStep.Edit -> step.copy(status = status)
-            is WorkStep.Tool -> step.copy(output = if (step.kind == ToolKind.Read && status != StepStatus.Failed) null else output, cut = cut || truncated, millis = millis, status = status)
+            is WorkStep.Tool -> step.copy(output = output, cut = cut || truncated, millis = millis, status = status)
             else -> step
         }
         turn.open = waiting.any { it.turn == pending.turn }

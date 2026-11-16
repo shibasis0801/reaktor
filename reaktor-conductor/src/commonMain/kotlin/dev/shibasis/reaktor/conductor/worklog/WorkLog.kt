@@ -1,6 +1,8 @@
 package dev.shibasis.reaktor.conductor.worklog
 
 import dev.shibasis.reaktor.conductor.ContextHeadings
+import dev.shibasis.reaktor.conductor.PendingQuestion
+import kotlinx.serialization.json.*
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -273,7 +275,7 @@ sealed interface WorkStep {
     ) : WorkStep
 
     @Serializable @SerialName("question")
-    data class Question(override val id: String, override val at: Long?, val text: String, val answer: String? = null, override val status: StepStatus = StepStatus.Running, val answeredAt: Long? = null) : WorkStep
+    data class Question(override val id: String, override val at: Long?, val text: String, val answer: String? = null, override val status: StepStatus = StepStatus.Running, val answeredAt: Long? = null, val questions: List<PendingQuestion> = emptyList()) : WorkStep
 
     @Serializable @SerialName("note")
     data class Note(override val id: String, override val at: Long?, val kind: NoteKind, val text: String) : WorkStep
@@ -397,4 +399,17 @@ fun mergeWorkLogs(logs: List<WorkLog>): WorkLog {
         }.sortedBy { it.startedAt },
         earlier = logs.any { it.earlier },
     )
+}
+
+internal fun workQuestions(input: JsonObject, id: String): List<PendingQuestion> = (input["questions"] as? JsonArray).orEmpty().mapIndexedNotNull { index, element ->
+    val question = element as? JsonObject ?: return@mapIndexedNotNull null
+    fun text(key: String) = (question[key] as? JsonPrimitive)?.contentOrNull
+    val title = text("question") ?: text("title") ?: return@mapIndexedNotNull null
+    PendingQuestion(text("id") ?: "$id$index", title, (question["options"] as? JsonArray).orEmpty().mapNotNull { option ->
+        when (option) {
+            is JsonPrimitive -> option.contentOrNull
+            is JsonObject -> (option["label"] as? JsonPrimitive)?.contentOrNull
+            else -> null
+        }
+    })
 }

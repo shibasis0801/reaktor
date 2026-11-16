@@ -51,9 +51,11 @@ internal class CodexLog(private val root: String?) : LogParser {
             }
             "exec_approval_request", "apply_patch_approval_request", "request_user_input" -> {
                 val turn = turns.ensure(at)
-                val text = payload.list("command").mapNotNull { (it as? JsonPrimitive)?.contentOrNull }.lastOrNull()
+                val id = payload.str("id") ?: payload.str("call_id") ?: "${turn.id}:ask:${turn.steps.size}"
+                val questions = workQuestions(payload, id)
+                val text = questions.takeIf { it.isNotEmpty() }?.joinToString("\n") { it.title } ?: payload.list("command").mapNotNull { (it as? JsonPrimitive)?.contentOrNull }.lastOrNull()
                     ?: payload.str("reason") ?: payload.str("prompt") ?: "Codex is waiting for an approval"
-                asked += turns.lastIndex to turn.add(WorkStep.Question("${turn.id}:ask:${turn.steps.size}", at, text))
+                asked += turns.lastIndex to turn.add(WorkStep.Question(id, at, text, questions = questions))
             }
         }
     }
@@ -92,7 +94,7 @@ internal class CodexLog(private val root: String?) : LogParser {
                 val (output, cut) = LogText.cut(item.str("aggregated_output"))
                 val parts = item.list("parsed_cmd").mapNotNull { it as? JsonObject }
                 if (!failed && (exit ?: 0) == 0 && parts.isNotEmpty() && parts.all { it.str("type") in ExploreTypes })
-                    parts.forEachIndexed { index, part -> turn.add(explore("$id:$index", stamp, part, if (index == 0) millis else null)) }
+                    parts.forEachIndexed { index, part -> turn.add(explore("$id:$index", stamp, part, if (index == 0) millis else null).copy(output = if (index == 0) output else null, cut = index == 0 && cut)) }
                 else turn.add(WorkStep.Command(id, stamp, command(item), output = output?.takeIf(String::isNotEmpty), exitCode = exit, millis = millis, cut = cut,
                     status = if (failed || exit != null && exit != 0) StepStatus.Failed else StepStatus.Done))
             }
@@ -110,7 +112,7 @@ internal class CodexLog(private val root: String?) : LogParser {
             }
             "McpToolCall" -> {
                 val result = item.obj("result")
-                val (output, cut) = LogText.cut(result?.get("content").plain() ?: item.obj("error")?.str("message"))
+                val (output, cut) = LogText.cut(if (result?.get("structuredContent") != null) result.toString() else result?.get("content").plain() ?: item.obj("error")?.str("message"))
                 turn.add(WorkStep.Tool(id, stamp, ToolKind.Mcp, item.str("tool").orEmpty(), argumentSummary(item.obj("arguments")),
                     LogText.clip(item["arguments"]?.toString()), output, millis = millis, server = item.str("server"), cut = cut,
                     status = if (failed || result?.flag("isError") == true) StepStatus.Failed else StepStatus.Done))
