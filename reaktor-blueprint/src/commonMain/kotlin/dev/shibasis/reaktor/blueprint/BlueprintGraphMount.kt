@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.blueprint
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Rect
@@ -61,10 +62,12 @@ fun <K> BlueprintGraph(
     topInset: Dp = 48.dp,
     mapLayers: Boolean = false,
     mapDetail: Boolean = false,
+    overlays: BlueprintOverlays = LocalBlueprintOverlays.current,
 ) {
-    BlueprintCanvas(layout, canvas, highlight, selected, linkStyle, frameLook, cardLook, onCardClick, onLinkClick, onPaneClick,
-        modifier = modifier, labels = labels, fitKey = fitKey, fitScene = fitScene, startInset = startInset, pulses = pulses,
-        glow = glow, pinTip = pinTip, onPinClick = onPinClick, onCardOpen = onCardOpen, onPinOpen = onPinOpen, focusable = focusable, port = port,
+    val paint = remember(layout, overlays) { overlays.prepare(layout) }
+    BlueprintCanvas(paint.layout(layout), canvas, highlight, selected, { paint.style(it.id) ?: linkStyle(it) }, frameLook, { card -> cardLook(card)?.let { paint.decorate(card, it) } }, onCardClick, onLinkClick, onPaneClick,
+        modifier = modifier, labels = labels + paint.labels, fitKey = fitKey, fitScene = fitScene, startInset = startInset, pulses = pulses,
+        glow = { paint.glow(it) ?: glow(it) }, pinTip = pinTip, onPinClick = onPinClick, onCardOpen = onCardOpen, onPinOpen = onPinOpen, focusable = focusable, port = port,
         editor = editor, cardContent = cardContent, interaction = interaction,
         initialFit = initialFit, foldLook = foldLook,
         editable = editable, onAgentOpen = onAgentOpen, onFrameClick = onFrameClick, onGeometry = onGeometry, labelExclusions = labelExclusions, focusLabels = focusLabels, denseOverview = denseOverview, subject = subject, topInset = topInset, mapLayers = mapLayers, mapDetail = mapDetail)
