@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <cache-path name="reaktor-share" path="reaktor-share/" />
+    <!-- Where the camera app writes one photo for AndroidPhotos, which reads it and removes it. -->
+    <cache-path name="reaktor-capture" path="reaktor-capture/" />
 </paths>

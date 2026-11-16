@@ -127,11 +127,32 @@ private fun packed(read: Reader, at: Int): Int? {
     return b[0] or (b[1] shl 8) or (b[2] shl 16) or (b[3] shl 24)
 }
 
+/**
+ * Which way up the picture in [bytes] says it should be shown: EXIF's orientation, 1 to 8, where 1
+ * is "as stored", 6 is "turn it a quarter clockwise" and so on. 1 for anything that carries no
+ * such note, which is everything but a JPEG from a camera.
+ *
+ * [pictureHeader] already gives the size the right way up. This is for a decoder that hands back
+ * the pixels as stored and leaves the turning to its caller (Java's ImageIO does; Android's
+ * BitmapFactory does). Never throws.
+ */
+fun pictureOrientation(bytes: ByteArray): Int = jpegFrame(Reader(bytes))?.orientation ?: 1
+
+private class JpegFrame(val width: Int, val height: Int, val orientation: Int)
+
 private fun jpeg(read: Reader): PictureHeader? {
+    val frame = jpegFrame(read) ?: return null
+    // Orientations 5 to 8 lie on their side: the size anyone sees has the two swapped.
+    return if (frame.orientation in 5..8) PictureHeader(PictureFormat.Jpeg, frame.height, frame.width)
+    else PictureHeader(PictureFormat.Jpeg, frame.width, frame.height)
+}
+
+/** A JPEG's frame as stored, and the orientation its EXIF note gives (1 when there is none). */
+private fun jpegFrame(read: Reader): JpegFrame? {
     if (read.u8(0) != 0xFF || read.u8(1) != 0xD8) return null
 
     var at = 2
-    var turned = false
+    var orientation = 1
     while (at < read.size) {
         if (read.u8(at) != 0xFF) return null
         // Any number of fill bytes may sit in front of a marker.
@@ -159,13 +180,9 @@ private fun jpeg(read: Reader): PictureHeader? {
                 val height = read.u16be(at + 3)
                 val width = read.u16be(at + 5)
                 if (width < 0 || height < 0) return null
-                return if (turned) {
-                    PictureHeader(PictureFormat.Jpeg, height, width)
-                } else {
-                    PictureHeader(PictureFormat.Jpeg, width, height)
-                }
+                return JpegFrame(width, height, orientation)
             }
-            marker == 0xE1 && read.says(at + 2, "Exif") -> turned = turnsOnItsSide(read, at + 8, at + length)
+            marker == 0xE1 && read.says(at + 2, "Exif") -> orientation = exifOrientation(read, at + 8, at + length)
         }
         at += length
     }
@@ -173,33 +190,33 @@ private fun jpeg(read: Reader): PictureHeader? {
 }
 
 /**
- * Whether the orientation recorded at [tiff] is one of the four that swap width for height.
+ * The orientation recorded at [tiff], 1 to 8, or 1 when there is none or it can't be read.
  *
  * Every phone camera writes this. The sensor is fixed in the phone, so a portrait photograph is a
  * landscape one with a note attached, and a size read without the note is the wrong way round for
  * most pictures anyone takes.
  */
-private fun turnsOnItsSide(read: Reader, tiff: Int, end: Int): Boolean {
+private fun exifOrientation(read: Reader, tiff: Int, end: Int): Int {
     val little = when {
         read.says(tiff, "II") -> true
         read.says(tiff, "MM") -> false
-        else -> return false
+        else -> return 1
     }
     fun u16(at: Int) = if (little) read.u16le(at) else read.u16be(at)
     fun u32(at: Int) = if (little) read.u32le(at) else read.u32be(at)
 
-    if (u16(tiff + 2) != 42) return false
-    val directory = u32(tiff + 4).takeIf { it >= 8 }?.let { tiff + it } ?: return false
-    val entries = u16(directory).takeIf { it in 0..512 } ?: return false
+    if (u16(tiff + 2) != 42) return 1
+    val directory = u32(tiff + 4).takeIf { it >= 8 }?.let { tiff + it } ?: return 1
+    val entries = u16(directory).takeIf { it in 0..512 } ?: return 1
 
     for (index in 0 until entries) {
         val entry = directory + 2 + index * 12
-        if (entry + 12 > end) return false
+        if (entry + 12 > end) return 1
         if (u16(entry) != ORIENTATION) continue
         // A SHORT, so it sits in the first two bytes of the value field.
-        return u16(entry + 8) in 5..8
+        return u16(entry + 8).takeIf { it in 1..8 } ?: 1
     }
-    return false
+    return 1
 }
 
 private const val ORIENTATION = 0x0112
