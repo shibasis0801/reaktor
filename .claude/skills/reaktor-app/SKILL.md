@@ -647,6 +647,28 @@ example; GymBuddy's `ReminderService` a larger one.
   dumpsys notification --noredact`, and put the clock back (`set-time` to now, detection on).
   `adb shell dumpsys alarm | grep -A8 <package>` shows what is scheduled, with its window.
 
+## A photo from the person: `PhotoPicker`, `CameraCapture`, `downscalePicture`
+
+`reaktor-io` has the system's own photo chooser and camera, and neither needs a permission:
+Android's Photo Picker and camera app, iOS's `PHPickerViewController` and camera sheet. Install
+`AndroidPhotos(this)` / `DarwinPhotos()` in `Feature.PhotoPicker` and `Feature.Camera` beside the
+document picker. Coffer's payment page is the worked example (`EntryScreen.attach`, `PhotoViews.kt`).
+
+- **Bring it down before keeping it.** `downscalePicture(bytes, maxSide, quality)` gives an
+  upright JPEG: a phone's 4 MB photo is a few hundred KB at 1,400 px. Never keep the raw bytes.
+- **Don't declare `CAMERA` for this.** An Android app that declares it and hasn't been granted it
+  is refused the camera app too. Check the merged manifest after adding any library.
+- **iOS needs `NSCameraUsageDescription`** in Info.plist before the camera opens, or iOS ends the app.
+- **Run the pick in the node's scope, not the screen's.** The camera is another app; by the time it
+  returns, the screen may have been taken down (a lock after a minute away). The node outlives it.
+- **A screen keyed on a `StateFlow` won't reload for a change that leaves the flow's value equal.**
+  Replacing one photo with another left the payment's fields (and so the month's value) the same,
+  and the screen kept showing the old photo. Hand the new value to the screen directly, or key the
+  reload on something that changes.
+- **The Photo Picker on recent Androids may ask for Done** even for a single photo, and shows
+  "Coffer will only have access to the photos you select". To test, push a picture with
+  `adb push x.jpg /sdcard/Pictures/` and it appears there.
+
 ## Files people bring from other apps
 
 `reaktor-io`'s `archive` package reads them in common code: `Zip` (stored and deflated entries),

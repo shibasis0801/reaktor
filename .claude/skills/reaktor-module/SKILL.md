@@ -50,9 +50,11 @@ arrives transitively: `reaktor-graph` exposes `reaktor-ui`, which exposes Coil, 
 `coil3.compose.AsyncImage` is on the classpath of every app that has a graph, on every target,
 with nothing added. The picture got drawn with a library the app was already paying for.
 
-Two things in the framework are worth knowing before drawing anything that came from somewhere
-else. `pictureHeader(bytes)` in `reaktor-io` reads a picture's size from its header without
-decoding it: use it to refuse a picture too large to open (Skia, so desktop and browser, decodes at
+Three things in the framework are worth knowing before drawing anything that came from somewhere
+else. `PhotoPicker` and `CameraCapture` in `reaktor-io` get a photo from the person with no
+permission at all, and `downscalePicture` brings it to a size worth keeping: reach for those
+before `reaktor-media`, which brings a microphone permission and CameraX. `pictureHeader(bytes)`
+in `reaktor-io` reads a picture's size from its header without decoding it: use it to refuse a picture too large to open (Skia, so desktop and browser, decodes at
 full size — a few kilobytes of PNG can ask for gigabytes), to size the space before the picture
 loads, and to tell a picture by its bytes rather than by the name it arrived under. And hand a
 loader **bytes, never an address** taken from received content: a loader that is given a URL

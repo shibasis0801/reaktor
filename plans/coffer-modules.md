@@ -13,7 +13,7 @@ internet permission, nothing leaves the phone. Surveyed 15 November 2026.
 | 2 | Excel export | `reaktor-io` archive: a zip writer and an xlsx writer | no | S | **done, 15 Nov** |
 | 3 | App lock | new `reaktor-unlock` | **yes** | S–M | **done, 15 Nov** (iOS not run against Face ID) |
 | 4 | Opt-in reminders | `reaktor-notification`, after moving sealed notices out to `reaktor-notification-sealed` | **yes** (a split) | M | **done, 16 Nov** (iOS delivery not seen) |
-| 5 | Receipt photos | `reaktor-io`: photo picker, system camera, downscale | no | M | nothing |
+| 5 | Receipt photos | `reaktor-io`: photo picker, system camera, downscale | no | M | **done, 16 Nov** (iOS not run) |
 | 6 | Home-screen widget | new `reaktor-widget`; an iOS widget extension per app | **yes** | M–L | an Xcode target per app |
 | 7 | PDF bank statements | `reaktor-pdf`: passwords, positions, an iOS reader; old Androids in `reaktor-pdf-box` | one optional | L | real statements from the owner |
 
@@ -162,6 +162,26 @@ belong beside `DocumentPicker` in `reaktor-io`:
   no permission.
 - Coffer: "Add a photo" on a payment; kept in the ledger, so backups carry it (and grow: the
   backup screen says the size).
+
+**Done (63205d0d).** As planned, with these differences:
+- **One class per platform for both.** `AndroidPhotos` and `DarwinPhotos` implement `PhotoPicker`
+  and `CameraCapture`, in two slots (`Feature.PhotoPicker`, `Feature.Camera`).
+- **`downscalePicture` is an `expect` function**, not an adapter: every target has a decoder, and
+  absence isn't an ordinary state. Android subsamples while decoding; iOS takes HEIC; the browser
+  needs `OffscreenCanvas`. A picture whose header asks for more than 120 million pixels is refused
+  before any decoder sees it. `pictureOrientation(bytes)` joined `pictureHeader` for decoders that
+  hand back pixels as stored.
+- **Not done:** `reaktor-media`'s `GalleryAdapter` still has its own picker; moving it onto
+  `PhotoPicker` changes BestBuds and GymBuddy and is left for when either is open. The backup
+  screen doesn't say the backup's size yet.
+
+Checked: five downscale tests on the JVM (size, never enlarged, four orientations turned upright
+with no EXIF left, transparency, refusals) and the picture-header tests; Android, iOS and JS
+compile. In Coffer on an API 36 emulator: choosing from the Photo Picker, taking one with the camera
+app, the viewer and its zoom, Replace, and Remove with Undo; the merged manifest gained no
+permission. On the iOS simulator: choosing from `PHPickerViewController`, which warns "Location Is
+Included"; the kept photo is re-encoded from pixels, so it isn't. Not checked: the iOS camera
+sheet, a real phone's 12-megapixel photo, and how much a year of receipts adds to a backup.
 
 ## 6. Home-screen widget · new `reaktor-widget` · M–L
 

@@ -77,6 +77,8 @@ class DownscaleTest {
         assertEquals(PictureHeader(PictureFormat.Jpeg, 200, 400), pictureHeader(upright))
         // The note is gone: the pixels themselves are the right way up now.
         assertEquals(1, pictureOrientation(upright))
+        // And with it everything else EXIF carries, a photo's location among it: only pixels are kept.
+        assertTrue("Exif" !in String(upright, Charsets.ISO_8859_1))
         pixels(upright).let { assertTrue(it.isRed(100, 60) && it.isBlue(100, 340)) }
 
         // 8: a quarter turn the other way. The left is at the bottom.
