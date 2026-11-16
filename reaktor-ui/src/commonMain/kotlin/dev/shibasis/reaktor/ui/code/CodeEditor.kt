@@ -77,6 +77,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.setText
+import androidx.compose.ui.semantics.insertTextAtCursor
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -508,7 +509,13 @@ private fun EditorSurface(
                         }
                     }
                 }
-                .semantics { contentDescription = "${state.language.label} editor, ${state.document.lineCount} lines" }
+                .semantics {
+                    contentDescription = "${state.language.label} editor, ${state.document.lineCount} lines"
+                    setText { value ->
+                        if (state.readOnly) false else { state.replaceAll(value.text); true }
+                    }
+                    insertTextAtCursor { value -> state.type(value.text) }
+                }
                 .testTag("$tag-surface"),
         ) {
             LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {

@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.worklog
 
+import dev.shibasis.reaktor.conductor.ConductorJson
+import kotlinx.serialization.json.*
 import dev.shibasis.reaktor.conductor.ActivityKind
 import dev.shibasis.reaktor.conductor.ActivityStatus
 import dev.shibasis.reaktor.conductor.AgentActivityRecord
@@ -116,11 +118,25 @@ object RunLogs {
                 else WorkStep.Subagent(id, record.recordedAt, item.title, steps = item.nativeAgents.mapNotNull { agent ->
                     agent.output?.let { WorkStep.Message("$id:${agent.id}", record.recordedAt, it, agent.name ?: agent.id) }
                 }, result = item.output, status = status)
-            ActivityKind.Plan -> WorkStep.Tool(id, record.recordedAt, ToolKind.Other, "Plan", item.title, item.input, item.output, status)
+            ActivityKind.Plan -> plan(id, record.recordedAt, item.input)
+                ?: WorkStep.Tool(id, record.recordedAt, ToolKind.Other, "Plan", item.title, item.input, item.output, status)
             ActivityKind.Context -> WorkStep.Note(id, record.recordedAt, NoteKind.Compaction, item.title)
             ActivityKind.Checkpoint -> WorkStep.Note(id, record.recordedAt, NoteKind.Checkpoint, item.title)
             ActivityKind.Recovery -> WorkStep.Note(id, record.recordedAt, NoteKind.Interrupted, item.title)
             ActivityKind.Control -> WorkStep.Note(id, record.recordedAt, if (status == StepStatus.Failed) NoteKind.Error else NoteKind.Info, item.title)
         }
     }
+    private fun plan(id: String, at: Long, input: String?): WorkStep.Plan? = runCatching {
+        val value = ConductorJson.parseToJsonElement(input ?: return null).jsonObject
+        val items = value["plan"]?.jsonArray?.map { entry ->
+            val item = entry.jsonObject
+            PlanItem(item.getValue("step").jsonPrimitive.content, when (item["status"]?.jsonPrimitive?.content) {
+                "completed" -> PlanState.Done
+                "in_progress" -> PlanState.Active
+                else -> PlanState.Pending
+            })
+        } ?: return null
+        WorkStep.Plan(id, at, items, value["explanation"]?.jsonPrimitive?.contentOrNull)
+    }.getOrNull()
+
 }
