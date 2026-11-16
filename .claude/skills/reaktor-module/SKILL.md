@@ -14,7 +14,7 @@ Work down this ladder. Stop at the first answer.
 
 ## 1. Does an existing module already own it?
 
-Thirty-three modules exist. Check before building. This map is a starting point for the search, not
+Thirty-four modules exist. Check before building. This map is a starting point for the search, not
 a specification — open the module and read its sources before depending on what its name implies.
 
 | Concern | Modules |
@@ -23,7 +23,7 @@ a specification — open the module and read its sources before depending on wha
 | Reactive plumbing | `reaktor-flow`, `compose-flow` |
 | Files, storage, serialization | `reaktor-io`, `reaktor-db`, `reaktor-flexbuffer`, `reaktor-ffi`, `reaktor-pdf` |
 | UI and feedback | `reaktor-ui`, `reaktor-tactile`, `reaktor-media` |
-| Device capabilities | `reaktor-notification`, `reaktor-notification-fcm`, `reaktor-location`, `reaktor-sensors`, `reaktor-health`, `reaktor-work`, `reaktor-performance` |
+| Device capabilities | `reaktor-notification`, `reaktor-notification-fcm`, `reaktor-notification-sealed`, `reaktor-location`, `reaktor-sensors`, `reaktor-health`, `reaktor-work`, `reaktor-performance` |
 | Identity and secrets | `reaktor-auth`, `reaktor-crypto`, `reaktor-secrets`, `reaktor-security`, `reaktor-unlock` (the device's own unlock, for an app lock) |
 | Network and cloud | `reaktor-web`, `reaktor-cloud`, `reaktor-cloudflare`, `reaktor-google`, `reaktor-service`, `reaktor-mcp` |
 | Observability | `reaktor-telemetry` |
@@ -123,6 +123,13 @@ build file:
 > FirebaseMessaging pod, and the INTERNET / c2dm.RECEIVE permissions they merge into an app's
 > manifest — lives in `:reaktor-notification-fcm`. Apps that receive remote push depend on that
 > module; apps that only schedule reminders no longer pay for it.
+
+The same module was split a second time for the same reason: opening end-to-end encrypted
+notices needed `reaktor-security`, about 2.6 MB of native code per ABI, in every app that only
+wanted a reminder. `reaktor-notification-sealed` took the implementation and left an interface
+behind (`NoticePreviews`) for the client to hold. That is the usual shape of a split: the costly
+half moves, a small hook stays, and the moved files keep their package so apps change a
+dependency and not their imports.
 
 Split when the capability drags in any of:
 

@@ -618,6 +618,35 @@ is when to ask. Coffer is the worked example (`CofferRoot.kt`, `LockScreen.kt`).
   and `input keyevent 66` at the prompt. The prompt is a secure window, so a screenshot of it is
   black: read it with `uiautomator dump` instead. Clear the PIN after (`locksettings clear --old 1234`).
 
+## Reminders: local notifications an app schedules for itself
+
+`reaktor-notification` posts and schedules local notifications and links no cryptography or push
+transport (those are `reaktor-notification-sealed` and `reaktor-notification-fcm`). It merges
+`POST_NOTIFICATIONS` and `RECEIVE_BOOT_COMPLETED`. Coffer's `remind/Reminders.kt` is a small worked
+example; GymBuddy's `ReminderService` a larger one.
+
+- **Two clients on Android.** Scheduling needs only a `Context`; asking for the permission needs an
+  Activity. If anything schedules with no screen open, install
+  `AndroidNotificationsClient(application, config)` in `Application.onCreate` and replace it with
+  `AndroidNotificationsClient(activity, config)` in each `Activity.onCreate`. With only the
+  Activity's, a background schedule finds an empty slot; with only the Application's,
+  `requestPermissions()` returns without asking.
+- **Ask at the switch.** Call `requestPermissions()` when the person turns a reminder on, not at
+  launch, and say what to do when it comes back refused.
+- **`NotificationPrecision.Approximate` is a one-hour window on Android.** It needs no exact-alarm
+  permission, and it can arrive up to an hour late: say "around 9", not "at 9". The default,
+  `Exact`, is for a time a person set on a clock face.
+- **Cancel by id.** `cancelScheduled()` with no ids clears what this run of the process scheduled,
+  which isn't everything a previous run did.
+- **The small icon is found by name** (`AndroidNotificationsConfig(defaultSmallIconName = …)`), so
+  the resource shrinker drops it from a release build unless `res/raw/keep.xml` names it. Recent
+  Androids show the app's launcher icon in the shade and the small icon only in the status bar.
+- **Seeing one fire on an emulator** without waiting: `adb shell cmd time_detector
+  set_auto_detection_enabled false`, then `adb shell cmd alarm set-time <epoch ms>` (no root
+  needed), to the *end* of the window for an approximate one. Read the result with `adb shell
+  dumpsys notification --noredact`, and put the clock back (`set-time` to now, detection on).
+  `adb shell dumpsys alarm | grep -A8 <package>` shows what is scheduled, with its window.
+
 ## Files people bring from other apps
 
 `reaktor-io`'s `archive` package reads them in common code: `Zip` (stored and deflated entries),

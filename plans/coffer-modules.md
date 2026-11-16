@@ -12,7 +12,7 @@ internet permission, nothing leaves the phone. Surveyed 15 November 2026.
 | 1 | Done key in forms; `validate()` naming | `reaktor-ui` forms | no | S | **done, 15 Nov** |
 | 2 | Excel export | `reaktor-io` archive: a zip writer and an xlsx writer | no | S | **done, 15 Nov** |
 | 3 | App lock | new `reaktor-unlock` | **yes** | S–M | **done, 15 Nov** (iOS not run against Face ID) |
-| 4 | Opt-in reminders | `reaktor-notification`, after moving sealed notices out to `reaktor-notification-sealed` | **yes** (a split) | M | BestBuds moving its dependency |
+| 4 | Opt-in reminders | `reaktor-notification`, after moving sealed notices out to `reaktor-notification-sealed` | **yes** (a split) | M | **done, 16 Nov** (iOS delivery not seen) |
 | 5 | Receipt photos | `reaktor-io`: photo picker, system camera, downscale | no | M | nothing |
 | 6 | Home-screen widget | new `reaktor-widget`; an iOS widget extension per app | **yes** | M–L | an Xcode target per app |
 | 7 | PDF bank statements | `reaktor-pdf`: passwords, positions, an iOS reader; old Androids in `reaktor-pdf-box` | one optional | L | real statements from the owner |
@@ -115,6 +115,30 @@ notifications. Only BestBuds uses sealed notices (9 files).
   emulator after a reboot.
 - Coffer: on a regular payment's page, "Remind me the day before", per payment. Nothing is on
   unless chosen. Coffer's quiet rule (no nagging) holds.
+
+**Done (88283570; BestBuds 4d2157f77; Coffer 631d9d2).** How it came out against the plan:
+- **Less moved than planned.** `SealedNotice` stayed: it is the wire shape, has no cryptography in
+  it, and the server-side models size and filter by it. Only `SealedNoticePreviews`, its Android
+  and iOS stores and its test moved. They kept their package, as the FCM module's files did.
+- **The hook changed type, not name.** `NotificationsClient.sealedPreviews` is a new interface,
+  `NoticePreviews` (open, hidden, setHidden, clear). BestBuds needed one dependency and one cast
+  (where `ChatSecurity` hands over session keys); nothing else in it changed.
+- **`reaktor-notification-service` depends on the new module.** The iOS service extension is what
+  opens a notice as it arrives, so it still carries `reaktor-security`. An app that wants that
+  extension without sealed notices would need it split too; none does today.
+- **The new module has a web target**, because BestBuds' common code names `SealedNoticePreviews`
+  and compiles to JS. That added two packages to the pnpm workspace and lockfile (`./gradlew pnpmLock`).
+- **GymBuddy:** `libReaktorSecurity.so` (2.6, 2.6 and 3.0 MB for arm64, x86 and x86_64) is gone
+  from its debug APK. No source change.
+- **Timing, measured:** a `NotificationPrecision.Approximate` request becomes an alarm with a
+  one-hour window. On an API 36 emulator it had not fired two minutes after its time and had by the
+  end of the window. Coffer says "around 9".
+
+Checked: both modules' JVM tests; Android, iOS-simulator and JS compiles of notification, sealed,
+service and fcm; BestBuds for Android, JS and iOS with its notification and architecture tests;
+GymBuddy's APK; and in Coffer on the emulator the permission prompt, the scheduled alarm, the
+notification and a tap on it. Not checked: a reminder arriving on iOS; re-arming after a reboot in
+Coffer; BestBuds running on a device with a real sealed notice.
 
 ## 5. Receipt photos · `reaktor-io` · M
 
