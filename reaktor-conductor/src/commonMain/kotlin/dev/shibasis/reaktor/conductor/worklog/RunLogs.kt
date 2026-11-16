@@ -8,6 +8,7 @@ import dev.shibasis.reaktor.conductor.EventKind
 import dev.shibasis.reaktor.conductor.ThreadEvent
 
 object RunLogs {
+    private val Whitespace = Regex("\\s+")
     private val CouncilContributions = setOf(EventKind.Proposal, EventKind.Critique, EventKind.Revision)
 
     fun agentName(provider: String): String = when (provider.lowercase()) {
@@ -42,25 +43,34 @@ object RunLogs {
 
     fun prompts(log: WorkLog, events: List<ThreadEvent>): WorkLog {
         val asked = events.filter { it.author is Author.Human }.map { WorkPrompts.of(it.text) }
-        val normalized = log.turns.map { it.prompt?.trim()?.replace(Regex("\\s+"), " ") }
+        val normalized = log.turns.map { it.prompt?.trim()?.replace(Whitespace, " ") }
         val turns = log.turns.toMutableList()
         var next = 0
         var matched = false
-        asked.forEach { prompt ->
-            val text = prompt.text?.trim()?.replace(Regex("\\s+"), " ")
+        var aligned = true
+        val matchedTurns = mutableSetOf<Int>()
+        asked.forEachIndexed { position, prompt ->
+            val text = prompt.text?.trim()?.replace(Whitespace, " ")
             val index = (next until turns.size).firstOrNull { normalized[it] == text }
             if (index != null) {
                 val turn = turns[index]
                 turns[index] = turn.copy(prompt = prompt.text, context = turn.context ?: prompt.context)
                 next = index + 1
                 matched = true
+                aligned = aligned && index == position
+                matchedTurns += index
             }
         }
-        if (matched) return log.copy(turns = turns)
-        if (asked.size != log.turns.size) return log
-        return log.copy(turns = log.turns.zip(asked) { turn, prompt ->
-            turn.copy(prompt = prompt.text, context = turn.context ?: prompt.context)
-        })
+        if (asked.size == turns.size && aligned) {
+            asked.forEachIndexed { index, prompt ->
+                if (index !in matchedTurns && WorkPrompts.isEnvelope(turns[index].prompt)) {
+                    val turn = turns[index]
+                    turns[index] = turn.copy(prompt = prompt.text, context = turn.context ?: prompt.context)
+                }
+            }
+            return log.copy(turns = turns)
+        }
+        return if (matched) log.copy(turns = turns) else log
     }
 
     private class Turn(val id: String, val prompt: String?, val at: Long?) {

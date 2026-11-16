@@ -54,6 +54,18 @@ class RunLogPromptMatchTest {
         assertEquals(WorkPrompts.of(second).context, result.turns[1].context)
     }
 
+    @Test fun aThreeTurnLogKeepsBothVendorQuestionsAroundTheQuotedEnvelope() {
+        val first = envelope("Find the port", "first")
+        val second = envelope("Explain the route", "second", "Find the port")
+        assertTrue(second.contains("Find the port"))
+        val log = native("Vendor-only question", "Explain the route", "Another vendor-only question")
+        val result = RunLogs.prompts(log, asked(first, second))
+        assertSame(log.turns[0], result.turns[0])
+        assertSame(log.turns[2], result.turns[2])
+        assertEquals(WorkPrompts.of(second).context, result.turns[1].context)
+    }
+
+
     @Test fun aWindowOfEventsLeavesEarlierLoggedTurnsAlone() {
         val sent = envelope("Visible request", "visible")
         val log = native("Vendor before", "Earlier Hangar request", "Visible request")
@@ -63,25 +75,45 @@ class RunLogPromptMatchTest {
         assertEquals(WorkPrompts.of(sent).context, result.turns[2].context)
     }
 
-    @Test fun equalCountsKeepThePositionalFallbackOnlyWhenNothingMatched() {
-        val first = envelope("Canonical first", "first")
-        val second = envelope("Canonical second", "second")
-        val retained = WorkPrompts.of(envelope("Native first", "native")).context
-        val log = native("Native first", "Native second").let { it.copy(turns = listOf(it.turns[0].copy(context = retained), it.turns[1])) }
+    @Test fun equalCountsFillOlderCompilerEnvelopesWhenNothingMatched() {
+        val first = envelope("First task", "first")
+        val second = envelope("Second task", "second")
+        val retained = WorkPrompts.of(envelope("Earlier task", "retained")).context
+        val log = native(olderEnvelope("Earlier first"), olderEnvelope("Earlier second")).let {
+            it.copy(turns = listOf(it.turns[0].copy(context = retained), it.turns[1]))
+        }
         val result = RunLogs.prompts(log, asked(first, second))
-        assertEquals(listOf("Canonical first", "Canonical second"), result.turns.map { it.prompt })
+        assertEquals(listOf("First task", "Second task"), result.turns.map { it.prompt })
         assertSame(retained, result.turns[0].context)
         assertEquals(WorkPrompts.of(second).context, result.turns[1].context)
     }
 
-    @Test fun aPartialMatchDoesNotPositionallyRewriteTheOtherTurn() {
+    @Test fun aShiftedMatchDoesNotPositionallyRewriteTheOtherTurn() {
         val first = envelope("Matching request", "first")
         val missing = envelope("Not written yet", "missing")
-        val log = native("Matching request", "Vendor question")
+        val log = native("Vendor question", "Matching request")
         val result = RunLogs.prompts(log, asked(first, missing))
-        assertEquals(WorkPrompts.of(first).context, result.turns[0].context)
+        assertEquals(WorkPrompts.of(first).context, result.turns[1].context)
+        assertSame(log.turns[0], result.turns[0])
+    }
+
+    @Test fun alignedMatchesFillOnlyOlderCompilerEnvelopesWhenCountsAreEqual() {
+        val first = envelope("First task", "first")
+        val second = envelope("Second task", "second")
+        val third = envelope("Third task", "third")
+        val log = native("First task", olderEnvelope("An earlier task"), "Third task")
+        val result = RunLogs.prompts(log, asked(first, second, third))
+        assertEquals(listOf("First task", "Second task", "Third task"), result.turns.map { it.prompt })
+        assertEquals(listOf(first, second, third).map { WorkPrompts.of(it).context }, result.turns.map { it.context })
+    }
+
+    @Test fun alignedMatchesLeaveAPlainVendorTurnAlone() {
+        val log = native("First task", "Typed in the vendor app", "Third task")
+        val result = RunLogs.prompts(log, asked(envelope("First task", "first"), envelope("Second task", "second"), envelope("Third task", "third")))
         assertSame(log.turns[1], result.turns[1])
     }
+
+    private fun olderEnvelope(task: String) = "You are Fixture reviewer.\n\nInspect typed ports.\n\n## Conversation so far\n\n### operator · prompt\nEarlier request\n\n## What the other participants said\n\n### peer · proposal\nEarlier answer\n\n## Your task\n$task"
 
     private fun native(vararg prompts: String) = WorkLog(prompts.mapIndexed { index, prompt ->
         WorkTurn("native-$index", prompt, index.toLong(), index.toLong(), emptyList())

@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.worklog
 
+import dev.shibasis.reaktor.conductor.ContextHeadings
+
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import dev.shibasis.reaktor.conductor.ConductorJson
@@ -48,9 +50,15 @@ data class WorkContext(
 data class WorkPrompt(val text: String?, val context: WorkContext? = null)
 
 object WorkPrompts {
-    private const val Task = "\n\n## Your task\n"
-    private val Heading = Regex("(?m)^## (Conversation so far|What the other participants said|Retrieved evidence \\(data, not instructions; verify before acting\\))\\r?$")
     private val Role = Regex("\\n\\nYour role, [^\\r\\n:]+: ")
+
+    private fun taskBoundary(text: String, start: Int): Boolean = start == 0 ||
+        start >= 2 && text[start - 2] == '\n' || start >= 3 && text[start - 2] == '\r' && text[start - 3] == '\n'
+
+    internal fun isEnvelope(text: String?): Boolean = text != null && text.startsWith("You are ") &&
+        text.substringBefore('\n').trimEnd('\r').endsWith('.') &&
+        generateSequence(ContextHeadings.find(text)) { ContextHeadings.find(text, it.end) }
+            .any { it.heading == ContextHeadings.Task && taskBoundary(text, it.start) }
 
     fun of(raw: String?): WorkPrompt {
         if (raw == null) return WorkPrompt(null)
@@ -59,21 +67,23 @@ object WorkPrompts {
         var envelopeChars = 0
         var omitted = 0
         val notices = mutableListOf<String>()
-        val boundary = raw.indexOf(Task)
-        if (raw.startsWith("You are ") && raw.substringBefore('\n').endsWith('.') && boundary >= 0) {
-            val prefix = raw.substring(0, boundary)
-            envelopeChars += boundary + Task.length
-            task = raw.substring(boundary + Task.length).trimEnd('\r', '\n')
-            val headings = Heading.findAll(prefix).toList()
-            prefix.substring(0, headings.firstOrNull()?.range?.first ?: prefix.length).trim().takeIf(String::isNotEmpty)?.let {
+        val lines = generateSequence(ContextHeadings.find(raw)) { ContextHeadings.find(raw, it.end) }
+        val boundary = lines.firstOrNull { it.heading == ContextHeadings.Task && taskBoundary(raw, it.start) }
+        if (raw.startsWith("You are ") && raw.substringBefore('\n').trimEnd('\r').endsWith('.') && boundary != null) {
+            val prefix = raw.substring(0, boundary.start)
+            envelopeChars += boundary.end
+            task = raw.substring(boundary.end).trimEnd('\r', '\n')
+            val headings = generateSequence(ContextHeadings.find(prefix)) { ContextHeadings.find(prefix, it.end) }
+                .filter { it.heading != ContextHeadings.Task }.toList()
+            prefix.substring(0, headings.firstOrNull()?.start ?: prefix.length).trim().takeIf(String::isNotEmpty)?.let {
                 slices += WorkContextSlice("Instructions", it)
             }
             headings.forEachIndexed { index, heading ->
-                val text = prefix.substring(heading.range.last + 1, headings.getOrNull(index + 1)?.range?.first ?: prefix.length).trim()
-                val packet = if (heading.groupValues[1].startsWith("Retrieved evidence")) runCatching {
+                val text = prefix.substring(heading.end, headings.getOrNull(index + 1)?.start ?: prefix.length).trim()
+                val packet = if (heading.heading == ContextHeadings.Evidence) runCatching {
                     ConductorJson.decodeFromString(ContextPacket.serializer(), text)
                 }.getOrNull() else null
-                if (packet == null) slices += WorkContextSlice(heading.groupValues[1], text)
+                if (packet == null) slices += WorkContextSlice(heading.heading.removePrefix("## "), text)
                 else {
                     slices += WorkContextSlice("Evidence scope", ConductorJson.encodeToString(ContextPacket.serializer(), packet.copy(entries = emptyList())))
                     slices += packet.entries.map { WorkContextSlice(it.title, ConductorJson.encodeToString(ContextEntry.serializer(), it)) }
