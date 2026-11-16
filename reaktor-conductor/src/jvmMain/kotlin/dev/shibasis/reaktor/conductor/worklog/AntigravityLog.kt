@@ -41,7 +41,16 @@ internal class AntigravityLog(private val root: String?) : LogParser {
                 } else result(pending, record.str("content"), status, at, "content" in record.list("truncated_fields").mapNotNull { it.plain() })
             }
             "CHECKPOINT" -> turns.ensure(at).add(WorkStep.Note("agy:$index", at, NoteKind.Checkpoint, "Checkpoint"))
-            "ERROR_MESSAGE" -> turns.ensure(at).add(WorkStep.Note("agy:$index", at, NoteKind.Error, LogText.oneLine(record.str("content")) ?: "Antigravity reported an error"))
+            "ERROR_MESSAGE" -> {
+                waiting.removeFirstOrNull()?.let { pending ->
+                    result(pending, record.str("content"), StepStatus.Failed, at, "content" in record.list("truncated_fields").mapNotNull { it.plain() })
+                }
+                turns.ensure(at).add(WorkStep.Note("agy:$index", at, NoteKind.Error, LogText.oneLine(record.str("content")) ?: "Antigravity reported an error"))
+            }
+            "SYSTEM_MESSAGE", "CONVERSATION_HISTORY" -> Unit
+            else -> waiting.removeFirstOrNull()?.let { pending ->
+                result(pending, record.str("content"), status, at, "content" in record.list("truncated_fields").mapNotNull { it.plain() })
+            }
         }
     }
 
@@ -92,5 +101,6 @@ internal class AntigravityLog(private val root: String?) : LogParser {
             is WorkStep.Tool -> step.copy(output = if (step.kind == ToolKind.Read && status != StepStatus.Failed) null else output, cut = cut || truncated, millis = millis, status = status)
             else -> step
         }
+        turn.open = waiting.any { it.turn == pending.turn }
     }
 }

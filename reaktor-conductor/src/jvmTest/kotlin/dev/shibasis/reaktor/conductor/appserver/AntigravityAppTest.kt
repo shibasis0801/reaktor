@@ -9,6 +9,12 @@ import java.nio.file.Files
 import kotlin.test.*
 
 class AntigravityAppTest {
+    @Test fun theHubNeverPrintsItsToken() {
+        val shown = AntigravityApp.Hub(1, "secret").toString()
+        assertFalse(shown.contains("secret"))
+        assertTrue(shown.contains("1"))
+    }
+
     private val agent = AgentId("gemini")
     private val project = AntigravityApp.Project("965c1e9f", "/Users/ovd/dev", true)
 

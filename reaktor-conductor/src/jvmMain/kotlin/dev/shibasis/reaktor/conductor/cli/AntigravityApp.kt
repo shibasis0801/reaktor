@@ -18,7 +18,9 @@ class AntigravityApp(
     private val bundle: File = File("/Applications/Antigravity.app"),
     private val alive: (Long) -> Boolean = { pid -> ProcessHandle.of(pid).map { it.isAlive }.orElse(false) },
 ) {
-    data class Hub(val port: Int, val csrf: String)
+    data class Hub(val port: Int, val csrf: String) {
+        override fun toString() = "Hub(port=$port)"
+    }
     data class Project(val id: String, val folder: String, val writable: Boolean, val git: Boolean = false)
     data class Run(val running: Boolean, val steps: Int, val ended: String?)
 
