@@ -14,6 +14,9 @@ enum class PlanStatus(val label: String) { Todo("To do"), Doing("In progress"), 
 @Serializable
 enum class PlanPriority { Low, Normal, High, Urgent }
 
+@Serializable
+enum class PlanApproval { Draft, Pending, Approved, ChangesRequested }
+
 @Serializable(with = PlanKindSerializer::class)
 enum class PlanKind(val label: String, val words: Set<String>) {
     Component("Component", setOf("area", "module", "service", "screen", "system", "subsystem", "layer", "part")),
@@ -71,6 +74,9 @@ data class PlanItem(
     val previews: List<PlanPreview> = emptyList(),
     val completion: PlanCompletion? = null,
     val workLogs: List<PlanWorkLog> = emptyList(),
+    val effort: Double? = null,
+    val startDate: String? = null,
+    val dueDate: String? = null,
 )
 
 /** An authoritative task claim interval; the end is exclusive. Contains no transcript content. */
@@ -114,6 +120,9 @@ data class WorkPlan(
     val changes: List<PlanChange> = emptyList(),
     val documentPath: String? = null,
     val limits: PlanLimits = PlanLimits(),
+    val order: List<String> = emptyList(),
+    val documentText: String? = null,
+    val approval: PlanApproval = PlanApproval.Draft,
 ) {
     private val tree by lazy { PlanTree(items) }
 
@@ -199,6 +208,9 @@ sealed interface PlanOp {
         val reason: String = "",
         val replacement: String? = null,
         val previews: List<PlanPreview> = emptyList(),
+        val effort: Double? = null,
+        val startDate: String? = null,
+        val dueDate: String? = null,
     ) : PlanOp
 
     @Serializable @SerialName("update")
@@ -215,6 +227,14 @@ sealed interface PlanOp {
         val reason: String? = null,
         val replacement: String? = null,
         val previews: List<PlanPreview>? = null,
+        val effort: Double? = null,
+        val startDate: String? = null,
+        val dueDate: String? = null,
+        val clearEffort: Boolean = false,
+        val clearStartDate: Boolean = false,
+        val clearDueDate: Boolean = false,
+        val orderBefore: String? = null,
+        val orderLast: Boolean = false,
     ) : PlanOp
 
     @Serializable @SerialName("status")
@@ -256,6 +276,8 @@ data class PlanPatch(
     val documentPath: String? = null,
     val requestId: String? = null,
     val limits: PlanLimits? = null,
+    val documentText: String? = null,
+    val approval: PlanApproval? = null,
 )
 
 @Serializable
@@ -345,32 +367,31 @@ fun PlanSeat.heldBy(actor: BoardActor): Boolean = when {
 }
 
 object PlanRules {
-    private fun holders(items: Map<String, PlanItem>): Map<String, Int> {
+    private fun holders(items: Map<String, PlanItem>): Map<String, List<String>> {
         val parents = items.values.mapNotNullTo(HashSet()) { it.parent }
         fun identity(value: BoardActor): String? = PlanIdentity.agent(value) ?: value.session?.takeIf { value.kind == BoardActorKind.Agent }
         val paired = items.values.mapNotNull { item ->
-            val named = generateSequence(item) { it.parent?.let(items::get) }.take(items.size)
-                .map { part -> part.refs.filter { it.startsWith("agent:") }.map { it.removePrefix("agent:").lowercase() }.distinct() }
-                .firstOrNull { it.isNotEmpty() }?.singleOrNull()
+            val named = item.lease?.by?.let(PlanPeople::statedName) ?: PlanPeople.assignee(item, items)
             val session = item.lease?.by?.let(::identity)
             if (named == null || session == null) null else session to named
         }.groupBy({ it.first }, { it.second }).mapNotNull { (session, names) -> names.distinct().singleOrNull()?.let { session to it } }.toMap()
-        fun actor(value: BoardActor): String = identity(value)?.let { paired[it]?.let { name -> "agent:$name" } ?: it }
+        fun actor(value: BoardActor): String = PlanPeople.statedName(value)?.let { "agent:$it" } ?: identity(value)?.let { paired[it]?.let { name -> "agent:$name" } ?: it }
             ?: "${value.kind}:${value.principal ?: value.name}"
         return items.values.filter { it.status == PlanStatus.Doing && it.kind != PlanKind.Component && it.id !in parents }
-            .flatMap { item ->
-                item.lease?.by?.let { listOf(actor(it)) }
-                    ?: generateSequence(item) { it.parent?.let(items::get) }.take(items.size)
-                        .map { part -> part.refs.filter { it.startsWith("agent:") }.map { it.lowercase() }.distinct() }
-                        .firstOrNull { it.isNotEmpty() }
-                    ?: listOfNotNull(item.by?.let(::actor))
-            }.groupingBy { it }.eachCount()
+            .mapNotNull { item ->
+                (item.lease?.by?.let(::actor)
+                    ?: PlanPeople.assignee(item, items)?.let { "agent:$it" }
+                    ?: item.by?.let(::actor))?.let { it to item.id }
+            }.groupBy({ it.first }, { it.second })
     }
 
-    private fun doingLimit(before: Map<String, Int>, after: Map<String, Int>, limit: Int) {
-        after.forEach { (holder, count) ->
-            require(count <= limit || count <= before.getOrElse(holder) { 0 }) {
-                "A holder has at most $limit Doing leaves per plan; finish or release work before starting another item"
+    private fun doingLimit(before: Map<String, List<String>>, after: Map<String, List<String>>, limit: Int, items: Collection<PlanItem>) {
+        after.forEach { (holder, leaves) ->
+            require(leaves.size <= limit || leaves.size <= before[holder].orEmpty().size) {
+                val name = items.asSequence().mapNotNull { it.lease?.by ?: it.by }.firstOrNull {
+                    holder == "${it.kind}:${it.principal ?: it.name}"
+                }?.name ?: holder
+                "$name has at most $limit Doing leaves per plan and holds ${leaves.joinToString()}; finish or release one earlier in the patch before starting another item"
             }
         }
     }
@@ -415,6 +436,7 @@ object PlanRules {
         val summary = mutableListOf<String>()
         var next = plan.next
         var seats = plan.seats
+        var order = plan.order
         val claimed = patch.seat?.let { id ->
             val seat = plan.seat(id) ?: error("$id is not a seat on this plan")
             require(by.kind == BoardActorKind.Person || seat.session == null && seat.agent == null || seat.heldBy(by)) { "$id belongs to ${seat.session ?: seat.agent}" }
@@ -518,6 +540,27 @@ object PlanRules {
 
         fun touch(item: PlanItem) = item.copy(revision = revision, by = by, changedAt = now)
 
+        fun currentRevision() {
+            require(plan.revision == 0L || patch.base == plan.revision) { "The plan changed; your edit was not applied" }
+        }
+
+        fun calendar(value: String?): String? = value?.also {
+            require(Regex("[0-9]{4}-[0-9]{2}-[0-9]{2}").matches(it)) { "Use a calendar date in YYYY-MM-DD format" }
+            val year = it.substring(0, 4).toInt()
+            val month = it.substring(5, 7).toInt()
+            val day = it.substring(8, 10).toInt()
+            val leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+            val days = listOf(31, if (leap) 29 else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
+            require(year > 0 && month in 1..12 && day in 1..days[month - 1]) { "$it is not a calendar date" }
+        }
+
+        fun schedule(item: PlanItem): PlanItem = item.also {
+            require(it.effort == null || it.effort.isFinite() && it.effort >= 0) { "Effort must be a finite, nonnegative number" }
+            calendar(it.startDate)
+            calendar(it.dueDate)
+            require(it.startDate == null || it.dueDate == null || it.startDate <= it.dueDate) { "The due date must be on or after the start date" }
+        }
+
         val limits = patch.limits?.also {
             require(it.doingPerHolder > 0) { "A holder must be allowed at least one Doing leaf" }
             require(it.readBytes in 4096..it.maxReadBytes && it.maxReadBytes <= 262_144) { "Plan read budgets must be between 4096 and 262144 bytes" }
@@ -531,6 +574,7 @@ object PlanRules {
             val before = LinkedHashMap(items)
             val beforeNext = next
             val beforeSeats = seats
+            val beforeOrder = order
             val counts = holders(items)
             val outcome = runCatching {
                 val line = when (op) {
@@ -548,13 +592,28 @@ object PlanRules {
                         val links = refs(op.refs)
                         val id = key ?: generateSequence(next) { it + 1 }.map { "p$it" }.first { it !in items }.also { next = it.removePrefix("p").toInt() + 1 }
                         val (reason, replacement) = closing(op.status, op.reason, op.replacement, id)
-                        items[id] = touch(PlanItem(id, title, detail, op.status, parent, after, links, at = op.at, kind = op.kind, priority = op.priority,
-                            reason = reason, replacement = replacement, createdAt = now, previews = previews))
+                        items[id] = touch(schedule(PlanItem(id, title, detail, op.status, parent, after, links, at = op.at, kind = op.kind, priority = op.priority,
+                            reason = reason, replacement = replacement, createdAt = now, previews = previews, effort = op.effort, startDate = op.startDate, dueDate = op.dueDate)))
+                        if (order.isNotEmpty()) order = order + id
                         "Added $id “$title”"
                     }
                     is PlanOp.Update -> {
                         val item = items[op.item] ?: error("${op.item} is not on the plan")
                         (allowed(item.id) ?: fresh(item.id))?.let(::error)
+                        if (op.effort != null || op.startDate != null || op.dueDate != null || op.clearEffort || op.clearStartDate || op.clearDueDate || op.orderBefore != null || op.orderLast) currentRevision()
+                        if (op.orderBefore != null || op.orderLast) {
+                            require(op.orderBefore == null || !op.orderLast) { "Choose a position before an item or at the end" }
+                            require(op.orderBefore == null || op.orderBefore in items && op.orderBefore != item.id) { "Choose another item on the plan" }
+                            val arranged = ((order + items.keys).distinct() - item.id).toMutableList()
+                            arranged.add(op.orderBefore?.let(arranged::indexOf) ?: arranged.size, item.id)
+                            val positions = arranged.withIndex().associate { it.value to it.index }
+                            items.values.forEach { candidate ->
+                                lineage(candidate.id).flatMap { items[it]?.after.orEmpty() }.distinct().forEach { prerequisite ->
+                                    require(positions.getValue(prerequisite) < positions.getValue(candidate.id)) { "${candidate.id} must stay after its prerequisite $prerequisite" }
+                                }
+                            }
+                            order = arranged
+                        }
                         val parent = when {
                             op.root -> null
                             op.parent != null -> op.parent.also { require(it in items) { "Parent $it is not on the plan" }; require(!cycles(item.id, it)) { "${item.id} cannot sit under its own part $it" } }
@@ -568,7 +627,7 @@ object PlanRules {
                         }
                         val (reason, replacement) = if (op.reason != null || op.replacement != null)
                             closing(item.status, op.reason ?: item.reason, op.replacement ?: item.replacement, item.id) else item.reason to item.replacement
-                        val changed = item.copy(
+                        val changed = schedule(item.copy(
                             title = op.title?.let(BoardText::title) ?: item.title,
                             detail = op.detail?.let(::note) ?: item.detail,
                             previews = op.previews?.let(::previews) ?: item.previews,
@@ -579,10 +638,14 @@ object PlanRules {
                             priority = op.priority ?: item.priority,
                             reason = reason,
                             replacement = replacement,
-                        )
-                        if (changed == item) null else {
-                            items[item.id] = if (changed.copy(at = item.at) == item) changed else touch(changed)
+                            effort = if (op.clearEffort) null else op.effort ?: item.effort,
+                            startDate = if (op.clearStartDate) null else op.startDate ?: item.startDate,
+                            dueDate = if (op.clearDueDate) null else op.dueDate ?: item.dueDate,
+                        ))
+                        if (changed == item && order == beforeOrder) null else {
+                            items[item.id] = if (changed.copy(at = item.at) == item && order == beforeOrder) changed else touch(changed)
                             when {
+                                order != beforeOrder -> "Moved ${item.id} in the chosen order"
                                 changed.title != item.title -> "Renamed ${item.id} “${changed.title}”"
                                 changed.copy(at = item.at) == item -> null
                                 else -> "Edited ${item.id}"
@@ -685,6 +748,7 @@ object PlanRules {
                         val item = items[op.item] ?: error("${op.item} is not on the plan")
                         (allowed(item.id) ?: fresh(item.id))?.let(::error)
                         items.remove(item.id)
+                        order = order - item.id
                         items.values.toList().forEach { other ->
                             if (other.parent == item.id || item.id in other.after || other.relations.any { it.to == item.id } || other.replacement == item.id)
                                 items[other.id] = other.copy(parent = if (other.parent == item.id) item.parent else other.parent, after = other.after - item.id,
@@ -693,7 +757,7 @@ object PlanRules {
                         "Removed ${item.id} “${item.title}”"
                     }
                 }
-                doingLimit(counts, holders(items), limits.doingPerHolder)
+                doingLimit(counts, holders(items), limits.doingPerHolder, items.values)
                 line
             }
             outcome.onSuccess { line -> line?.let(summary::add) }
@@ -702,13 +766,35 @@ object PlanRules {
                     items.putAll(before)
                     next = beforeNext
                     seats = beforeSeats
+                    order = beforeOrder
                     refused += PlanRefusal(index, op.target, failure.message ?: "Refused")
                 }
         }
-        require(limits == plan.limits || holders(items).values.all { it <= limits.doingPerHolder }) { "The configured Doing limit is below the work still held; finish or release work first" }
+        require(limits == plan.limits || holders(items).values.all { it.size <= limits.doingPerHolder }) { "The configured Doing limit is below the work still held; finish or release work first" }
         val title = patch.title?.let(BoardText::title)?.takeIf { it != plan.title }
         val goal = patch.goal?.let { BoardText.bounded(it, "A goal", 2_000) }?.takeIf { it != plan.goal }
         var documentPath = plan.documentPath
+        var documentText = plan.documentText
+        var approval = plan.approval
+        patch.documentText?.let { text ->
+            try {
+                currentRevision()
+                require(text.encodeToByteArray().size <= 524_288) { "The plan document is at most 512 KB of UTF-8" }
+                require(by.kind == BoardActorKind.Person || by.same(plan.createdBy) || threadAgent) { "Only the plan's owner can change its document" }
+                if (text != documentText) { documentText = text; summary += "Updated the plan document" }
+            } catch (failure: IllegalArgumentException) {
+                refused += PlanRefusal(-1, reason = failure.message ?: "Refused")
+            }
+        }
+        patch.approval?.let { state ->
+            try {
+                currentRevision()
+                require(by.kind == BoardActorKind.Person) { "Only a person changes the plan's approval state" }
+                if (state != approval) { approval = state; summary += "Approval → $state" }
+            } catch (failure: IllegalArgumentException) {
+                refused += PlanRefusal(-1, reason = failure.message ?: "Refused")
+            }
+        }
         patch.documentPath?.let { path ->
             val nextPath = path.ifEmpty { null }
             if (nextPath != documentPath) {
@@ -727,6 +813,7 @@ object PlanRules {
         if (summary.isEmpty() && seats == plan.seats && items.values.toList() == plan.items) return PlanApplied(plan, refused, news)
         val changed = plan.copy(
             title = title ?: plan.title, goal = goal ?: plan.goal, items = items.values.toList(), seats = seats, documentPath = documentPath, limits = limits,
+            documentText = documentText, approval = approval, order = order,
             revision = revision, next = next, updatedAt = now,
             changes = if (summary.isEmpty()) plan.changes else (plan.changes + PlanChange(revision, now, by, summary, requestId)).takeLast(MaxChanges),
         )
@@ -742,11 +829,11 @@ object PlanRules {
         val revision = plan.revision + 1
         val changed = plan.copy(
             seats = plan.seats + seat,
-            items = plan.items.map { if (it.id in seat.items) it.copy(seat = seat.id, revision = revision, by = seat.by, changedAt = now) else it },
+            items = plan.items.map { if (it.id in seat.items) it.copy(seat = seat.id, revision = revision, by = if (it.status == PlanStatus.Doing) it.by else seat.by, changedAt = now) else it },
             revision = revision, updatedAt = now,
             changes = (plan.changes + PlanChange(revision, now, seat.by, listOf("Attached ${seat.profile} to ${seat.items.joinToString()} (${covered.size} items)"))).takeLast(MaxChanges),
         )
-        doingLimit(holders(plan.items.associateBy { it.id }), holders(changed.items.associateBy { it.id }), plan.limits.doingPerHolder)
+        doingLimit(holders(plan.items.associateBy { it.id }), holders(changed.items.associateBy { it.id }), plan.limits.doingPerHolder, changed.items)
         return changed
     }
 

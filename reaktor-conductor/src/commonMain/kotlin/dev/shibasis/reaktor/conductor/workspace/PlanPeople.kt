@@ -14,6 +14,15 @@ object PlanPeople {
 
     fun of(item: PlanItem): List<BoardActor> = item.refs.mapNotNull(::actor)
 
+    fun assignee(item: PlanItem, items: Map<String, PlanItem>): String? =
+        generateSequence(item) { it.parent?.let(items::get) }.take(items.size)
+            .mapNotNull { part -> part.refs.firstOrNull { it.startsWith(Agent) }?.removePrefix(Agent)?.trim()?.takeIf(String::isNotEmpty) }
+            .firstOrNull()
+
+    fun statedName(actor: BoardActor): String? = actor.takeIf {
+        it.kind == BoardActorKind.Agent && it.profile != null && !it.profile.startsWith("native-")
+    }?.name?.let(AgentLabel::name)
+
     fun with(item: PlanItem, actor: BoardActor): List<String> = item.refs.filterNot { it == ref(actor) } + ref(actor)
 
     fun without(item: PlanItem, actor: BoardActor): List<String> = item.refs.filterNot { it == ref(actor) }

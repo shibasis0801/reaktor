@@ -52,6 +52,9 @@ data class PlanReadRequest(
 @Serializable
 data class PlanScheduleRequest(
     @Describe("One plan; your authenticated session when left out") @Schema(nullable = false) val thread: String? = null,
+    @Schema(nullable = false) val budgetBytes: Int? = null,
+    @Schema(nullable = false) val frame: String? = null,
+    @Schema(nullable = false) val continuation: String? = null,
 )
 
 @Serializable
@@ -85,6 +88,8 @@ data class PlanWriteRequest(
     @Describe("Workspace-relative Markdown document under plans/, such as plans/launch.md. Headings with {#item-key} link to matching DAG items. Omit to keep the link; empty string unlinks it. Changing an existing plan's link requires its current base revision.") @Schema(nullable = false) val documentPath: String? = null,
     @Describe("Optional idempotency key; repeating the same requestId from the same writer returns the already-applied revision without re-applying") @Schema(nullable = false) val requestId: String? = null,
     @Describe("Per-plan Doing and read budgets; requires the current base and the plan owner") @Schema(nullable = false) val limits: PlanLimits? = null,
+    @Describe("Shared Markdown document with {#item} anchors; current base required") @Schema(nullable = false) val documentText: String? = null,
+    @Describe("One approval state for every view; a person changes it with the current base") @Schema(nullable = false) val approval: PlanApproval? = null,
 )
 
 @Serializable
@@ -103,4 +108,8 @@ data class PlanAttachRequest(
 @Serializable
 data class PlanShapeRequest(
     @Schema(nullable = false, itemsDescription = "A thread whose plan to include") val threads: List<String>? = null,
+    @Schema(nullable = false) val by: PlanReader? = null,
+    @Schema(nullable = false) val budgetBytes: Int? = null,
+    @Schema(nullable = false) val frame: String? = null,
+    @Schema(nullable = false) val continuation: String? = null,
 )

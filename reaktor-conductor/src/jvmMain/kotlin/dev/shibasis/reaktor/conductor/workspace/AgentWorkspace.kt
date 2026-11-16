@@ -15,6 +15,9 @@ import kotlinx.serialization.json.*
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardOpenOption.APPEND
+import java.nio.file.StandardOpenOption.CREATE
+import java.nio.file.attribute.PosixFilePermissions
 import java.util.UUID
 
 /** One admitted execution owner. Provider I/O never runs on the request/UI thread. */
@@ -57,6 +60,7 @@ class AgentWorkspace(
     private var closed = false
     private var suspending = false
     private val lastPersisted = mutableMapOf<String, Long>()
+    private val savedRuns = mutableMapOf<String, AgentRunRecord>()
     private val serviceStartedAt = System.currentTimeMillis()
     val activity = AgentActivityStore(directory.resolve("activity"))
     private val activityProjection = AgentActivityProjection()
@@ -1437,7 +1441,7 @@ class AgentWorkspace(
                     update(initial.id, true) { if (it.status == AgentRunStatus.Interrupted && it.recovery == AgentRecovery.None) it else it.copy(status = if (it.participants.values.any { p -> p.status == AgentRunStatus.Interrupted }) AgentRunStatus.Interrupted else if (it.participants.values.any { p -> p.status == AgentRunStatus.Limited }) AgentRunStatus.Limited else if (workflowFailed ?: failures.isNotEmpty()) AgentRunStatus.Failed else AgentRunStatus.Completed,
                         usageLimit = it.participants.values.firstNotNullOfOrNull { p -> p.usageLimit },
                         pending = emptyList(), recovery = AgentRecovery.None, recoveryReason = null,
-                        output = answer?.text.orEmpty().takeLast(12000), outputTruncated = answer?.text.orEmpty().length > 12000,
+                        output = answer?.text.orEmpty(), outputTruncated = false,
                         candidateId = completedCandidate?.id ?: it.candidateId,
                         usage = answer?.usage?.takeIf { request.collaboration == AgentCollaboration.Single },
                         reportedUsage = answer?.reportedUsage?.takeIf { request.collaboration == AgentCollaboration.Single },
@@ -1538,12 +1542,22 @@ class AgentWorkspace(
         return directory.resolve("threads/$id.json")
     }
     private fun load(id: String): AgentRunRecord? = runPath(id).let { path ->
-        if (Files.exists(path)) ConductorJson.decodeFromString(AgentRunRecord.serializer(), Files.readString(path)).let { record ->
+        if (Files.exists(path)) AgentRunTransfer.read(path).also { savedRuns[id] = it }.let { record ->
             val planItem = runCatching { retainedSubmission(id, record).planItem }.getOrNull()
             if (record.planItem == planItem) record else record.copy(planItem = planItem)
         } else null
     }
-    private fun persist(record: AgentRunRecord) = atomicWrite(runPath(record.id), ConductorJson.encodeToString(AgentRunRecord.serializer(), record))
+    private fun persist(record: AgentRunRecord) {
+        val path = runPath(record.id)
+        val previous = savedRuns[record.id] ?: path.takeIf(Files::exists)?.let(AgentRunTransfer::read)
+        val delta = AgentRunTransfer.delta(record, AgentRunTransfer.held(previous), Int.MAX_VALUE)
+        AgentRunTransfer.recoverTail(path)
+        val prefix = if (Files.exists(path) && !AgentRunTransfer.endsInNewline(path)) "\n" else ""
+        Files.writeString(path, prefix + delta.toString() + "\n", CREATE, APPEND)
+        Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rw-------"))
+        java.nio.channels.FileChannel.open(path, java.nio.file.StandardOpenOption.WRITE).use { it.force(true) }
+        savedRuns[record.id] = record
+    }
 
     override fun close() {
         planScopes.close()

@@ -10,6 +10,7 @@ import dev.shibasis.reaktor.conductor.cli.ClaudeCodeRuntime
 import dev.shibasis.reaktor.conductor.cli.CodexRuntime
 import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
 import dev.shibasis.reaktor.tooling.mcp.LoopbackMcpServer
+import dev.shibasis.reaktor.mcp.McpTool
 import dev.shibasis.reaktor.mcp.REAKTOR_MCP_MAX_REQUEST_BYTES
 import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSION
 import dev.shibasis.reaktor.mcp.REAKTOR_MCP_PROTOCOL_VERSIONS
@@ -19,7 +20,14 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.runInterruptible
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.Semaphore
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.*
 import java.io.File
@@ -53,6 +61,13 @@ class AgentWorkspaceConnection private constructor(
     val hybridConnector: HybridConnector? = null,
 ) : AutoCloseable {
     private val closed = AtomicBoolean()
+    private val runTransfers = ConcurrentHashMap<String, Mutex>()
+    private val heldRuns = LinkedHashMap<String, AgentRunRecord>()
+    private var heldIncarnation: String? = null
+    private val receivedBytes = AtomicLong()
+    private val receivedUpdates = AtomicLong()
+    internal val receivedRunBytes get() = receivedBytes.get()
+    internal val receivedRunUpdates get() = receivedUpdates.get()
     @Volatile private var pinnedIncarnation: String? = null
     @Volatile private var protocolVersion = REAKTOR_MCP_PROTOCOL_VERSION
     private val http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build()
@@ -95,7 +110,7 @@ class AgentWorkspaceConnection private constructor(
 
     suspend fun info(): AgentWorkspaceInfo = ConductorJson.decodeFromJsonElement(AgentWorkspaceInfo.serializer(), call("agent_workspace_info"))
     suspend fun submit(request: AgentSubmission): AgentRunRecord = decode(call("agent_submit", ConductorJson.encodeToJsonElement(AgentSubmission.serializer(), request).jsonObject))
-    suspend fun get(id: String): AgentRunRecord = decode(call("agent_run", buildJsonObject { put("runId", id) }))
+    suspend fun get(id: String): AgentRunRecord = receiveRun(id)
     suspend fun list(limit: Int = 20, offset: Int = 0): List<AgentRunRecord> = ConductorJson.decodeFromJsonElement(ListSerializer(AgentRunRecord.serializer()),
         call("agent_runs", buildJsonObject { put("limit", limit); put("offset", offset) }).jsonObject.getValue("runs"))
     suspend fun listActive(): List<AgentRunRecord> = ConductorJson.decodeFromJsonElement(ListSerializer(AgentRunRecord.serializer()),
@@ -109,16 +124,45 @@ class AgentWorkspaceConnection private constructor(
         call("agent_tasks_wait", buildJsonObject { put("revision", 0); put("query", query); put("offset", offset); put("limit", 50); put("timeoutMillis", 0) }))
     suspend fun waitTasks(revision: Long, query: String = ""): AgentTasksPage = ConductorJson.decodeFromJsonElement(AgentTasksPage.serializer(),
         call("agent_tasks_wait", buildJsonObject { put("revision", revision); put("query", query); put("limit", 50) }))
-    suspend fun wait(id: String, afterRevision: Long, timeoutMillis: Long = 30000): AgentRunRecord = decode(call("agent_wait", buildJsonObject {
-        put("runId", id); put("afterRevision", afterRevision); put("timeoutMillis", timeoutMillis)
-    }))
+    suspend fun wait(id: String, afterRevision: Long, timeoutMillis: Long = 30000): AgentRunRecord = receiveRun(id, afterRevision, timeoutMillis)
     suspend fun cancel(id: String, expectedRevision: Long? = null): AgentRunRecord = decode(call("agent_cancel", buildJsonObject {
         put("runId", id); expectedRevision?.let { put("expectedRevision", it) }
     }))
 
     /** Re-attaches to a run after a disconnect. Observation only; never takes the execution lease. */
-    suspend fun attach(runId: String): AgentAttachment = ConductorJson.decodeFromJsonElement(
-        AgentAttachment.serializer(), call("agent_attach", buildJsonObject { put("runId", runId) }))
+    suspend fun attach(runId: String): AgentAttachment {
+        val value = call("agent_attach", buildJsonObject { put("runId", runId); put("delta", true) }).jsonObject
+        val attachment = ConductorJson.decodeFromJsonElement(AgentAttachment.serializer(), value["attachment"] ?: value)
+        return if (value["attachment"] == null) attachment else attachment.copy(run = get(runId))
+    }
+
+    private suspend fun receiveRun(id: String, afterRevision: Long? = null, timeoutMillis: Long = 0): AgentRunRecord = runTransfers.computeIfAbsent(id) { Mutex() }.withLock {
+        val owner = incarnation
+        var current = synchronized(heldRuns) {
+            if (heldIncarnation != owner) { heldRuns.clear(); heldIncarnation = owner }
+            heldRuns[id]
+        }
+        var waiting = afterRevision
+        var complete: Boolean
+        do {
+            val value = call(if (waiting == null) "agent_run" else "agent_wait", buildJsonObject {
+                put("runId", id); put("delta", true); put("held", AgentRunTransfer.held(current))
+                current?.let { put("heldRevision", it.revision) }
+                waiting?.let { put("afterRevision", it); put("timeoutMillis", timeoutMillis) }
+            })
+            receivedBytes.addAndGet(value.toString().toByteArray(Charsets.UTF_8).size.toLong())
+            receivedUpdates.incrementAndGet()
+            current = AgentRunTransfer.apply(value, current)
+            synchronized(heldRuns) {
+                heldRuns.remove(id)
+                heldRuns[id] = current
+                while (heldRuns.size > 100) heldRuns.remove(heldRuns.keys.first())
+            }
+            complete = value.jsonObject["complete"]?.jsonPrimitive?.booleanOrNull != false
+            waiting = null
+        } while (!complete)
+        requireNotNull(current)
+    }
 
     /** Answers a request a provider is blocked on. Unsupported when that run holds no session. */
     suspend fun answer(runId: String, agent: String, requestId: String, decision: AgentDecision): CommandOutcome =
@@ -399,7 +443,7 @@ class AgentWorkspaceConnection private constructor(
                 }.toString() else null
                 val hostedWorkspace = AgentWorkspace(root.canonicalFile, directory, configured, discover = discover, batchRuntimes = batch,
                     harnessMcpConfig = mcpConfig, background = background, workflowCheck = workflowCheck, externalBusy = externalBusy, kernelRead = kernelRead, scopeModules = scopeModules, grantAdvisory = grantAdvisory).also { workspace = it }
-                val registry = AgentWorkspaceOperations(hostedWorkspace, agentWorkspaceTools(hostedWorkspace, extraTools(hostedWorkspace)), graphOwner(), mcpProjection, directory).also { operations = it }
+                val registry = AgentWorkspaceOperations(hostedWorkspace, runTransferTools(hostedWorkspace, agentWorkspaceTools(hostedWorkspace, extraTools(hostedWorkspace))), graphOwner(), mcpProjection, directory).also { operations = it }
                 if (plus || Files.isRegularFile(directory.resolve("browser-inference/plus"))) registry.browser.startPlus()
                 operationBinding = bindOperations(registry.node)
                 registry.incarnation = java.util.UUID.randomUUID().toString()
@@ -442,6 +486,141 @@ class AgentWorkspaceConnection private constructor(
                 finally { Owned.remove(directory.toAbsolutePath().normalize()); ownerLock.release(); channel.close() }
                 throw failure
             }
+        }
+    }
+}
+
+internal object AgentRunTransfer {
+    const val Budget = 256_000
+
+    private fun streams(run: AgentRunRecord): LinkedHashMap<String, String> = linkedMapOf("output" to run.output, "reasoning" to run.reasoning).apply {
+        run.participants.forEach { (id, part) ->
+            put("participant:$id:output", part.output)
+            put("participant:$id:reasoning", part.reasoning)
+        }
+    }
+
+    fun header(run: AgentRunRecord): AgentRunRecord = run.copy(output = "", reasoning = "", participants = run.participants.mapValues { (_, part) -> part.copy(output = "", reasoning = "") })
+
+    fun held(run: AgentRunRecord?): JsonObject = buildJsonObject {
+        run?.let { streams(it).forEach { (key, text) -> put(key, buildJsonObject { put("length", text.length); put("sha256", digest(text)) }) } }
+    }
+
+    fun delta(run: AgentRunRecord, held: JsonObject, budget: Int = Budget): JsonObject {
+        val texts = streams(run)
+        val patches = linkedMapOf<String, JsonElement>()
+        val unique = linkedMapOf<String, String>()
+        var complete = true
+        fun envelope(done: Boolean) = buildJsonObject {
+            put("runDelta", 1)
+            put("record", ConductorJson.encodeToJsonElement(AgentRunRecord.serializer(), header(run)))
+            put("streams", JsonObject(patches))
+            put("complete", done)
+        }
+        texts.forEach { (key, text) ->
+            val alias = unique.entries.firstOrNull { it.value == text }?.key
+            if (alias != null) {
+                patches[key] = buildJsonObject { put("alias", alias) }
+            } else {
+                unique[key] = text
+                val prior = held[key] as? JsonObject
+                val length = (prior?.get("length") as? JsonPrimitive)?.intOrNull ?: 0
+                val start = length.takeIf { it in 0..text.length && prior?.get("sha256")?.jsonPrimitive?.contentOrNull == digest(text.take(it)) } ?: 0
+                fun patch(end: Int) = buildJsonObject { put("offset", start); put("text", text.substring(start, end)); put("total", text.length) }
+                patches[key] = patch(start)
+                var low = start
+                var high = minOf(text.length.toLong(), start.toLong() + budget).toInt()
+                while (low < high) {
+                    val middle = low + (high - low + 1) / 2
+                    patches[key] = patch(middle)
+                    if (envelope(false).toString().toByteArray(Charsets.UTF_8).size <= budget - 2048) low = middle else high = middle - 1
+                }
+                if (low in 1 until text.length && text[low - 1].isHighSurrogate() && text[low].isLowSurrogate()) low--
+                patches[key] = patch(low)
+                complete = complete && low == text.length
+            }
+        }
+        return envelope(complete).also { require(it.toString().toByteArray(Charsets.UTF_8).size <= budget) { "Run metadata exceeds the transfer budget" } }
+    }
+
+    fun apply(value: JsonElement, prior: AgentRunRecord?): AgentRunRecord {
+        val body = value.jsonObject
+        if (body["runDelta"] == null) return ConductorJson.decodeFromJsonElement(AgentRunRecord.serializer(), value)
+        val run = ConductorJson.decodeFromJsonElement(AgentRunRecord.serializer(), body.getValue("record"))
+        require(prior == null || prior.id == run.id) { "Run delta belongs to another run" }
+        val previous = prior?.let(::streams).orEmpty()
+        val received = linkedMapOf<String, String>()
+        body.getValue("streams").jsonObject.forEach { (key, element) ->
+            val patch = element.jsonObject
+            received[key] = patch["alias"]?.jsonPrimitive?.contentOrNull?.let { requireNotNull(received[it]) }
+                ?: run {
+                    val offset = patch.getValue("offset").jsonPrimitive.int
+                    val old = previous[key].orEmpty()
+                    require(offset in 0..old.length) { "Run delta needs an earlier sample" }
+                    old.take(offset) + patch.getValue("text").jsonPrimitive.content
+                }
+        }
+        return run.copy(output = received["output"].orEmpty(), reasoning = received["reasoning"].orEmpty(),
+            participants = run.participants.mapValues { (id, part) -> part.copy(output = received["participant:$id:output"].orEmpty(), reasoning = received["participant:$id:reasoning"].orEmpty()) })
+    }
+
+    fun read(path: Path): AgentRunRecord {
+        var run: AgentRunRecord? = null
+        Files.newBufferedReader(path).use { reader ->
+            var line = reader.readLine()
+            while (line != null) {
+                val next = reader.readLine()
+                if (line.isNotBlank()) try { run = apply(ConductorJson.parseToJsonElement(line), run) }
+                catch (failure: SerializationException) { if (run == null || next != null || endsInNewline(path)) throw failure }
+                line = next
+            }
+        }
+        return requireNotNull(run) { "Run journal is empty" }
+    }
+
+    fun endsInNewline(path: Path): Boolean = Files.size(path) == 0L || Files.newByteChannel(path).use { channel ->
+        channel.position(channel.size() - 1)
+        val byte = java.nio.ByteBuffer.allocate(1)
+        channel.read(byte)
+        byte.array()[0] == '\n'.code.toByte()
+    }
+
+    fun recoverTail(path: Path) {
+        if (!Files.exists(path) || endsInNewline(path)) return
+        val last = Files.readString(path).substringAfterLast('\n')
+        try { ConductorJson.parseToJsonElement(last) }
+        catch (failure: SerializationException) {
+            val end = Files.size(path) - last.toByteArray(Charsets.UTF_8).size
+            require(end > 0) { "Run journal has no complete save" }
+            FileChannel.open(path, WRITE).use { it.truncate(end) }
+        }
+    }
+}
+
+private fun runTransferTools(workspace: AgentWorkspace, tools: List<McpTool>): List<McpTool> {
+    val waits = Semaphore(2)
+    return tools.map { tool ->
+        if (tool.name !in setOf("agent_run", "agent_wait", "agent_attach")) tool else {
+            val properties = tool.inputSchema["properties"]?.jsonObject.orEmpty() + buildJsonObject {
+                put("delta", buildJsonObject { put("type", "boolean") })
+                put("heldRevision", buildJsonObject { put("type", "integer") })
+                put("held", buildJsonObject { put("type", "object") })
+            }
+            tool.copy(inputSchema = JsonObject(tool.inputSchema + ("properties" to JsonObject(properties))), execute = { args ->
+                if (args["delta"]?.jsonPrimitive?.booleanOrNull != true) tool.execute(args) else {
+                    val id = args.getValue("runId").jsonPrimitive.content
+                    if (tool.name == "agent_attach") {
+                        buildJsonObject { put("attachment", ConductorJson.encodeToJsonElement(AgentAttachment.serializer(), workspace.attach(id).let { it.copy(run = AgentRunTransfer.header(it.run)) })) }
+                    } else {
+                        val record = if (tool.name != "agent_wait") workspace.get(id) else {
+                            check(waits.tryAcquire()) { "Wait capacity is busy; retry later" }
+                            try { runBlocking { workspace.awaitChange(id, args["afterRevision"]?.jsonPrimitive?.longOrNull ?: 0, args["timeoutMillis"]?.jsonPrimitive?.longOrNull ?: 30000) } }
+                            finally { waits.release() }
+                        }
+                        AgentRunTransfer.delta(record, args["held"] as? JsonObject ?: JsonObject(emptyMap()))
+                    }
+                }
+            })
         }
     }
 }

@@ -222,8 +222,10 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
             requireNotNull(all.single().seat(seat)?.takeIf { it.heldBy(actor) }) { "$seat is not held by this agent" }
         } else null
         if (take) {
-            val held = every.asSequence().flatMap { PlanAnalysis.ranked(it).asSequence() }
-                .firstOrNull { it.item.status == PlanStatus.Doing && it.item.lease?.by?.same(actor) == true }
+            val holding = every.firstNotNullOfOrNull { plan -> plan.leaves().firstOrNull {
+                it.status == PlanStatus.Doing && it.lease?.by?.same(actor) == true
+            }?.let { plan to it } }
+            val held = holding?.let { (plan, leaf) -> PlanAnalysis.ranked(plan).firstOrNull { it.item.id == leaf.id } }
             if (held != null) {
                 val reason = "This agent already holds ${held.thread}#${held.item.id}"
                 if (item != null) {
@@ -250,7 +252,7 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
         val now = clock()
         val applied = PlanRules.apply(current, PlanPatch(base = current.revision, seat = seat,
             ops = listOf(PlanOp.Status(candidate.item.id, PlanStatus.Doing, reason = ""))), actor, now)
-        require(applied.refused.isEmpty()) { applied.refused.joinToString { it.reason } }
+        if (applied.refused.isNotEmpty()) return@access PlanNext(reason = applied.refused.joinToString { it.reason })
         val leased = applied.plan.copy(items = applied.plan.items.map {
             if (it.id == candidate.item.id) it.copy(lease = PlanLease(actor, now, now + PlanLease.DurationMillis)) else it
         })

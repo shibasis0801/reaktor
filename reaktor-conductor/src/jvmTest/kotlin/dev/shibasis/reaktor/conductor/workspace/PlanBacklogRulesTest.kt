@@ -118,12 +118,38 @@ class PlanBacklogRulesTest {
         val other = BoardActor(BoardActorKind.Person, "Other owner", principal = "other-owner")
         val plan = empty().copy(items = List(5) { PlanItem("p$it", "Held", status = PlanStatus.Doing, by = owner) } +
             PlanItem("other", "Other work", status = PlanStatus.Doing, by = other))
-        val failure = assertFailsWith<IllegalArgumentException> {
-            PlanRules.attach(plan, PlanSeat("seat", "fixture", listOf("other"), owner, 10), 10)
-        }
-        assertTrue(failure.message.orEmpty().contains("at most 5 Doing leaves"))
-        assertTrue(plan.seats.isEmpty())
+        val attached = PlanRules.attach(plan, PlanSeat("seat", "fixture", listOf("other"), owner, 10), 10)
+        assertEquals("seat", attached.item("other")!!.seat)
+        assertEquals(other, attached.item("other")!!.by)
+        assertEquals(owner, attached.seats.single().by)
         assertEquals(other, plan.item("other")!!.by)
+    }
+
+    @Test fun aReviewerDoesNotConsumeTheAssigneesDoingSlot() {
+        val plan = empty().copy(items = List(5) { PlanItem("p$it", "Implementer work", status = PlanStatus.Doing,
+            refs = listOf("agent:codex-x", "agent:claude-y")) })
+        val answer = apply(plan, PlanOp.Add("Review", key = "review", status = PlanStatus.Doing, refs = listOf("agent:claude-y")))
+        assertTrue(answer.refused.isEmpty(), "A reviewer ref must not consume a Doing slot")
+        val refused = apply(answer.plan, PlanOp.Add("Sixth implementation", key = "sixth", status = PlanStatus.Doing,
+            refs = listOf("agent:codex-x", "agent:claude-y")))
+        assertEquals(0, refused.refused.single().op)
+    }
+
+    @Test fun aDoingLimitRefusalNamesItsHolderAndExistingLeaves() {
+        val answer = apply(empty(), *Array(6) { PlanOp.Add("Active item", key = "p$it", status = PlanStatus.Doing) })
+        val reason = answer.refused.single().reason
+        assertTrue(reason.contains("Fixture owner"))
+        assertTrue((0..4).all { reason.contains("p$it") })
+        assertTrue(reason.contains("earlier in the patch"))
+    }
+
+    @Test fun anExplicitIdentityWinsOverTheFirstRefForDoingSlots() {
+        val bound = BoardActor(BoardActorKind.Agent, "bound-agent", "codex:bound", profile = "bound-agent")
+        val items = List(5) { PlanItem("p$it", "Held", status = PlanStatus.Doing,
+            refs = listOf("agent:old-assignee", "agent:reviewer"), by = bound, lease = PlanLease(bound, 1, 10000)) }
+        val answer = apply(empty().copy(items = items), PlanOp.Add("Overflow", key = "overflow", status = PlanStatus.Doing,
+            refs = listOf("agent:bound-agent")))
+        assertEquals(0, answer.refused.single().op)
     }
 
 }

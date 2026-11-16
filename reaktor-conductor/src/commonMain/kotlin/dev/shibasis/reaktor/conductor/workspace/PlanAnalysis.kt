@@ -47,9 +47,14 @@ object PlanAnalysis {
         })
         while (true) {
             val current = cache.load()
-            current.firstOrNull { it.key == key }?.let { return it }
+            val found = current.firstOrNull { it.key == key }
+            if (found != null) {
+                if (current.lastOrNull() === found || cache.compareAndSet(current, current.filterNot { it === found } + found)) return found
+                continue
+            }
             val added = Entry(key, plan)
-            if (cache.compareAndSet(current, (current + added).takeLast(32))) return added
+            if (current.any { it.key.thread == key.thread && it.key.revision > key.revision }) return added
+            if (cache.compareAndSet(current, (current.filterNot { it.key.thread == key.thread } + added).takeLast(32))) return added
         }
     }
 

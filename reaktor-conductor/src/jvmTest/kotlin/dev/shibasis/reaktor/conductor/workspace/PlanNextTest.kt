@@ -26,6 +26,19 @@ class PlanNextTest {
         }
     }
 
+    @Test fun takingASixthAssignedLeafReturnsTheLimitReasonWithoutThrowing() = fixture { workspace ->
+        val bound = workspace.profiles.save(profile.copy(id = "limit-agent", name = "limit-agent"), person)
+        workspace.bindIdentity(codex, bound.id, workspace.identity(codex).bindingRevision)
+        workspace.plans.write("hangar:limit", PlanPatch(title = "Limit", ops = List(5) {
+            PlanOp.Add("Held", key = "p$it", status = PlanStatus.Doing, refs = listOf("agent:limit-agent"))
+        } + PlanOp.Add("Sixth", key = "sixth", refs = listOf("agent:limit-agent"))), person)
+        val next = workspace.nextPlan("hangar:limit", codex, take = true, item = "sixth")
+        assertNull(next.candidate)
+        assertTrue(next.reason.contains("limit-agent"))
+        assertTrue(next.reason.contains("earlier in the patch"))
+        assertEquals(PlanStatus.Todo, workspace.plans.plan("hangar:limit")!!.item("sixth")!!.status)
+    }
+
     @Test fun nextReadsAcrossPlansWithoutClaiming() = fixture { workspace ->
         workspace.plans.write("hangar:one", PlanPatch(title = "One", ops = listOf(PlanOp.Add("First", key = "first"))), person)
         workspace.plans.write("hangar:two", PlanPatch(title = "Two", ops = listOf(PlanOp.Add("Urgent", key = "urgent", priority = PlanPriority.Urgent))), person)

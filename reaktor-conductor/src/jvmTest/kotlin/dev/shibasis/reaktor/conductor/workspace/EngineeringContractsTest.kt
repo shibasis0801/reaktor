@@ -13,6 +13,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class EngineeringContractsTest {
     @Test
@@ -31,23 +32,24 @@ class EngineeringContractsTest {
             val declared = call.request.descriptor.jsonSchema()
             val addedInputs = when (id) {
                 "plan.read" -> mapOf("budgetBytes" to "integer", "frame" to "string", "continuation" to "string")
-                "plan.write" -> mapOf("limits" to "object")
+                "plan.write" -> mapOf("limits" to "object", "documentText" to "string", "approval" to "string")
+                "plan.shape" -> mapOf("by" to "object", "budgetBytes" to "integer", "frame" to "string", "continuation" to "string")
                 else -> emptyMap()
             }
             val declaredProperties = declared.getValue("properties").jsonObject
             for ((field, type) in addedInputs) {
                 assertEquals(type, declaredProperties.getValue(field).jsonObject.getValue("type").jsonPrimitive.content)
-                kotlin.test.assertTrue((declared["required"] as? JsonArray).orEmpty().none { it.jsonPrimitive.content == field })
+                assertTrue((declared["required"] as? JsonArray).orEmpty().none { it.jsonPrimitive.content == field })
             }
             val input = JsonObject(declared + ("properties" to JsonObject(declaredProperties - addedInputs.keys)))
             val comparable = if (id == "plan.write") {
                 val properties = input.getValue("properties").jsonObject
                 val ops = properties.getValue("ops").jsonObject
                 val description = ops.getValue("description").jsonPrimitive.content
-                for (field in listOf("priority", "reason", "replacement", "detail", "previews")) kotlin.test.assertTrue(field in description)
+                for (field in listOf("priority", "reason", "replacement", "detail", "previews")) assertTrue(field in description)
                 for (optional in listOf("documentPath", "requestId")) {
                     assertEquals("string", properties.getValue(optional).jsonObject.getValue("type").jsonPrimitive.content)
-                    kotlin.test.assertTrue(input.getValue("required").jsonArray.none { it.jsonPrimitive.content == optional })
+                    assertTrue(input.getValue("required").jsonArray.none { it.jsonPrimitive.content == optional })
                 }
                 JsonObject(input + ("properties" to JsonObject((properties - "documentPath" - "requestId") + ("ops" to JsonObject(ops +
                     ("description" to expected.getValue("input").jsonObject.getValue("properties").jsonObject.getValue("ops").jsonObject.getValue("description")))))))
@@ -71,9 +73,9 @@ class EngineeringContractsTest {
         val properties = actual["properties"] as? JsonObject
         val normalized = if (oldProperties != null && properties != null) {
             val added = properties.keys - oldProperties.keys
-            kotlin.test.assertTrue(additions.containsAll(added), "Unexpected output properties: $added")
+            assertTrue(additions.containsAll(added), "Unexpected output properties: $added")
             val required = (actual["required"] as? JsonArray).orEmpty().map { it.jsonPrimitive.content }
-            kotlin.test.assertTrue(added.none { it in required }, "Added output properties must be optional")
+            assertTrue(added.none { it in required }, "Added output properties must be optional")
             JsonObject(actual + ("properties" to JsonObject(properties - added)))
         } else actual
         return JsonObject(normalized.mapValues { (key, value) -> baselineOutput(expected[key], value, additions)!! })
@@ -98,12 +100,17 @@ class EngineeringContractsTest {
         val nextInput = api.next.request.descriptor.jsonSchema()
         assertEquals(setOf("thread", "agent", "seat", "take", "item", "budgetBytes", "frame", "continuation"), nextInput.getValue("properties").jsonObject.keys)
         assertEquals("string", nextInput.getValue("properties").jsonObject.getValue("item").jsonObject.getValue("type").jsonPrimitive.content)
-        kotlin.test.assertTrue((nextInput["required"] as? JsonArray).orEmpty().none { it.jsonPrimitive.content == "item" })
+        assertTrue((nextInput["required"] as? JsonArray).orEmpty().none { it.jsonPrimitive.content == "item" })
         for ((field, type) in mapOf("budgetBytes" to "integer", "frame" to "string", "continuation" to "string")) {
             assertEquals(type, nextInput.getValue("properties").jsonObject.getValue(field).jsonObject.getValue("type").jsonPrimitive.content)
-            kotlin.test.assertTrue((nextInput["required"] as? JsonArray).orEmpty().none { it.jsonPrimitive.content == field })
+            assertTrue((nextInput["required"] as? JsonArray).orEmpty().none { it.jsonPrimitive.content == field })
         }
-        assertEquals(setOf("thread"), api.schedule.request.descriptor.jsonSchema().getValue("properties").jsonObject.keys)
+        val scheduleInput = api.schedule.request.descriptor.jsonSchema()
+        assertEquals(setOf("thread", "budgetBytes", "frame", "continuation"), scheduleInput.getValue("properties").jsonObject.keys)
+        for ((field, type) in mapOf("budgetBytes" to "integer", "frame" to "string", "continuation" to "string")) {
+            assertEquals(type, scheduleInput.getValue("properties").jsonObject.getValue(field).jsonObject.getValue("type").jsonPrimitive.content)
+            assertTrue((scheduleInput["required"] as? JsonArray).orEmpty().none { it.jsonPrimitive.content == field })
+        }
     }
 
     @Test

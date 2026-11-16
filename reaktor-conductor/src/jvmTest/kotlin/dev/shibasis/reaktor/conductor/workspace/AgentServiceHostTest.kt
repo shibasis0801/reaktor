@@ -20,6 +20,21 @@ class AgentServiceHostTest {
 
     @AfterTest fun clean() { directory.toFile().deleteTreeSafely(within = File("/tmp")) }
 
+    @Test fun anUpgradeSkipsAVanishedTemporaryWorkspaceAndReopensTheRest() {
+        val vanished = directory.resolve("graph-tab-owner-vanished").toString()
+        val valid = directory.resolve("still-present").toFile().apply { mkdirs() }.path
+        val opened = mutableListOf<String>()
+        val reports = mutableListOf<String>()
+        val reopened = AgentServiceHost.reopen(listOf(HostedWorkspace(vanished), HostedWorkspace(valid)), reports::add) { workspace ->
+            opened += workspace.root
+            if (workspace.root == vanished) "Failed requirement" else null
+        }
+        assertEquals(listOf(valid), opened)
+        assertEquals(listOf(valid), reopened)
+        assertEquals(1, reports.size)
+        assertEquals(1, reports.single().lineSequence().count())
+    }
+
     @Test fun eachWorkspaceOpensOnItsOwnThreadInOneProcess() {
         AgentServiceHost.admit(HostedWorkspace("/work/bestbuds"), directory)
         host().use {

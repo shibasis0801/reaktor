@@ -104,7 +104,7 @@ class AgentWorkspaceTest {
                 runs
             }
             val legacyRun = directory.resolve("runs/${runs[0].id}.json")
-            val legacyBody = ConductorJson.parseToJsonElement(Files.readString(legacyRun)).jsonObject
+            val legacyBody = ConductorJson.encodeToJsonElement(AgentRunRecord.serializer(), AgentRunTransfer.read(legacyRun)).jsonObject
             Files.writeString(legacyRun, JsonObject(legacyBody - "planItem").toString())
             val alteredRequest = directory.resolve("requests/${runs[1].id}.json")
             val alteredBody = ConductorJson.parseToJsonElement(Files.readString(alteredRequest)).jsonObject

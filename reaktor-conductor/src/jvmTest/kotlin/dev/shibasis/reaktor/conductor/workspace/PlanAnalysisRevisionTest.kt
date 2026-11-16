@@ -44,6 +44,17 @@ class PlanAnalysisRevisionTest {
         assertEquals("a", PlanAnalysis.report(changed).review.single().dependency)
     }
 
+    @Test fun cacheHitsRefreshTheThreadAndNewRevisionsReplaceItsOldEntry() {
+        val retained = plan(listOf(PlanItem("retained", "Retained"))).copy(thread = "hangar:analysis-cache-lru")
+        val report = PlanAnalysis.report(retained)
+        repeat(31) { index -> PlanAnalysis.report(retained.copy(thread = "hangar:lru-$index")) }
+        assertSame(report, PlanAnalysis.report(retained))
+        PlanAnalysis.report(retained.copy(thread = "hangar:lru-last"))
+        assertSame(report, PlanAnalysis.report(retained), "A hit must refresh the entry")
+        repeat(40) { revision -> PlanAnalysis.report(retained.copy(thread = "hangar:busy", revision = revision.toLong())) }
+        assertSame(report, PlanAnalysis.report(retained), "One thread must consume only one cache entry")
+    }
+
     @Test fun indexedWidthEqualsEveryAntichainOnEveryForwardDagThroughSixVertices() {
         for (size in 0..6) {
             val edges = (0 until size).flatMap { to -> (0 until to).map { from -> from to to } }

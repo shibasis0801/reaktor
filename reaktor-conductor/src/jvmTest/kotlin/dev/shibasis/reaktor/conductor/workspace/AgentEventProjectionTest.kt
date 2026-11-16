@@ -14,18 +14,18 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class AgentEventProjectionTest {
-    @Test fun theTransportDeliversFortyNineSamplesAndRefusesOnlyTheLiveMegabyte() = runBlocking {
+    @Test fun theTransportDeliversEveryFiveMegabyteSampleAndTheWholeFinalAnswer() = runBlocking {
         val directory = Files.createTempDirectory("stream-record-cost").toFile()
         val data = directory.resolve("plane").toPath()
         val checkpoints = kotlinx.coroutines.channels.Channel<kotlinx.coroutines.CompletableDeferred<Unit>>()
-        val text = "01234567890123456789".repeat(50_000)
+        val text = "01234567890123456789".repeat(250_000)
         val runtime = object : AgentRuntime {
             override val kind = RuntimeKind.Echo
             override fun run(request: AgentRequest) = kotlinx.coroutines.flow.flow {
                 emit(AgentEvent.Started(request.agent.id, null))
-                repeat(50_000) { index ->
+                repeat(250_000) { index ->
                     emit(AgentEvent.Delta(request.agent.id, "01234567890123456789"))
-                    if ((index + 1) % 1_000 == 0) {
+                    if ((index + 1) % 5_000 == 0) {
                         val next = kotlinx.coroutines.CompletableDeferred<Unit>()
                         checkpoints.send(next)
                         next.await()
@@ -45,6 +45,7 @@ class AgentEventProjectionTest {
                 val saves = mutableListOf<Pair<Long, Long>>()
                 var modified: java.nio.file.attribute.FileTime? = null
                 val snapshots = mutableListOf<Int>()
+                val transfers = mutableListOf<Long>()
                 val received = mutableListOf<Int>()
                 val deliveredCharacters = mutableListOf<Int>()
                 val transportFailures = mutableListOf<Pair<Int, String>>()
@@ -59,10 +60,12 @@ class AgentEventProjectionTest {
                     val release = kotlinx.coroutines.withTimeout(30_000) { checkpoints.receive() }
                     save()
                     current = workspace.get(current.id)
-                    assertEquals((index + 1) * 20_000, current.output.length)
+                    assertEquals((index + 1) * 100_000, current.output.length)
                     snapshots += ConductorJson.encodeToString(AgentRunRecord.serializer(), current).encodeToByteArray().size
                     try {
+                        val bytesBefore = pane.receivedRunBytes
                         val delivered = pane.get(current.id)
+                        transfers += pane.receivedRunBytes - bytesBefore
                         assertEquals(current.output, delivered.output)
                         deliveredCharacters += delivered.output.length
                         received += ConductorJson.encodeToString(AgentRunRecord.serializer(), delivered).encodeToByteArray().size
@@ -72,24 +75,45 @@ class AgentEventProjectionTest {
                     }
                     release.complete(Unit)
                 }
-                assertEquals((1..49).map { it * 20_000 }, deliveredCharacters)
-                assertEquals(49, received.size)
-                assertEquals(listOf(1_000_000 to "Workspace response exceeded the transport budget"), transportFailures)
-                assertEquals(1_000_000, current.output.length)
+                assertEquals((1..50).map { it * 100_000 }, deliveredCharacters)
+                assertEquals(50, received.size)
+                assertEquals(50, transfers.size)
+                assertTrue(transfers.all { it <= AgentRunTransfer.Budget }, "A sample sends only its changed text")
+                assertTrue(transportFailures.isEmpty(), "Every live sample reaches the pane")
+                assertEquals(5_000_000, current.output.length)
                 while (current.status == AgentRunStatus.Running) current = workspace.awaitChange(current.id, current.revision, 30_000)
                 save()
-                assertEquals(1_000_000, current.participants.values.single().output.length)
+                assertEquals(5_000_000, current.participants.values.single().output.length)
                 val completed = pane.get(current.id)
-                assertEquals(1_000_000, completed.participants.values.single().output.length)
-                val persisted = ConductorJson.decodeFromString(AgentRunRecord.serializer(), Files.readString(file))
-                assertEquals(1_000_000, persisted.participants.values.single().output.length)
+                assertEquals(5_000_000, completed.participants.values.single().output.length)
+                assertEquals(5_000_000, completed.output.length)
+                val attachment = pane.attach(current.id)
+                assertEquals(completed.output, attachment.run.output)
+                val persisted = AgentRunTransfer.read(file)
+                assertEquals(5_000_000, persisted.participants.values.single().output.length)
                 println("HC_RECORD_METRICS=" + buildJsonObject {
-                    put("chunks", 50_000)
+                    put("chunks", 250_000)
                     put("wallMillis", (System.nanoTime() - started) / 1_000_000)
                     put("recordRevisions", current.revision - firstRevision)
                     put("sampledRunUpdates", snapshots.size)
                     put("largestRunUpdateBytes", snapshots.max())
+                    put("legacyFullSampleBytes", snapshots.sum())
+                    put("liveTransportBytes", transfers.sum())
                     put("receivedLivePaneUpdates", received.size)
+                    put("actualTransportBytes", pane.receivedRunBytes)
+                    put("largestLiveDeltaBytes", transfers.max())
+                    put("smallestLiveDeltaBytes", transfers.min())
+                    put("journalBytes", Files.size(file))
+                    var replay: AgentRunRecord? = null
+                    var legacySaveBytes = 0L
+                    var journalSaves = 0
+                    Files.newBufferedReader(file).useLines { lines -> lines.filter(String::isNotBlank).forEach { line ->
+                        replay = AgentRunTransfer.apply(ConductorJson.parseToJsonElement(line), replay)
+                        legacySaveBytes += ConductorJson.encodeToString(AgentRunRecord.serializer(), requireNotNull(replay)).encodeToByteArray().size
+                        journalSaves++
+                    } }
+                    put("journalSaves", journalSaves)
+                    put("equivalentFullSaveBytes", legacySaveBytes)
                     put("smallestReceivedPaneUpdateBytes", received.min())
                     put("largestReceivedPaneUpdateBytes", received.max())
                     put("completedPaneUpdateBytes", ConductorJson.encodeToString(AgentRunRecord.serializer(), completed).encodeToByteArray().size)
@@ -103,6 +127,38 @@ class AgentEventProjectionTest {
             checkpoints.close()
             directory.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")))
         }
+    }
+
+    @Test fun aRunJournalKeepsTheLastCompleteSaveAfterAnInterruptedAppend() {
+        val directory = Files.createTempDirectory("run-journal-recovery").toFile()
+        try {
+            val path = directory.resolve("run.json").toPath()
+            val first = run().copy(output = "first", revision = 1)
+            Files.writeString(path, ConductorJson.encodeToString(AgentRunRecord.serializer(), first) + "\n")
+            val second = first.copy(output = "first then second", revision = 2)
+            Files.writeString(path, AgentRunTransfer.delta(second, AgentRunTransfer.held(first)).toString() + "\n", java.nio.file.StandardOpenOption.APPEND)
+            Files.writeString(path, "{\"runDelta\":1,", java.nio.file.StandardOpenOption.APPEND)
+            assertEquals(second, AgentRunTransfer.read(path))
+        } finally { directory.deleteTreeSafely(within = directory.parentFile) }
+    }
+
+    @Test fun runDeltasDeduplicateAnswersAndRestartAChangedPrefixWithoutSplittingUnicode() {
+        val text = "évidence🧭".repeat(1_000)
+        val full = run().copy(output = text, participants = mapOf(agent.id.value to AgentParticipantRun(RuntimeKind.Echo, output = text)))
+        var received: AgentRunRecord? = null
+        var count = 0
+        do {
+            val delta = AgentRunTransfer.delta(full, AgentRunTransfer.held(received), 4096)
+            assertTrue(delta.toString().toByteArray(Charsets.UTF_8).size <= 4096)
+            assertEquals("output", delta.getValue("streams").jsonObject.getValue("participant:${agent.id.value}:output").jsonObject.getValue("alias").jsonPrimitive.content)
+            received = AgentRunTransfer.apply(delta, received)
+            assertFalse(received.output.lastOrNull()?.isHighSurrogate() == true)
+            count++
+        } while (delta.getValue("complete").jsonPrimitive.boolean.not())
+        assertTrue(count > 1)
+        assertEquals(full, received)
+        val replacement = full.copy(output = "changed", participants = emptyMap(), revision = 2)
+        assertEquals(replacement, AgentRunTransfer.apply(AgentRunTransfer.delta(replacement, AgentRunTransfer.held(received)), received))
     }
 
     @Test fun aMegabyteInTwentyCharacterChunksReportsProjectionAndSnapshotCosts() {
