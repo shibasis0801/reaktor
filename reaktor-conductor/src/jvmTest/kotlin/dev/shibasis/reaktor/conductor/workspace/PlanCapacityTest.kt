@@ -14,13 +14,12 @@ class PlanCapacityTest {
 
     private fun apply(plan: WorkPlan, vararg ops: PlanOp) = PlanRules.apply(plan, PlanPatch(ops.toList()), person, 2)
 
-    @Test fun closedHistoryDoesNotConsumeAnOpenSlot() {
+    @Test fun todoBacklogAndClosedHistoryDoNotConsumeDoingSlots() {
         val initial = plan(199)
         val changed = apply(initial, PlanOp.Add("Next", key = "next"), PlanOp.Add("Over capacity", key = "extra"))
-        assertEquals(1, changed.refused.size)
-        assertTrue(changed.refused.single().reason.contains("200 open items"))
-        assertEquals(600, changed.plan.items.size)
-        assertEquals(initial.items, changed.plan.items.dropLast(1))
+        assertTrue(changed.refused.isEmpty())
+        assertEquals(601, changed.plan.items.size)
+        assertEquals(initial.items, changed.plan.items.dropLast(2))
         assertEquals(PlanStatus.Todo, changed.plan.item("next")?.status)
     }
 
@@ -32,11 +31,13 @@ class PlanCapacityTest {
     }
 
     @Test fun reopeningUsesTheSlotFreedByClosingInTheSamePatch() {
-        val initial = plan(200)
+        val initial = plan(200).let { value -> value.copy(items = value.items.map { item ->
+            if (item.id in listOf("open-1", "open-3", "open-5", "open-7", "open-9")) item.copy(by = person) else item
+        }) }
         val refused = apply(initial, PlanOp.Status("closed-0", PlanStatus.Doing))
         assertEquals(1, refused.refused.size)
         assertEquals(initial, refused.plan)
-        val changed = apply(initial, PlanOp.Status("open-0", PlanStatus.Doing), PlanOp.Status("open-1", PlanStatus.Done),
+        val changed = apply(initial, PlanOp.Status("open-1", PlanStatus.Done), PlanOp.Status("open-0", PlanStatus.Doing),
             PlanOp.Status("closed-0", PlanStatus.Todo))
         assertTrue(changed.refused.isEmpty())
         assertEquals(PlanStatus.Doing, changed.plan.item("open-0")?.status)

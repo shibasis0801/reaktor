@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -44,10 +45,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFontFamilyResolver
 import androidx.compose.ui.platform.LocalGraphicsContext
@@ -97,6 +101,9 @@ import dev.shibasis.reaktor.blueprint.editor.Gesture
 import dev.shibasis.reaktor.blueprint.editor.GraphEditor
 import dev.shibasis.reaktor.blueprint.editor.GraphEditorLayer
 import dev.shibasis.reaktor.blueprint.editor.Selection
+import dev.shibasis.reaktor.blueprint.editor.Request
+import dev.shibasis.reaktor.blueprint.editor.Spot
+import dev.shibasis.reaktor.surface.compose.observedCombinedClickable
 import dev.shibasis.reaktor.surface.ThemeSnapshot
 import dev.shibasis.reaktor.surface.TooltipState
 import dev.shibasis.reaktor.surface.compose.ComposeFeedback
@@ -107,6 +114,8 @@ import dev.shibasis.reaktor.surface.compose.TooltipAppearance
 import dev.shibasis.reaktor.surface.compose.TooltipSlots
 import dev.shibasis.reaktor.ui.machinesignal.LocalMachineSignalFonts
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
+
+val LocalBlueprintMapLabels = staticCompositionLocalOf { false }
 
 object Blueprint {
     val Container: Color @Composable get() = MachineSignal.colors.source
@@ -197,6 +206,7 @@ fun <K> BlueprintCanvas(
     mapLayers: Boolean = false,
     mapDetail: Boolean = false,
 ) {
+    val mapLabels = LocalBlueprintMapLabels.current
     val cards = remember(layout) { layout.cards.values.toList() }
     val boxes = remember(layout) { layout.frames + cards }
     val detailLevel by remember(canvas) { derivedStateOf { canvas.level(canvas.zoom) } }
@@ -232,8 +242,8 @@ fun <K> BlueprintCanvas(
     val direction = LocalLayoutDirection.current
     val graphics = LocalGraphicsContext.current
     val colors = MachineSignal.colors
-    val painter = remember(graphics, resolver, direction, fonts, base, colors, denseOverview, mapLayers, mapDetail) {
-        BlueprintPainter(graphics, TextMeasurer(resolver, Density(1f), direction, cacheSize = if (mapLayers) MapTextCache else 512), BlueprintType(fonts.ui, fonts.mono, base, fonts.graphLabel), colors, denseOverview, mapLayers, mapDetail)
+    val painter = remember(graphics, resolver, direction, fonts, base, colors, denseOverview, mapLayers, mapDetail, mapLabels) {
+        BlueprintPainter(graphics, TextMeasurer(resolver, Density(1f), direction, cacheSize = if (mapLayers) MapTextCache else 512), BlueprintType(fonts.ui, fonts.mono, base, fonts.graphLabel), colors, denseOverview, mapLayers, mapDetail, mapLabels)
     }
     fun syncPainter() {
         canvas.insetTop = topInset.value.toDouble()
@@ -329,7 +339,7 @@ fun <K> BlueprintCanvas(
                     pinClick?.let { click -> { card, pin -> focus(); click(card, pin) } }, slots, lean = mapLayers)
             }
             @Composable fun Region(frame: Frame, look: BlueprintFrameLook) {
-                val slots = if (look.hasHeaderContent && detailLevel == 2) painter.frameHeaderSlots(frame, look) else null
+                val slots = if (!mapLabels && look.hasHeaderContent && detailLevel == 2) painter.frameHeaderSlots(frame, look) else null
                 FrameMarker(frame, Area(frame.x, frame.y, frame.width, BlueprintEngine.FrameTop), look,
                     frameClick?.let { click -> { focus(); click(frame) } }, slots)
             }
@@ -355,6 +365,25 @@ fun <K> BlueprintCanvas(
                             .wrapContentSize(Alignment.TopStart, unbounded = true)
                             .requiredSize(card.width.toFloat().dp, (card.height - BlueprintEngine.HeaderHeight).coerceAtLeast(0.0).toFloat().dp).clipToBounds()) {
                             content(card)
+                        }
+                    }
+                }
+            }
+            if (mapLabels) painter.frameLabels.value.forEachIndexed { i, bounds ->
+                if (bounds != null) frameLooks.getOrNull(i)?.takeIf { it.hasHeaderContent }?.let { look ->
+                    val frame = layout.frames[i].copy(width = bounds.width.toDouble())
+                    var windowAt by remember(frame.key) { mutableStateOf(Offset.Zero) }
+                    val editing = editable && editor?.editOnDoubleClick(frame.key) == true
+                    Box(Modifier.at(bounds.left.toDouble(), bounds.top.toDouble(), bounds.width.toDouble(), bounds.height.toDouble())
+                        .onGloballyPositioned { windowAt = it.positionInWindow() }) {
+                        Box(Modifier.fillMaxSize().then(if (!editing) Modifier else Modifier.observedCombinedClickable(
+                            onClick = { focus(); frameClick?.invoke(frame) },
+                            onDoubleClick = {
+                                focus()
+                                frameClick?.invoke(frame)
+                                editor?.request = Request.Rename(Spot(frame.x, frame.y), windowAt, frame.key, true)
+                            }))) {
+                            HeaderContent(painter.frameHeaderSlots(frame, look), look.titleContent, look.markContent)
                         }
                     }
                 }

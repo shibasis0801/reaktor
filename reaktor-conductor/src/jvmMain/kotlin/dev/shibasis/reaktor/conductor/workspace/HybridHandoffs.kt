@@ -8,6 +8,7 @@ import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 
 class HybridHandoffs(private val directory: Path, private val artifacts: LocalAgentArtifacts,
+    private val grantAdvisory: (File, Boolean) -> String? = { _, _ -> null },
     private val recordCandidate: (String, AgentCandidate) -> Unit = { _, _ -> }) {
     init { privateDirectory(directory) }
     private fun path(id: String): Path {
@@ -22,27 +23,23 @@ class HybridHandoffs(private val directory: Path, private val artifacts: LocalAg
     private fun save(value: HybridHandoff): HybridHandoff {
         atomicWrite(path(value.id), ConductorJson.encodeToString(HybridHandoff.serializer(), value)); return value
     }
-    @Synchronized fun prepare(request: AgentRequest, maxCycles: Int? = null, allowedChecks: List<String> = emptyList()): HybridHandoff {
+    fun prepare(request: AgentRequest, maxCycles: Int? = null, allowedChecks: List<String> = emptyList()): HybridHandoff {
         val execution = requireNotNull(request.executionId) { "Hybrid turns require a durable council stage identity" }
         val id = digest(execution)
-        if (Files.exists(path(id))) return read(id).also {
-            require(it.agent == request.agent.id && it.workspaceRoot == File(request.workingDirectory).canonicalPath)
+        val root = File(request.workingDirectory)
+        fun existing(): HybridHandoff? = path(id).takeIf(Files::exists)?.let {
+            read(id).also { value -> require(value.agent == request.agent.id && value.workspaceRoot == root.canonicalPath) }
         }
-        // A real repository is rarely fully readable — binaries, vendored pods and build outputs run
-        // past the capture budget — and refusing the turn for that would leave this seat unusable
-        // where the other two work. The digest advances per file either way, so it still detects a
-        // changed or added file; what it cannot see is stated in the packet rather than assumed.
-        val candidate = SourceCandidates(File(request.workingDirectory), artifacts).capture()
-        return save(HybridHandoff(id, execution.substringBefore(':'), execution, request.agent.id,
-            candidate.workspaceRoot, candidate.sourceDigest, request.prompt.take(32000), subjectRefs = request.subjectRefs.take(100),
-            partial = !candidate.complete || request.prompt.length > 32000, coverage = coverage(candidate),
-            // Once per task, not per turn: prepare returns the stored handoff on every later call.
-            grantAdvisory = runCatching {
-                dev.shibasis.reaktor.conductor.cli.AntigravityGrants.advisory(
-                    File(request.workingDirectory), request.agent.tools.allowWrites)
-            }.getOrNull(),
-            allowedChecks = allowedChecks,
-            maxCycles = maxCycles?.coerceIn(1, 40) ?: DEFAULT_MAX_CYCLES))
+        synchronized(this) { existing()?.let { return it } }
+        val candidate = SourceCandidates(root, artifacts).capture()
+        val advisory = runCatching { grantAdvisory(root, request.agent.tools.allowWrites) }.getOrNull()
+        return synchronized(this) {
+            existing() ?: save(HybridHandoff(id, execution.substringBefore(':'), execution, request.agent.id,
+                candidate.workspaceRoot, candidate.sourceDigest, request.prompt.take(32000), subjectRefs = request.subjectRefs.take(100),
+                partial = !candidate.complete || request.prompt.length > 32000, coverage = coverage(candidate),
+                grantAdvisory = advisory, allowedChecks = allowedChecks,
+                maxCycles = maxCycles?.coerceIn(1, 40) ?: DEFAULT_MAX_CYCLES))
+        }
     }
     /** What the snapshot could not read, bounded, and honest about its own bound. */
     private fun coverage(candidate: AgentCandidate): List<String> = candidate.notices.take(20) +

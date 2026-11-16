@@ -97,6 +97,9 @@ data class PlanSeatRetirement(val by: BoardActor, val at: Long, val reason: Stri
 data class PlanChange(val revision: Long, val at: Long, val by: BoardActor, val summary: List<String>, val requestId: String? = null)
 
 @Serializable
+data class PlanLimits(val doingPerHolder: Int = 5)
+
+@Serializable
 data class WorkPlan(
     val thread: String,
     val title: String,
@@ -110,6 +113,7 @@ data class WorkPlan(
     val updatedAt: Long,
     val changes: List<PlanChange> = emptyList(),
     val documentPath: String? = null,
+    val limits: PlanLimits = PlanLimits(),
 ) {
     private val tree by lazy { PlanTree(items) }
 
@@ -340,7 +344,36 @@ fun PlanSeat.heldBy(actor: BoardActor): Boolean = when {
 }
 
 object PlanRules {
-    const val MaxItems = 200
+    private fun holders(items: Map<String, PlanItem>): Map<String, Int> {
+        val parents = items.values.mapNotNullTo(HashSet()) { it.parent }
+        fun identity(value: BoardActor): String? = PlanIdentity.agent(value) ?: value.session?.takeIf { value.kind == BoardActorKind.Agent }
+        val paired = items.values.mapNotNull { item ->
+            val named = generateSequence(item) { it.parent?.let(items::get) }.take(items.size)
+                .map { part -> part.refs.filter { it.startsWith("agent:") }.map { it.removePrefix("agent:").lowercase() }.distinct() }
+                .firstOrNull { it.isNotEmpty() }?.singleOrNull()
+            val session = item.lease?.by?.let(::identity)
+            if (named == null || session == null) null else session to named
+        }.groupBy({ it.first }, { it.second }).mapNotNull { (session, names) -> names.distinct().singleOrNull()?.let { session to it } }.toMap()
+        fun actor(value: BoardActor): String = identity(value)?.let { paired[it]?.let { name -> "agent:$name" } ?: it }
+            ?: "${value.kind}:${value.principal ?: value.name}"
+        return items.values.filter { it.status == PlanStatus.Doing && it.kind != PlanKind.Component && it.id !in parents }
+            .flatMap { item ->
+                item.lease?.by?.let { listOf(actor(it)) }
+                    ?: generateSequence(item) { it.parent?.let(items::get) }.take(items.size)
+                        .map { part -> part.refs.filter { it.startsWith("agent:") }.map { it.lowercase() }.distinct() }
+                        .firstOrNull { it.isNotEmpty() }
+                    ?: listOfNotNull(item.by?.let(::actor))
+            }.groupingBy { it }.eachCount()
+    }
+
+    private fun doingLimit(before: Map<String, Int>, after: Map<String, Int>, limit: Int) {
+        after.forEach { (holder, count) ->
+            require(count <= limit || count <= before.getOrElse(holder) { 0 }) {
+                "A holder has at most $limit Doing leaves per plan; finish or release work before starting another item"
+            }
+        }
+    }
+
     const val MaxOps = 100
     const val MaxChanges = 200
     const val MaxRefs = 20
@@ -484,19 +517,18 @@ object PlanRules {
 
         fun touch(item: PlanItem) = item.copy(revision = revision, by = by, changedAt = now)
 
-        fun open(status: PlanStatus) = status == PlanStatus.Todo || status == PlanStatus.Doing
+        val limits = plan.limits
+        require(limits.doingPerHolder > 0) { "A holder must be allowed at least one Doing leaf" }
 
-        fun capacity(status: PlanStatus, previous: PlanStatus?, kind: PlanKind = PlanKind.Task) {
-            require(kind == PlanKind.Component || !open(status) || previous?.let(::open) == true || items.values.count { it.kind != PlanKind.Component && open(it.status) } < MaxItems) {
-                "A plan has at most $MaxItems open items; finish or drop open work before adding or reopening it"
-            }
-        }
 
         patch.ops.forEachIndexed { index, op ->
+            val before = LinkedHashMap(items)
+            val beforeNext = next
+            val beforeSeats = seats
+            val counts = holders(items)
             val outcome = runCatching {
-                when (op) {
+                val line = when (op) {
                     is PlanOp.Add -> {
-                        capacity(op.status, null, op.kind)
                         val key = op.key?.also { require(Key.matches(it)) { "A key is 1 to 40 lowercase letters, digits or dashes, starting with a letter" } }
                         require(key == null || key !in items) { "$key exists; send update or status for it" }
                         val parent = op.parent?.also { require(it in items) { "Parent $it is not on the plan" } }
@@ -554,7 +586,6 @@ object PlanRules {
                     is PlanOp.Status -> {
                         val item = items[op.item] ?: error("${op.item} is not on the plan")
                         (allowed(item.id) ?: fresh(item.id))?.let(::error)
-                        capacity(op.status, item.status, item.kind)
                         val (reason, replacement) = closing(op.status, op.reason ?: item.reason, op.replacement ?: item.replacement, item.id)
                         val lease = when {
                             op.status != PlanStatus.Doing -> null
@@ -656,9 +687,17 @@ object PlanRules {
                         "Removed ${item.id} “${item.title}”"
                     }
                 }
+                doingLimit(counts, holders(items), limits.doingPerHolder)
+                line
             }
             outcome.onSuccess { line -> line?.let(summary::add) }
-                .onFailure { failure -> refused += PlanRefusal(index, op.target, failure.message ?: "Refused") }
+                .onFailure { failure ->
+                    items.clear()
+                    items.putAll(before)
+                    next = beforeNext
+                    seats = beforeSeats
+                    refused += PlanRefusal(index, op.target, failure.message ?: "Refused")
+                }
         }
         val title = patch.title?.let(BoardText::title)?.takeIf { it != plan.title }
         val goal = patch.goal?.let { BoardText.bounded(it, "A goal", 2_000) }?.takeIf { it != plan.goal }
@@ -679,7 +718,7 @@ object PlanRules {
         val news = plan.news(patch.base ?: plan.revision, by)
         if (summary.isEmpty() && seats == plan.seats && items.values.toList() == plan.items) return PlanApplied(plan, refused, news)
         val changed = plan.copy(
-            title = title ?: plan.title, goal = goal ?: plan.goal, items = items.values.toList(), seats = seats, documentPath = documentPath,
+            title = title ?: plan.title, goal = goal ?: plan.goal, items = items.values.toList(), seats = seats, documentPath = documentPath, limits = limits,
             revision = revision, next = next, updatedAt = now,
             changes = if (summary.isEmpty()) plan.changes else (plan.changes + PlanChange(revision, now, by, summary, requestId)).takeLast(MaxChanges),
         )
@@ -693,12 +732,14 @@ object PlanRules {
         seat.items.forEach { id -> require(plan.item(id) != null) { "$id is not on the plan" } }
         val covered = seat.items.flatMapTo(HashSet()) { plan.under(it) }
         val revision = plan.revision + 1
-        return plan.copy(
+        val changed = plan.copy(
             seats = plan.seats + seat,
             items = plan.items.map { if (it.id in seat.items) it.copy(seat = seat.id, revision = revision, by = seat.by, changedAt = now) else it },
             revision = revision, updatedAt = now,
             changes = (plan.changes + PlanChange(revision, now, seat.by, listOf("Attached ${seat.profile} to ${seat.items.joinToString()} (${covered.size} items)"))).takeLast(MaxChanges),
         )
+        doingLimit(holders(plan.items.associateBy { it.id }), holders(changed.items.associateBy { it.id }), plan.limits.doingPerHolder)
+        return changed
     }
 
 }

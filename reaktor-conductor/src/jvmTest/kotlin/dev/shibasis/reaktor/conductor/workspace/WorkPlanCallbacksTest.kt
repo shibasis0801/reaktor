@@ -32,6 +32,64 @@ class WorkPlanCallbacksTest {
     private val person = BoardActor(BoardActorKind.Person, "Owner")
     private val agent = BoardActor(BoardActorKind.Agent, "Worker", "codex:callback-worker")
 
+    @Test fun anExpiryQueuedAfterCloseDeliversOnTheCaller() {
+        val directory = Files.createTempDirectory("plan-closed-wake")
+        val now = AtomicLong(1_000)
+        val delivered = AtomicReference<Thread>()
+        val store = WorkPlanStore(directory, clock = now::get, messages = { plan, _, _ ->
+            if (plan.revision == 2L) delivered.set(Thread.currentThread())
+        })
+        try {
+            store.write("hangar:closed-wake", PlanPatch(title = "Closed wake", ops = listOf(
+                PlanOp.Add("Lease", key = "lease"), PlanOp.Status("lease", PlanStatus.Doing))), agent)
+            store.close()
+            now.addAndGet(PlanLease.DurationMillis + 1)
+            assertEquals(PlanStatus.Todo, store.plan("hangar:closed-wake")?.item("lease")?.status)
+            assertSameThread(Thread.currentThread(), delivered.get())
+            assertEquals(0, store.pendingNotifications)
+        } finally {
+            store.close()
+            directory.toFile().deleteTreeSafely(within = directory.parent.toFile())
+        }
+    }
+
+    private fun assertSameThread(expected: Thread, actual: Thread?) = assertTrue(expected === actual)
+
+    @Test fun closeBoundsItsWaitAndLogsAStillBlockedDeliveryThread() {
+        val directory = Files.createTempDirectory("plan-bounded-close")
+        val now = AtomicLong(1_000)
+        val entered = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val logged = AtomicBoolean()
+        val logger = Logger.getLogger(WorkPlanStore::class.java.name)
+        val handler = object : Handler() {
+            override fun publish(record: LogRecord) { if (record.message.contains("still running")) logged.set(true) }
+            override fun flush() {}
+            override fun close() {}
+        }
+        logger.addHandler(handler)
+        val executor = Executors.newSingleThreadExecutor()
+        val store = WorkPlanStore(directory, clock = now::get, messages = { plan, _, _ ->
+            if (plan.revision == 2L) { entered.countDown(); check(release.await(20, TimeUnit.SECONDS)) }
+        })
+        try {
+            store.write("hangar:bounded-close", PlanPatch(title = "Bounded close", ops = listOf(
+                PlanOp.Add("Lease", key = "lease"), PlanOp.Status("lease", PlanStatus.Doing))), agent)
+            now.addAndGet(PlanLease.DurationMillis + 1)
+            store.plan("hangar:bounded-close")
+            assertTrue(entered.await(5, TimeUnit.SECONDS))
+            executor.submit { store.close() }.get(6, TimeUnit.SECONDS)
+            assertTrue(logged.get())
+        } finally {
+            release.countDown()
+            store.close()
+            executor.shutdownNow()
+            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS))
+            logger.removeHandler(handler)
+            directory.toFile().deleteTreeSafely(within = directory.parent.toFile())
+        }
+    }
+
     @Test fun readDeliverySurvivesAnErrorAndStopsWhenTheStoreCloses() {
         val directory = Files.createTempDirectory("plan-delivery-lifetime")
         val now = AtomicLong(1_000)

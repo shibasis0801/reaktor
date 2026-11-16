@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.conductor.workspace
 import dev.shibasis.reaktor.conductor.*
 import dev.shibasis.reaktor.conductor.appserver.AgentRuntimes
 import dev.shibasis.reaktor.io.network.middleware
+import dev.shibasis.reaktor.conductor.cli.AntigravityGrants
 import dev.shibasis.reaktor.conductor.cli.CliCapabilities
 import dev.shibasis.reaktor.conductor.cli.AgentBundle
 import dev.shibasis.reaktor.conductor.cli.ClaudeCodeRuntime
@@ -346,7 +347,8 @@ class AgentWorkspaceConnection private constructor(
                  plus: Boolean = false,
                  kernelRead: (suspend (String, JsonObject) -> JsonElement)? = null,
                  harnessMcp: JsonObject? = null,
-                 scopeModules: (List<String>) -> List<String> = { emptyList() }): AgentWorkspaceConnection {
+                 scopeModules: (List<String>) -> List<String> = { emptyList() },
+                 grantAdvisory: (File, Boolean) -> String? = AntigravityGrants::advisory): AgentWorkspaceConnection {
             require(root.isDirectory)
             require(hostKind in setOf("service", "hangar")) { "Unknown workspace owner host" }
             require(harnessMcp == null || "command" in harnessMcp || "url" in harnessMcp) { "A harness MCP server needs a command or a url" }
@@ -396,7 +398,7 @@ class AgentWorkspaceConnection private constructor(
                     atomicWrite(path, buildJsonObject { putJsonObject("mcpServers") { put(AgentBundle.SERVER_NAME, harnessMcp) } }.toString())
                 }.toString() else null
                 val hostedWorkspace = AgentWorkspace(root.canonicalFile, directory, configured, discover = discover, batchRuntimes = batch,
-                    harnessMcpConfig = mcpConfig, background = background, workflowCheck = workflowCheck, externalBusy = externalBusy, kernelRead = kernelRead, scopeModules = scopeModules).also { workspace = it }
+                    harnessMcpConfig = mcpConfig, background = background, workflowCheck = workflowCheck, externalBusy = externalBusy, kernelRead = kernelRead, scopeModules = scopeModules, grantAdvisory = grantAdvisory).also { workspace = it }
                 val registry = AgentWorkspaceOperations(hostedWorkspace, agentWorkspaceTools(hostedWorkspace, extraTools(hostedWorkspace)), graphOwner(), mcpProjection, directory).also { operations = it }
                 if (plus || Files.isRegularFile(directory.resolve("browser-inference/plus"))) registry.browser.startPlus()
                 operationBinding = bindOperations(registry.node)

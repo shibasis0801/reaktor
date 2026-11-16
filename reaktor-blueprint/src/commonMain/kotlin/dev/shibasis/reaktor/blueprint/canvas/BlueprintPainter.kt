@@ -161,7 +161,7 @@ internal data class PaintStats(val retainedPixelBytes: Long, val releasedViews: 
 private class Read(val text: Float, val title: BlueprintTitle)
 private class Measured(val width: Float, val height: Float, val text: TextLayoutResult?)
 
-internal class BlueprintPainter(graphics: GraphicsContext, private val measurer: TextMeasurer, private val type: BlueprintType, private val colors: dev.shibasis.reaktor.ui.machinesignal.MachineSignalColors, private val denseOverview: Boolean = false, private val mapLayers: Boolean = false, private val mapDetail: Boolean = false) : SurfaceGraphEngine(graphics, scaled = true) {
+internal class BlueprintPainter(graphics: GraphicsContext, private val measurer: TextMeasurer, private val type: BlueprintType, private val colors: dev.shibasis.reaktor.ui.machinesignal.MachineSignalColors, private val denseOverview: Boolean = false, private val mapLayers: Boolean = false, private val mapDetail: Boolean = false, override val fixedFrameLabels: Boolean = false) : SurfaceGraphEngine(graphics, scaled = true) {
     private val icons = HashMap<ImageVector, BlueprintIcon>()
     private val tint = colors.source
     private val accent = colors.controlAccent
@@ -587,6 +587,22 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
     override fun banner(i: Int, width: Float, zoom: Double, compact: Boolean): GraphicsLayer? {
         val frame = frames.getOrNull(i)?.takeIf { it.label.isNotBlank() } ?: return null
         val look = frameLooks.getOrNull(i) ?: return null
+        if (fixedFrameLabels) {
+            val natural = 60f + measure(frame.label, headerStyles[0], Float.MAX_VALUE).size.width +
+                measure(look.count, headerStyles[1], Float.MAX_VALUE).size.width +
+                measure(frame.detail.joinToString(" · "), headerStyles[2], Float.MAX_VALUE).size.width +
+                look.marks.sumOf { measureMark(it).width.toDouble() + 8.0 }.toFloat()
+            val shown = natural.coerceAtMost(width.coerceAtLeast(BlueprintEngine.CardWidth.toFloat()))
+            val labeled = frame.copy(width = shown.toDouble())
+            return bannerLayer(i, listOf(framePaintKeys[i], frame.label, shown, fixedFrameLabels)) { layer ->
+                layer.record(unit, LayoutDirection.Ltr, IntSize(ceil(shown).toInt(), BlueprintEngine.FrameTop.toInt())) {
+                    drawRoundRect(colors.surface.copy(alpha = .92f), Offset.Zero,
+                        Size(shown, BlueprintEngine.FrameTop.toFloat()), CornerRadius(MachineSignal.Radius.panel.value))
+                    drawRect(look.lit ?: accent, Offset.Zero, Size(3f, BlueprintEngine.FrameTop.toFloat()))
+                    drawHeader(labeled, look, 0f, 0f)
+                }
+            }
+        }
         val count = if (compact) "" else look.count
         val whole = areaLabels.getOrPut(Triple(frame.label, count, Int.MAX_VALUE)) { areaText(frame.label, count, Int.MAX_VALUE) }
         val natural = max(whole.first.size.width, whole.second?.size?.width ?: 0) + 22f
@@ -633,6 +649,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
     }
 
     override fun DrawScope.cardLabels(camera: Viewport) {
+        if (fixedFrameLabels) return
         cardLabelsPlaced.clear()
         cardLabelFramesNamed.clear()
         if (!mapLayers || cards.isEmpty() || titleStyle.fontSize.value * camera.zoom >= CardLabelReadable) return
@@ -1205,6 +1222,12 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         val header = frameHeader(frame, look)
         return BlueprintHeaderSlots(header.title.takeIf { look.titleContent != null },
             header.marks.filter { it.mark in look.markContent }.map(PlacedMark::slot))
+    }
+
+    val frameLabels = mutableStateOf<List<Rect?>>(emptyList())
+
+    override fun bannersPlaced(bounds: List<Rect?>) {
+        if (frameLabels.value != bounds) frameLabels.value = bounds
     }
 
     private fun DrawScope.drawHeader(frame: Frame, look: BlueprintFrameLook, x: Float, y: Float) {

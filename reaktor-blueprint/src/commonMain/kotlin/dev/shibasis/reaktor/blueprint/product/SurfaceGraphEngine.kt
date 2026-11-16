@@ -226,6 +226,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
     protected open val grid: CanvasGrid? = null
     protected open val farZoom = .42
     protected open val headerZoom = 0.0
+    protected open val fixedFrameLabels = false
     protected open val meshZoom = 0.0
     protected open val worldPictures = false
     protected open val corridorZoom = 0.0
@@ -864,7 +865,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         flow(camera, shift / density * zoom.toFloat())
         val l = (-camera.x / camera.zoom).toFloat(); val t = (-camera.y / camera.zoom).toFloat()
         val r = ((viewport.width - camera.x) / camera.zoom).toFloat(); val b = ((viewport.height - camera.y) / camera.zoom).toFloat()
-        if (level == 2) world(camera) {
+        if (level == 2 && !fixedFrameLabels) world(camera) {
             for (i in frames.indices) {
                 if (!inside(frameBox, i, l, t, r, b) || frameBox[i * 4 + 1] + BlueprintEngine.FrameTop < t) continue
                 headerLayer(i, false, deadline)?.let { replayLayer(it, REPLAY_HEADERS) }
@@ -875,7 +876,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         mesh(OVER, camera); mesh(LIT, camera); mesh(DRAGGED_LIT, camera)
         if (pulses.isNotEmpty()) world(camera) { drawPulses() }
         if (labels.isNotEmpty()) drawLabels(camera, l, t, r, b)
-        bannering = level < 2 || camera.zoom / density < headerZoom
+        bannering = fixedFrameLabels || level < 2 || camera.zoom / density < headerZoom
         if (bannering) { drawBanners(camera); drawTallies(camera); cardLabels(camera) } else { talliesDrawn = 0; headersInView(l, t, r, b) }
         overlay(camera)
         ends.clear()
@@ -980,7 +981,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
             val x = (camera.x + frame.x * camera.zoom).toFloat(); val y = (camera.y + frame.y * camera.zoom).toFloat()
             val width = (frame.width * camera.zoom).toFloat(); val height = (frame.height * camera.zoom).toFloat()
             if (x >= viewport.width || y - max(Above * z, BannerHeight) >= viewport.height || x + width <= 0f || y + height <= 0f) continue
-            val layer = banner(i, max(width, room(i, z) * z - BannerGap), camera.zoom, height < TallBanner) ?: continue
+            val layer = banner(i, max(width, room(i, z) * z - BannerGap), camera.zoom, !fixedFrameLabels && height < TallBanner) ?: continue
             val tall = layer.size.height.toFloat()
             val lifted = y + bannerLift(tall, z, clear[i])
             val pinTop = inset[1] + BannerPin; val pinLeft = inset[0] + BannerPin
@@ -1009,7 +1010,16 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
             clipRect(floor(x), floor(min(top, by)), ceil(x + max(width, bx - x + wide)), ceil(max(y + height, by + tall))) { translate(bx, by) { replayLayer(layer, REPLAY_BANNERS) } }
         }
         groupsInView = groups; namedInView = drawn
+        if (fixedFrameLabels) bannersPlaced(frames.indices.map { i ->
+            if (!bannerShown[i]) null else banners[i]?.let { layer ->
+                val x = (camera.x + frames[i].x * camera.zoom).toFloat() + bannerAt[i * 2]
+                val y = (camera.y + frames[i].y * camera.zoom).toFloat() + bannerAt[i * 2 + 1]
+                Rect(x, y, x + layer.size.width, y + layer.size.height)
+            }
+        })
     }
+
+    protected open fun bannersPlaced(bounds: List<Rect?>) = Unit
 
     private fun nothingAbove(i: Int): Boolean {
         val left = frameBox[i * 4]; val top = frameBox[i * 4 + 1]; val right = frameBox[i * 4 + 2]
@@ -1027,6 +1037,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
     private fun banneredFrames(frames: List<Frame>): BooleanArray {
         val slot = HashMap<String, Int>(frames.size * 2).also { map -> frames.forEachIndexed { i, frame -> map[frame.key] = i } }
         return BooleanArray(frames.size) { i ->
+            if (fixedFrameLabels) return@BooleanArray frames[i].label.isNotBlank()
             var above = frames[i].parent?.let(slot::get)
             var steps = 0
             while (above != null && frames[above].nodes.isEmpty() && steps++ < frames.size) above = frames[above].parent?.let(slot::get)

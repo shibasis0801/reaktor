@@ -10,6 +10,9 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import java.nio.file.Files
 import java.nio.file.Path
+import jdk.jfr.Configuration
+import jdk.jfr.Recording
+import jdk.jfr.consumer.RecordingFile
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -85,7 +88,45 @@ class PlanBacklogBaselineTest {
                 timed("next_warm_ms") { tools.getValue("agent_plan_next").invoke(args) }
                 val patch = PlanPatch(base = plan.revision,
                     ops = listOf(PlanOp.Update("item-39-38", title = "Verified delivery 39 step 38")))
-                val applied = timed("write_ms") { workspace.plans.write(plan.thread, patch, plan.createdBy) }
+                val callback = WorkPlanStore::class.java.getDeclaredField("messages").apply { isAccessible = true }
+                val original = callback.get(workspace.plans)
+                val profiled: (WorkPlan, WorkPlan?, BoardActor) -> Unit = { changed, previous, by ->
+                    timed("write_messages_ms") { workspace.messages.planChanged(changed, previous, by) }
+                    timed("write_preemption_ms") { workspace.preemptPlans() }
+                }
+                callback.set(workspace.plans, profiled)
+                val profile = System.getenv("HANGAR_BACKLOG_WRITE_JFR")?.let { path ->
+                    Recording(Configuration.getConfiguration("profile")).apply {
+                        destination = Path.of(path)
+                        maxSize = 64L * 1024 * 1024
+                        start()
+                    }
+                }
+                val applied = try { timed("write_ms") { workspace.plans.write(plan.thread, patch, plan.createdBy) } }
+                    finally {
+                        callback.set(workspace.plans, original)
+                        if (profile != null) {
+                            profile.stop()
+                            val counts = HashMap<String, Int>()
+                            RecordingFile(profile.destination).use { file ->
+                                while (file.hasMoreEvents()) {
+                                    val event = file.readEvent()
+                                    if (event.eventType.name != "jdk.ExecutionSample") continue
+                                    val frame = event.stackTrace?.frames?.firstOrNull {
+                                        it.method.type.name.startsWith("dev.shibasis")
+                                    } ?: continue
+                                    val name = "${frame.method.type.name}.${frame.method.name}"
+                                    counts[name] = (counts[name] ?: 0) + 1
+                                }
+                            }
+                            metrics["write_execution_samples"] = buildJsonObject {
+                                counts.entries.sortedByDescending { it.value }.take(20).forEach { put(it.key, it.value) }
+                            }
+                            profile.close()
+                        }
+                    }
+                assertTrue(metrics.containsKey("write_messages_ms"))
+                assertTrue(metrics.containsKey("write_preemption_ms"))
                 assertTrue(applied.refused.isEmpty())
                 assertEquals(plan.revision + 1, applied.plan.revision)
                 record("write_bytes", Files.size(directory.resolve("hangar-backlog-scale.json")))
@@ -110,7 +151,8 @@ class PlanBacklogBaselineTest {
                 }
                 record("new_plan_accepted_items", capped.items.size)
                 record("new_plan_refusals", refused.size)
-                assertTrue(refused.any { it.reason.contains("at most 200 open items") })
+                assertTrue(refused.isEmpty())
+                assertEquals(1600, capped.items.size)
             }
         } finally {
             val output = Path.of(System.getenv("HANGAR_BACKLOG_STORE_METRICS") ?: "build/reports/plan-backlog-baseline.json")

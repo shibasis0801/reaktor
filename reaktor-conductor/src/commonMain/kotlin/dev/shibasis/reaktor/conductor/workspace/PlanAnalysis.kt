@@ -1,6 +1,8 @@
 package dev.shibasis.reaktor.conductor.workspace
 
 import kotlinx.serialization.Serializable
+import kotlin.concurrent.atomics.AtomicReference
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 @Serializable
 data class PlanTiming(
@@ -27,9 +29,52 @@ data class PlanScheduleReport(
     val review: List<PlanDependencyReview> = emptyList(),
 )
 
+@OptIn(ExperimentalAtomicApi::class)
 object PlanAnalysis {
+    private data class Part(val id: String, val status: PlanStatus, val parent: String?, val after: List<String>,
+        val kind: PlanKind, val priority: PlanPriority, val createdAt: Long, val reason: String, val replacement: String?)
+    private data class Key(val thread: String, val revision: Long, val createdAt: Long, val items: List<Part>)
+    private class Entry(val key: Key, val plan: WorkPlan) {
+        val ranked by lazy { PlanSchedule.ranked(plan) }
+        val ready by lazy { ranked.filter { it.item.status == PlanStatus.Todo && PlanSchedule.unblocked(plan, it.item) } }
+        val report by lazy { calculate(plan, ranked, ready) }
+    }
+    private val cache = AtomicReference<List<Entry>>(emptyList())
+
+    private fun entry(plan: WorkPlan): Entry {
+        val key = Key(plan.thread, plan.revision, plan.createdAt, plan.items.map {
+            Part(it.id, it.status, it.parent, it.after.toList(), it.kind, it.priority, it.createdAt, it.reason, it.replacement)
+        })
+        while (true) {
+            val current = cache.load()
+            current.firstOrNull { it.key == key }?.let { return it }
+            val added = Entry(key, plan)
+            if (cache.compareAndSet(current, (current + added).takeLast(32))) return added
+        }
+    }
+
+    fun ranked(plan: WorkPlan): List<PlanCandidate> {
+        val found = entry(plan)
+        if (found.plan.items === plan.items) return found.ranked
+        val items = plan.items.associateBy { it.id }
+        return found.ranked.map { it.copy(item = requireNotNull(items[it.item.id])) }
+    }
+
+    fun ready(plan: WorkPlan): List<PlanCandidate> {
+        val found = entry(plan)
+        if (found.plan.items === plan.items) return found.ready
+        val items = plan.items.associateBy { it.id }
+        return found.ready.map { it.copy(item = requireNotNull(items[it.item.id])) }
+    }
+
     fun report(plan: WorkPlan): PlanScheduleReport {
-        val ranked = PlanSchedule.ranked(plan)
+        val found = entry(plan)
+        if (found.plan.items === plan.items) return found.report
+        val items = plan.items.associateBy { it.id }
+        return found.report.copy(ready = found.report.ready.map { it.copy(item = requireNotNull(items[it.item.id])) })
+    }
+
+    private fun calculate(plan: WorkPlan, ranked: List<PlanCandidate>, ready: List<PlanCandidate>): PlanScheduleReport {
         val ids = ranked.map { it.item.id }
         val active = ids.toSet()
         val items = plan.items.associateBy { it.id }
@@ -105,25 +150,74 @@ object PlanAnalysis {
             PlanDependencyReview(timing.item, dependency, reason, target?.replacement)
         } }
         return PlanScheduleReport(plan.thread, plan.revision, remaining = ids.size, steps = steps,
-            width = width(order, dependencies), ready = PlanSchedule.ready(plan), criticalPath = path, timings = timings, review = review)
+            width = width(order, dependencies), ready = ready, criticalPath = path, timings = timings, review = review)
     }
 
     private fun width(order: List<String>, dependencies: Map<String, Set<String>>): Int {
-        val ancestors = mutableMapOf<String, Set<String>>()
-        order.forEach { id -> ancestors[id] = dependencies.getValue(id).flatMapTo(linkedSetOf()) { ancestors.getValue(it) + it } }
-        val matched = mutableMapOf<String, String>()
-        fun augment(id: String, visited: MutableSet<String>): Boolean {
-            ancestors.getValue(id).forEach { before ->
-                if (visited.add(before)) {
-                    val previous = matched[before]
-                    if (previous == null || augment(previous, visited)) {
-                        matched[before] = id
+        val size = order.size
+        val index = order.withIndex().associate { it.value to it.index }
+        val words = (size + 63) / 64
+        val ancestors = Array(size) { LongArray(words) }
+        order.forEachIndexed { at, id ->
+            val row = ancestors[at]
+            dependencies.getValue(id).forEach { dependency ->
+                val before = index.getValue(dependency)
+                val previous = ancestors[before]
+                for (word in 0 until words) row[word] = row[word] or previous[word]
+                row[before ushr 6] = row[before ushr 6] or (1L shl (before and 63))
+            }
+        }
+        val left = IntArray(size) { -1 }
+        val right = IntArray(size) { -1 }
+        val distance = IntArray(size)
+        fun augment(at: Int): Boolean {
+            val row = ancestors[at]
+            row.forEachIndexed { word, initial ->
+                var bits = initial
+                while (bits != 0L) {
+                    val before = word * 64 + bits.countTrailingZeroBits()
+                    bits = bits and (bits - 1)
+                    val previous = right[before]
+                    if (previous == -1 || distance[previous] == distance[at] + 1 && augment(previous)) {
+                        left[at] = before
+                        right[before] = at
                         return true
                     }
                 }
             }
+            distance[at] = -1
             return false
         }
-        return order.size - order.count { augment(it, hashSetOf()) }
+        var matched = 0
+        while (true) {
+            val queue = ArrayDeque<Int>()
+            for (at in 0 until size) {
+                distance[at] = if (left[at] == -1) 0 else -1
+                if (left[at] == -1) queue.addLast(at)
+            }
+            var available = false
+            while (queue.isNotEmpty()) {
+                val at = queue.removeFirst()
+                ancestors[at].forEachIndexed { word, initial ->
+                    var bits = initial
+                    while (bits != 0L) {
+                        val before = word * 64 + bits.countTrailingZeroBits()
+                        bits = bits and (bits - 1)
+                        val previous = right[before]
+                        if (previous == -1) available = true
+                        else if (distance[previous] == -1) {
+                            distance[previous] = distance[at] + 1
+                            queue.addLast(previous)
+                        }
+                    }
+                }
+            }
+            if (!available) break
+            var added = 0
+            for (at in 0 until size) if (left[at] == -1 && augment(at)) added++
+            if (added == 0) break
+            matched += added
+        }
+        return size - matched
     }
 }

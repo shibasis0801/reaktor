@@ -17,6 +17,91 @@ import kotlinx.serialization.json.*
 import kotlin.test.*
 
 class PlanRefResolverTest {
+    @Test fun cachedLookupsNeverRunModuleFolderIO() {
+        val root = Files.createTempDirectory("ref-cached-folders").toFile()
+        val calls = AtomicInteger()
+        try {
+            PlanRefResolver(root, null, modules = { calls.incrementAndGet(); emptyList() }).use { resolver ->
+                assertTrue(resolver.cached(listOf("module:engine")).getValue("module:engine").isEmpty())
+                assertEquals(0, calls.get(), "A notification callback may only read the resolver cache")
+            }
+        } finally { root.deleteTreeSafely(within = root.parentFile) }
+    }
+
+    @Test fun moduleFolderIOIsInsideTheCallerDeadlineAndContinuesAfterIt() {
+        val root = Files.createTempDirectory("ref-bounded-folders").toFile()
+        val release = java.util.concurrent.CountDownLatch(1)
+        val entered = java.util.concurrent.CountDownLatch(1)
+        val executor = Executors.newSingleThreadExecutor()
+        val resolver = PlanRefResolver(root, null, modules = {
+            entered.countDown()
+            check(release.await(5, TimeUnit.SECONDS))
+            listOf("${root.name}/modules/engine")
+        })
+        try {
+            val request = executor.submit<Map<String, List<String>>> {
+                runBlocking { resolver.resolve(listOf("module:engine"), System.nanoTime() + 200_000_000L) }
+            }
+            assertTrue(entered.await(2, TimeUnit.SECONDS))
+            assertTrue(request.get(1, TimeUnit.SECONDS).getValue("module:engine").isEmpty())
+            release.countDown()
+            val answer = runBlocking { resolver.resolve(listOf("module:engine")) }
+            assertEquals(listOf("modules/engine"), answer["module:engine"])
+        } finally {
+            release.countDown()
+            resolver.close()
+            executor.shutdownNow()
+            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS))
+            root.deleteTreeSafely(within = root.parentFile)
+        }
+    }
+
+    @Test fun aCancelledGraphDoesNotDiscardACompletedSymbol() = runBlocking {
+        val root = Files.createTempDirectory("ref-cancelled-load").toFile()
+        val symbol = CompletableDeferred<Unit>()
+        try {
+            PlanRefResolver(root, { name, _ ->
+                if (name == "atlas_graph") {
+                    symbol.await()
+                    throw kotlinx.coroutines.CancellationException("Atlas restarted")
+                }
+                symbol.complete(Unit)
+                buildJsonObject { put("path", "src/Available.kt") }
+            }).use { resolver ->
+                val answer = resolver.resolve(listOf("module:Restarted", "symbol:Available"))
+                assertEquals(listOf("src/Available.kt"), answer["symbol:Available"])
+                assertTrue(answer.getValue("module:Restarted").isEmpty())
+            }
+        } finally { root.deleteTreeSafely(within = root.parentFile) }
+    }
+
+    @Test fun aConfirmedGraphRevisionIsReusedForFiveSeconds() = runBlocking {
+        val root = Files.createTempDirectory("ref-confirmed-revision").toFile()
+        var now = 1_000L
+        val calls = ArrayList<Int>()
+        try {
+            PlanRefResolver(root, { _, args ->
+                calls += args.getValue("chars").jsonPrimitive.int
+                buildJsonObject {
+                    put("ready", true); put("revision", "confirmed"); put("pages", 1)
+                    putJsonObject("shape") { putJsonArray("nodes") {
+                        add(buildJsonObject { putJsonObject("attributes") { put("module", "engine"); put("path", "src/Engine.kt") } })
+                    } }
+                }
+            }, clock = { now }).use { resolver ->
+                val expected = listOf("src/Engine.kt")
+                assertEquals(expected, resolver.resolve(listOf("module:engine"))["module:engine"])
+                calls.clear()
+                now += 4_999
+                assertEquals(expected, resolver.resolve(listOf("module:engine"))["module:engine"])
+                assertTrue(calls.isEmpty(), "The confirmed revision must avoid another Atlas probe")
+                now++
+                assertEquals(expected, resolver.resolve(listOf("module:engine"))["module:engine"])
+                assertEquals(listOf(20_000), calls)
+            }
+        } finally { root.deleteTreeSafely(within = root.parentFile) }
+    }
+
     @Test fun aFastSymbolIsReturnedWhileTheGraphIsStillBlocked() = runBlocking {
         val root = Files.createTempDirectory("ref-concurrent-graph").toFile()
         val release = CompletableDeferred<Unit>()
@@ -129,9 +214,10 @@ class PlanRefResolverTest {
         } finally { root.deleteTreeSafely(within = root.parentFile) }
     }
 
-    @Test fun aWarmModuleLookupProbesTheRevisionWithASmallPage() = runBlocking {
+    @Test fun aWarmModuleLookupReusesItsConfirmedRevisionThenProbesWithASmallPage() = runBlocking {
         val root = Files.createTempDirectory("ref-small-probe").toFile()
         val sizes = mutableListOf<Int>()
+        var now = 1_000L
         try {
             val resolver = PlanRefResolver(root, { _, args ->
                 sizes += args.getValue("chars").jsonPrimitive.int
@@ -141,9 +227,12 @@ class PlanRefResolverTest {
                         add(buildJsonObject { putJsonObject("attributes") { put("module", "engine"); put("path", "src/Engine.kt") } })
                     } }
                 }
-            })
+            }, clock = { now })
             assertEquals(listOf("src/Engine.kt"), resolver.resolve(listOf("module:engine")).getValue("module:engine"))
             sizes.clear()
+            resolver.resolve(listOf("module:engine"))
+            assertTrue(sizes.isEmpty())
+            now += 5_000
             resolver.resolve(listOf("module:engine"))
             assertEquals(listOf(20_000), sizes)
         } finally { root.deleteTreeSafely(within = root.parentFile) }
@@ -258,13 +347,14 @@ class PlanRefResolverTest {
             assertEquals(listOf("src/one.kt"), cold["module:core"])
             calls.clear()
             assertEquals(cold, resolver.resolve(listOf("module:core", "symbol:Known")))
-            assertEquals(listOf("atlas_graph:0:20000"), calls)
+            assertTrue(calls.isEmpty())
             calls.clear()
+            now += 5_000
             revision = "two"
             val changed = resolver.resolve(listOf("module:core", "symbol:Known"))
             assertEquals(listOf("src/two.kt"), changed["module:core"])
-            assertEquals(listOf("src/one.kt"), changed["symbol:Known"])
-            assertEquals(3, calls.size)
+            assertEquals(listOf("src/two.kt"), changed["symbol:Known"])
+            assertEquals(4, calls.size)
             now += 100
             calls.clear()
             assertTrue(resolver.cached(listOf("symbol:Known")).getValue("symbol:Known").isEmpty())
@@ -277,6 +367,7 @@ class PlanRefResolverTest {
             missing = false
             assertEquals(listOf("src/two.kt"), resolver.resolve(listOf("symbol:Missing"))["symbol:Missing"])
             ready = false
+            now += 5_000
             revision = "unready"
             assertTrue(resolver.resolve(listOf("module:core")).getValue("module:core").isEmpty())
             assertTrue(resolver.cached(listOf("module:core")).getValue("module:core").isEmpty())

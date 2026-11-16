@@ -45,6 +45,7 @@ class AgentWorkspace(
     private val plannerRuntime: RuntimeKind? = null,
     private val kernelRead: (suspend (String, JsonObject) -> JsonElement)? = null,
     private val scopeModules: (List<String>) -> List<String> = { emptyList() },
+    grantAdvisory: (File, Boolean) -> String? = { _, _ -> null },
 ) : AutoCloseable {
     private val lock = Any()
     private val changes = MutableStateFlow(0L)
@@ -63,7 +64,7 @@ class AgentWorkspace(
     private var queued: List<AgentQueuedTurn> = if (Files.exists(queueFile))
         ConductorJson.decodeFromString(ListSerializer(AgentQueuedTurn.serializer()), Files.readString(queueFile)) else emptyList()
     val evidence = AgentEvidenceStore(root, directory.resolve("evidence"))
-    val hybrid = HybridHandoffs(directory.resolve("handoffs"), evidence.artifacts) { runId, candidate ->
+    val hybrid = HybridHandoffs(directory.resolve("handoffs"), evidence.artifacts, grantAdvisory) { runId, candidate ->
         evidence.recordCandidate(get(runId).threadId, candidate)
     }
     val entitlements = AgentEntitlements(directory.resolve("entitlements"))
@@ -183,7 +184,7 @@ class AgentWorkspace(
             val scope = selected.flatMap { AgentSourceScope.files(proposed, it, resolvedRefs) }.distinct()
             val footprint = selected.flatMap { AgentSourceScope.footprint(proposed, it, resolvedRefs) }.distinct()
             val overlapping = competitors(plans.list().mapNotNull { plans.plan(it.thread) }, covered).any { (other, item) ->
-                AgentSourceScope.refs(other, item).any { !it.startsWith("file:") && it !in resolvedRefs } ||
+                AgentSourceScope.refs(other, item).any { !it.startsWith("file:") && resolvedRefs[it].isNullOrEmpty() } ||
                     AgentSourceScope.conflicts(footprint, AgentSourceScope.footprint(other, item, resolvedRefs))
             }
             synchronized(lock) {

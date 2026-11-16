@@ -91,12 +91,15 @@ internal class PlanRefResolver(
         val paths: LinkedHashSet<Pair<String?, String>> = LinkedHashSet())
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val symbols = ConcurrentHashMap<String, Symbol>()
+    private val folders = ConcurrentHashMap<String, Symbol>()
     @Volatile private var graph: Graph? = null
     private val graphLock = Any()
     private var graphRevision: String? = null
+    @Volatile private var confirmedUntil = Long.MIN_VALUE
     private var pages: Pages? = null
     private var loading: Deferred<Graph?>? = null
     private val symbolLoads = HashMap<String, Deferred<List<String>>>()
+    private val moduleLoads = HashMap<String, Deferred<List<String>>>()
 
     fun cached(refs: List<String>): Map<String, List<String>> {
         val current = graph
@@ -104,7 +107,7 @@ internal class PlanRefResolver(
             when (ref.substringBefore(':')) {
                 "file" -> local(ref)
                 "symbol" -> symbols[ref]?.takeIf { it.until > clock() }?.files.orEmpty()
-                "module" -> moduleFolders(ref).ifEmpty { current?.answers?.get(ref).orEmpty() }
+                "module" -> folders[ref]?.takeIf { it.until > clock() }?.files ?: current?.answers?.get(ref).orEmpty()
                 else -> emptyList()
             }
         }
@@ -112,35 +115,45 @@ internal class PlanRefResolver(
 
     suspend fun resolve(refs: List<String>, deadlineNanos: Long = System.nanoTime() + WaitNanos): Map<String, List<String>> {
         val needed = refs.distinct()
+        val current = graph.takeIf { confirmedUntil > clock() }
         val result = needed.associateWith { ref ->
             when (ref.substringBefore(':')) {
                 "file" -> local(ref)
-                "module" -> moduleFolders(ref)
+                "module" -> folders[ref]?.takeIf { it.until > clock() }?.files ?: current?.answers?.get(ref).orEmpty()
                 "symbol" -> symbols[ref]?.takeIf { it.until > clock() }?.files.orEmpty()
                 else -> emptyList()
             }
         }.toMutableMap()
-        val moduleRefs = needed.filter { it.startsWith("module:") && result.getValue(it).isEmpty() }
-        val graphRequest = if (moduleRefs.isEmpty()) null else graphRequest()
-        val symbolRequests = needed.filter { it.startsWith("symbol:") && symbols[it]?.takeIf { value -> value.until > clock() } == null }
-            .associateWith(::symbolRequest)
-        val remainingMillis = ((deadlineNanos - System.nanoTime()) / 1_000_000).coerceAtLeast(0)
-        if (remainingMillis > 0) withTimeoutOrNull(remainingMillis) {
-            graphRequest?.await()
-            symbolRequests.values.forEach { it.await() }
-        }
-        if (graphRequest?.isCompleted == true && !graphRequest.isCancelled) graphRequest.await()?.let { current ->
-            moduleRefs.forEach { ref ->
-                result[ref] = current.answers[ref] ?: moduleFiles(ref, current.paths).also { files ->
-                    if (files.isNotEmpty()) current.answers[ref] = files
-                }
+        val requests = needed.mapNotNull { ref ->
+            when {
+                ref.startsWith("module:") && result.getValue(ref).isEmpty() -> ref to moduleRequest(ref)
+                ref.startsWith("symbol:") && symbols[ref]?.takeIf { it.until > clock() } == null -> ref to symbolRequest(ref)
+                else -> null
             }
         }
-        symbolRequests.forEach { (ref, request) ->
+        val remainingMillis = ((deadlineNanos - System.nanoTime()) / 1_000_000).coerceAtLeast(0)
+        if (remainingMillis > 0) withTimeoutOrNull(remainingMillis) {
+            requests.forEach { (_, request) -> request.join() }
+        }
+        requests.forEach { (ref, request) ->
             if (request.isCompleted && !request.isCancelled) result[ref] = request.await()
         }
         return result
     }
+
+    private fun moduleRequest(ref: String): Deferred<List<String>> = synchronized(graphLock) {
+        moduleLoads[ref]?.takeUnless { it.isCompleted } ?: scope.async(start = CoroutineStart.LAZY) {
+            try {
+                val folder = moduleFolders(ref)
+                if (folder.isNotEmpty()) {
+                    folders[ref] = Symbol(folder, clock() + RevisionLifetimeMillis)
+                    folder
+                } else graphRequest().await()?.let { current ->
+                    current.answers.computeIfAbsent(ref) { moduleFiles(ref, current.paths) }
+                }.orEmpty()
+            } finally { synchronized(graphLock) { moduleLoads.remove(ref) } }
+        }.also { moduleLoads[ref] = it }
+    }.also { it.start() }
 
     private fun symbolRequest(ref: String): Deferred<List<String>> = synchronized(graphLock) {
         symbolLoads[ref]?.takeUnless { it.isCompleted } ?: scope.async(start = CoroutineStart.LAZY) {
@@ -178,14 +191,18 @@ internal class PlanRefResolver(
     }
 
     private suspend fun graph(): Graph? {
-        val probe = answer("atlas_graph", buildJsonObject { put("page", 0); put("chars", 20_000) }) ?: return null
-        val revision = probe["revision"]?.jsonPrimitive?.contentOrNull ?: return null
-        if (graphRevision != revision) {
-            graphRevision = revision
-            graph = null
-            pages = null
+        if (confirmedUntil <= clock()) {
+            val probe = answer("atlas_graph", buildJsonObject { put("page", 0); put("chars", 20_000) }) ?: return null
+            val revision = probe["revision"]?.jsonPrimitive?.contentOrNull ?: return null
+            if (graphRevision != revision) {
+                graphRevision = revision
+                graph = null
+                pages = null
+            }
+            if (probe["ready"]?.jsonPrimitive?.booleanOrNull != true || (probe["pages"]?.jsonPrimitive?.intOrNull ?: 0) < 1) return null
+            confirmedUntil = clock() + RevisionLifetimeMillis
         }
-        if (probe["ready"]?.jsonPrimitive?.booleanOrNull != true || (probe["pages"]?.jsonPrimitive?.intOrNull ?: 0) < 1) return null
+        val revision = graphRevision ?: return null
         graph?.takeIf { it.revision == revision }?.let { return it }
         val progress = pages?.takeIf { it.revision == revision } ?: Pages(revision).also { pages = it }
         val loaded = loadGraph(progress) ?: return null
@@ -227,5 +244,8 @@ internal class PlanRefResolver(
 
     override fun close() { scope.cancel() }
 
-    companion object { const val WaitNanos = 3_000_000_000L }
+    companion object {
+        const val WaitNanos = 3_000_000_000L
+        private const val RevisionLifetimeMillis = 5_000L
+    }
 }

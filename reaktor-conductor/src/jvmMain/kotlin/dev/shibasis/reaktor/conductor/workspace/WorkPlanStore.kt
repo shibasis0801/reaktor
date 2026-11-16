@@ -39,20 +39,25 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
     @Volatile private var closed = false
     private var readDelivery: Thread? = null
 
-    private fun wakeDelivery() = synchronized(lifecycle) {
-        check(!closed) { "Plan store is closed" }
-        if (readDelivery == null) readDelivery = Thread({
-            do {
-                wake.acquire()
-                wake.drainPermits()
-                try { deliver() }
-                catch (error: Throwable) {
-                    logFailure(error)
-                    if (pendingNotifications > 0) wake.release()
-                }
-            } while (!closed || pendingNotifications > 0)
-        }, "WorkPlanStore-notifications").apply { isDaemon = true; start() }
-        wake.release()
+    private fun wakeDelivery() {
+        val inline = synchronized(lifecycle) {
+            if (closed) true else {
+                if (readDelivery == null) readDelivery = Thread({
+                    do {
+                        wake.acquire()
+                        wake.drainPermits()
+                        try { deliver() }
+                        catch (error: Throwable) {
+                            logFailure(error)
+                            if (pendingNotifications > 0) wake.release()
+                        }
+                    } while (!closed || pendingNotifications > 0)
+                }, "WorkPlanStore-notifications").apply { isDaemon = true; start() }
+                wake.release()
+                false
+            }
+        }
+        if (inline) deliver()
     }
 
     private fun logFailure(error: Throwable) {
@@ -61,7 +66,11 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
 
     override fun close() {
         val thread = synchronized(lifecycle) { closed = true; wake.release(); readDelivery }
-        if (thread != Thread.currentThread() && !delivering.get()) thread?.join()
+        if (thread != null && thread != Thread.currentThread() && !delivering.get()) {
+            thread.join(5_000)
+            if (thread.isAlive) Logger.getLogger(WorkPlanStore::class.java.name)
+                .warning("Plan notification delivery is still running after close")
+        }
     }
 
     internal val pendingNotifications: Int get() = synchronized(this) { notifications.size }
@@ -131,7 +140,7 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
         val thread = reference.removePrefix("plan:").substringBefore('#')
         require(BoardRefs.pattern.matches(thread)) { "planItem needs a canonical thread" }
         val plan = plans[thread] ?: error("$thread has no plan")
-        val item = PlanSchedule.ranked(plan).firstOrNull { it.item.id == reference.substringAfter('#') }
+        val item = PlanAnalysis.ranked(plan).firstOrNull { it.item.id == reference.substringAfter('#') }
         requireNotNull(item) { "$reference is not an open plan leaf" }
         return item.takeIf { !ready || PlanSchedule.unblocked(plan, it.item) }
     }
@@ -213,7 +222,7 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
             requireNotNull(all.single().seat(seat)?.takeIf { it.heldBy(actor) }) { "$seat is not held by this agent" }
         } else null
         if (take) {
-            val held = every.asSequence().flatMap { PlanSchedule.ranked(it).asSequence() }
+            val held = every.asSequence().flatMap { PlanAnalysis.ranked(it).asSequence() }
                 .firstOrNull { it.item.status == PlanStatus.Doing && it.item.lease?.by?.same(actor) == true }
             if (held != null) {
                 val reason = "This agent already holds ${held.thread}#${held.item.id}"
@@ -227,10 +236,13 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
             }
         }
         fun footprint(plan: WorkPlan, item: PlanItem): List<String> = AgentSourceScope.footprint(plan, item, resolved)
-        val busy = every.flatMap { plan -> plan.leaves().filter { it.status == PlanStatus.Doing && it.kind != PlanKind.Component && it.holder?.same(actor) != true }.map { footprint(plan, it) } }
+        val busy = every.flatMap { plan -> plan.leaves().filter { it.status == PlanStatus.Doing && it.kind != PlanKind.Component && it.holder?.same(actor) != true }.map { leaf ->
+            footprint(plan, leaf) to AgentSourceScope.refs(plan, leaf).any { !it.startsWith("file:") && resolved[it].isNullOrEmpty() }
+        } }
         val candidates = eligible(all, actor, seat, item, profile).filter { candidate ->
             val plan = all.single { it.thread == candidate.thread }
-            busy.none { AgentSourceScope.conflicts(footprint(plan, candidate.item), it) }
+            val files = footprint(plan, candidate.item)
+            busy.none { (other, unresolved) -> files.isNotEmpty() && unresolved || AgentSourceScope.conflicts(files, other) }
         }
         val candidate = candidates.minWithOrNull(compareByDescending<PlanCandidate> { it.priority }.thenByDescending { it.unblocks }.thenBy { it.age })
         if (!take || candidate == null) return@access PlanNext(candidate, if (candidate == null) "No ready item matches this agent, its seat, profile and free files" else "")
@@ -252,7 +264,7 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
             val mine = plan.seats.filter { it.heldBy(actor) && (seat == null || it.id == seat) }
             if ((seated || seat != null) && mine.isEmpty()) return@flatMap emptyList()
             val covered = mine.flatMapTo(HashSet()) { it.items.flatMap(plan::under) }
-            PlanSchedule.ready(plan).filter { candidate ->
+            PlanAnalysis.ready(plan).filter { candidate ->
                 if (item != null && candidate.item.id != item) return@filter false
                 val item = candidate.item
                 val owner = generateSequence(item) { it.parent?.let(plan::item) }.mapNotNull { it.seat?.let(plan::seat) }.firstOrNull()

@@ -5,6 +5,8 @@ import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import dev.shibasis.reaktor.conductor.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.flow
+import java.io.File
+import java.nio.file.Path
 import java.nio.file.Files
 import java.net.URI
 import java.net.http.*
@@ -12,6 +14,9 @@ import kotlin.test.*
 import kotlinx.serialization.json.*
 
 class AgentWorkspaceTest {
+    private fun fixtureConnection(root: File, directory: Path, runtimes: Map<RuntimeKind, AgentRuntime>? = null) =
+        AgentWorkspaceConnection.open(root, directory, runtimes, discover = { ProviderCapability(it) }, grantAdvisory = { _, _ -> null })
+
     @Test fun transcriptPagesReachTheFirstEventAndKeepLongRepliesWhole() = runBlocking {
         val root = Files.createTempDirectory("agent-transcript-root").toFile()
         val directory = Files.createTempDirectory("agent-transcript-state")
@@ -23,7 +28,7 @@ class AgentWorkspaceTest {
             dev.shibasis.reaktor.conductor.store.FileThreadStore.open(directory.resolve("threads/$thread.json")).use {
                 it.checkpoint(ThreadDocument(ThreadId(thread), "Paged transcript", events = events))
             }
-            AgentWorkspaceConnection.open(root, directory, mapOf(RuntimeKind.Codex to EchoRuntime(RuntimeKind.Codex) { "fixture" })).use { owner ->
+            fixtureConnection(root, directory, mapOf(RuntimeKind.Codex to EchoRuntime(RuntimeKind.Codex) { "fixture" })).use { owner ->
                 var page = owner.transcript(thread)
                 assertEquals(20, page.events.size)
                 assertEquals(reply, page.events.last().text)
@@ -228,7 +233,7 @@ class AgentWorkspaceTest {
         val directory = Files.createTempDirectory("agent-state")
         val harness = Harness(RuntimeKind.Codex)
         try {
-            AgentWorkspaceConnection.open(root, directory, mapOf(harness.kind to harness)).use { owner ->
+            fixtureConnection(root, directory, mapOf(harness.kind to harness)).use { owner ->
                 terminal(owner, owner.submit(AgentSubmission("codex-project", harness.kind, "task")))
                 assertEquals(root.canonicalFile.parentFile.canonicalPath,
                     harness.requests.single().agent.attributes["codexProjectDirectory"])
@@ -241,7 +246,7 @@ class AgentWorkspaceTest {
         val directory = Files.createTempDirectory("agent-state")
         val harness = Harness(RuntimeKind.Codex)
         try {
-            AgentWorkspaceConnection.open(root, directory, mapOf(harness.kind to harness)).use { owner ->
+            fixtureConnection(root, directory, mapOf(harness.kind to harness)).use { owner ->
                 val run = terminal(owner, owner.submit(
                     AgentSubmission("thinking", harness.kind, "THINK about this", effort = NativeEffort("high"))))
                 assertEquals("weighing two options", run.reasoning)
@@ -262,7 +267,7 @@ class AgentWorkspaceTest {
         val directory = Files.createTempDirectory("agent-answer-state")
         val runtime = BlockingHarness()
         try {
-            AgentWorkspaceConnection.open(root, directory, mapOf(runtime.kind to runtime)).use { owner ->
+            fixtureConnection(root, directory, mapOf(runtime.kind to runtime)).use { owner ->
                 val run = owner.submit(AgentSubmission("answer-1", runtime.kind, "do the thing"))
                 val waiting = withTimeout(10000) {
                     var record = owner.get(run.id)
@@ -290,7 +295,7 @@ class AgentWorkspaceTest {
         val directory = Files.createTempDirectory("agent-batch-state")
         val harness = Harness(RuntimeKind.Codex)
         try {
-            AgentWorkspaceConnection.open(root, directory, mapOf(harness.kind to harness)).use { owner ->
+            fixtureConnection(root, directory, mapOf(harness.kind to harness)).use { owner ->
                 val run = terminal(owner, owner.submit(AgentSubmission("batch-1", harness.kind, "plain turn")))
                 val outcome = owner.answer(run.id, "codex", "req-1", AgentDecision.Approve)
                 assertEquals("interactive session", assertIs<CommandOutcome.Unsupported>(outcome).capability)
@@ -333,7 +338,7 @@ class AgentWorkspaceTest {
         val directory = Files.createTempDirectory("agent-attach-state")
         val runtime = BlockingHarness()
         try {
-            AgentWorkspaceConnection.open(root, directory, mapOf(runtime.kind to runtime)).use { owner ->
+            fixtureConnection(root, directory, mapOf(runtime.kind to runtime)).use { owner ->
                 val run = owner.submit(AgentSubmission("attach-1", runtime.kind, "do the thing"))
                 withTimeout(10000) {
                     var record = owner.get(run.id)
@@ -341,7 +346,7 @@ class AgentWorkspaceTest {
                 }
                 // A second client that never saw the request still learns about it, and learns
                 // which participant it can actually answer through.
-                AgentWorkspaceConnection.open(root, directory).use { reconnected ->
+                fixtureConnection(root, directory).use { reconnected ->
                     val attachment = reconnected.attach(run.id)
                     assertTrue(attachment.live, "The run is still executing")
                     assertEquals(listOf("codex"), attachment.answerable)
@@ -373,14 +378,15 @@ class AgentWorkspaceTest {
         val directory = Files.createTempDirectory("agent-state")
         val harness = Harness(RuntimeKind.Codex)
         try {
-            AgentWorkspaceConnection.open(root, directory, mapOf(harness.kind to harness)).use { owner ->
-                AgentWorkspaceConnection.open(root, directory, mapOf(harness.kind to harness)).use { client ->
+            fixtureConnection(root, directory, mapOf(harness.kind to harness)).use { owner ->
+                fixtureConnection(root, directory, mapOf(harness.kind to harness)).use { client ->
                     assertTrue(owner.ownsService)
                     assertFalse(client.ownsService)
                     assertEquals(owner.url, client.url)
                     val initialize = client.exchange("""{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"codex-compatible","version":"1"}}}""")!!.jsonObject
                     assertEquals("2025-06-18", initialize.getValue("result").jsonObject.getValue("protocolVersion").jsonPrimitive.content)
                     assertEquals(root.canonicalPath, client.info().workspaceRoot)
+                    assertTrue(client.info().capabilities.all { it.probedAt == null }, "Workspace fixtures must not probe installed CLIs")
                     val defaults = client.call("agent_submit", buildJsonObject {
                         put("requestId", "wire-defaults"); put("provider", harness.kind.name); put("prompt", "wire defaults")
                     }).jsonObject
@@ -405,7 +411,7 @@ class AgentWorkspaceTest {
                 }
                 assertEquals(2, owner.list().size)
             }
-            AgentWorkspaceConnection.open(root, directory, mapOf(harness.kind to harness)).use { reopened ->
+            fixtureConnection(root, directory, mapOf(harness.kind to harness)).use { reopened ->
                 assertEquals(AgentRunStatus.Completed, reopened.list().first().status)
                 assertEquals(2, harness.requests.size)
             }
@@ -419,12 +425,12 @@ class AgentWorkspaceTest {
         val harness = Harness(RuntimeKind.Codex)
         val runtimes = mapOf(harness.kind to harness)
         try {
-            val owner = AgentWorkspaceConnection.open(root, directory, runtimes)
-            AgentWorkspaceConnection.open(root, directory).use { client ->
+            val owner = fixtureConnection(root, directory, runtimes)
+            fixtureConnection(root, directory).use { client ->
                 val run = terminal(client, client.submit(AgentSubmission("1", harness.kind, "remember this run")))
                 owner.close()
-                assertFailsWith<IllegalArgumentException> { AgentWorkspaceConnection.open(otherRoot, directory, runtimes) }
-                AgentWorkspaceConnection.open(root, directory, runtimes).use {
+                assertFailsWith<IllegalArgumentException> { fixtureConnection(otherRoot, directory, runtimes) }
+                fixtureConnection(root, directory, runtimes).use {
                     assertEquals(run.id, client.get(run.id).id)
                     assertEquals(1, harness.requests.size)
                 }
@@ -438,7 +444,7 @@ class AgentWorkspaceTest {
         val codex = Harness(RuntimeKind.Codex)
         val claude = Harness(RuntimeKind.ClaudeCode)
         try {
-            AgentWorkspaceConnection.open(root, directory, mapOf(codex.kind to codex, claude.kind to claude)).use { owner ->
+            fixtureConnection(root, directory, mapOf(codex.kind to codex, claude.kind to claude)).use { owner ->
                 val first = terminal(owner, owner.submit(AgentSubmission("1", codex.kind, "UNIQUE_FIRST_CONTEXT")))
                 val second = terminal(owner, owner.submit(AgentSubmission("2", codex.kind, "second question", first.threadId)))
                 assertEquals(first.session, codex.requests[1].resume)
@@ -488,7 +494,7 @@ class AgentWorkspaceTest {
         val harness = Harness(RuntimeKind.Codex)
         try {
             lateinit var interrupted: AgentRunRecord
-            AgentWorkspaceConnection.open(root, directory, mapOf(harness.kind to harness)).use { owner ->
+            fixtureConnection(root, directory, mapOf(harness.kind to harness)).use { owner ->
                 val first = owner.submit(AgentSubmission("1", harness.kind, "BLOCK_UNTIL_CANCEL"))
                 withTimeout(10000) { harness.started.await() }
                 assertFailsWith<IllegalStateException> { owner.submit(AgentSubmission("same-thread", harness.kind, "busy", first.threadId)) }
@@ -500,7 +506,7 @@ class AgentWorkspaceTest {
                 interrupted = owner.submit(AgentSubmission("3", harness.kind, "BLOCK_UNTIL_CANCEL"))
             }
             val invokedBeforeRestart = harness.requests.size
-            AgentWorkspaceConnection.open(root, directory, mapOf(harness.kind to harness)).use { reopened ->
+            fixtureConnection(root, directory, mapOf(harness.kind to harness)).use { reopened ->
                 assertEquals(AgentRunStatus.Interrupted, reopened.get(interrupted.id).status)
                 assertEquals(invokedBeforeRestart, harness.requests.size)
             }
@@ -512,7 +518,7 @@ class AgentWorkspaceTest {
         val directory = Files.createTempDirectory("agent-state")
         val harness = Harness(RuntimeKind.Codex)
         try {
-            AgentWorkspaceConnection.open(root, directory, mapOf(harness.kind to harness)).use { owner ->
+            fixtureConnection(root, directory, mapOf(harness.kind to harness)).use { owner ->
                 val run = owner.submit(AgentSubmission("reviewed-stop", harness.kind, "BLOCK_UNTIL_CANCEL"))
                 withTimeout(10000) { harness.started.await() }
                 val control = owner.control(run.id)
@@ -538,7 +544,7 @@ class AgentWorkspaceTest {
         val directory = Files.createTempDirectory("agent-state")
         val harness = Harness(RuntimeKind.Codex)
         try {
-            AgentWorkspaceConnection.open(root, directory, mapOf(harness.kind to harness)).use { owner ->
+            fixtureConnection(root, directory, mapOf(harness.kind to harness)).use { owner ->
                 val original = terminal(owner, owner.submit(AgentSubmission("restart-original", harness.kind, "Original task",
                     continues = ProviderSession(harness.kind, "original-native-session"))))
                 val control = owner.control(original.id)
@@ -573,14 +579,14 @@ class AgentWorkspaceTest {
         try {
             lateinit var original: AgentRunRecord
             lateinit var restarted: AgentRunRecord
-            AgentWorkspaceConnection.open(root, directory, mapOf(harness.kind to harness)).use { owner ->
+            fixtureConnection(root, directory, mapOf(harness.kind to harness)).use { owner ->
                 original = terminal(owner, owner.submit(AgentSubmission("retry-original", harness.kind, "Original request")))
                 restarted = terminal(owner, owner.restart(original.id, original.revision, "retry-attempt"))
                 terminal(owner, owner.submit(AgentSubmission("conflicting-request", harness.kind, "Different request")))
             }
             val changed = original.copy(revision = original.revision + 1, updatedAt = original.updatedAt + 1)
             Files.writeString(directory.resolve("runs/${original.id}.json"), ConductorJson.encodeToString(AgentRunRecord.serializer(), changed))
-            AgentWorkspaceConnection.open(root, directory, mapOf(harness.kind to harness)).use { owner ->
+            fixtureConnection(root, directory, mapOf(harness.kind to harness)).use { owner ->
                 assertEquals(changed.revision, owner.get(original.id).revision)
                 assertEquals(restarted.id, owner.restart(original.id, original.revision, "retry-attempt").id)
                 assertFailsWith<IllegalStateException> { owner.restart(original.id, original.revision, "fresh-stale-attempt") }
@@ -604,7 +610,7 @@ class AgentWorkspaceTest {
             WorkflowStage("second", "Second stage", second.id, "Second instruction"),
         ), listOf(WorkflowEdge("first", "second")))
         try {
-            AgentWorkspaceConnection.open(root, directory, mapOf(harness.kind to harness)).use { owner ->
+            fixtureConnection(root, directory, mapOf(harness.kind to harness)).use { owner ->
                 val original = terminal(owner, owner.submit(AgentSubmission("workflow-original", harness.kind, "Complete both stages", workflow = workflow)))
                 assertEquals(AgentRunStatus.Completed, original.status)
                 assertNotNull(original.workflowProgress)
@@ -669,7 +675,7 @@ class AgentWorkspaceTest {
         val directory = Files.createTempDirectory("agent-state")
         val harness = Harness(RuntimeKind.Codex)
         try {
-            AgentWorkspaceConnection.open(root, directory, mapOf(harness.kind to harness)).use { owner ->
+            fixtureConnection(root, directory, mapOf(harness.kind to harness)).use { owner ->
                 val old = owner.submit(AgentSubmission("old-active", harness.kind, "BLOCK_UNTIL_CANCEL"))
                 withTimeout(10000) { harness.started.await() }
                 repeat(201) { terminal(owner, owner.submit(AgentSubmission("recent-$it", harness.kind, "Quick task $it"))) }
@@ -692,7 +698,7 @@ class AgentWorkspaceTest {
         val root = Files.createTempDirectory("agent-root").toFile()
         val directory = Files.createTempDirectory("agent-state")
         try {
-            AgentWorkspaceConnection.open(root, directory, mapOf(RuntimeKind.Echo to EchoRuntime())).use { owner ->
+            fixtureConnection(root, directory, mapOf(RuntimeKind.Echo to EchoRuntime())).use { owner ->
                 HttpClient.newHttpClient().use { http ->
                     val request = HttpRequest.newBuilder(URI(owner.url)).header("Content-Type", "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString("""{"jsonrpc":"2.0","id":1,"method":"tools/list"}"""))

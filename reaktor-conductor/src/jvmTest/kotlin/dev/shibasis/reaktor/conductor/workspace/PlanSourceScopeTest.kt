@@ -93,6 +93,21 @@ class PlanSourceScopeTest {
         assertTrue(applied.refused.isEmpty())
     }
 
+    @Test fun nextDoesNotOfferWorkBesideATimedOutCompetitor() = unresolvedCompetitor(false)
+
+    @Test fun attachUsesAWorktreeBesideATimedOutCompetitor() = unresolvedCompetitor(true)
+
+    private fun unresolvedCompetitor(attach: Boolean) = fixture { workspace, atlas ->
+        workspace.plans.write(thread, PlanPatch(title = "Unknown competitor", ops = listOf(
+            PlanOp.Add("Held elsewhere", key = "held", refs = listOf("symbol:Missing")),
+            PlanOp.Status("held", PlanStatus.Doing),
+            PlanOp.Add("Ready file", key = "ready", refs = listOf("file:src/ready.kt")),
+        )), firstAgent)
+        atlas.delayMillis = 10_000
+        if (attach) assertEquals(AgentIsolation.Worktree, workspace.attachPlan(thread, listOf("ready"), "writer", "", owner).run.isolation)
+        else assertNull(workspace.plans.next(thread, secondAgent, item = "ready") { workspace.profiles.read("writer") }.candidate)
+    }
+
     @Test fun linkOnlyRefsInheritTheNearestSourceScope() = fixture(kernel = false) { workspace, atlas ->
         workspace.plans.write(thread, PlanPatch(title = "Inherited code scope", ops = listOf(
             PlanOp.Add("Component", key = "component", kind = PlanKind.Component, refs = listOf("file:src/shared.kt")),
@@ -350,7 +365,7 @@ class PlanSourceScopeTest {
         val warmStart = System.nanoTime()
         assertEquals("free", workspace.plans.next(thread, secondAgent, item = "free") { workspace.profiles.read("writer") }.candidate?.item?.id)
         val warmMillis = (System.nanoTime() - warmStart) / 1_000_000
-        assertEquals(5, atlas.calls.size)
+        assertEquals(4, atlas.calls.size)
         assertEquals(4, atlas.calls.distinct().size)
         println("next fixture: cold 4 Atlas calls in ${coldMillis}ms; warm 1 Atlas call in ${warmMillis}ms")
     }
@@ -377,7 +392,7 @@ class PlanSourceScopeTest {
         val warmStart = System.nanoTime()
         handler.invoke(args)
         val warmMillis = (System.nanoTime() - warmStart) / 1_000_000
-        assertEquals(1, atlas.calls.size)
+            assertEquals(0, atlas.calls.size)
         println("MCP attach fixture request thread blocked: cold ${coldMillis}ms for 3 Atlas calls (a revision probe and 2 graph pages); warm ${warmMillis}ms for 1 revision check")
     }
 
@@ -445,7 +460,10 @@ class PlanSourceScopeTest {
     }
 
     @Test fun fileReferencesStayLocalAndShareWithoutAKernel() = fixture(kernel = false) { workspace, _ ->
-        seed(workspace)
+        workspace.plans.write(thread, PlanPatch(title = "Files", ops = listOf(
+            PlanOp.Add("Free file", key = "free", refs = listOf("file:src/free.kt")),
+            PlanOp.Add("Other file", key = "other", refs = listOf("file:src/other.kt")),
+        )), owner)
         val attached = workspace.attachPlan(thread, listOf("free"), "writer", "", owner)
         assertEquals(AgentIsolation.Shared, attached.run.isolation)
         assertEquals(listOf("src/free.kt"), workspace.submission(attached.run.id).scope)

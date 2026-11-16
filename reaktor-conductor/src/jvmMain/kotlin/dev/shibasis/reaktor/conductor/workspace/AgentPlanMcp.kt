@@ -41,7 +41,7 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
             buildJsonObject {
                 put("plan", plan(read.plan, history))
                 put("claims", AgentWorkspaceJson.encodeToJsonElement(PlanClaims.serializer(), if (history) claims else claims.active()))
-                put("ready", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(PlanCandidate.serializer()), PlanSchedule.ready(read.plan).take(8)))
+                put("ready", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(PlanCandidate.serializer()), PlanAnalysis.ready(read.plan).take(8)))
                 if (args.long("since") != null) put("news", changes(read.news))
             }
         },
