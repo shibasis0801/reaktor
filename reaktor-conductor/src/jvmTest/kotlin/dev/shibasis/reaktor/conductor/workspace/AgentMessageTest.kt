@@ -27,7 +27,7 @@ class AgentMessageTest {
                 session = ProviderSession(RuntimeKind.ClaudeCode, "recorded"))
             Files.createDirectories(directory.resolve("runs"))
             Files.writeString(directory.resolve("runs/${run.id}.json"), ConductorJson.encodeToString(AgentRunRecord.serializer(), run))
-            AgentWorkspace(root, directory, emptyMap()).use { workspace ->
+            fixtureWorkspace(root, directory, emptyMap()).use { workspace ->
                 workspace.board.propose(TaskGraphDraft("Messages", tasks = listOf(
                     TaskGraphOp.Add("Write", seat = TaskSeat(RuntimeKind.Codex)),
                     TaskGraphOp.Add("Review", seat = TaskSeat(RuntimeKind.ClaudeCode)),

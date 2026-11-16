@@ -20,7 +20,7 @@ class PlanNextTest {
     private fun fixture(test: (AgentWorkspace) -> Unit) {
         val root = Files.createTempDirectory("plan-next").toFile()
         try {
-            AgentWorkspace(root, root.toPath().resolve("state"), emptyMap()).use(test)
+            fixtureWorkspace(root, root.toPath().resolve("state"), emptyMap()).use(test)
         } finally {
             root.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")))
         }

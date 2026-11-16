@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import java.nio.file.Files
+import java.util.Collections
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -16,6 +17,43 @@ import kotlinx.serialization.json.*
 import kotlin.test.*
 
 class PlanRefResolverTest {
+    @Test fun aFastSymbolIsReturnedWhileTheGraphIsStillBlocked() = runBlocking {
+        val root = Files.createTempDirectory("ref-concurrent-graph").toFile()
+        val release = CompletableDeferred<Unit>()
+        val symbolStarted = CompletableDeferred<Unit>()
+        PlanRefResolver(root, { name, _ ->
+            if (name == "atlas_graph") { release.await(); buildJsonObject {} }
+            else { symbolStarted.complete(Unit); buildJsonObject { put("path", "src/Fast.kt") } }
+        }).use { resolver ->
+            try {
+                val answer = resolver.resolve(listOf("module:Slow", "symbol:Fast"))
+                assertTrue(symbolStarted.isCompleted)
+                assertEquals(listOf("src/Fast.kt"), answer["symbol:Fast"])
+                assertTrue(answer.getValue("module:Slow").isEmpty())
+            } finally { release.complete(Unit); root.deleteTreeSafely(within = root.parentFile) }
+        }
+    }
+
+    @Test fun twoSlowSymbolsStartTogetherAndBothResolveWithinOneWait() = runBlocking {
+        val root = Files.createTempDirectory("ref-concurrent-symbols").toFile()
+        PlanRefResolver(root, { _, args ->
+            delay(2_000)
+            buildJsonObject { put("path", "src/${args.getValue("name").jsonPrimitive.content}.kt") }
+        }).use { resolver ->
+            try {
+                val start = System.nanoTime()
+                val answer = resolver.resolve(listOf("symbol:First", "symbol:Second"))
+                assertEquals(listOf("src/First.kt"), answer["symbol:First"])
+                assertEquals(listOf("src/Second.kt"), answer["symbol:Second"])
+                val elapsed = (System.nanoTime() - start) / 1_000_000
+                assertTrue(elapsed < 2_800, "Concurrent symbol wait took ${elapsed}ms")
+                val loads = PlanRefResolver::class.java.getDeclaredField("symbolLoads").apply { isAccessible = true }.get(resolver) as Map<*, *>
+                assertEquals(0, loads.size)
+                println("Concurrent symbols: ${elapsed}ms")
+            } finally { root.deleteTreeSafely(within = root.parentFile) }
+        }
+    }
+
     @Test fun moduleFoldersResolveWithoutCallingAtlas() = runBlocking {
         val root = Files.createTempDirectory("ref-module-folder").toFile()
         val calls = AtomicInteger()
@@ -198,7 +236,7 @@ class PlanRefResolverTest {
         var revision = "one"
         var ready = true
         var missing = false
-        val calls = mutableListOf<String>()
+        val calls = Collections.synchronizedList(ArrayList<String>())
         val resolver = PlanRefResolver(root, { name, args ->
             calls += "$name:${args["page"] ?: args["name"]}:${args["chars"]}"
             if (name == "atlas_read") {

@@ -4,6 +4,7 @@ import dev.shibasis.reaktor.conductor.*
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import java.lang.management.ManagementFactory
 import java.nio.file.Files
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.flow.emptyFlow
 import kotlin.concurrent.thread
 import kotlinx.coroutines.runBlocking
@@ -25,8 +26,9 @@ class PlanLockOrderTest {
         workspace.profiles.save(AgentProfile("writer", "Writer", RuntimeKind.Echo, access = TaskAccess.Write), owner)
         workspace.plans.write(planThread, PlanPatch(title = "Lock order", ops = listOf(PlanOp.Add("Area", key = "area", kind = PlanKind.Component))), owner)
         workspace.plans.write(planThread, PlanPatch(ops = listOf(PlanOp.Add("Written by an agent", key = "written", parent = "area"))), agent)
+        val admitted = AtomicInteger()
         val attaching = thread(isDaemon = true) {
-            runBlocking { repeat(1_000) { runCatching { workspace.attachPlan(planThread, listOf("missing"), "writer", "", owner) } } }
+            runBlocking { repeat(1_000) { runCatching { workspace.attachPlan(planThread, listOf("written"), "writer", "", owner).also { admitted.incrementAndGet() } } } }
         }
         val reading = thread(isDaemon = true) { repeat(1_000) { workspace.plans.read(planThread) } }
         attaching.join(60_000)
@@ -35,6 +37,7 @@ class PlanLockOrderTest {
         assertNull(cycle, "Threads in a lock cycle: ${cycle?.joinToString()}")
         assertFalse(attaching.isAlive || reading.isAlive)
         workspace.close()
+        assertTrue(admitted.get() > 0, "The concurrent attach must reach admission")
         root.deleteTreeSafely(within = root.parentFile)
     }
 }

@@ -28,7 +28,7 @@ internal data class AgentSourceScope(
 
     companion object {
         fun refs(plan: WorkPlan, item: PlanItem): List<String> = generateSequence(item) { it.parent?.let(plan::item) }
-            .firstOrNull { it.refs.isNotEmpty() }?.refs.orEmpty().distinct()
+            .map { it.refs.filter(::sourceRef) }.firstOrNull { it.isNotEmpty() }.orEmpty().distinct()
 
         fun local(ref: String): List<String> = if (!ref.startsWith("file:")) emptyList() else
             ref.removePrefix("file:").replace('\\', '/').takeIf { it.isNotBlank() && it !in setOf("*", ".", "./") }
@@ -45,8 +45,13 @@ internal data class AgentSourceScope(
                 if (files.isEmpty()) listOf(ref) else files.map { "file:$it" }
             } }.distinct()
 
-        fun conflicts(left: List<String>, right: List<String>): Boolean = PlanSchedule.conflicts(left, right) ||
-            left.any { !it.startsWith("file:") && it in right }
+        private fun sourceRef(ref: String): Boolean = ref.substringBefore(':') in setOf("file", "symbol", "module")
+
+        fun conflicts(left: List<String>, right: List<String>): Boolean {
+            val sources = left.filter(::sourceRef)
+            val others = right.filter(::sourceRef)
+            return PlanSchedule.conflicts(sources, others) || sources.any { !it.startsWith("file:") && it in others }
+        }
 
         private val BuildFiles = setOf("build.gradle.kts", "build.gradle", "settings.gradle.kts", "settings.gradle", "gradle.properties", "libs.versions.toml", "package.json")
 
@@ -105,7 +110,7 @@ internal class PlanRefResolver(
         }
     }
 
-    suspend fun resolve(refs: List<String>): Map<String, List<String>> {
+    suspend fun resolve(refs: List<String>, deadlineNanos: Long = System.nanoTime() + WaitNanos): Map<String, List<String>> {
         val needed = refs.distinct()
         val result = needed.associateWith { ref ->
             when (ref.substringBefore(':')) {
@@ -116,31 +121,38 @@ internal class PlanRefResolver(
             }
         }.toMutableMap()
         val moduleRefs = needed.filter { it.startsWith("module:") && result.getValue(it).isEmpty() }
-        moduleRefs.forEach { result[it] = emptyList() }
-        withTimeoutOrNull(3_000) {
-            if (moduleRefs.isNotEmpty()) graphRequest().await()?.let { current ->
-                moduleRefs.forEach { ref ->
-                    result[ref] = current.answers[ref] ?: moduleFiles(ref, current.paths).also { files ->
-                        if (files.isNotEmpty()) current.answers[ref] = files
-                    }
+        val graphRequest = if (moduleRefs.isEmpty()) null else graphRequest()
+        val symbolRequests = needed.filter { it.startsWith("symbol:") && symbols[it]?.takeIf { value -> value.until > clock() } == null }
+            .associateWith(::symbolRequest)
+        val remainingMillis = ((deadlineNanos - System.nanoTime()) / 1_000_000).coerceAtLeast(0)
+        if (remainingMillis > 0) withTimeoutOrNull(remainingMillis) {
+            graphRequest?.await()
+            symbolRequests.values.forEach { it.await() }
+        }
+        if (graphRequest?.isCompleted == true && !graphRequest.isCancelled) graphRequest.await()?.let { current ->
+            moduleRefs.forEach { ref ->
+                result[ref] = current.answers[ref] ?: moduleFiles(ref, current.paths).also { files ->
+                    if (files.isNotEmpty()) current.answers[ref] = files
                 }
             }
-            needed.filter { it.startsWith("symbol:") }.forEach { ref ->
-                result[ref] = symbols[ref]?.takeIf { it.until > clock() }?.files ?: symbolRequest(ref).await()
-            }
+        }
+        symbolRequests.forEach { (ref, request) ->
+            if (request.isCompleted && !request.isCancelled) result[ref] = request.await()
         }
         return result
     }
 
     private fun symbolRequest(ref: String): Deferred<List<String>> = synchronized(graphLock) {
         symbolLoads[ref]?.takeUnless { it.isCompleted } ?: scope.async(start = CoroutineStart.LAZY) {
-            val answer = answer("atlas_read", buildJsonObject {
-                put("name", ref.substringAfter(':')); put("part", "declaration"); put("budget", 1000)
-            })
-            val sources = listOfNotNull(answer) + (answer?.get("also") as? JsonArray).orEmpty().mapNotNull { it as? JsonObject }
-            sources.mapNotNull { it["path"]?.jsonPrimitive?.contentOrNull?.let(::normalized) }.distinct().also { files ->
-                if (answer != null) symbols[ref] = Symbol(files, clock() + symbolLifetimeMillis)
-            }
+            try {
+                val answer = answer("atlas_read", buildJsonObject {
+                    put("name", ref.substringAfter(':')); put("part", "declaration"); put("budget", 1000)
+                })
+                val sources = listOfNotNull(answer) + (answer?.get("also") as? JsonArray).orEmpty().mapNotNull { it as? JsonObject }
+                sources.mapNotNull { it["path"]?.jsonPrimitive?.contentOrNull?.let(::normalized) }.distinct().also { files ->
+                    if (answer != null) symbols[ref] = Symbol(files, clock() + symbolLifetimeMillis)
+                }
+            } finally { synchronized(graphLock) { symbolLoads.remove(ref) } }
         }.also { symbolLoads[ref] = it }
     }.also { it.start() }
 
@@ -214,4 +226,6 @@ internal class PlanRefResolver(
     }
 
     override fun close() { scope.cancel() }
+
+    companion object { const val WaitNanos = 3_000_000_000L }
 }

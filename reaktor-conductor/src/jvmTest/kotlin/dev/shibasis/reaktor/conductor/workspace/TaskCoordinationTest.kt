@@ -152,7 +152,7 @@ class TaskCoordinationTest {
         val root = Files.createTempDirectory("coordination-root").toFile()
         val directory = Files.createTempDirectory("coordination-workspace")
         try {
-            AgentWorkspace(root, directory, emptyMap()).use { workspace ->
+            fixtureWorkspace(root, directory, emptyMap()).use { workspace ->
                 propose(workspace.board)
                 workspace.board.advance("G1", "T1") { task, plan -> task.copy(graph = plan.copy(attempt = 1)) }
                 val handoff = workspace.board.appendHandoff(handoff(), codex)

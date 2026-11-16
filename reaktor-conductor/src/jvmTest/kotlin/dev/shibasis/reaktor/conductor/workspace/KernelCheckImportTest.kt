@@ -26,7 +26,7 @@ class KernelCheckImportTest {
             val stopped = CoroutineScope(SupervisorJob().also { it.cancel() } + Dispatchers.IO)
             var candidateId = ""
             val requested = mutableListOf<String>()
-            AgentWorkspace(root, directory, mapOf(RuntimeKind.Echo to EchoRuntime()), scope = stopped,
+            fixtureWorkspace(root, directory, mapOf(RuntimeKind.Echo to EchoRuntime()), scope = stopped,
                 kernelRead = { name, arguments ->
                     assertEquals("run-1", arguments.getValue("runId").jsonPrimitive.content)
                     requested += name

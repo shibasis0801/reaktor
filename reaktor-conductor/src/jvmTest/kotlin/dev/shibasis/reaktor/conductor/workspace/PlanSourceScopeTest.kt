@@ -4,9 +4,11 @@ import dev.shibasis.reaktor.conductor.*
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import java.io.File
 import java.nio.file.Files
+import java.util.Collections
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.serialization.json.*
@@ -19,7 +21,7 @@ class PlanSourceScopeTest {
     private val thread = "hangar:scope"
 
     private class Atlas(val root: File) {
-        val calls = mutableListOf<String>()
+        val calls = Collections.synchronizedList(ArrayList<String>())
         var monitor: Any? = null
         var workspaceMonitor: Any? = null
         val missingNames = HashSet<String>()
@@ -89,6 +91,79 @@ class PlanSourceScopeTest {
             PlanOp.Add("Free file", key = "free", refs = listOf("file:src/free.kt")),
         )), owner)
         assertTrue(applied.refused.isEmpty())
+    }
+
+    @Test fun linkOnlyRefsInheritTheNearestSourceScope() = fixture(kernel = false) { workspace, atlas ->
+        workspace.plans.write(thread, PlanPatch(title = "Inherited code scope", ops = listOf(
+            PlanOp.Add("Component", key = "component", kind = PlanKind.Component, refs = listOf("file:src/shared.kt")),
+            PlanOp.Add("Linked leaf", key = "linked", parent = "component", refs = listOf("unit:u1")),
+            PlanOp.Add("Held", key = "held", refs = listOf("file:src/shared.kt")),
+            PlanOp.Status("held", PlanStatus.Doing),
+        )), firstAgent)
+        assertNull(workspace.plans.next(thread, secondAgent, item = "linked") { workspace.profiles.read("writer") }.candidate)
+        assertTrue(atlas.calls.isEmpty())
+        assertEquals(AgentIsolation.Worktree, workspace.attachPlan(thread, listOf("linked"), "writer", "", owner).run.isolation)
+    }
+
+    @Test fun sharedLinkRefsNeverConflictOrReachTheResolver() = fixture { workspace, atlas ->
+        val links = listOf("source:reading", "unit:u1", "skill:check", "url:https://example.invalid", "person:owner")
+        workspace.plans.write(thread, PlanPatch(title = "Shared reading", ops = listOf(
+            PlanOp.Add("Held", key = "held", refs = listOf("file:src/held.kt") + links),
+            PlanOp.Add("Ready", key = "ready", refs = listOf("file:src/ready.kt") + links),
+            PlanOp.Status("held", PlanStatus.Doing),
+        )), firstAgent)
+        assertEquals("ready", workspace.plans.next(thread, secondAgent, item = "ready") { workspace.profiles.read("writer") }.candidate?.item?.id)
+        assertFalse(AgentSourceScope.conflicts(links, links))
+        assertTrue(atlas.calls.isEmpty())
+        assertEquals(AgentIsolation.Shared, workspace.attachPlan(thread, listOf("ready"), "writer", "", owner).run.isolation)
+    }
+
+    @Test fun nextSharesOneDeadlineAcrossThreeChangingScopeRounds() = changingScopeDeadline(false)
+
+    @Test fun attachSharesOneDeadlineAcrossThreeChangingScopeRounds() = changingScopeDeadline(true)
+
+    private fun changingScopeDeadline(attach: Boolean) {
+        val root = Files.createTempDirectory("scope-changing-deadline").toFile()
+        val stopped = CoroutineScope(SupervisorJob().apply { cancel() })
+        val executor = Executors.newSingleThreadExecutor()
+        val reads = AtomicInteger()
+        lateinit var workspace: AgentWorkspace
+        val runtime = object : AgentRuntime {
+            override val kind = RuntimeKind.Echo
+            override fun run(request: AgentRequest) = emptyFlow<AgentEvent>()
+        }
+        try {
+            workspace = AgentWorkspace(root, root.toPath().resolve("state"), mapOf(runtime.kind to runtime), scope = stopped,
+                discover = { ProviderCapability(it) }, kernelRead = { _, _ ->
+                    val round = reads.incrementAndGet()
+                    workspace.plans.write(thread, PlanPatch(ops = listOf(
+                        PlanOp.Add("New scope", key = "late$round", parent = "component", refs = listOf("symbol:Late$round")),
+                    )), owner)
+                    delay(2_000)
+                    buildJsonObject { put("path", "src/round$round.kt") }
+                })
+            workspace.profiles.save(AgentProfile("writer", "Writer", RuntimeKind.Echo, access = TaskAccess.Write), owner)
+            workspace.plans.write(thread, PlanPatch(title = "Deadline", ops = listOf(
+                PlanOp.Add("Component", key = "component", kind = PlanKind.Component),
+                PlanOp.Add("Start", key = "start", parent = "component", refs = listOf("symbol:Start")),
+            )), owner)
+            val start = System.nanoTime()
+            executor.submit {
+                runBlocking {
+                    if (attach) assertEquals(AgentIsolation.Worktree, workspace.attachPlan(thread, listOf("component"), "writer", "", owner).run.isolation)
+                    else assertNotNull(workspace.plans.next(thread, firstAgent) { workspace.profiles.read("writer") }.candidate)
+                }
+            }.get(4_500, TimeUnit.MILLISECONDS)
+            val elapsed = (System.nanoTime() - start) / 1_000_000
+            assertTrue(elapsed < 4_000, "Changing scope request took ${elapsed}ms")
+            assertNotNull(workspace.plans.plan(thread)?.item("late2"))
+            println("Changing scope ${if (attach) "attach" else "next"}: ${elapsed}ms")
+        } finally {
+            runCatching { workspace.close() }
+            executor.shutdownNow()
+            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS))
+            root.deleteTreeSafely(within = root.parentFile)
+        }
     }
 
     @Test fun nextStopsWaitingWhileFiftySlowPagesContinueAndWarmTheNextCall() = fixture { workspace, atlas ->
@@ -312,7 +387,7 @@ class PlanSourceScopeTest {
         var cached = 0
         var armed = false
         lateinit var store: WorkPlanStore
-        store = WorkPlanStore(directory, resolveRefs = { refs ->
+        store = WorkPlanStore(directory, resolveRefs = { refs, _ ->
             assertFalse(Thread.holdsLock(store))
             assertFalse(store.deliveringNotification)
             resolves++
@@ -415,9 +490,9 @@ class PlanSourceScopeTest {
 
     @Test fun nextResolvesOnlyDoingLeavesAndCandidatesPassingSeatProfileAndKindChecks() = runBlocking {
         val directory = Files.createTempDirectory("plan-scope-limited")
-        val calls = mutableListOf<String>()
+        val calls = Collections.synchronizedList(ArrayList<String>())
         lateinit var store: WorkPlanStore
-        store = WorkPlanStore(directory, resolveRefs = { refs ->
+        store = WorkPlanStore(directory, resolveRefs = { refs, _ ->
             assertFalse(Thread.holdsLock(store))
             calls += refs
             refs.associateWith { listOf("src/${it.substringAfter(':')}.kt") }
@@ -441,9 +516,9 @@ class PlanSourceScopeTest {
     @Test fun resolutionRetriesStopAtThreeRoundsAndKeepNewRefsRaw() {
         val directory = Files.createTempDirectory("plan-scope-retries")
         var rounds = 0
-        val calls = mutableListOf<String>()
+        val calls = Collections.synchronizedList(ArrayList<String>())
         lateinit var store: WorkPlanStore
-        store = WorkPlanStore(directory, resolveRefs = { refs ->
+        store = WorkPlanStore(directory, resolveRefs = { refs, _ ->
             check(++rounds <= 3) { "Resolution exceeded three rounds" }
             assertFalse(Thread.holdsLock(store))
             calls += refs
@@ -461,8 +536,8 @@ class PlanSourceScopeTest {
     @Test fun aConcurrentPlanWriterCanFinishWhileScopeResolvesAndNewRefsAreReadOnce() = runBlocking {
         val directory = Files.createTempDirectory("plan-scope-lock")
         lateinit var store: WorkPlanStore
-        val calls = mutableListOf<String>()
-        store = WorkPlanStore(directory, resolveRefs = { refs ->
+        val calls = Collections.synchronizedList(ArrayList<String>())
+        store = WorkPlanStore(directory, resolveRefs = { refs, _ ->
             assertFalse(Thread.holdsLock(store))
             refs.forEach { calls += it }
             withContext(Dispatchers.Default) {

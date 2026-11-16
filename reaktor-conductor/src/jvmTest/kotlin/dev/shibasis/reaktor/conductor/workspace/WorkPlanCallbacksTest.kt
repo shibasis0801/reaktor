@@ -32,6 +32,46 @@ class WorkPlanCallbacksTest {
     private val person = BoardActor(BoardActorKind.Person, "Owner")
     private val agent = BoardActor(BoardActorKind.Agent, "Worker", "codex:callback-worker")
 
+    @Test fun readDeliverySurvivesAnErrorAndStopsWhenTheStoreCloses() {
+        val directory = Files.createTempDirectory("plan-delivery-lifetime")
+        val now = AtomicLong(1_000)
+        val worker = AtomicReference<Thread>()
+        val errorLogged = CountDownLatch(1)
+        val nextDelivered = CountDownLatch(1)
+        val logger = Logger.getLogger(WorkPlanStore::class.java.name)
+        val handler = object : Handler() {
+            override fun publish(record: LogRecord) { if (record.thrown is AssertionError) errorLogged.countDown() }
+            override fun flush() {}
+            override fun close() {}
+        }
+        logger.addHandler(handler)
+        val store = WorkPlanStore(directory, clock = now::get, messages = { plan, _, _ ->
+            if (plan.revision == 2L) {
+                worker.set(Thread.currentThread())
+                if (plan.thread == "hangar:error") throw AssertionError("Read delivery error")
+                nextDelivered.countDown()
+            }
+        })
+        try {
+            for (thread in listOf("hangar:error", "hangar:after-error")) store.write(thread,
+                PlanPatch(title = "Lifetime", ops = listOf(PlanOp.Add("Lease", key = "lease"), PlanOp.Status("lease", PlanStatus.Doing))), agent)
+            now.addAndGet(PlanLease.DurationMillis + 1)
+            store.list()
+            assertTrue(errorLogged.await(5, TimeUnit.SECONDS))
+            assertTrue(nextDelivered.await(5, TimeUnit.SECONDS))
+            val deliveryThread = assertNotNull(worker.get())
+            val closeable = assertNotNull((store as Any) as? AutoCloseable, "The store must own and close its delivery thread")
+            closeable.close()
+            deliveryThread.join(5_000)
+            assertFalse(deliveryThread.isAlive)
+            assertEquals(0, store.pendingNotifications)
+        } finally {
+            ((store as Any) as? AutoCloseable)?.close()
+            logger.removeHandler(handler)
+            directory.toFile().deleteTreeSafely(within = directory.parent.toFile())
+        }
+    }
+
     @Test fun aBlockedCallbackDoesNotBlockPlanListOrRead() = blockedReads(false)
 
     @Test fun expiryInsideAWritesReadDoesNotDeliverUnderTheOuterMonitor() = blockedReads(true)

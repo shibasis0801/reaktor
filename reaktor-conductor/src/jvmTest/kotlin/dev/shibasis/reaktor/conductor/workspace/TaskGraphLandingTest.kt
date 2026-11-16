@@ -121,7 +121,7 @@ class TaskGraphLandingTest {
 
     private fun graph(root: File, data: File, radar: suspend (String, JsonObject) -> JsonElement,
         runtimes: Map<RuntimeKind, AgentRuntime> = emptyMap(), body: suspend (AgentWorkspace, String) -> Unit) = runBlocking {
-        AgentWorkspace(root, File(data, "owner").toPath(), runtimes, kernelRead = radar).use { owner ->
+        fixtureWorkspace(root, File(data, "owner").toPath(), runtimes, kernelRead = radar).use { owner ->
             owner.board.propose(TaskGraphDraft("Land", tasks = listOf(
                 TaskGraphOp.Add("Build", key = "build", seat = TaskSeat(RuntimeKind.Codex, access = TaskAccess.Write)),
                 TaskGraphOp.Add("Review", seat = TaskSeat(RuntimeKind.ClaudeCode), contract = WorkflowContract.Decision,

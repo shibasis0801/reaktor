@@ -143,6 +143,7 @@ class AgentWorkspace(
     }
 
     suspend fun attachPlan(thread: String, items: List<String>, profile: String, note: String, by: BoardActor): PlanAttached {
+        val deadlineNanos = System.nanoTime() + PlanRefResolver.WaitNanos
         val chosen = profiles.read(profile)
         val resolved = resolveSeat(TaskSeat(profile = chosen.id))
         val provider = requireNotNull(resolved.seat.agent) { "Profile ${chosen.id} names no runtime" }
@@ -170,7 +171,7 @@ class AgentWorkspace(
             val snapshots = plans.list().mapNotNull { plans.plan(it.thread) }
             val missing = needed(snapshots).filterNot(resolvedRefs::containsKey)
             if (missing.isEmpty()) break
-            val found = planScopes.resolve(missing)
+            val found = planScopes.resolve(missing, deadlineNanos)
             missing.forEach { resolvedRefs[it] = found[it].orEmpty() }
         }
         lateinit var run: AgentRunRecord
@@ -185,12 +186,14 @@ class AgentWorkspace(
                 AgentSourceScope.refs(other, item).any { !it.startsWith("file:") && it !in resolvedRefs } ||
                     AgentSourceScope.conflicts(footprint, AgentSourceScope.footprint(other, item, resolvedRefs))
             }
-            val isolation = if (scope.isEmpty() || unresolved || overlapping ||
-                synchronized(lock) { holder(sourceScope(scope), runningTasks(), ownedRuns()) != null }) AgentIsolation.Worktree else AgentIsolation.Shared
-            run = admit(AgentSubmission(requestId = "plan:${digest(thread).take(16)}:${made.id}", provider = provider,
-                prompt = PlanBrief.seat(proposed, made, chosen.name, note), model = resolved.seat.model, scope = scope, isolation = isolation,
-                allowWrites = resolved.seat.access == TaskAccess.Write, effort = resolved.seat.effort?.let(::NativeEffort),
-                resolvedSeat = resolved, timeoutMillis = resolved.seat.budget?.timeoutMillis ?: (60 * 60 * 1000L)), keepWorkingPlan = thread)
+            synchronized(lock) {
+                val isolation = if (scope.isEmpty() || unresolved || overlapping ||
+                    holder(sourceScope(scope), runningTasks(), ownedRuns()) != null) AgentIsolation.Worktree else AgentIsolation.Shared
+                run = admit(AgentSubmission(requestId = "plan:${digest(thread).take(16)}:${made.id}", provider = provider,
+                    prompt = PlanBrief.seat(proposed, made, chosen.name, note), model = resolved.seat.model, scope = scope, isolation = isolation,
+                    allowWrites = resolved.seat.access == TaskAccess.Write, effort = resolved.seat.effort?.let(::NativeEffort),
+                    resolvedSeat = resolved, timeoutMillis = resolved.seat.budget?.timeoutMillis ?: (60 * 60 * 1000L)), keepWorkingPlan = thread)
+            }
             run.id
         }
         return PlanAttached(plan, seat, run)
@@ -1558,6 +1561,7 @@ class AgentWorkspace(
             jobs.joinAll()
         }
         runBlocking { scope.coroutineContext[Job]?.cancelAndJoin() }
+        plans.close()
         memory.close()
         if (messageStorage.isInitialized()) messages.close()
     }

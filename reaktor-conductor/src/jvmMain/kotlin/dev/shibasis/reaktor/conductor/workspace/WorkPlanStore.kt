@@ -17,9 +17,9 @@ import java.util.concurrent.locks.ReentrantLock
 class WorkPlanStore(private val directory: Path, inbox: Path? = null,
     private val identity: (BoardActor) -> BoardActor = { it }, private val clock: () -> Long = System::currentTimeMillis,
     private val activity: (String) -> Long? = { null },
-    private val resolveRefs: suspend (List<String>) -> Map<String, List<String>> = { refs -> refs.associateWith(AgentSourceScope::local) },
+    private val resolveRefs: suspend (List<String>, Long) -> Map<String, List<String>> = { refs, _ -> refs.associateWith(AgentSourceScope::local) },
     private val cachedRefs: (List<String>) -> Map<String, List<String>> = { emptyMap() },
-    private val messages: ((WorkPlan, WorkPlan?, BoardActor) -> Unit)? = null) {
+    private val messages: ((WorkPlan, WorkPlan?, BoardActor) -> Unit)? = null) : AutoCloseable {
     private val inbox = inbox?.let(::ThreadInbox)
     private val plans = ConcurrentHashMap<String, WorkPlan>()
     private val changed = MutableStateFlow(0L)
@@ -34,17 +34,36 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
     private val caller = ThreadLocal<StoreCall>()
     private val delivery = ReentrantLock(true)
     private val delivering = ThreadLocal.withInitial { false }
-    private val readDelivery by lazy {
-        Semaphore(0).also { wake ->
-            Thread({
-                while (true) {
-                    wake.acquire()
-                    wake.drainPermits()
-                    deliver()
+    private val lifecycle = Any()
+    private val wake = Semaphore(0)
+    @Volatile private var closed = false
+    private var readDelivery: Thread? = null
+
+    private fun wakeDelivery() = synchronized(lifecycle) {
+        check(!closed) { "Plan store is closed" }
+        if (readDelivery == null) readDelivery = Thread({
+            do {
+                wake.acquire()
+                wake.drainPermits()
+                try { deliver() }
+                catch (error: Throwable) {
+                    logFailure(error)
+                    if (pendingNotifications > 0) wake.release()
                 }
-            }, "WorkPlanStore-notifications").apply { isDaemon = true; start() }
-        }
+            } while (!closed || pendingNotifications > 0)
+        }, "WorkPlanStore-notifications").apply { isDaemon = true; start() }
+        wake.release()
     }
+
+    private fun logFailure(error: Throwable) {
+        runCatching { Logger.getLogger(WorkPlanStore::class.java.name).log(Level.SEVERE, "Plan notification failed", error) }
+    }
+
+    override fun close() {
+        val thread = synchronized(lifecycle) { closed = true; wake.release(); readDelivery }
+        if (thread != Thread.currentThread() && !delivering.get()) thread?.join()
+    }
+
     internal val pendingNotifications: Int get() = synchronized(this) { notifications.size }
     internal val deliveringNotification: Boolean get() = delivering.get()
 
@@ -64,7 +83,7 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
             caller.remove()
             if (!delivering.get()) {
                 if (call.notifications > 0) {
-                    if (call.waiting) deliver() else readDelivery.release()
+                    if (call.waiting) deliver() else wakeDelivery()
                 }
                 call.failures.poll()?.let { error ->
                     call.failures.forEach(error::addSuppressed)
@@ -86,7 +105,7 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
                         notify(notification.plan, notification.previous, notification.by)
                     } catch (error: Throwable) {
                         if (notification.call.waiting) notification.call.failures.add(error)
-                        else runCatching { Logger.getLogger(WorkPlanStore::class.java.name).log(Level.SEVERE, "Plan notification failed", error) }
+                        else logFailure(error)
                     }
                 }
             } finally {
@@ -148,6 +167,7 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
 
     fun next(thread: String?, by: BoardActor, seat: String? = null, take: Boolean = false,
         item: String? = null, profile: (String) -> AgentProfile): PlanNext = call(take) {
+        val deadlineNanos = System.nanoTime() + PlanRefResolver.WaitNanos
         require(item == null || thread != null && PlanRules.Key.matches(item)) { "Choosing an item requires a plan thread and a valid item key" }
         val actor = identity(by)
         require(!take || actor.kind == BoardActorKind.Agent && actor.agent != null) { "Taking work requires a canonical agent identity" }
@@ -155,7 +175,7 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
         fun resolveMissing() {
             val missing = access { scopeRefs(thread, by, seat, item, profile).filterNot(resolved::containsKey) }
             if (missing.isNotEmpty()) {
-                val found = if (deliveringNotification) cachedRefs(missing) else runBlocking { resolveRefs(missing) }
+                val found = if (deliveringNotification) cachedRefs(missing) else runBlocking { resolveRefs(missing, deadlineNanos) }
                 missing.forEach { resolved[it] = found[it] ?: AgentSourceScope.local(it) }
             }
         }
