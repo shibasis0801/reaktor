@@ -96,10 +96,11 @@ fun KotlinMultiplatformExtension.web(
             it.compilationDisambiguatedName.get() == mainCompilation.disambiguatedName
         }
         val catalog = project.kotlinExportCatalog(project.file(configure.exportDirectory))
+        val installation = PnpmWorkspace.get(project).install
         val exports = project.tasks.register<KotlinPackageExport>("exportKotlinLibrary") {
             group = "dependeasy"
             sourceFiles.from(packageJson.map { it.packageJsonFile })
-            dependsOn(packageJson)
+            dependsOn(packageJson, installation)
             destination.set(project.layout.buildDirectory.dir(KotlinPackageExport.RelativeDirectory))
             dependencyDirectory.set(mainCompilation.npmProject.dir.map { it.dir("node_modules") })
             finalizedBy(catalog, configure.manifests)
