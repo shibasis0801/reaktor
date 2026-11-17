@@ -57,6 +57,7 @@ data class HarnessSession(
     val checklist: List<HarnessCheck> = emptyList(),
     val checklistAt: Long? = null,
     val telemetry: TelemetryRollup? = null,
+    val turnStartedAt: Long? = null,
 ) {
     val doorCalls: Int get() = steps.count { it.door }
 
@@ -145,6 +146,18 @@ object HarnessSessions {
         val since = now - WindowMillis
         return (claude(home, since, now, root, processes) + codex(home, since, now, root, processes.openTranscripts()) + antigravity(home, since, now, root))
             .sortedByDescending { it.lastActiveAt }.distinctBy { it.runtime to it.id }
+    }
+
+    fun refresh(session: HarnessSession, home: File, now: Long, processes: HarnessProcesses): HarnessSession? {
+        val file = File(session.transcript)
+        if (!file.isFile) return null
+        return when (session.runtime) {
+            RuntimeKind.Codex -> codexSession(file, mapOf(session.id to session.title), session.directory, processes.openTranscripts(), now)
+            RuntimeKind.ClaudeCode -> claudeSession(file, session.directory, claudeLive(home, session.directory, processes), now)
+            RuntimeKind.Gemini -> parsed(file, session.directory) { antigravityParse(file, session.id, session.directory, session.directory) }
+                ?.copy(activity = if (now - file.lastModified() <= HarnessSession.LiveMillis) HarnessActivity.Working else HarnessActivity.Ended)
+            else -> session
+        }
     }
 
     fun stamp(home: File = File(System.getProperty("user.home")), now: Long = System.currentTimeMillis()): Long {
@@ -460,6 +473,68 @@ object HarnessSessions {
 
     private class CodexParsed(val session: HarnessSession, val prompt: String?, val turning: Boolean, val asking: Boolean)
 
+    private data class TurnBoundary(val type: String, val at: Long?, val offset: Long)
+    private data class BoundaryCursor(val key: Any?, val length: Long, val modified: java.nio.file.attribute.FileTime,
+        val scanned: Long, val boundary: TurnBoundary?)
+    private val codexBoundaries = ConcurrentHashMap<String, BoundaryCursor>()
+    private const val BoundaryBytes = 64 * 1024
+
+    private fun boundary(bytes: ByteArray, offset: Long): TurnBoundary? {
+        if (listOf("task_started", "task_complete", "turn_aborted").none { bytes.find(it.encodeToByteArray(), 0) >= 0 }) return null
+        val record = parse(bytes.decodeToString())?.takeIf { it.string("type") == "event_msg" } ?: return null
+        val type = record.nested("payload")?.string("type")?.takeIf { it in setOf("task_started", "task_complete", "turn_aborted") } ?: return null
+        return TurnBoundary(type, instant(record.string("timestamp")), offset)
+    }
+
+    @Synchronized private fun codexBoundary(file: File): TurnBoundary? {
+        val attributes = java.nio.file.Files.readAttributes(file.toPath(), java.nio.file.attribute.BasicFileAttributes::class.java)
+        val prior = codexBoundaries[file.path]?.takeIf {
+            it.key == attributes.fileKey() && attributes.size() >= it.length &&
+                (attributes.size() > it.length || attributes.lastModifiedTime() == it.modified)
+        }
+        var found = prior?.boundary
+        val scanned = if (prior != null) {
+            var offset = prior.scanned
+            lines(file, offset) { bytes ->
+                boundary(bytes, offset)?.let { found = it }
+                offset += bytes.size + 1
+            }
+        } else RandomAccessFile(file, "r").use { input ->
+            var at = input.length()
+            var pending = byteArrayOf()
+            var overlong = false
+            var appendAt: Long? = null
+            while (at > 0 && found == null) {
+                val start = (at - BoundaryBytes).coerceAtLeast(0)
+                val bytes = ByteArray((at - start).toInt())
+                input.seek(start)
+                input.readFully(bytes)
+                var end = bytes.size
+                for (index in bytes.lastIndex downTo 0) {
+                    if (bytes[index] != NewLine) continue
+                    if (appendAt == null) appendAt = start + index + 1
+                    if (!overlong && end - index - 1 + pending.size <= BoundaryBytes) {
+                        boundary(bytes.copyOfRange(index + 1, end) + pending, start + index + 1)?.let { found = it }
+                        if (found != null) break
+                    }
+                    pending = byteArrayOf()
+                    overlong = false
+                    end = index
+                }
+                if (found == null) {
+                    if (!overlong && end + pending.size <= BoundaryBytes) pending = bytes.copyOfRange(0, end) + pending
+                    else { pending = byteArrayOf(); overlong = true }
+                }
+                at = start
+            }
+            if (found == null && !overlong) found = boundary(pending, 0)
+            appendAt ?: 0L
+        }
+        if (codexBoundaries.size >= ParsedKept) codexBoundaries.clear()
+        codexBoundaries[file.path] = BoundaryCursor(attributes.fileKey(), attributes.size(), attributes.lastModifiedTime(), scanned, found)
+        return found
+    }
+
     private fun codexSession(file: File, titles: Map<String, String>, root: String, open: Set<String>?, now: Long): HarnessSession? {
         val base = parsed(file, root) { codexParse(file, root) } ?: return null
         val held = open?.contains(file.path)
@@ -491,6 +566,7 @@ object HarnessSessions {
         val events = tail.filter { it.string("type") == "event_msg" }.mapNotNull { it.nested("payload")?.string("type") }
             .filter { it != "token_count" && it != "thread_settings_applied" }
         val (checklist, checklistAt) = codexChecklist(tail, root)
+        val boundary = codexBoundary(file)
         val window = if (file.length() <= TailBytes) tail else head + tail
         val cursor = CodexTelemetry.SessionCursor(context?.string("model"))
         val samples = window.mapNotNull { record ->
@@ -520,11 +596,12 @@ object HarnessSessions {
                 checklist = checklist,
                 checklistAt = checklistAt,
                 telemetry = rollup,
+                turnStartedAt = boundary?.takeIf { it.type == "task_started" }?.at,
             ),
             prompt = items.firstNotNullOfOrNull { record ->
                 record.nested("payload")?.nested("item")?.takeIf { it.string("type") == "UserMessage" }?.let(::codexText)
             },
-            turning = events.indexOfLast { it == "task_started" } > events.indexOfLast { it == "task_complete" || it == "turn_aborted" },
+            turning = boundary?.type == "task_started",
             asking = events.lastOrNull() in ApprovalEvents,
         )
     }

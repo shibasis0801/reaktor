@@ -137,6 +137,24 @@ class HarnessSessionsTest {
         assertEquals(HarnessActivity.Ended, HarnessSessions.read(workspace, home, now, processes()).first { it.id == "c1" }.activity)
     }
 
+    @Test fun aCodexBoundaryBeforeTwoMegabytesStillDeterminesTheCurrentTurn() {
+        val file = File(home, ".codex/sessions/2026/10/01/rollout-2026-10-01T10-00-00-x1.jsonl")
+        val started = "2026-10-02T06:00:00Z"
+        file.appendText("""{"timestamp":"$started","type":"event_msg","payload":{"type":"task_started","turn_id":"long-turn"}}""" + "\n")
+        file.appendText((1..2200).joinToString("\n", postfix = "\n") {
+            """{"type":"event_msg","payload":{"type":"agent_message","message":"${"x".repeat(1000)}"}}"""
+        })
+        file.setLastModified(now - 1000)
+        fun read() = HarnessSessions.read(workspace, home, now, processes(open = setOf(file.path))).first { it.id == "x1" }
+        val live = read()
+        assertEquals(HarnessActivity.Working, live.activity)
+        val turnAt = live.javaClass.methods.firstOrNull { it.name == "getTurnStartedAt" }?.invoke(live)
+        assertEquals(Instant.parse(started).toEpochMilli(), turnAt)
+        file.appendText("""{"timestamp":"2026-10-02T06:59:59Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"long-turn"}}""" + "\n")
+        file.setLastModified(now)
+        assertEquals(HarnessActivity.Waiting, read().activity)
+    }
+
     @Test fun aCodexThreadIsWorkingInATurnWaitingWhenOpenAndEndedWhenClosed() {
         val transcript = File(home, ".codex/sessions/2026/10/01/rollout-2026-10-01T10-00-00-x1.jsonl")
         fun state(open: Boolean, modified: Long = now - 600_000): HarnessActivity {
