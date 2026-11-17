@@ -75,6 +75,26 @@ class AgentWorkspaceTest {
         } finally { root.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))); directory.toFile().deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir"))) }
     }
 
+    @Test fun unchangedVerifiedRequestsReuseTheirDecodedFormAndChangedBytesAreRevalidated() = runBlocking {
+        val root = Files.createTempDirectory("verified-request-reuse").toFile()
+        val directory = root.toPath().resolve("state")
+        val stoppedScope = CoroutineScope(SupervisorJob().also { it.cancel() } + Dispatchers.IO)
+        try {
+            AgentWorkspace(root, directory, mapOf(RuntimeKind.Echo to EchoRuntime()), scope = stoppedScope,
+                background = false, discover = { ProviderCapability(it) }).use { workspace ->
+                val run = workspace.submit(AgentSubmission("verified-reuse", RuntimeKind.Echo, "Retained request"))
+                val first = workspace.submission(run.id)
+                assertSame(first, workspace.submission(run.id), "Repeated seat hydration must reuse the verified request")
+                val path = directory.resolve("requests/${run.id}.json")
+                val before = Files.readString(path)
+                Files.writeString(path, before.replace("Retained request", "Changed request!"))
+                assertFailsWith<IllegalArgumentException> { workspace.submission(run.id) }
+                Files.writeString(path, before)
+                assertEquals(first, workspace.submission(run.id))
+            }
+        } finally { root.deleteTreeSafely(within = root.parentFile) }
+    }
+
     @Test fun planTaskAssociationsSurviveSnapshotsAndOnlyRestoreFromVerifiedRequests() = runBlocking {
         val root = Files.createTempDirectory("agent-plan-logs").toFile()
         val directory = root.toPath().resolve("state")
@@ -104,7 +124,7 @@ class AgentWorkspaceTest {
                 runs
             }
             val legacyRun = directory.resolve("runs/${runs[0].id}.json")
-            val legacyBody = ConductorJson.encodeToJsonElement(AgentRunRecord.serializer(), AgentRunTransfer.read(legacyRun)).jsonObject
+            val legacyBody = ConductorJson.encodeToJsonElement(AgentRunRecord.serializer(), assertNotNull(AgentRunTransfer.read(legacyRun))).jsonObject
             Files.writeString(legacyRun, JsonObject(legacyBody - "planItem").toString())
             val alteredRequest = directory.resolve("requests/${runs[1].id}.json")
             val alteredBody = ConductorJson.parseToJsonElement(Files.readString(alteredRequest)).jsonObject

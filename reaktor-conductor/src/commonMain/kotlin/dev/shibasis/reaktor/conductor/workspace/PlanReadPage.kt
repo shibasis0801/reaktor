@@ -37,13 +37,16 @@ object PlanReadPage {
         val orderedIds = order.mapTo(HashSet()) { it.id }
         require(cursor.offset in 0..order.size && cursor.fragment >= 0 && (cursor.metadataOffset ?: 0) >= 0) { "Invalid plan continuation" }
         val remaining = order.drop(cursor.offset)
+        val history = (extra["plan"] as? JsonObject)?.get("changes") as? JsonArray
+        val historyInMetadata = history != null && history.toString().encodeToByteArray().size > budget / 4
         fun token(offset: Int, fragment: Int = 0, metadataOffset: Int? = null, metadataDone: Boolean = cursor.metadataDone) =
             json.encodeToString(PlanReadCursor.serializer(), cursor.copy(offset = offset, fragment = fragment,
                 metadataOffset = metadataOffset, metadataDone = metadataDone))
         fun page(items: List<PlanItem>): WorkPlan {
             val seats = items.mapNotNullTo(HashSet()) { it.seat }
             val ids = items.mapTo(HashSet()) { it.id }
-            return plan.copy(items = items, seats = plan.seats.filter { it.id in seats }, changes = emptyList(),
+            return plan.copy(items = items, seats = plan.seats.filter { it.id in seats || it.items.any(ids::contains) },
+                changes = if (!historyInMetadata && !history.isNullOrEmpty() && cursor.offset == 0 && !cursor.metadataDone) plan.changes else emptyList(),
                 order = plan.order.filter { it in ids }, documentText = null)
         }
         fun metadata(items: List<PlanItem>, fragmentId: String? = null): JsonObject = buildJsonObject {
@@ -58,6 +61,7 @@ object PlanReadPage {
                 put("newsTruncated", shownNews.size < news!!.size)
                 put("newsSince", shownNews.lastOrNull()?.jsonObject?.get("revision") ?: JsonPrimitive(plan.revision))
             }
+            if (historyInMetadata) put("history", history!!)
             extra.filterKeys { it !in setOf("plan", "claims", "ready", "news", "newsTruncated", "newsSince") }.forEach { (key, value) -> put(key, value) }
             projection?.invoke(page(items))?.forEach { (key, value) -> put(key, value) }
         }

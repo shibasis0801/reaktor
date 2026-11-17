@@ -16,6 +16,27 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class AgentContinueTest {
+    @Test fun aNativeContinuationCannotUseTheBatchTransport() = runBlocking {
+        val root = Files.createTempDirectory("continue-batch-root").toFile()
+        val directory = Files.createTempDirectory("continue-batch-state")
+        val runtime = EchoRuntime(RuntimeKind.Codex) { "Unexpected batch continuation" }
+        try {
+            AgentWorkspaceConnection.open(root, directory, mapOf(runtime.kind to runtime), discover = { ProviderCapability(it) },
+                grantAdvisory = { _, _ -> null }).use { owner ->
+                val failure = assertFailsWith<Exception> {
+                    owner.submit(AgentSubmission("native-batch", RuntimeKind.Codex, "Carry on", transport = AgentTransport.Batch,
+                        continues = ProviderSession(RuntimeKind.Codex, "fixture-native-session")))
+                }
+                assertTrue(failure.message.orEmpty().contains("native session"))
+                assertTrue(failure.message.orEmpty().contains("Batch"))
+            }
+        } finally {
+            val temporary = File(System.getProperty("java.io.tmpdir"))
+            root.deleteTreeSafely(within = temporary)
+            directory.toFile().deleteTreeSafely(within = temporary)
+        }
+    }
+
     @Test fun aSingleTurnResumesTheNativeThreadItNamesAndRefusesAnotherProvidersSession() = runBlocking {
         val root = Files.createTempDirectory("continue-root").toFile()
         val directory = Files.createTempDirectory("continue-state")

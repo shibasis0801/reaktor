@@ -62,7 +62,7 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
         McpTool("agent_plan_read", "Read a thread's plan: the high-level design and running checklist its agent keeps, which people edit in Hangar. " +
             "Items carry a status, the items they wait on (after), the item they belong to (parent), links into Reaktor (refs) and the seat of an attached agent. " +
             "Pass since, the revision you last read, to get news and your scope. When newsTruncated is true, read again with since=newsSince before advancing to the plan revision. Follow continuation and reassemble metadataFragment first. Follow continuation until absent. " +
-            "A metadataFragment carries JSON text at its offset; concatenate it before decoding claims, ready and news. An item fragment uses the same protocol for one item.",
+            "A metadataFragment carries JSON text at its offset; concatenate it before decoding claims, ready, news and history. With history=true, changes are in plan.changes on the first page, or in metadata.history when too large. An item fragment uses the same protocol for one item.",
             api.read.request.descriptor.jsonSchema(), true, true) { args ->
             args.only("thread", "since", "history", "by", "budgetBytes", "frame", "continuation")
             val reader = args.actor()

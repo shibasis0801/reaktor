@@ -89,7 +89,7 @@ class AgentEventProjectionTest {
                 assertEquals(5_000_000, completed.output.length)
                 val attachment = pane.attach(current.id)
                 assertEquals(completed.output, attachment.run.output)
-                val persisted = AgentRunTransfer.read(file)
+                val persisted = requireNotNull(AgentRunTransfer.read(file))
                 assertEquals(5_000_000, persisted.participants.values.single().output.length)
                 println("HC_RECORD_METRICS=" + buildJsonObject {
                     put("chunks", 250_000)

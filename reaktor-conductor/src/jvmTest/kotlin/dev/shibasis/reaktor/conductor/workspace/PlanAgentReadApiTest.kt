@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.conductor.RuntimeKind
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.*
 import java.io.File
 import java.nio.file.Files
@@ -22,6 +23,50 @@ class PlanAgentReadApiTest {
         put("thread", "hangar:bounded")
         put("by", AgentWorkspaceJson.encodeToJsonElement(BoardActor.serializer(), agent))
     } + extra)
+
+    @Test fun aPagedHistoryReadPreservesItsChangesWithinTheAnswerBudget() = fixture { workspace ->
+        repeat(6) { index ->
+            workspace.plans.write("hangar:bounded", PlanPatch(title = "History", ops = listOf(PlanOp.Add("Step $index", key = "step-$index")),
+                message = "Recorded change $index"), person)
+        }
+        val read = agentPlanTools(workspace).single { it.name == "agent_plan_read" }
+        val reply = read.invoke(args(buildJsonObject { put("history", true); put("budgetBytes", 8192) })).jsonObject
+        assertTrue(reply.toString().encodeToByteArray().size <= 8192)
+        assertEquals(6, reply.getValue("plan").jsonObject.getValue("changes").jsonArray.size)
+    }
+
+    @Test fun aLargeHistoryCanBeReconstructedFromBoundedMetadataPages() {
+        val changes = List(30) { PlanChange(it + 1L, it + 1L, person, listOf("Recorded evidence $it " + "évidence ".repeat(100))) }
+        val plan = WorkPlan("hangar:large-history", "History", items = listOf(PlanItem("one", "One")), changes = changes,
+            createdBy = person, createdAt = 1, updatedAt = 30, revision = 30)
+        val extra = buildJsonObject { put("plan", AgentWorkspaceJson.encodeToJsonElement(WorkPlan.serializer(), plan)) }
+        val fragments = StringBuilder()
+        var continuation: String? = null
+        var pages = 0
+        do {
+            val answer = PlanReadPage.answer(plan, agent, extra, continuation = continuation, budgetBytes = 8192)
+            assertTrue(answer.toString().encodeToByteArray().size <= 8192)
+            answer["metadataFragment"]?.jsonObject?.let { part ->
+                assertEquals(fragments.length, part.getValue("offset").jsonPrimitive.int)
+                fragments.append(part.getValue("text").jsonPrimitive.content)
+            }
+            continuation = answer["continuation"]?.jsonPrimitive?.contentOrNull
+            assertTrue(++pages < 100)
+        } while (continuation != null)
+        val history = AgentWorkspaceJson.parseToJsonElement(fragments.toString()).jsonObject.getValue("history")
+        assertEquals(AgentWorkspaceJson.encodeToJsonElement(ListSerializer(PlanChange.serializer()), changes), history)
+    }
+
+    @Test fun aPageKeepsTheRetiredSeatHistoryOfItsItems() {
+        val seat = PlanSeat("s1", "worker", listOf("area"), person, 500,
+            retired = PlanSeatRetirement(person, 600, "Duplicate unused attachment"))
+        val plan = WorkPlan("hangar:bounded", "Seat history", items = listOf(PlanItem("area", "Area")),
+            seats = listOf(seat), createdBy = person, createdAt = 100, updatedAt = 600)
+        val page = PlanReadPage.answer(plan, agent).getValue("plan")
+        val decoded = AgentWorkspaceJson.decodeFromJsonElement(WorkPlan.serializer(), page)
+        assertEquals(listOf(seat), decoded.seats)
+        assertEquals(null, decoded.items.single().seat)
+    }
 
     @Test fun anAgentsDefaultReadIsBoundedInEncodedUtf8AndPagesEveryItemOnce() = fixture { workspace ->
         List(160) { PlanOp.Add("Task $it", key = "p$it", detail = "évidence ".repeat(600)) }.chunked(100).forEach { ops ->

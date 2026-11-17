@@ -602,7 +602,7 @@ object PlanRules {
                     is PlanOp.Update -> {
                         val item = items[op.item] ?: error("${op.item} is not on the plan")
                         (allowed(item.id) ?: fresh(item.id))?.let(::error)
-                        if (op.effort != null || op.startDate != null || op.dueDate != null || op.clearEffort || op.clearStartDate || op.clearDueDate || op.orderBefore != null || op.orderLast) currentRevision()
+                        if (op.orderBefore != null || op.orderLast) currentRevision()
                         if (op.orderBefore != null || op.orderLast) {
                             require(op.orderBefore == null || !op.orderLast) { "Choose a position before an item or at the end" }
                             require(op.orderBefore == null || op.orderBefore in items && op.orderBefore != item.id) { "Choose another item on the plan" }

@@ -9,6 +9,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.*
@@ -61,6 +65,8 @@ class AgentWorkspace(
     private var suspending = false
     private val lastPersisted = mutableMapOf<String, Long>()
     private val savedRuns = mutableMapOf<String, AgentRunRecord>()
+    private data class VerifiedRequest(val bytes: String, val fingerprint: String, val request: AgentSubmission)
+    private val verifiedRequests = mutableMapOf<String, VerifiedRequest>()
     private val serviceStartedAt = System.currentTimeMillis()
     val activity = AgentActivityStore(directory.resolve("activity"))
     private val activityProjection = AgentActivityProjection()
@@ -219,8 +225,12 @@ class AgentWorkspace(
     private fun retainedSubmission(id: String, saved: AgentRunRecord): AgentSubmission {
         val file = directory.resolve("requests/$id.json")
         require(Files.size(file) <= 1_048_576)
-        return ConductorJson.decodeFromString(AgentSubmission.serializer(), Files.readString(file)).also { request ->
+        val source = Files.readString(file)
+        val bytes = digest(source)
+        verifiedRequests[id]?.takeIf { it.bytes == bytes && it.fingerprint == saved.requestFingerprint }?.let { return it.request }
+        return ConductorJson.decodeFromString(AgentSubmission.serializer(), source).also { request ->
             require(digest(ConductorJson.encodeToString(AgentSubmission.serializer(), request)) == saved.requestFingerprint)
+            verifiedRequests[id] = VerifiedRequest(bytes, saved.requestFingerprint, request)
         }
     }
     fun planItemForRun(id: String): String? = submission(id).planItem
@@ -761,6 +771,7 @@ class AgentWorkspace(
         require(request.model == null || request.model.length in 1..256)
         require(request.provider in runtimes) { "Provider is not configured" }
         request.continues?.let { session ->
+            require(request.transport != AgentTransport.Batch) { "A native session cannot use Batch transport; choose Interactive or Automatic" }
             require(request.collaboration == AgentCollaboration.Single && request.workflow == null && session.runtime == request.provider &&
                 session.sessionId.isNotBlank() && session.sessionId.length <= 200) { "Only a single-agent turn continues a native session of its own provider" }
         }
@@ -1069,6 +1080,20 @@ class AgentWorkspace(
         withTimeoutOrNull(timeoutMillis) { revisions().first { it != afterRevision } }
         return tasksPage(query, offset, limit)
     }
+
+    fun taskChanges(query: String = "", offset: Int = 0, limit: Int = 50): Flow<AgentTasksPage> {
+        require(query.length <= 200 && offset in 0..200 && limit in 1..50)
+        return revisions().map { taskSummaries(tasksPage(query, offset, limit)) }
+            .distinctUntilChangedBy { it.revision }.flowOn(Dispatchers.IO)
+    }
+
+    internal fun taskSummaries(page: AgentTasksPage): AgentTasksPage = page.copy(runs = page.runs.map { run ->
+        run.copy(output = "", context = null, reasoning = "", pending = emptyList(),
+            pendingCount = (run.pending.map { it.id } + run.participants.values.flatMap { it.pending }.map { it.id }).distinct().size,
+            outputTruncated = run.outputTruncated || run.output.isNotEmpty(),
+            participants = run.participants.mapValues { (_, participant) -> participant.copy(output = "", reasoning = "", pending = emptyList(),
+                outputTruncated = participant.outputTruncated || participant.output.isNotEmpty()) })
+    })
 
     private fun revision() = board.revision + changes.value
 
@@ -1542,10 +1567,31 @@ class AgentWorkspace(
         return directory.resolve("threads/$id.json")
     }
     private fun load(id: String): AgentRunRecord? = runPath(id).let { path ->
-        if (Files.exists(path)) AgentRunTransfer.read(path).also { savedRuns[id] = it }.let { record ->
-            val planItem = runCatching { retainedSubmission(id, record).planItem }.getOrNull()
-            if (record.planItem == planItem) record else record.copy(planItem = planItem)
-        } else null
+        if (!Files.exists(path)) return@let null
+        val record = try {
+            val saved = AgentRunTransfer.replay(path)
+            if (saved.torn) {
+                quarantineRun(path, id)
+                saved.run?.let { atomicWrite(path, ConductorJson.encodeToString(AgentRunRecord.serializer(), it) + "\n") }
+            }
+            saved.run
+        } catch (failure: Exception) {
+            quarantineRun(path, id)
+            null
+        } ?: return@let null
+        savedRuns[id] = record
+        val planItem = runCatching { retainedSubmission(id, record).planItem }.getOrNull()
+        if (record.planItem == planItem) record else record.copy(planItem = planItem)
+    }
+
+    private fun quarantineRun(path: Path, id: String) {
+        if (!Files.exists(path)) return
+        try {
+            Files.move(path, path.resolveSibling("$id.torn"), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+            java.util.logging.Logger.getLogger(AgentWorkspace::class.java.name).warning("Moved torn run $id to $id.torn")
+        } catch (failure: Exception) {
+            java.util.logging.Logger.getLogger(AgentWorkspace::class.java.name).warning("Could not move torn run $id to $id.torn: ${failure.javaClass.simpleName}")
+        }
     }
     private fun persist(record: AgentRunRecord) {
         val path = runPath(record.id)
@@ -1553,9 +1599,12 @@ class AgentWorkspace(
         val delta = AgentRunTransfer.delta(record, AgentRunTransfer.held(previous), Int.MAX_VALUE)
         AgentRunTransfer.recoverTail(path)
         val prefix = if (Files.exists(path) && !AgentRunTransfer.endsInNewline(path)) "\n" else ""
-        Files.writeString(path, prefix + delta.toString() + "\n", CREATE, APPEND)
-        Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rw-------"))
-        java.nio.channels.FileChannel.open(path, java.nio.file.StandardOpenOption.WRITE).use { it.force(true) }
+        val line = java.nio.ByteBuffer.wrap((prefix + delta.toString() + "\n").toByteArray(Charsets.UTF_8))
+        java.nio.channels.FileChannel.open(path, CREATE, APPEND).use { channel ->
+            check(channel.write(line) == line.capacity()) { "Run save was interrupted" }
+            Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rw-------"))
+            channel.force(true)
+        }
         savedRuns[record.id] = record
     }
 

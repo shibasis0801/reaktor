@@ -19,6 +19,19 @@ class PlanScheduleDocumentCommonTest {
             fields.forEach { (key, value) -> put(key, value) }
         })
 
+    @Test fun scheduleEditsUseTheItemsRevisionAfterAnotherActorChangesThePlan() {
+        val other = BoardActor(BoardActorKind.Agent, "Other agent", "codex:other")
+        val moved = PlanRules.apply(source, PlanPatch(ops = listOf(PlanOp.Update("check", title = "Changed elsewhere"))), other, 10).plan
+        val saved = PlanRules.apply(moved, PlanPatch(base = source.revision, ops = listOf(
+            PlanOp.Update("build", effort = 8.0, startDate = "2026-11-17", dueDate = "2026-11-20"))), owner, 20)
+        assertTrue(saved.refused.isEmpty(), saved.refused.joinToString { it.reason })
+        assertEquals(8.0, saved.plan.item("build")?.effort)
+        val conflict = PlanRules.apply(source, PlanPatch(ops = listOf(PlanOp.Update("build", effort = 21.0))), other, 10).plan
+        val refused = PlanRules.apply(conflict, PlanPatch(base = source.revision, ops = listOf(PlanOp.Update("build", effort = 13.0))), owner, 20)
+        assertEquals(conflict, refused.plan)
+        assertTrue(refused.refused.single().reason.contains("build changed at revision"))
+    }
+
     @Test fun effortAndCalendarDatesRoundTripInTheCommonPlan() {
         val change = patch(buildJsonObject {
             put("type", "update"); put("item", "build"); put("effort", 8.0)
@@ -68,10 +81,9 @@ class PlanScheduleDocumentCommonTest {
         assertTrue(reversed.refused.isNotEmpty())
     }
 
-    @Test fun scheduleDocumentAndApprovalEditsRefuseAStaleRevision() {
+    @Test fun documentAndApprovalEditsRefuseAStalePlanRevision() {
         val moved = PlanRules.apply(source, PlanPatch(ops = listOf(PlanOp.Update("build", title = "Changed"))), owner, 10).plan
         val patches = listOf(
-            PlanPatch(base = source.revision, ops = listOf(PlanOp.Update("build", effort = 3.0))),
             PlanPatch(base = source.revision, documentText = "# Build {#build}"),
             PlanPatch(base = source.revision, approval = PlanApproval.Approved))
         for (change in patches) {

@@ -117,17 +117,27 @@ class AgentWorkspaceConnection private constructor(
         call("agent_active").jsonObject.getValue("runs"))
     suspend fun control(id: String): AgentRunControl = ConductorJson.decodeFromJsonElement(AgentRunControl.serializer(),
         call("agent_control", buildJsonObject { put("runId", id) }))
-    suspend fun restart(id: String, expectedRevision: Long, requestId: String): AgentRunRecord = decode(call("agent_restart", buildJsonObject {
+    suspend fun restart(id: String, expectedRevision: Long, requestId: String): AgentRunRecord = changeRun("agent_restart", buildJsonObject {
         put("runId", id); put("expectedRevision", expectedRevision); put("requestId", requestId)
-    }))
+    })
     suspend fun tasks(query: String = "", offset: Int = 0): AgentTasksPage = ConductorJson.decodeFromJsonElement(AgentTasksPage.serializer(),
         call("agent_tasks_wait", buildJsonObject { put("revision", 0); put("query", query); put("offset", offset); put("limit", 50); put("timeoutMillis", 0) }))
     suspend fun waitTasks(revision: Long, query: String = ""): AgentTasksPage = ConductorJson.decodeFromJsonElement(AgentTasksPage.serializer(),
         call("agent_tasks_wait", buildJsonObject { put("revision", revision); put("query", query); put("limit", 50) }))
     suspend fun wait(id: String, afterRevision: Long, timeoutMillis: Long = 30000): AgentRunRecord = receiveRun(id, afterRevision, timeoutMillis)
-    suspend fun cancel(id: String, expectedRevision: Long? = null): AgentRunRecord = decode(call("agent_cancel", buildJsonObject {
+    suspend fun cancel(id: String, expectedRevision: Long? = null): AgentRunRecord = changeRun("agent_cancel", buildJsonObject {
         put("runId", id); expectedRevision?.let { put("expectedRevision", it) }
-    }))
+    })
+    suspend fun resume(id: String, expectedRevision: Long? = null): AgentRunRecord = changeRun("agent_resume", buildJsonObject {
+        put("runId", id); expectedRevision?.let { put("expectedRevision", it) }
+    })
+
+    private suspend fun changeRun(operation: String, arguments: JsonObject): AgentRunRecord {
+        val first = call(operation, JsonObject(arguments + ("delta" to JsonPrimitive(true))))
+        val id = first.jsonObject["record"]?.jsonObject?.get("id")?.jsonPrimitive?.content
+            ?: return decode(first)
+        return receiveRun(id, initial = first)
+    }
 
     /** Re-attaches to a run after a disconnect. Observation only; never takes the execution lease. */
     suspend fun attach(runId: String): AgentAttachment {
@@ -136,20 +146,22 @@ class AgentWorkspaceConnection private constructor(
         return if (value["attachment"] == null) attachment else attachment.copy(run = get(runId))
     }
 
-    private suspend fun receiveRun(id: String, afterRevision: Long? = null, timeoutMillis: Long = 0): AgentRunRecord = runTransfers.computeIfAbsent(id) { Mutex() }.withLock {
+    private suspend fun receiveRun(id: String, afterRevision: Long? = null, timeoutMillis: Long = 0, initial: JsonElement? = null): AgentRunRecord = runTransfers.computeIfAbsent(id) { Mutex() }.withLock {
         val owner = incarnation
         var current = synchronized(heldRuns) {
             if (heldIncarnation != owner) { heldRuns.clear(); heldIncarnation = owner }
             heldRuns[id]
         }
         var waiting = afterRevision
+        var first = initial
         var complete: Boolean
         do {
-            val value = call(if (waiting == null) "agent_run" else "agent_wait", buildJsonObject {
+            val value = first ?: call(if (waiting == null) "agent_run" else "agent_wait", buildJsonObject {
                 put("runId", id); put("delta", true); put("held", AgentRunTransfer.held(current))
                 current?.let { put("heldRevision", it.revision) }
                 waiting?.let { put("afterRevision", it); put("timeoutMillis", timeoutMillis) }
             })
+            first = null
             receivedBytes.addAndGet(value.toString().toByteArray(Charsets.UTF_8).size.toLong())
             receivedUpdates.incrementAndGet()
             current = AgentRunTransfer.apply(value, current)
@@ -564,18 +576,31 @@ internal object AgentRunTransfer {
             participants = run.participants.mapValues { (id, part) -> part.copy(output = received["participant:$id:output"].orEmpty(), reasoning = received["participant:$id:reasoning"].orEmpty()) })
     }
 
-    fun read(path: Path): AgentRunRecord {
+    internal data class Replay(val run: AgentRunRecord?, val completeBytes: Int, val torn: Boolean)
+
+    fun read(path: Path): AgentRunRecord? = replay(path).run
+
+    internal fun replay(path: Path): Replay {
+        val bytes = Files.readAllBytes(path)
         var run: AgentRunRecord? = null
-        Files.newBufferedReader(path).use { reader ->
-            var line = reader.readLine()
-            while (line != null) {
-                val next = reader.readLine()
-                if (line.isNotBlank()) try { run = apply(ConductorJson.parseToJsonElement(line), run) }
-                catch (failure: SerializationException) { if (run == null || next != null || endsInNewline(path)) throw failure }
-                line = next
+        var start = 0
+        var complete = 0
+        for (end in 0..bytes.size) {
+            if (end < bytes.size && bytes[end] != '\n'.code.toByte()) continue
+            if (end == start) {
+                complete = minOf(end + 1, bytes.size)
+            } else {
+                try {
+                    val line = bytes.decodeToString(start, end, throwOnInvalidSequence = true)
+                    if (line.isNotBlank()) run = apply(ConductorJson.parseToJsonElement(line), run)
+                    complete = minOf(end + 1, bytes.size)
+                } catch (failure: Exception) {
+                    return Replay(run, complete, true)
+                }
             }
+            start = end + 1
         }
-        return requireNotNull(run) { "Run journal is empty" }
+        return Replay(run, complete, run == null)
     }
 
     fun endsInNewline(path: Path): Boolean = Files.size(path) == 0L || Files.newByteChannel(path).use { channel ->
@@ -587,20 +612,15 @@ internal object AgentRunTransfer {
 
     fun recoverTail(path: Path) {
         if (!Files.exists(path) || endsInNewline(path)) return
-        val last = Files.readString(path).substringAfterLast('\n')
-        try { ConductorJson.parseToJsonElement(last) }
-        catch (failure: SerializationException) {
-            val end = Files.size(path) - last.toByteArray(Charsets.UTF_8).size
-            require(end > 0) { "Run journal has no complete save" }
-            FileChannel.open(path, WRITE).use { it.truncate(end) }
-        }
+        val saved = replay(path)
+        if (saved.torn) FileChannel.open(path, WRITE).use { it.truncate(saved.completeBytes.toLong()) }
     }
 }
 
 private fun runTransferTools(workspace: AgentWorkspace, tools: List<McpTool>): List<McpTool> {
     val waits = Semaphore(2)
     return tools.map { tool ->
-        if (tool.name !in setOf("agent_run", "agent_wait", "agent_attach")) tool else {
+        if (tool.name !in setOf("agent_run", "agent_wait", "agent_attach", "agent_cancel", "agent_resume", "agent_restart")) tool else {
             val properties = tool.inputSchema["properties"]?.jsonObject.orEmpty() + buildJsonObject {
                 put("delta", buildJsonObject { put("type", "boolean") })
                 put("heldRevision", buildJsonObject { put("type", "integer") })
@@ -612,10 +632,16 @@ private fun runTransferTools(workspace: AgentWorkspace, tools: List<McpTool>): L
                     if (tool.name == "agent_attach") {
                         buildJsonObject { put("attachment", ConductorJson.encodeToJsonElement(AgentAttachment.serializer(), workspace.attach(id).let { it.copy(run = AgentRunTransfer.header(it.run)) })) }
                     } else {
-                        val record = if (tool.name != "agent_wait") workspace.get(id) else {
+                        val record = when (tool.name) {
+                            "agent_cancel" -> runBlocking { workspace.cancel(id, args["expectedRevision"]?.jsonPrimitive?.long) }
+                            "agent_resume" -> workspace.resume(id, args["expectedRevision"]?.jsonPrimitive?.long)
+                            "agent_restart" -> workspace.restart(id, args.getValue("expectedRevision").jsonPrimitive.long, args.getValue("requestId").jsonPrimitive.content)
+                            "agent_wait" -> {
                             check(waits.tryAcquire()) { "Wait capacity is busy; retry later" }
                             try { runBlocking { workspace.awaitChange(id, args["afterRevision"]?.jsonPrimitive?.longOrNull ?: 0, args["timeoutMillis"]?.jsonPrimitive?.longOrNull ?: 30000) } }
                             finally { waits.release() }
+                            }
+                            else -> workspace.get(id)
                         }
                         AgentRunTransfer.delta(record, args["held"] as? JsonObject ?: JsonObject(emptyMap()))
                     }
