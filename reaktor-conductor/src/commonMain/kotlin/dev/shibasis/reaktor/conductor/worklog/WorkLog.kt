@@ -52,7 +52,6 @@ data class WorkContext(
 data class WorkPrompt(val text: String?, val context: WorkContext? = null)
 
 object WorkPrompts {
-    private val Role = Regex("\\n\\nYour role, [^\\r\\n:]+: ")
 
     private fun taskBoundary(text: String, start: Int): Boolean = start == 0 ||
         start >= 2 && text[start - 2] == '\n' || start >= 3 && text[start - 2] == '\r' && text[start - 3] == '\n'
@@ -93,11 +92,6 @@ object WorkPrompts {
                     notices += packet.notices
                 }
             }
-        }
-        if (profile) Role.findAll(task).lastOrNull()?.let { role ->
-            slices += WorkContextSlice("Profile role", task.substring(role.range.first).trim())
-            envelopeChars += task.length - role.range.first
-            task = task.substring(0, role.range.first)
         }
         return if (slices.isEmpty()) WorkPrompt(raw) else WorkPrompt(task,
             WorkContext(raw, slices, (envelopeChars + 3) / 4, omitted, notices))

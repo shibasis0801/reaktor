@@ -3,6 +3,7 @@ package dev.shibasis.reaktor.conductor
 import dev.shibasis.reaktor.conductor.worklog.WorkPrompts
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ContextHeadingTest {
@@ -108,14 +109,16 @@ class ContextHeadingTest {
         assertEquals(expected, compile(history = "Earlier question", peer = "Peer answer"))
     }
 
-    @Test fun profileRunsKeepTheLegacyRoleTailRule() {
+    @Test fun profileRunsKeepTheTypedRoleParagraph() {
         val task = "Draft:\n\nYour role, reviewer: check the diff\n\nKeep the next paragraph too."
-        for (sent in listOf(task, compile(task = task))) {
-            val parsed = WorkPrompts.of(sent, profile = true)
-            assertEquals("Draft:", parsed.text)
-            assertEquals("Profile role", parsed.context!!.slices.last().title)
-            assertTrue(parsed.context!!.slices.last().text.endsWith("Keep the next paragraph too."))
-        }
+        val plain = WorkPrompts.of(task, profile = true)
+        assertEquals(task, plain.text)
+        assertNull(plain.context)
+        val sent = compile(task = task)
+        val parsed = WorkPrompts.of(sent, profile = true)
+        assertEquals(task, parsed.text)
+        assertEquals(listOf("Instructions"), parsed.context!!.slices.map { it.title })
+        assertEquals(sent, parsed.context!!.sent)
     }
 
     @Test fun anOldQuotedBlockDoesNotBecomeTheTaskBoundary() {

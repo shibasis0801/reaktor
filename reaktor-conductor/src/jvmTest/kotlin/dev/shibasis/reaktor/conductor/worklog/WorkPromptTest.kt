@@ -40,25 +40,25 @@ class WorkPromptTest {
             assertTrue(context.sent.endsWith('\n'))
             assertTrue(context.sent.contains("## Your task"))
             assertTrue(context.slices.any { it.title == "Typed source" })
-            assertEquals("Keep the next answer concise.", log.turns[1].prompt)
-            assertEquals("Profile role", assertNotNull(log.turns[1].context).slices.single().title)
+            assertEquals("Keep the next answer concise.\n\nYour role, Fixture reviewer: Inspect the typed contracts.", log.turns[1].prompt)
+            assertNull(log.turns[1].context)
             assertEquals("## Your task\nKeep this literal heading in my message.", log.turns[2].prompt)
             assertNull(log.turns[2].context)
         } finally { directory.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir"))) }
     }
 
-    @Test fun canonicalPromptsKeepTheNativeContextWhenTheyReplaceTheMachinePrompt() {
+    @Test fun canonicalPromptsKeepTheTypedRoleParagraphAndNativeContext() {
         val sent = "You are Reviewer.\n\nInspect the ports.\n\n## Your task\nA typed question\n\nYour role, Reviewer: Preserve source intent.\n"
         val parsed = WorkPrompts.of(sent, profile = true)
-        val events = listOf(ThreadEvent(EventId("human"), Author.Human(), EventKind.Prompt, "A typed question"))
+        val events = listOf(ThreadEvent(EventId("human"), Author.Human(), EventKind.Prompt, "A typed question\n\nYour role, Reviewer: Preserve source intent."))
         val native = WorkLog(listOf(WorkTurn("native", parsed.text, 1, 2, emptyList(), context = parsed.context)))
         val rebuilt = RunLogs.prompts(native, events).turns.single()
-        assertEquals("A typed question", rebuilt.prompt)
+        assertEquals("A typed question\n\nYour role, Reviewer: Preserve source intent.", rebuilt.prompt)
         assertTrue(rebuilt.context === parsed.context)
         val canonical = RunLogs.of(listOf(events.single().copy(text = sent)), emptyList(), false, profile = true).turns.single()
-        assertEquals("A typed question", canonical.prompt)
+        assertEquals("A typed question\n\nYour role, Reviewer: Preserve source intent.", canonical.prompt)
         assertTrue(canonical.context?.sent == sent)
-        assertEquals(2, canonical.context?.slices?.size)
+        assertEquals(1, canonical.context?.slices?.size)
     }
 
     @Test fun aLiteralTaskHeadingAndRoleMentionStayInTheTypedText() {

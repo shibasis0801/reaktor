@@ -45,14 +45,27 @@ object WorkLogs {
         val key = "$runtime\u0000${file.path}\u0000$root\u0000$whole"
         val length = file.length()
         val known = scans[key]?.takeIf { it.offset <= length }
-        val scan = known ?: Scan(if (whole) maxOf(0L, length - WholeBytes) else maxOf(0L, length - WindowBytes), parser(runtime, file, root)).also {
-            if (scans.size >= Kept) scans.clear()
-            scans[key] = it
+        val scan = known ?: run {
+            val start = alignedStart(file, maxOf(0L, length - if (whole) WholeBytes else WindowBytes))
+            val reader = parser(runtime, file, root)
+            if (start > 0) previousRecord(file, start, when (runtime) {
+                RuntimeKind.Codex -> "UserMessage"
+                RuntimeKind.Gemini -> "USER_INPUT"
+                else -> "user"
+            }) { record ->
+                val candidate = parser(runtime, file, root)
+                candidate.line(record)
+                candidate.log(false).turns.any { it.prompt != null }
+            }?.let(reader::line)
+            Scan(start, reader).also {
+                if (scans.size >= Kept) scans.clear()
+                scans[key] = it
+            }
         }
         return synchronized(scan) {
             val modified = file.lastModified()
             if (scan.length != length || scan.modified != modified) {
-                scan.offset = lines(file, scan.offset, skipFirst = scan.offset == scan.start && scan.start > 0) { scan.parser.line(it) }
+                scan.offset = lines(file, scan.offset, skipFirst = false) { scan.parser.line(it) }
                 scan.length = length
                 scan.modified = modified
             }
@@ -93,6 +106,51 @@ object WorkLogs {
             .flatMap { day -> File(home, ".codex/sessions/%04d/%02d/%02d".format(day.year, day.monthValue, day.dayOfMonth)).listFiles().orEmpty().asSequence() }
             .firstOrNull { it.name.endsWith("-$session.jsonl") }
     }
+
+    private fun alignedStart(file: File, from: Long): Long = RandomAccessFile(file, "r").use { input ->
+        if (from == 0L) return@use 0L
+        input.seek(from - 1)
+        if (input.read() == NewLine.toInt()) return@use from
+        val buffer = ByteArray(1 shl 16)
+        while (true) {
+            val begin = input.filePointer
+            val count = input.read(buffer)
+            if (count <= 0) return@use input.length()
+            for (index in 0 until count) if (buffer[index] == NewLine) return@use begin + index + 1
+        }
+        error("Unreachable")
+    }
+
+    internal fun previousRecord(file: File, before: Long, marker: String, accept: (JsonObject) -> Boolean): JsonObject? =
+        RandomAccessFile(file, "r").use { input ->
+            var end = minOf(before, input.length())
+            if (end == 0L) return@use null
+            input.seek(end - 1)
+            if (input.read() == NewLine.toInt()) end--
+            var position = end
+            val buffer = ByteArray(1 shl 16)
+            fun record(start: Long, end: Long): JsonObject? {
+                if (end <= start || end - start > Int.MAX_VALUE) return null
+                val bytes = ByteArray((end - start).toInt())
+                input.seek(start)
+                input.readFully(bytes)
+                val text = bytes.toString(Charsets.UTF_8)
+                if (!text.contains(marker)) return null
+                return parseRecord(text)?.takeIf(accept)
+            }
+            while (position > 0) {
+                val begin = maxOf(0L, position - buffer.size)
+                val count = (position - begin).toInt()
+                input.seek(begin)
+                input.readFully(buffer, 0, count)
+                for (index in count - 1 downTo 0) if (buffer[index] == NewLine) {
+                    record(begin + index + 1, end)?.let { return@use it }
+                    end = begin + index
+                }
+                position = begin
+            }
+            record(0, end)
+        }
 
     internal fun lines(file: File, from: Long, skipFirst: Boolean, each: (JsonObject) -> Unit): Long = RandomAccessFile(file, "r").use { raf ->
         val length = raf.length()

@@ -73,6 +73,7 @@ class CodexDesktopRoutingTest {
                 "Build it" -> {
                     event("""{"type":"thread_settings_applied","thread_settings":{"approval_policy":"on-request","active_permission_profile":{"id":":workspace"}}}""")
                     event("""{"type":"task_started","turn_id":"turn-1"}""")
+                    event("""{"type":"task_complete","last_agent_message":"Finished in the app."}""")
                 }
                 else -> if (command.last().startsWith("Stop now")) event("""{"type":"task_complete","last_agent_message":"Stopped."}""")
             }
@@ -81,10 +82,10 @@ class CodexDesktopRoutingTest {
         val events = withTimeout(10_000) { session.events.toList() }
         val outcome = events.filterIsInstance<AgentEvent.Finished>().single().outcome
         assertFalse(outcome.ok)
-        assertEquals("Stopped.", outcome.text)
+        assertEquals("Finished in the app.", outcome.text)
         assertTrue(":workspace permissions" in outcome.failure.orEmpty())
         assertEquals(ActivityStatus.Failed, events.filterIsInstance<AgentEvent.Activity>().single { it.item.id == "desktop-permissions" }.item.status)
-        assertTrue(launched.any { it.take(2) == listOf("codex", "queue") && it.last().startsWith("Stop now") })
+        assertFalse(launched.any { it.take(2) == listOf("codex", "queue") && it.last().startsWith("Stop now") })
     }
 
 

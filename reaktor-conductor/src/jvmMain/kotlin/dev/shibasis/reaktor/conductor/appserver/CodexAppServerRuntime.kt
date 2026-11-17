@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.conductor.appserver
 
 import dev.shibasis.reaktor.conductor.*
+import dev.shibasis.reaktor.conductor.worklog.WorkLogs
 import dev.shibasis.reaktor.conductor.cli.codexApprovals
 import dev.shibasis.reaktor.conductor.telemetry.CodexTelemetry
 import dev.shibasis.reaktor.conductor.cli.codexMcpArgs
@@ -40,6 +41,10 @@ class CodexAppServerRuntime(
     private val binary: String = "codex",
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) : InteractiveAgentRuntime {
+    internal var desktopAvailable: (String) -> Boolean = ::codexDesktopAppAvailable
+    internal var desktopRunning: () -> Boolean = ::codexDesktopAppRunning
+    internal var desktopDefaults: () -> CodexDesktopDefaults = { codexDesktopDefaults() }
+
     override val kind: RuntimeKind = RuntimeKind.Codex
 
     override val interactive = Qualification(
@@ -72,10 +77,11 @@ class CodexAppServerRuntime(
             "These tool restrictions have no App Server mapping; use native configuration or a supported transport"
         }
         if (request.resume?.runtime == RuntimeKind.Codex) {
-            codexContinuationUnavailable(request.agent.tools, binary)?.let { error(it) }
+            codexContinuationProblem(request.agent.tools, desktopAvailable(binary), desktopRunning(), desktopDefaults())?.let { error(it) }
             require(request.outputSchema == null) { "The Codex desktop app cannot enforce this response schema." }
+            return CodexDesktopSession(request, binary, scope)
         }
-        if (codexDesktopAppAvailable(binary) && request.outputSchema == null && codexDesktopHonours(request.agent.tools, codexDesktopDefaults())) {
+        if (desktopAvailable(binary) && request.outputSchema == null && codexDesktopHonours(request.agent.tools, desktopDefaults())) {
             return CodexDesktopSession(request, binary, scope)
         }
 
@@ -126,7 +132,13 @@ internal class CodexDesktopSession(
         try {
             val thread = threadId?.let { it to EffortRecord.none } ?: startThread().also { threadId = it.first }
             effort = thread.second
-            val beforeQueue = findRollout(thread.first)?.length() ?: 0L
+            val saved = findRollout(thread.first)
+            if (request.resume?.runtime == RuntimeKind.Codex) {
+                check(saved != null && saved.isFile) { "The Codex rollout moved or is missing. Refresh this session before continuing." }
+                codexRecordedSettingsProblem(request.agent.tools, saved)?.let { error(it) }
+            }
+            if (launch == null) check(codexBinaryPresent(binary, request.environment)) { "The Codex binary '$binary' is missing or is not executable. Restore it before continuing this app thread." }
+            val beforeQueue = saved?.length() ?: 0L
             check(command(listOf(binary, "queue", "--thread", thread.first, "--message", request.prompt))) {
                 "Codex could not queue the prompt"
             }
@@ -232,9 +244,6 @@ internal class CodexDesktopSession(
                                         "Runs go to ChatGPT.app only while its Codex config sets approval_policy = \"never\" and the sandbox_mode they ask for."
                                     shortfall = failure
                                     emit(AgentEvent.Activity(agent, AgentActivityItem("desktop-permissions", ActivityKind.Control, "ChatGPT.app permissions fall short", ActivityStatus.Failed, output = failure)))
-                                    threadId?.let { thread ->
-                                        if (command(listOf(binary, "queue", "--thread", thread, "--message", DesktopStop))) command(listOf("open", "codex://threads/wake/$thread"))
-                                    }
                                 }
                                 "token_count" -> payload.objectOrEmpty("info").objectOrEmpty("total_token_usage").toAppUsage()?.let {
                                     usage = it
@@ -304,6 +313,27 @@ internal class CodexDesktopSession(
     override fun close() = Unit
 }
 
+private fun codexBinaryPresent(binary: String, environment: Map<String, String>): Boolean =
+    if (File(binary).isAbsolute || binary.contains(File.separatorChar)) File(binary).let { it.isFile && it.canExecute() }
+    else (environment["PATH"] ?: System.getenv("PATH")).orEmpty().split(File.pathSeparatorChar)
+        .any { folder -> File(folder, binary).let { it.isFile && it.canExecute() } }
+
+internal fun codexRecordedSettingsProblem(tools: ToolPolicy, rollout: File): String? {
+    val settings = WorkLogs.previousRecord(rollout, rollout.length(), "thread_settings_applied") { record ->
+        record["type"]?.jsonPrimitive?.contentOrNull == "event_msg" &&
+            record.objectOrEmpty("payload")["type"]?.jsonPrimitive?.contentOrNull == "thread_settings_applied"
+    }?.objectOrEmpty("payload")?.objectOrEmpty("thread_settings") ?: return null
+    return codexDesktopShortfall(tools, settings)?.let {
+        "This Codex thread records $it; this turn requires ${tools.codexSandbox()} permissions and approval_policy = never. Nothing was queued."
+    }
+}
+
+fun codexContinuationUnavailable(allowWrites: Boolean, rollout: File): String? {
+    if (!rollout.isFile) return "The Codex rollout moved or is missing. Refresh this session before continuing."
+    val tools = ToolPolicy(allowWrites = allowWrites)
+    return codexRecordedSettingsProblem(tools, rollout) ?: codexContinuationUnavailable(tools, "codex")
+}
+
 fun codexContinuationUnavailable(allowWrites: Boolean): String? = codexContinuationUnavailable(ToolPolicy(allowWrites = allowWrites), "codex")
 
 private fun codexContinuationUnavailable(tools: ToolPolicy, binary: String): String? =
@@ -331,8 +361,6 @@ private fun codexDesktopAppRunning(): Boolean {
 
 private const val DesktopStallMillis = 20 * 60_000L
 
-private const val DesktopStop = "Stop now and end your turn without running anything else. ChatGPT.app runs this thread with fewer permissions than this run needs, so its commands would wait for approvals nobody answers."
-
 internal fun desktopStallNotice(thread: String?, started: Boolean): String = if (started)
     "Codex thread $thread has written nothing for ${DesktopStallMillis / 60_000} minutes. It may be waiting for an approval in ChatGPT.app, which this run cannot answer or interrupt."
 else "Codex thread $thread has not started its turn ${DesktopStallMillis / 60_000} minutes after the prompt was queued. ChatGPT.app may not have picked the prompt up."
@@ -355,9 +383,9 @@ internal fun codexDesktopShortfall(tools: ToolPolicy, settings: JsonObject): Str
     val approvals = settings["approval_policy"]?.jsonPrimitive?.contentOrNull ?: return null
     val profile = settings.objectOrEmpty("active_permission_profile")["id"]?.jsonPrimitive?.contentOrNull
     val sandbox = when (profile) {
-        ":danger-full-access" -> "danger-full-access"
-        ":workspace" -> "workspace-write"
-        ":read-only" -> "read-only"
+        ":danger-full-access", "danger-full-access" -> "danger-full-access"
+        ":workspace", "workspace-write" -> "workspace-write"
+        ":read-only", "read-only" -> "read-only"
         else -> null
     }
     return buildList {
