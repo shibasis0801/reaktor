@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -26,8 +27,10 @@ internal fun KanbanCard(node: NodeShape, look: BlueprintCardLook, selected: Bool
                         onSelect: () -> Unit, onAgentOpen: (BlueprintAgent) -> Unit, modifier: Modifier = Modifier, tag: String = "kanban-card-${node.id}") {
     val colors = MachineSignal.colors
     val shape = RoundedCornerShape(MachineSignal.Radius.node)
-    Column(modifier.fillMaxWidth().clip(shape).background(colors.surface)
-        .border(MachineSignal.Stroke.hairline, if (selected) colors.controlAccent else colors.line, shape)
+    val status = look.outline
+    Column(modifier.fillMaxWidth().clip(shape).background(status?.let { lerp(colors.card, it, StatusFill) } ?: colors.surface)
+        .border(if (selected && status != null) MachineSignal.Stroke.bar else MachineSignal.Stroke.hairline,
+            if (selected) colors.controlAccent else status ?: colors.line, shape)
         .clickable(onClick = onSelect).semantics { this.selected = selected }.testTag(tag)
         .padding(MachineSignal.Space.s3), verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2)) {
         Text(look.title, Modifier.fillMaxWidth().testTag("kanban-title-${node.id}"), role = Type.Body, lines = Int.MAX_VALUE)
@@ -37,3 +40,5 @@ internal fun KanbanCard(node: NodeShape, look: BlueprintCardLook, selected: Bool
         look.agent?.let { agent -> BlueprintAgentBadge(agent, { onAgentOpen(agent) }, Modifier.fillMaxWidth(), tag = "kanban-agent-${node.id}", onParticipantOpen = onAgentOpen) }
     }
 }
+
+private const val StatusFill = .24f

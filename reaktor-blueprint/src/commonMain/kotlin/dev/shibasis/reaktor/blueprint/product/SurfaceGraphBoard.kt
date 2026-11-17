@@ -58,7 +58,7 @@ fun SurfaceGraphBoard(
     }
     MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact,
         mode = if (appearance.canvas.luminance() > .5f) MachineSignalMode.Light else MachineSignalMode.Dark) {
-        BlueprintKanban(sceneKey, projection, model.editor, cardLook = { shape -> model.look(shape.id, appearance) }, modifier, state,
+        BlueprintKanban(sceneKey, projection, model.editor, cardLook = { shape -> model.look(shape.id, appearance).let { look -> model.nodes[shape.id]?.color?.let { look.copy(outline = it) } ?: look } }, modifier, state,
             onMove = if (onMove == null && onMoveResult == null) null else { node, to ->
                 onMoveResult?.invoke(node.id, to.id) ?: if (move?.invoke(node.id, to.id) == true)
                     EditReceipt.Accepted(model.editor.editRevision) else EditReceipt.Refused("This move was not saved")
