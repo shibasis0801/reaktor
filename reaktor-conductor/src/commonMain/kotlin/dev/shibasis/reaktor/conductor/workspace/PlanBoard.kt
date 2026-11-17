@@ -28,9 +28,9 @@ object PlanBoard {
                 .map(PlanPeople::of).firstOrNull { it.isNotEmpty() }.orEmpty()
             val claim = claims[plan.thread]?.of(item)
             val holder = claim?.holder ?: item.lease?.by ?: item.by?.takeIf { state == PlanStatus.Doing }
-            val named = assigned.singleOrNull { it.kind == BoardActorKind.Agent }
+            val named = PlanPeople.assignee(item, keyed)
             val actors = listOfNotNull(holder?.let { actor ->
-                if (actor.kind == BoardActorKind.Agent && named != null) actor.copy(name = named.name) else actor
+                if (actor.kind == BoardActorKind.Agent && named != null && PlanPeople.statedName(actor) == null) actor.copy(name = named) else actor
             }) + assigned + listOfNotNull(item.by?.takeIf { holder == null && assigned.isEmpty() })
             val people = actors.distinctBy(PlanPeople::ref).map { actor ->
                 PlanBoardPerson(PlanPeople.ref(actor), actor, when {

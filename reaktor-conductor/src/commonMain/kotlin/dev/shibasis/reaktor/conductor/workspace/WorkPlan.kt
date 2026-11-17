@@ -305,6 +305,8 @@ object PlanBrief {
         "and give every item refs to the files, symbols, modules, graphs, operations and flows it touches, found with atlas_query rather than guessed. " +
         "A real change has 3 to 8 components and 15 to 60 items."
 
+    const val News = "When newsTruncated is true, read again with since=newsSince before advancing to the plan revision. Follow continuation and reassemble metadataFragment first."
+
     const val Upkeep = "Keep it current while you work: take eligible work with plan.next (take=true, with thread and item for a named handoff) before editing, and mark it Done or Dropped when it ends, since a component's status follows its parts; " +
         "Keep detail current with the most important human outcome. When marking Done, include result {summary, files} if useful to explain work performed outside change.apply. " +
         "Add the parts, checks and decisions you discover, and move refs when the work moves. An item another agent has Doing is theirs until they let it go; " +
@@ -323,7 +325,7 @@ object PlanBrief {
             "{thread: \"$thread\", title: \"the request in a few words\", ops: [...]}} with $Ops. $Design $Upkeep Pass base, the plan revision you last read. " +
             "$Document " +
             "Place tasks on the existing system HLD with graph: references to canonical node or scope IDs, or op: references to declared operations. " +
-            "Between steps read {operation: \"plan.read\", arguments: {thread: \"$thread\", since: <that revision>}}: news lists what the owner or other agents changed; follow it."
+            "Between steps read {operation: \"plan.read\", arguments: {thread: \"$thread\", since: <that revision>}}: news lists what the owner or other agents changed; follow it. $News"
 
     fun seat(plan: WorkPlan, seat: PlanSeat, agent: String, note: String): String = buildString {
         appendLine("You are $agent, attached to part of the plan “${plan.title}” (thread ${plan.thread}) as seat ${seat.id}.")
@@ -343,10 +345,10 @@ object PlanBrief {
         if (ready.isNotEmpty()) appendLine("Ready, highest priority first: " + ready.joinToString { "${it.id} (${it.priority})" })
         if (note.isNotBlank()) appendLine(note.trim())
         append("Work through your items in dependency order. The items above are your starting brief; do not fetch the whole plan to begin. ")
-        append("For news use the reaktor kernel tool {operation: \"plan.read\", arguments: {thread: \"${plan.thread}\", since: ${plan.revision}}} and inspect news. ")
+        append("For news use the reaktor kernel tool {operation: \"plan.read\", arguments: {thread: \"${plan.thread}\", since: ${plan.revision}}} and inspect news. $News ")
         append("Change it with {operation: \"plan.write\", arguments: {thread: \"${plan.thread}\", seat: \"${seat.id}\", base: <revision you read>, ops: [...]}} using $Ops. ")
         append("Break your items into the components, tasks, checks and decisions you find, relate them, and give each refs found with atlas_query. $Upkeep ")
-        append("People and other agents own the rest of the plan; update since to the revision each read returns. Stay inside your items. ")
+        append("People and other agents own the rest of the plan; only after reading all news, update since to the revision each read returns. Stay inside your items. ")
         append("For Hangar UI work in BestBuds, run ./gradlew :reaktorDesktop:hangarFlows -Dhangar.flows=<ids> -x :exportBuildModel -x :reaktorDesktop:test. ")
         append("Receipts are under targets/reaktorDesktop/build/hangar-shards. A filtered :reaktorDesktop:test run does not run Hangar flows.")
     }
@@ -564,7 +566,7 @@ object PlanRules {
         val limits = patch.limits?.also {
             require(it.doingPerHolder > 0) { "A holder must be allowed at least one Doing leaf" }
             require(it.readBytes in 4096..it.maxReadBytes && it.maxReadBytes <= 262_144) { "Plan read budgets must be between 4096 and 262144 bytes" }
-            require(by.kind == BoardActorKind.Person || by.same(plan.createdBy) || threadAgent) { "Only the plan's owner can change its limits" }
+            require(by.kind == BoardActorKind.Person || by.same(plan.createdBy) || threadAgent) { "Only a person, the plan's creator or its thread's agent can change its limits" }
             require(plan.revision == 0L || patch.base == plan.revision) { "Read the current plan and pass its revision as base before changing its limits" }
         } ?: plan.limits
         require(limits.doingPerHolder > 0) { "A holder must be allowed at least one Doing leaf" }

@@ -54,7 +54,7 @@ object PlanAnalysis {
             }
             val added = Entry(key, plan)
             if (current.any { it.key.thread == key.thread && it.key.revision > key.revision }) return added
-            if (cache.compareAndSet(current, (current.filterNot { it.key.thread == key.thread } + added).takeLast(32))) return added
+            if (cache.compareAndSet(current, current.filterNot { it.key.thread == key.thread } + added)) return added
         }
     }
 

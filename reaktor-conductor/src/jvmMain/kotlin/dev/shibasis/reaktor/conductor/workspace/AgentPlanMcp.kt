@@ -41,7 +41,7 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
         (args.keys - keys.toSet()).takeIf { it.isNotEmpty() }?.let { error("Unknown arguments: ${it.joinToString()}") }
     }
     fun JsonObject.actor(): BoardActor? = get("by")?.let { AgentWorkspaceJson.decodeFromJsonElement(BoardActor.serializer(), it) }
-    fun JsonObject.thread(by: BoardActor?): String = text("thread") ?: by?.session ?: error("Name the thread: hangar:, claude:, codex: or agy: with its id")
+    fun JsonObject.thread(by: BoardActor?): String = text("thread") ?: text("continuation")?.let(PlanReadPage::thread) ?: by?.session ?: error("Name the thread: hangar:, claude:, codex: or agy: with its id")
     fun plan(value: WorkPlan, history: Boolean): JsonElement {
         val document = workspace.documentPlan(value)
         return AgentWorkspaceJson.encodeToJsonElement(WorkPlan.serializer(), if (history) document else document.copy(changes = emptyList()))
@@ -61,7 +61,7 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
         },
         McpTool("agent_plan_read", "Read a thread's plan: the high-level design and running checklist its agent keeps, which people edit in Hangar. " +
             "Items carry a status, the items they wait on (after), the item they belong to (parent), links into Reaktor (refs) and the seat of an attached agent. " +
-            "Pass since, the revision you last read, to get news and your scope. Follow continuation until absent. " +
+            "Pass since, the revision you last read, to get news and your scope. When newsTruncated is true, read again with since=newsSince before advancing to the plan revision. Follow continuation and reassemble metadataFragment first. Follow continuation until absent. " +
             "A metadataFragment carries JSON text at its offset; concatenate it before decoding claims, ready and news. An item fragment uses the same protocol for one item.",
             api.read.request.descriptor.jsonSchema(), true, true) { args ->
             args.only("thread", "since", "history", "by", "budgetBytes", "frame", "continuation")
@@ -134,7 +134,11 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
                 title = args.text("title"), goal = args.text("goal"), base = args.long("base"), seat = args.text("seat"), message = args.text("message"),
                 documentPath = args.text("documentPath"), requestId = args.text("requestId"),
                 documentText = args.text("documentText"), approval = args.text("approval")?.let(PlanApproval::valueOf),
-                limits = args["limits"]?.let { AgentWorkspaceJson.decodeFromJsonElement(PlanLimits.serializer(), it) },
+                limits = args["limits"]?.let { value ->
+                    val current = workspace.plans.plan(args.thread(writer))?.limits ?: PlanLimits()
+                    val fields = AgentWorkspaceJson.encodeToJsonElement(PlanLimits.serializer(), current).jsonObject
+                    AgentWorkspaceJson.decodeFromJsonElement(PlanLimits.serializer(), JsonObject(fields + value.jsonObject))
+                },
             )
             val applied = workspace.plans.write(args.thread(writer), patch, writer)
             buildJsonObject {

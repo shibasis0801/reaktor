@@ -18,6 +18,31 @@ class PlanBoardTest {
         assertEquals("codex:seat", card.people.single().actor.session)
     }
 
+    @Test fun twoNamedAgentsKeepTheImplementersLeaseAndTheReviewersSeparateFace() {
+        val actor = BoardActor(BoardActorKind.Agent, "Codex", "codex:seat")
+        val card = PlanBoard.project(listOf(plan(listOf(
+            PlanItem("frame", "Frame", kind = PlanKind.Component, refs = listOf("agent:builder", "agent:reviewer")),
+            PlanItem("doing", "Doing", parent = "frame", status = PlanStatus.Doing, lease = PlanLease(actor, 1, 100)))))).single()
+        assertEquals(listOf("builder", "reviewer"), card.people.map { it.actor.name })
+        assertEquals("codex:seat", card.people.first().actor.session)
+    }
+
+    @Test fun aStatedSessionIdentityWinsOverTheItemsAssignee() {
+        val actor = BoardActor(BoardActorKind.Agent, "stated", "codex:seat", profile = "gallery-stated")
+        val card = PlanBoard.project(listOf(plan(listOf(PlanItem("doing", "Doing", refs = listOf("agent:builder", "agent:reviewer"),
+            status = PlanStatus.Doing, lease = PlanLease(actor, 1, 100)))))).single()
+        assertEquals("stated", card.people.first().actor.name)
+        assertEquals("codex:seat", card.people.first().actor.session)
+        assertEquals(setOf("stated", "builder", "reviewer"), card.people.mapTo(hashSetOf()) { it.actor.name })
+    }
+
+    @Test fun eightyFiveShownPlansKeepTheirRankingsAcrossTwoSnapshots() {
+        val plans = (0..84).map { index -> plan(listOf(PlanItem("one", "One"))).copy(thread = "hangar:cache-$index") }
+        val ranked = plans.map(PlanAnalysis::ranked)
+        PlanBoard.project(plans)
+        plans.forEachIndexed { index, plan -> assertSame(ranked[index], PlanAnalysis.ranked(plan)) }
+    }
+
     @Test fun allLanesAndInheritedPriorityComeFromTheCompletePlan() {
         val plan = plan(listOf(PlanItem("frame", "Frame", kind = PlanKind.Component),
             PlanItem("todo", "To do", parent = "frame"),
@@ -32,5 +57,19 @@ class PlanBoardTest {
         assertTrue(cards.getValue("todo").inherited)
         assertEquals("Replaced", cards.getValue("dropped").item.reason)
         assertEquals(6, PlanBoard.project(listOf(plan), selected = "${plan.thread}#frame").size)
+    }
+
+    @Test fun aLocalPersonReferenceDoesNotChangeTheAgentsInheritedAssignee() {
+        val actor = BoardActor(BoardActorKind.Agent, "Codex", "codex:seat")
+        val source = plan(listOf(
+            PlanItem("frame", "Frame", kind = PlanKind.Component, refs = listOf("agent:builder", "agent:reviewer")),
+            PlanItem("doing", "Doing", parent = "frame", refs = listOf("person:owner"),
+                status = PlanStatus.Doing, lease = PlanLease(actor, 1, 100))))
+        val card = PlanBoard.project(listOf(source)).single()
+        assertEquals("builder", PlanPeople.assignee(card.item, source.items.associateBy { it.id }))
+        assertEquals("builder", card.people.first().actor.name)
+        assertEquals("codex:seat", card.people.first().actor.session)
+        assertEquals(1, card.people.count { it.actor.kind == BoardActorKind.Agent })
+        assertEquals("owner", card.people.last().actor.name)
     }
 }

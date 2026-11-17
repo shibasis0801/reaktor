@@ -20,6 +20,14 @@ object PlanReadPage {
                projection: ((WorkPlan) -> JsonObject)? = null): JsonObject {
         val budget = (budgetBytes ?: plan.limits.readBytes).coerceAtMost(minOf(plan.limits.maxReadBytes, MaximumBytes))
         require(budget >= 4096) { "Use an answer budget of at least 4096 bytes" }
+        val news = (extra["news"] as? JsonArray)?.sortedBy { it.jsonObject["revision"]?.jsonPrimitive?.longOrNull ?: 0 }
+        val shownNews = news?.let { changes ->
+            var bytes = 2
+            changes.takeWhile { change ->
+                val size = change.toString().encodeToByteArray().size + 1
+                (bytes == 2 || bytes + size <= budget / 4).also { if (it) bytes += size }
+            }
+        }
         val identity = PlanPeople.ref(reader) + (reader.session ?: "")
         val cursor = continuation?.let { json.decodeFromString(PlanReadCursor.serializer(), it) }
             ?: PlanReadCursor(plan.thread, plan.revision, identity, frame, scoped = scoped)
@@ -45,8 +53,12 @@ object PlanReadPage {
             (extra["ready"] as? JsonArray)?.let { ready -> put("ready", JsonArray(ready.filter {
                 !scoped || it.jsonObject["item"]?.jsonObject?.get("id")?.jsonPrimitive?.content in orderedIds
             }.map(::compactCandidate))) }
-            extra["news"]?.let { put("news", it) }
-            extra.filterKeys { it !in setOf("plan", "claims", "ready", "news") }.forEach { (key, value) -> put(key, value) }
+            if (shownNews != null) {
+                put("news", JsonArray(shownNews))
+                put("newsTruncated", shownNews.size < news!!.size)
+                put("newsSince", shownNews.lastOrNull()?.jsonObject?.get("revision") ?: JsonPrimitive(plan.revision))
+            }
+            extra.filterKeys { it !in setOf("plan", "claims", "ready", "news", "newsTruncated", "newsSince") }.forEach { (key, value) -> put(key, value) }
             projection?.invoke(page(items))?.forEach { (key, value) -> put(key, value) }
         }
         fun envelope(items: List<PlanItem>, next: String?, fragment: JsonObject? = null,

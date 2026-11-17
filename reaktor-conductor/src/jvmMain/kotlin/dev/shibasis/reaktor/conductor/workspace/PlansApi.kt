@@ -11,7 +11,7 @@ import kotlinx.serialization.json.JsonObject
 open class PlansApi : Service("reaktor.plan") {
     open val list by call<PlanListRequest, JsonElement>(effect = Effect.ReadOnly, summary = "Every thread's plan with its title, revision, progress and when it last changed.")
 
-    open val read by call<PlanReadRequest, JsonElement>(effect = Effect.ReadOnly, summary = "One thread's plan, your own when thread is left out: each item with its status, order, parent, links, seat and who changed it, and the revision to send as base. since <revision> adds what others changed after it.")
+    open val read by call<PlanReadRequest, JsonElement>(effect = Effect.ReadOnly, summary = "One thread's plan, your own when thread is left out: each item with its status, order, parent, links, seat and who changed it, and the revision to send as base. since <revision> adds what others changed after it. " + PlanBrief.News)
 
     open val schedule by call<PlanScheduleRequest, JsonElement>(effect = Effect.ReadOnly, summary = "Remaining item steps, critical path and slack, dependency width of schedulable work, ready items and unresolved blockers. No duration estimates; steps and slack stay unknown while dependencies are unresolved.")
 
@@ -41,7 +41,7 @@ data class PlanReader(
 @Serializable
 data class PlanReadRequest(
     @Describe("hangar:<conversation id>, claude:<session id>, codex:<session id> or agy:<conversation id>; your own session when left out") @Schema(nullable = false) val thread: String? = null,
-    @Describe("The revision you last read") @Schema(minimum = 0, nullable = false) val since: Long? = null,
+    @Describe("The revision you last read. " + PlanBrief.News) @Schema(minimum = 0, nullable = false) val since: Long? = null,
     @Describe("Include the last 200 changes") val history: Boolean = false,
     @Schema(nullable = false) val by: PlanReader? = null,
     @Describe("Encoded UTF-8 answer budget; defaults to the plan's 64 KB budget, at most 256 KB") @Schema(nullable = false) val budgetBytes: Int? = null,

@@ -6,6 +6,7 @@ import kotlinx.serialization.json.*
 import java.io.File
 import java.nio.file.Files
 import kotlin.test.Test
+import kotlin.test.assertFailsWith
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -243,4 +244,38 @@ class PlanAgentReadApiTest {
         assertTrue(workspace.plans.plan("hangar:bounded")!!.item("held")!!.lease!!.by.same(workspace.planIdentity(agent)))
     }
 
+
+    @Test fun aReadContinuationSelectsItsThreadWithoutRepeatingIt() = fixture { workspace ->
+        workspace.plans.write("hangar:bounded", PlanPatch(title = "Bounded", ops = List(12) {
+            PlanOp.Add("Task $it", key = "p$it", detail = "Context ".repeat(800)) }), person)
+        val read = agentPlanTools(workspace).single { it.name == "agent_plan_read" }
+        val first = read.invoke(args(buildJsonObject { put("budgetBytes", 8192) })).jsonObject
+        val cursor = first.getValue("continuation").jsonPrimitive.content
+        val second = read.invoke(buildJsonObject {
+            put("by", AgentWorkspaceJson.encodeToJsonElement(BoardActor.serializer(), agent))
+            put("budgetBytes", 8192); put("continuation", cursor)
+        }).jsonObject
+        assertEquals("hangar:bounded", second.getValue("plan").jsonObject.getValue("thread").jsonPrimitive.content)
+        assertTrue(second["restart"]?.jsonPrimitive?.booleanOrNull != true)
+        assertTrue(second.getValue("offset").jsonPrimitive.int > 0 || second["fragment"]?.jsonObject?.get("offset")?.jsonPrimitive?.int?.let { it > 0 } == true)
+    }
+
+    @Test fun aPartialLimitsWriteKeepsTheConfiguredReadBudgets() = fixture { workspace ->
+        val plan = workspace.plans.write("hangar:bounded", PlanPatch(title = "Bounded", limits = PlanLimits(5, 8192, 32768)), person).plan
+        val answer = agentPlanTools(workspace).single { it.name == "agent_plan_write" }.invoke(buildJsonObject {
+            put("thread", plan.thread); put("base", plan.revision)
+            put("by", AgentWorkspaceJson.encodeToJsonElement(BoardActor.serializer(), person))
+            put("limits", buildJsonObject { put("doingPerHolder", 8) })
+        }).jsonObject
+        assertTrue(answer.getValue("refused").jsonArray.isEmpty())
+        assertEquals(PlanLimits(8, 8192, 32768), workspace.plans.plan(plan.thread)!!.limits)
+    }
+
+    @Test fun aLimitsRefusalNamesThePeopleTheRuleAllows() {
+        val plan = WorkPlan("hangar:bounded", "Bounded", createdBy = person, createdAt = 1, updatedAt = 1)
+        val refusal = assertFailsWith<IllegalArgumentException> {
+            PlanRules.apply(plan, PlanPatch(limits = PlanLimits(8)), agent, 2)
+        }
+        assertTrue(refusal.message.orEmpty().contains("person"), "The reason must name the person role that can change limits")
+    }
 }
