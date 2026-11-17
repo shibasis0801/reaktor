@@ -1,11 +1,12 @@
 package dev.shibasis.reaktor.conductor.worklog
 
-import dev.shibasis.reaktor.conductor.telemetry.ClaudeTelemetry
+import dev.shibasis.reaktor.conductor.*
+import dev.shibasis.reaktor.conductor.telemetry.*
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 
-internal class ClaudeLog(private val root: String?, private val subagent: (String) -> WorkLog?) : LogParser {
+internal class ClaudeLog(private val root: String?, cli: Boolean = false, private val subagent: (String) -> WorkLog?) : LogParser {
     private class Pending(val turn: Int, val step: Int, val name: String, val input: JsonObject)
 
     private val turns = Turns("claude-")
@@ -14,13 +15,102 @@ internal class ClaudeLog(private val root: String?, private val subagent: (Strin
     private val agents = mutableMapOf<String, Pair<Int, Int>>()
     private var plan = listOf<PlanItem>()
 
+    data class Call(val at: Long?, val name: String, val input: JsonObject, val offset: Long)
+    val calls = ArrayDeque<Call>()
+    private var offset = 0L
+    fun recordOffset(value: Long) {
+        offset = value
+        while (calls.firstOrNull()?.let { it.offset < value - 768 * 1024 } == true) calls.removeFirst()
+    }
+    fun header(record: JsonObject) {
+        if (record.flag("isSidechain")) return
+        listOf("cwd", "timestamp", "entrypoint", "version", "gitBranch").forEach { key -> record.str(key)?.let { metadata.putIfAbsent(key, it) } }
+        (record.str("sessionId") ?: record.str("session_id"))?.let { metadata["sessionId"] = it }
+        if (record.str("type") == "custom-title") customTitle = record.str("customTitle")
+        if (firstPrompt == null && record.str("type") == "user" && !record.flag("isMeta") && !record.flag("isCompactSummary")) {
+            val message = record.obj("message") ?: return
+            val blocks = message.list("content").mapNotNull { it as? JsonObject }
+            val text = ((message["content"] as? JsonPrimitive)?.contentOrNull ?: blocks.filter { it.str("type") == "text" }.mapNotNull { it.str("text") }.joinToString("\n")).trim()
+            if (blocks.none { it.str("type") == "tool_result" } && ordinaryPrompt(text)) firstPrompt = text
+        }
+    }
+    private fun ordinaryPrompt(text: String) = text.isNotEmpty() && !text.startsWith("<") && !text.startsWith("Caveat:") && !text.startsWith("[Request interrupted")
+    val metadata = mutableMapOf<String, String>()
+    val samples = mutableListOf<TelemetrySample>()
+    var firstPrompt: String? = null
+        private set
+    var prompts = 0L
+        private set
+    var model: String? = null
+        private set
+    var customTitle: String? = null
+        private set
+    var checklistAt: Long? = null
+        private set
+    var checks = emptyList<Pair<PlanItem, List<String>>>()
+        private set
+    val answer: String get() = resultText ?: turns.current?.steps.orEmpty().filterIsInstance<WorkStep.Message>().joinToString("\n\n") { it.text }
+    val ended: Boolean get() = turns.current?.open == false
+    val usage: AgentUsage get() = finalUsage ?: telemetry.aggregatedLiveUsage()
+    private var resultText: String? = null
+    private var failure: String? = null
+    private var completed = false
+    private var serviceTier: String? = null
+    private var budgetExceeded = false
+    private var usageLimit: AgentUsageLimit? = null
+    private var finalUsage: AgentUsage? = null
+    private val streamedText = if (cli) StringBuilder() else null
+    private var emit: ((AgentEvent) -> Unit)? = null
+    private var eventAgent = AgentId("claude-transcript")
+
+    fun events(record: JsonObject, agent: AgentId = AgentId("claude-transcript")): List<AgentEvent> {
+        val events = mutableListOf<AgentEvent>()
+        eventAgent = agent
+        emit = events::add
+        try { line(record) } finally { emit = null }
+        return events
+    }
+
+    fun finish(agent: AgentId, effort: EffortRecord, exitCode: Int, stderr: String): AgentOutcome {
+        val body = resultText ?: streamedText?.toString() ?: answer
+        val ok = completed && failure == null && exitCode == 0 && body.isNotBlank()
+        return AgentOutcome(agent, body, ok, failure = when {
+            ok -> null
+            failure != null -> failure
+            !completed && stderr.isBlank() -> "Claude stream ended without a result envelope"
+            stderr.isNotBlank() -> stderr.trim().take(2000)
+            else -> "claude exited with code $exitCode"
+        }, session = metadata["sessionId"]?.let { ProviderSession(RuntimeKind.ClaudeCode, it) }, usage = finalUsage,
+            effort = effort, serviceTier = serviceTier, usageLimit = usageLimit.takeUnless { ok },
+            attributes = if (budgetExceeded) mapOf("budgetExceeded" to "Claude Code stopped at the native USD budget; inspect retained work before retrying") else emptyMap())
+    }
+
     override fun line(record: JsonObject) {
         if (record.flag("isSidechain")) return
         val at = instant(record.str("timestamp"))
+        header(record)
+        val info = record.obj("api_error_params")?.obj("rate_limit_info")
+        if (record.str("parent_tool_use_id") == null && record.str("api_error") == "usage_limit_reached")
+            usageLimit = AgentUsageLimit(RuntimeKind.ClaudeCode, "usage_limit_reached", info?.num("resetsAt")?.takeIf { it > 0 && it <= Long.MAX_VALUE / 1000 }?.times(1000))
         when (record.str("type")) {
             "user" -> user(record, at)
             "assistant" -> assistant(record, at)
             "system" -> system(record, at)
+            "result" -> {
+                completed = true
+                budgetExceeded = record.str("subtype") == "error_max_budget_usd"
+                val body = record["structured_output"]?.takeIf { it !is kotlinx.serialization.json.JsonNull }?.toString() ?: record.str("result")
+                if (record.text("is_error") != "false" || record.str("subtype") != "success") failure = body ?: "Claude Code reported an error" else resultText = body
+                val parsed = ClaudeTelemetry.parseRecord(record) as? ProviderTelemetry.Claude
+                finalUsage = parsed?.toAgentUsage()
+                serviceTier = parsed?.serviceTier
+                turns.current?.open = false
+            }
+            "rate_limit_event" -> if (record.str("parent_tool_use_id") == null) {
+                val rate = record.obj("rate_limit_info")
+                usageLimit = if (rate?.str("status") == "rejected" && !rate.flag("isUsingOverage"))
+                    AgentUsageLimit(RuntimeKind.ClaudeCode, "usage_limit_reached", rate.num("resetsAt")?.takeIf { it > 0 && it <= Long.MAX_VALUE / 1000 }?.times(1000)) else null
+            }
         }
     }
 
@@ -59,7 +149,14 @@ internal class ClaudeLog(private val root: String?, private val subagent: (Strin
                 turns.start(listOf(name, args).filter(String::isNotEmpty).joinToString(" "), at)
             }
             text.startsWith("<") || text.startsWith("Caveat:") -> Unit
-            else -> turns.start(text, at, raw)
+            else -> {
+                turns.start(text, at, raw)
+                if (firstPrompt == null) firstPrompt = text
+                prompts++
+                resultText = null
+                completed = false
+                failure = null
+            }
         }
     }
 
@@ -67,12 +164,15 @@ internal class ClaudeLog(private val root: String?, private val subagent: (Strin
         val message = record.obj("message") ?: return
         val turn = turns.ensure(at)
         val index = turns.lastIndex
+        message.str("model")?.takeUnless { it == "<synthetic>" }?.let { model = it }
         telemetry.ingest(record)?.let { update ->
             val delta = update.delta
+            if (delta.hasTokens || delta.costUsd != null || delta.compacted) samples += delta
             if (delta.hasTokens || delta.costUsd != null) {
                 turn.sample(delta.toWorkUsageSample().copy(context = update.merged.contextTokens))
             }
         }
+        if (message.str("id") != null && message.obj("usage") != null) emit?.invoke(AgentEvent.Usage(eventAgent, telemetry.aggregatedLiveUsage()))
         when (message.str("stop_reason")) {
             "end_turn", "stop_sequence", "max_tokens", "refusal" -> turn.open = false
             null -> Unit
@@ -81,12 +181,38 @@ internal class ClaudeLog(private val root: String?, private val subagent: (Strin
         message.list("content").mapNotNull { it as? JsonObject }.forEachIndexed { position, block ->
             val id = "${message.str("id") ?: at}:${block.str("id") ?: position}"
             when (block.str("type")) {
-                "text" -> block.str("text")?.trim()?.takeIf(String::isNotEmpty)?.let { turn.add(WorkStep.Message(id, at, it)) }
-                "thinking" -> block.str("thinking")?.trim()?.takeIf(String::isNotEmpty)?.let { turn.add(WorkStep.Reasoning(id, at, it, summary = false, millis = record.num("thinkingDurationMs"))) }
+                "text" -> block.str("text")?.trim()?.takeIf(String::isNotEmpty)?.let {
+                    turn.add(WorkStep.Message(id, at, it))
+                    val parent = record.str("parent_tool_use_id")
+                    if (parent == null) streamedText?.append(block.str("text").orEmpty())
+                    emit?.invoke(if (parent == null) AgentEvent.Delta(eventAgent, block.str("text").orEmpty()) else
+                        AgentEvent.Activity(eventAgent, AgentActivityItem("message:$parent", ActivityKind.Agent, "Subagent output", output = it, parentId = parent)))
+                }
+                "thinking" -> block.str("thinking")?.trim()?.takeIf(String::isNotEmpty)?.let {
+                    turn.add(WorkStep.Reasoning(id, at, it, summary = false, millis = record.num("thinkingDurationMs")))
+                    emit?.invoke(AgentEvent.Reasoning(eventAgent, it, ReasoningFidelity.Thinking, record.str("parent_tool_use_id")))
+                }
                 "tool_use" -> {
                     val name = block.str("name").orEmpty()
                     val input = block.obj("input") ?: JsonObject(emptyMap())
-                    val step = turn.add(call(block.str("id") ?: id, at, name, input))
+                    calls.addLast(Call(at, name, input, offset))
+                    if (calls.size > 40) calls.removeFirst()
+                    val next = Checklist.claude(name, input, checks.map { it.first })
+                    if (next != null) {
+                        checks = next.map { item -> item to checks.firstOrNull { it.first.text == item.text }?.second.orEmpty() }
+                        checklistAt = at
+                    } else if (name in setOf("Edit", "Write", "MultiEdit", "NotebookEdit"))
+                        LogText.relative(input.str("file_path") ?: input.str("notebook_path"), root)?.let { path ->
+                            checks = checks.map { (item, files) -> item to if (item.state == PlanState.Active && path !in files && files.size < 20) files + path else files }
+                        }
+                    val callId = block.str("id") ?: id
+                    val child = name == "Agent" || name == "Task"
+                    val parent = record.str("parent_tool_use_id")
+                    if (!child) emit?.invoke(AgentEvent.ToolUse(eventAgent, name))
+                    emit?.invoke(AgentEvent.Activity(eventAgent, AgentActivityItem(callId, if (child) ActivityKind.Agent else ActivityKind.Tool, name,
+                        ActivityStatus.Started, input = input.toString(), parentId = parent,
+                        nativeAgents = if (child) listOf(NativeAgentState(callId, parent ?: metadata["sessionId"], input.str("description"), "running")) else emptyList())))
+                    val step = turn.add(call(callId, at, name, input))
                     block.str("id")?.let { call ->
                         pending[call] = Pending(index, step, name, input)
                         if (name == "Agent" || name == "Task") agents[call] = index to step
@@ -98,6 +224,7 @@ internal class ClaudeLog(private val root: String?, private val subagent: (Strin
 
     private fun system(record: JsonObject, at: Long?) {
         when (record.str("subtype")) {
+            "init" -> emit?.invoke(AgentEvent.Started(eventAgent, metadata["sessionId"]?.let { ProviderSession(RuntimeKind.ClaudeCode, it) }))
             "compact_boundary" -> turns.ensure(at).add(WorkStep.Note("compact:$at", at, NoteKind.Compaction, "Context compacted"))
             "api_error" -> turns.ensure(at).add(WorkStep.Note("error:$at", at, NoteKind.Error, LogText.oneLine(record.str("content")) ?: "The model request failed"))
         }
@@ -154,6 +281,11 @@ internal class ClaudeLog(private val root: String?, private val subagent: (Strin
         val turn = turns.at(call.turn)
         turn.touch(at)
         val failed = block.flag("is_error")
+        val child = call.name == "Agent" || call.name == "Task"
+        val output = block["content"]?.toString()
+        emit?.invoke(AgentEvent.Activity(eventAgent, AgentActivityItem(id, if (child) ActivityKind.Agent else ActivityKind.Tool, call.name,
+            if (failed) ActivityStatus.Failed else ActivityStatus.Completed, output = output,
+            nativeAgents = if (child) listOf(NativeAgentState(id, metadata["sessionId"], status = if (failed) "failed" else "completed", output = output?.take(6000))) else emptyList())))
         val text = block["content"].plain()
         val step = turn.steps[call.step]
         val millis = step.at?.let { start -> at?.minus(start)?.takeIf { it >= 0 } }

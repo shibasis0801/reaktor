@@ -127,6 +127,6 @@ class CodexDesktopRoutingTest {
             codexDesktopShortfall(writer, applied(":workspace", "on-request")))
         assertEquals("on-request approvals", codexDesktopShortfall(writer, applied(":danger-full-access", "on-request")))
         assertNull(codexDesktopShortfall(writer, applied(":danger-full-access", "never")))
-        assertNull(codexDesktopShortfall(writer, Json.parseToJsonElement("{}").jsonObject))
+        assertTrue(codexDesktopShortfall(writer, Json.parseToJsonElement("{}").jsonObject).orEmpty().contains("cannot verify"))
     }
 }

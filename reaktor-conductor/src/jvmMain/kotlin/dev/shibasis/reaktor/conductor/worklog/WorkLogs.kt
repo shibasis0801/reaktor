@@ -26,6 +26,8 @@ object WorkLogs {
         var modified = -1L
         var log = WorkLog.Empty
         val events = mutableListOf<Pair<Long, AgentEvent>>()
+        var earlierPromptNotShown = false
+        var promptOffset = 0L
     }
 
     private class Agents(val modified: Long, val files: Map<String, File>)
@@ -45,15 +47,19 @@ object WorkLogs {
         else -> null
     }
 
-    fun read(runtime: RuntimeKind, file: File, root: String?, whole: Boolean = false): WorkLog {
-        if (!file.isFile) return WorkLog.Empty
+    fun read(runtime: RuntimeKind, file: File, root: String?, whole: Boolean = false): WorkLog =
+        update(runtime, file, root, whole, materialize = true)?.log ?: WorkLog.Empty
+
+    private fun update(runtime: RuntimeKind, file: File, root: String?, whole: Boolean = false, materialize: Boolean = false): Scan? {
+        if (!file.isFile) return null
         val key = scanKey(runtime, file, root, whole)
         val length = file.length()
         val known = scans[key]?.takeIf { it.offset <= length }
         val scan = known ?: run {
             val start = alignedStart(file, maxOf(0L, length - if (whole) WholeBytes else WindowBytes))
             val reader = parser(runtime, file, root)
-            if (start > 0) previousRecord(file, start, when (runtime) {
+            if (reader is ClaudeLog && start > 0) linesAt(file, 0, false, minOf(start, 256L * 1024)) { _, record -> reader.header(record) }
+            val previous = if (start > 0) reverseRecord(file, start, when (runtime) {
                 RuntimeKind.Codex -> "UserMessage"
                 RuntimeKind.Gemini -> "USER_INPUT"
                 else -> "user"
@@ -61,8 +67,10 @@ object WorkLogs {
                 val candidate = parser(runtime, file, root)
                 candidate.line(record)
                 candidate.log(false).turns.any { it.prompt != null }
-            }?.let(reader::line)
+            } else null
+            previous?.record?.let(reader::line)
             Scan(start, reader).also {
+                it.earlierPromptNotShown = previous?.capped == true
                 if (scans.size >= Kept) scans.clear()
                 scans[key] = it
             }
@@ -72,13 +80,24 @@ object WorkLogs {
             if (scan.length != length || scan.modified != modified) {
                 scan.offset = linesAt(file, scan.offset, skipFirst = false) { end, record ->
                     val parser = scan.parser
-                    if (parser is AntigravityLog) parser.events(record).forEach { scan.events += end to it }
-                    else parser.line(record)
+                    when (parser) {
+                        is AntigravityLog -> parser.events(record).forEach { scan.events += end to it }
+                        is ClaudeLog -> {
+                            parser.recordOffset(end)
+                            val prompts = parser.prompts
+                            parser.events(record).forEach { scan.events += end to it }
+                            if (parser.prompts != prompts) scan.promptOffset = end
+                        }
+                        else -> parser.line(record)
+                    }
                 }
                 scan.length = length
                 scan.modified = modified
             }
-            scan.parser.log(earlier = scan.start > 0).also { scan.log = it }
+            if (materialize) scan.log = scan.parser.log(earlier = scan.start > 0).let { log ->
+                log.copy(earlierPromptNotShown = scan.earlierPromptNotShown && log.turns.firstOrNull()?.prompt == null)
+            }
+            scan
         }
     }
 
@@ -94,6 +113,25 @@ object WorkLogs {
             GeminiSnapshot(scan.log, scan.offset, scan.events.asSequence().filter { it.first > from }.map { it.second }.toList(), parser.paths.toSet(), parser.samples)
         }
     }
+
+    internal data class ClaudeSnapshot(val offset: Long, val promptOffset: Long, val events: List<AgentEvent>,
+        val answer: String, val ended: Boolean, val usage: dev.shibasis.reaktor.conductor.AgentUsage)
+
+    internal fun <T> claude(file: File, root: String?, read: (ClaudeLog) -> T): T? {
+        val scan = update(RuntimeKind.ClaudeCode, file, root) ?: return null
+        return synchronized(scan) { read(scan.parser as ClaudeLog) }
+    }
+
+    internal fun claudeTurn(file: File, root: String?, from: Long = Long.MAX_VALUE): ClaudeSnapshot? {
+        val scan = update(RuntimeKind.ClaudeCode, file, root) ?: return null
+        return synchronized(scan) {
+            val reader = scan.parser as ClaudeLog
+            ClaudeSnapshot(scan.offset, scan.promptOffset, scan.events.asSequence().filter { it.first > from }.map { it.second }.toList(),
+                reader.answer, reader.ended, reader.usage)
+        }
+    }
+
+    internal fun codexStatus(file: File): CodexTurnBoundary? = CodexStatus.read(file)
 
     fun limits(file: File): RateLimits? {
         if (!file.isFile) return null
@@ -143,42 +181,61 @@ object WorkLogs {
         error("Unreachable")
     }
 
+    internal data class ReverseRead(val record: JsonObject?, val bytes: Long, val lines: Int, val capped: Boolean)
+
     internal fun previousRecord(file: File, before: Long, marker: String, accept: (JsonObject) -> Boolean): JsonObject? =
+        reverseRecord(file, before, marker, accept).record
+
+    internal fun reverseRecord(file: File, before: Long, marker: String, accept: (JsonObject) -> Boolean): ReverseRead =
         RandomAccessFile(file, "r").use { input ->
-            var end = minOf(before, input.length())
-            if (end == 0L) return@use null
-            input.seek(end - 1)
-            if (input.read() == NewLine.toInt()) end--
-            var position = end
+            val budget = 16L shl 20
+            val needle = marker.toByteArray(Charsets.UTF_8).reversedArray()
+            var position = minOf(before, input.length())
+            var read = 0L
+            var lines = 0
             val buffer = ByteArray(1 shl 16)
-            fun record(start: Long, end: Long): JsonObject? {
-                if (end <= start || end - start > Int.MAX_VALUE) return null
-                val bytes = ByteArray((end - start).toInt())
-                input.seek(start)
-                input.readFully(bytes)
-                val text = bytes.toString(Charsets.UTF_8)
-                if (!text.contains(marker)) return null
-                return parseRecord(text)?.takeIf(accept)
+            val line = ByteArray(1 shl 20)
+            var size = 0
+            var overflow = false
+            var first = true
+            fun record(): JsonObject? {
+                lines++
+                if (overflow || size < needle.size) return null
+                val matches = (0..size - needle.size).any { offset -> needle.indices.all { line[offset + it] == needle[it] } }
+                if (!matches) return null
+                val bytes = ByteArray(size) { line[size - it - 1] }
+                return parseRecord(bytes.toString(Charsets.UTF_8))?.takeIf(accept)
             }
-            while (position > 0) {
-                val begin = maxOf(0L, position - buffer.size)
-                val count = (position - begin).toInt()
+            while (position > 0 && read < budget && lines < 10_000) {
+                val count = minOf(buffer.size.toLong(), position, budget - read).toInt()
+                val begin = position - count
                 input.seek(begin)
                 input.readFully(buffer, 0, count)
-                for (index in count - 1 downTo 0) if (buffer[index] == NewLine) {
-                    record(begin + index + 1, end)?.let { return@use it }
-                    end = begin + index
+                read += count
+                for (index in count - 1 downTo 0) {
+                    val byte = buffer[index]
+                    if (first && byte == NewLine) { first = false; continue }
+                    first = false
+                    if (byte == NewLine) {
+                        record()?.let { return@use ReverseRead(it, read, lines, false) }
+                        if (lines == 10_000) return@use ReverseRead(null, read, lines, begin + index > 0)
+                        size = 0
+                        overflow = false
+                    } else if (size < line.size) line[size++] = byte else overflow = true
                 }
                 position = begin
             }
-            record(0, end)
+            if (position == 0L && (size > 0 || overflow)) {
+                record()?.let { return@use ReverseRead(it, read, lines, false) }
+            }
+            ReverseRead(null, read, lines, position > 0)
         }
 
     internal fun lines(file: File, from: Long, skipFirst: Boolean, each: (JsonObject) -> Unit): Long =
         linesAt(file, from, skipFirst) { _, record -> each(record) }
 
-    private fun linesAt(file: File, from: Long, skipFirst: Boolean, each: (Long, JsonObject) -> Unit): Long = RandomAccessFile(file, "r").use { raf ->
-        val length = raf.length()
+    private fun linesAt(file: File, from: Long, skipFirst: Boolean, through: Long = Long.MAX_VALUE, each: (Long, JsonObject) -> Unit): Long = RandomAccessFile(file, "r").use { raf ->
+        val length = minOf(raf.length(), through)
         raf.seek(from)
         val buffer = ByteArray(1 shl 16)
         val line = ByteArrayOutputStream()

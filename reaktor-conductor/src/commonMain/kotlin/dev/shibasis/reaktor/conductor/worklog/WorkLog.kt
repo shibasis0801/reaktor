@@ -11,7 +11,7 @@ import dev.shibasis.reaktor.conductor.ContextPacket
 import dev.shibasis.reaktor.conductor.ContextEntry
 
 @Serializable
-data class WorkLog(val turns: List<WorkTurn>, val earlier: Boolean = false) {
+data class WorkLog(val turns: List<WorkTurn>, val earlier: Boolean = false, val earlierPromptNotShown: Boolean = false) {
     val edits: List<WorkStep.Edit> get() = turns.flatMap { turn -> turn.steps.flatMap(WorkStep::edits) }
     val files: List<String> get() = edits.map { it.file }.distinct()
     val running: Boolean get() = turns.lastOrNull()?.open == true
@@ -61,7 +61,7 @@ object WorkPrompts {
         generateSequence(ContextHeadings.find(text)) { ContextHeadings.find(text, it.end) }
             .any { it.heading == ContextHeadings.Task && taskBoundary(text, it.start) }
 
-    fun of(raw: String?, profile: Boolean = false): WorkPrompt {
+    fun of(raw: String?): WorkPrompt {
         if (raw == null) return WorkPrompt(null)
         val slices = mutableListOf<WorkContextSlice>()
         var task = raw

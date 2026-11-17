@@ -111,11 +111,11 @@ class ContextHeadingTest {
 
     @Test fun profileRunsKeepTheTypedRoleParagraph() {
         val task = "Draft:\n\nYour role, reviewer: check the diff\n\nKeep the next paragraph too."
-        val plain = WorkPrompts.of(task, profile = true)
+        val plain = WorkPrompts.of(task)
         assertEquals(task, plain.text)
         assertNull(plain.context)
         val sent = compile(task = task)
-        val parsed = WorkPrompts.of(sent, profile = true)
+        val parsed = WorkPrompts.of(sent)
         assertEquals(task, parsed.text)
         assertEquals(listOf("Instructions"), parsed.context!!.slices.map { it.title })
         assertEquals(sent, parsed.context!!.sent)

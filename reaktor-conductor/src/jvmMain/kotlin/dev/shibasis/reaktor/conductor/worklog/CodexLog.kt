@@ -20,8 +20,8 @@ internal class CodexLog(private val root: String?) : LogParser {
     private var sequence = 0
     var answer: String = ""
         private set
-    var boundary: String? = null
-        private set
+    private var status: CodexTurnBoundary? = null
+    val boundary: String? get() = status?.type
     var turnId: String? = null
         private set
     var turnStartedAt: Long? = null
@@ -43,6 +43,7 @@ internal class CodexLog(private val root: String?) : LogParser {
 
     override fun line(record: JsonObject) {
         val at = instant(record.str("timestamp"))
+        CodexStatus.of(record)?.let { status = it }
         when (record.str("type")) {
             "session_meta", "turn_context" -> {
                 if (record.str("type") == "session_meta") meta = record.obj("payload") else context = record.obj("payload")
@@ -73,7 +74,6 @@ internal class CodexLog(private val root: String?) : LogParser {
                 sink?.invoke(AgentEvent.Reasoning(eventAgent, it, ReasoningFidelity.Summary))
             }
             "task_started" -> {
-                boundary = "task_started"
                 turnId = payload.str("turn_id")
                 turnStartedAt = at
                 answer = ""
@@ -82,7 +82,6 @@ internal class CodexLog(private val root: String?) : LogParser {
                 turns.current?.open = true
             }
             "task_complete" -> {
-                boundary = "task_complete"
                 payload.str("last_agent_message")?.let { answer = it }
                 turns.current?.let { turn ->
                 turn.touch(payload.num("completed_at")?.let { if (it < 100_000_000_000) it * 1000 else it } ?: at)
@@ -91,7 +90,6 @@ internal class CodexLog(private val root: String?) : LogParser {
                 }
             }
             "turn_aborted" -> {
-                boundary = "turn_aborted"
                 turns.current?.let { turn ->
                 record(turn, WorkStep.Note("${turn.id}:aborted:${turn.steps.size}", at, NoteKind.Interrupted, "Turn interrupted"))
                 turn.open = false

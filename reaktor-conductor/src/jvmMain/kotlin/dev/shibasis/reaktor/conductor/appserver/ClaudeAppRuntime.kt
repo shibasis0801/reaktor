@@ -1,7 +1,8 @@
 package dev.shibasis.reaktor.conductor.appserver
 
 import dev.shibasis.reaktor.conductor.*
-import dev.shibasis.reaktor.conductor.cli.ClaudeCodeEventParser
+import dev.shibasis.reaktor.conductor.worklog.ClaudeLog
+import dev.shibasis.reaktor.conductor.worklog.parseRecord
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.*
@@ -131,15 +132,7 @@ private class ClaudeAppSession(
             val tail = TranscriptTail(transcript, from)
             try {
                 while (!closed) {
-                    val submitted = tail.lines().any { line ->
-                        val row = runCatching { Json.parseToJsonElement(line).jsonObject }.getOrNull()
-                        val content = (row?.get("message") as? JsonObject)?.get("content")
-                        row?.get("type")?.jsonPrimitive?.contentOrNull == "user" &&
-                            row["isSidechain"]?.jsonPrimitive?.booleanOrNull != true &&
-                            (content is JsonPrimitive || (content as? JsonArray).orEmpty().any {
-                                (it as? JsonObject)?.get("type")?.jsonPrimitive?.contentOrNull == "text"
-                            })
-                    }
+                    val submitted = withContext(Dispatchers.IO) { WorkLogs.claudeTurn(transcript, directory.path)?.promptOffset?.let { it > from } == true }
                     if (submitted) return opened
                     val remaining = deadline - System.currentTimeMillis()
                     if (remaining <= 0 || !tail.await(remaining)) return null
@@ -158,10 +151,8 @@ private class ClaudeAppSession(
         return null
     }
 
-    private fun firstPrompt(session: ClaudeApp.Session): String? = app.transcript(session.cli)?.useLines { lines ->
-        lines.mapNotNull { runCatching { Json.parseToJsonElement(it).jsonObject }.getOrNull() }
-            .firstOrNull { (it["type"] as? JsonPrimitive)?.contentOrNull == "user" && (it["isSidechain"] as? JsonPrimitive)?.booleanOrNull != true }
-            ?.let { row -> ((row["message"] as? JsonObject)?.get("content") as? JsonPrimitive)?.contentOrNull?.trim() }
+    private fun firstPrompt(session: ClaudeApp.Session): String? = app.transcript(session.cli)?.let { file ->
+        WorkLogs.claude(file, directory.path) { it.firstPrompt }
     }
 
     private suspend fun follow(opened: ClaudeApp.Session, from: Long, emit: suspend (AgentEvent) -> Unit): AgentOutcome {
@@ -174,14 +165,22 @@ private class ClaudeAppSession(
         }
         val transcript = file ?: return reader.outcome(opened, closed, "The Claude app session wrote no transcript")
         val tail = TranscriptTail(transcript, from)
+        var offset = from
         var busy = false
         try {
             while (true) {
-                tail.lines().forEach { line -> reader.line(line).forEach { emit(it) } }
+                withContext(Dispatchers.IO) { WorkLogs.claudeTurn(transcript, directory.path, offset) }?.let { snapshot ->
+                    offset = snapshot.offset
+                    reader.accept(snapshot)
+                    snapshot.events.forEach { emit(it.forAgent(agent)) }
+                }
                 val status = withContext(Dispatchers.IO) { app.status(opened.cli) }
                 if (status == "busy") busy = true
                 if (reader.ended || busy && status == "idle") {
-                    tail.lines().forEach { line -> reader.line(line).forEach { emit(it) } }
+                    withContext(Dispatchers.IO) { WorkLogs.claudeTurn(transcript, directory.path, offset) }?.let { snapshot ->
+                        reader.accept(snapshot)
+                        snapshot.events.forEach { emit(it.forAgent(agent)) }
+                    }
                     return reader.outcome(opened, false)
                 }
                 if (closed) return reader.outcome(opened, true)
@@ -221,60 +220,36 @@ private class ClaudeAppSession(
 }
 
 internal class ClaudeTranscriptEvents(private val agent: AgentId, private val effort: EffortRecord) {
-    private val parser = ClaudeCodeEventParser(agent, effort)
-    private val reply = StringBuilder()
-    private var usage: AgentUsage? = null
+    private val parser = ClaudeLog(null) { null }
+    private var snapshot: WorkLogs.ClaudeSnapshot? = null
+    val answer: String get() = snapshot?.answer ?: parser.answer
+    val ended: Boolean get() = snapshot?.ended ?: parser.ended
+    val answered: Boolean get() = ended && answer.isNotBlank()
 
-    var answer: String = ""
-        private set
-    var ended: Boolean = false
-        private set
-    var answered: Boolean = false
-        private set
-
-    fun line(text: String): List<AgentEvent> {
-        val row = runCatching { Json.parseToJsonElement(text).jsonObject }.getOrNull() ?: return emptyList()
-        if ((row["isSidechain"] as? JsonPrimitive)?.booleanOrNull == true) return emptyList()
-        val message = row["message"] as? JsonObject
-        val content = message?.get("content")
-        when ((row["type"] as? JsonPrimitive)?.contentOrNull) {
-            "user" -> {
-                val blocks = (content as? JsonArray).orEmpty().mapNotNull { it as? JsonObject }
-                if (content is JsonPrimitive || blocks.any { it.text("type") == "text" }) reply.clear()
-                ended = false
-            }
-            "assistant" -> {
-                (content as? JsonArray).orEmpty().mapNotNull { it as? JsonObject }.filter { it.text("type") == "text" }
-                    .mapNotNull { it.text("text") }.forEach { reply.append(if (reply.isEmpty()) it else "\n\n$it") }
-                when (message?.text("stop_reason")) {
-                    "end_turn", "stop_sequence", "max_tokens" -> {
-                        ended = true
-                        answer = reply.toString()
-                        answered = answer.isNotBlank()
-                    }
-                    "tool_use" -> ended = false
-                }
-            }
-        }
-        val events = runCatching { parser.onLine(text) }.getOrDefault(emptyList())
-        events.filterIsInstance<AgentEvent.Usage>().lastOrNull()?.let { usage = it.usage }
-        return events
-    }
+    fun line(text: String): List<AgentEvent> = parseRecord(text)?.let { parser.events(it, agent) }.orEmpty()
+    fun accept(value: WorkLogs.ClaudeSnapshot) { snapshot = value }
 
     fun outcome(session: ClaudeApp.Session, stopped: Boolean, limit: String? = null): AgentOutcome {
-        if (answer.isBlank()) answer = reply.toString()
-        val ok = !stopped && limit == null && answer.isNotBlank()
-        return AgentOutcome(agent, answer, ok,
+        val body = answer
+        val ok = !stopped && limit == null && body.isNotBlank()
+        return AgentOutcome(agent, body, ok,
             failure = when {
                 ok -> null
                 limit != null -> limit
                 stopped -> "Interrupted"
-                answer.isBlank() -> "The Claude app session ended the turn without an answer"
+                body.isBlank() -> "The Claude app session ended the turn without an answer"
                 else -> "The Claude app session did not finish the turn"
-            },
-            session = ProviderSession(RuntimeKind.ClaudeCode, session.cli), usage = usage, effort = effort, interrupted = stopped,
+            }, session = ProviderSession(RuntimeKind.ClaudeCode, session.cli), usage = snapshot?.usage ?: parser.usage, effort = effort, interrupted = stopped,
             attributes = mapOf("executorHarness" to "Claude app", "session" to session.id, "conversation" to session.cli))
     }
+}
 
-    private fun JsonObject.text(key: String): String? = (get(key) as? JsonPrimitive)?.contentOrNull
+private fun AgentEvent.forAgent(agent: AgentId): AgentEvent = when (this) {
+    is AgentEvent.Started -> copy(agent = agent)
+    is AgentEvent.Delta -> copy(agent = agent)
+    is AgentEvent.Reasoning -> copy(agent = agent)
+    is AgentEvent.Activity -> copy(agent = agent)
+    is AgentEvent.ToolUse -> copy(agent = agent)
+    is AgentEvent.Usage -> copy(agent = agent)
+    else -> this
 }

@@ -329,54 +329,25 @@ object HarnessSessions {
         )
     }
 
-    private fun claudeParse(file: File, root: String): ClaudeParsed? {
-        val head = records(file, fromEnd = false, HeadBytes)
-        val tail = records(file, fromEnd = true, TailBytes)
-        val meta = head.firstOrNull { it.string("cwd") != null } ?: tail.firstOrNull { it.string("cwd") != null } ?: return null
-        val directory = meta.string("cwd") ?: return null
-        if (!related(directory, root)) return null
-        val id = tail.asReversed().firstNotNullOfOrNull { it.string("sessionId") } ?: file.nameWithoutExtension
-        val steps = tail.filter { it.string("type") == "assistant" }.flatMap { record ->
-            val at = instant(record.string("timestamp"))
-            (record.nested("message")?.get("content") as? JsonArray).orEmpty()
-                .mapNotNull { block -> (block as? JsonObject)?.takeIf { it.string("type") == "tool_use" }?.let { claudeStep(it, at, root) } }
+    private fun claudeParse(file: File, root: String): ClaudeParsed? = WorkLogs.claude(file, root) { reader ->
+        val directory = reader.metadata["cwd"] ?: return@claude null
+        if (!related(directory, root)) return@claude null
+        val steps = reader.calls.map { call ->
+            val input = call.input
+            val path = input.string("file_path") ?: input.string("notebook_path")
+            val detail = input.string("description") ?: path?.relativeTo(root) ?: input.string("command") ?: input.string("pattern")
+                ?: input.string("url") ?: input.string("query")
+            HarnessStep(call.at, call.name.toolLabel(), detail?.oneLine(), call.name.startsWith("mcp__reaktor__"), path?.takeIf { call.name in EditTools }?.relativeTo(root))
         }
-        val (checklist, checklistAt) = claudeChecklist(tail, root)
-        val model = tail.mapNotNull { record -> record.takeIf { it.string("type") == "assistant" }?.nested("message")?.string("model") }.lastOrNull { it != "<synthetic>" }
-        val window = if (file.length() <= TailBytes) tail else head + tail
-        val cursor = ClaudeTelemetry.SessionCursor(model)
-        val samples = window.filter { it.text("isSidechain") != "true" }.mapNotNull { record ->
-            cursor.ingest(record)?.delta?.takeIf { it.hasTokens || it.costUsd != null || it.compacted }
-        }
-        val rollup = samples.takeIf { it.isNotEmpty() }?.rollupTelemetry()
-        val totalTokens = rollup?.let {
-            if (it.inputTokens != null || it.outputTokens != null) (it.inputTokens ?: 0L) + (it.outputTokens ?: 0L) else null
-        }
-        return ClaudeParsed(
-            HarnessSession(
-                runtime = RuntimeKind.ClaudeCode,
-                id = id,
-                title = "",
-                directory = directory,
-                startedAt = instant(meta.string("timestamp")),
-                lastActiveAt = file.lastModified(),
-                origin = meta.string("entrypoint"),
-                version = meta.string("version"),
-                branch = meta.string("gitBranch"),
-                model = model,
-                effort = null,
-                tokens = totalTokens,
-                steps = steps.takeLast(StepsKept),
-                transcript = file.path,
-                files = steps.mapNotNull { it.file }.distinct(),
-                checklist = checklist,
-                checklistAt = checklistAt,
-                telemetry = rollup,
-            ),
-            ended = tail.lastOrNull { it.string("type") in setOf("assistant", "user", "result") }?.let { it.string("type") == "result" || it.nested("message")?.string("stop_reason") == "end_turn" } == true,
-            customTitle = (head + tail).lastOrNull { it.string("type") == "custom-title" }?.string("customTitle"),
-            prompt = head.firstNotNullOfOrNull(::claudePrompt),
-        )
+        val rollup = reader.samples.takeIf { it.isNotEmpty() }?.rollupTelemetry()
+        ClaudeParsed(HarnessSession(
+            runtime = RuntimeKind.ClaudeCode, id = reader.metadata["sessionId"] ?: file.nameWithoutExtension,
+            title = "", directory = directory, startedAt = instant(reader.metadata["timestamp"]), lastActiveAt = file.lastModified(),
+            origin = reader.metadata["entrypoint"], version = reader.metadata["version"], branch = reader.metadata["gitBranch"],
+            model = reader.model, effort = null, tokens = rollup?.let { if (it.inputTokens != null || it.outputTokens != null) (it.inputTokens ?: 0L) + (it.outputTokens ?: 0L) else null },
+            steps = steps, transcript = file.path, files = steps.mapNotNull { it.file }.distinct(),
+            checklist = reader.checks.map { (item, files) -> HarnessCheck(item.text, item.state, files) }, checklistAt = reader.checklistAt, telemetry = rollup),
+            ended = reader.ended, customTitle = reader.customTitle, prompt = reader.firstPrompt)
     }
 
     private fun claudeChecklist(records: List<JsonObject>, root: String): Pair<List<HarnessCheck>, Long?> {
@@ -477,83 +448,6 @@ object HarnessSessions {
 
     private class CodexParsed(val session: HarnessSession, val prompt: String?, val turning: Boolean, val asking: Boolean)
 
-    private data class TurnBoundary(val type: String, val at: Long?, val offset: Long)
-    private data class BoundaryCursor(val key: Any?, val length: Long, val modified: java.nio.file.attribute.FileTime,
-        val prefix: Int, val tail: Int, val scanned: Long, val boundary: TurnBoundary?)
-    private val codexBoundaries = ConcurrentHashMap<String, BoundaryCursor>()
-    private const val BoundaryBytes = 64 * 1024
-    private val BoundaryType = Regex(""""payload"\s*:\s*\{\s*"type"\s*:\s*"(task_started|task_complete|turn_aborted)"""")
-    private val BoundaryTime = Regex(""""timestamp"\s*:\s*"([^"]+)"""")
-    private val BoundaryEvent = Regex(""""type"\s*:\s*"event_msg"""")
-
-    private fun boundary(bytes: ByteArray, offset: Long, prefix: Boolean = false): TurnBoundary? {
-        if (listOf("task_started", "task_complete", "turn_aborted").none { bytes.find(it.encodeToByteArray(), 0) >= 0 }) return null
-        val text = bytes.decodeToString()
-        val record = parse(text)
-        val type = if (record?.string("type") == "event_msg") record.nested("payload")?.string("type")
-            else if (prefix && BoundaryEvent.containsMatchIn(text)) BoundaryType.find(text)?.groupValues?.get(1) else null
-        if (type !in setOf("task_started", "task_complete", "turn_aborted")) return null
-        return TurnBoundary(type!!, instant(record?.string("timestamp") ?: BoundaryTime.find(text)?.groupValues?.get(1)), offset)
-    }
-
-    @Synchronized private fun codexBoundary(file: File): TurnBoundary? {
-        val attributes = java.nio.file.Files.readAttributes(file.toPath(), java.nio.file.attribute.BasicFileAttributes::class.java)
-        val prefix = RandomAccessFile(file, "r").use { input ->
-            ByteArray(minOf(input.length(), 512).toInt()).also(input::readFully).let { bytes ->
-                bytes.copyOfRange(0, bytes.indexOf(NewLine).takeIf { it >= 0 } ?: bytes.size).contentHashCode()
-            }
-        }
-        fun tail(end: Long): Int = RandomAccessFile(file, "r").use { input ->
-            val start = (end - 512).coerceAtLeast(0)
-            input.seek(start)
-            ByteArray((end - start).toInt()).also(input::readFully).contentHashCode()
-        }
-        val prior = codexBoundaries[file.path]?.takeIf {
-            it.key == attributes.fileKey() && it.prefix == prefix && attributes.size() >= it.length &&
-                (attributes.size() > it.length || attributes.lastModifiedTime() == it.modified) && tail(it.length) == it.tail
-        }
-        var found = prior?.boundary
-        val scanned = if (prior != null) {
-            var offset = prior.scanned
-            lines(file, offset) { bytes ->
-                boundary(bytes, offset)?.let { found = it }
-                offset += bytes.size + 1
-            }
-        } else RandomAccessFile(file, "r").use { input ->
-            var at = input.length()
-            var end: Long? = null
-            var appendAt = 0L
-            fun record(start: Long, finish: Long) {
-                val size = finish - start
-                if (size <= 0) return
-                val bytes = ByteArray(minOf(size, BoundaryBytes.toLong()).toInt())
-                input.seek(start)
-                input.readFully(bytes)
-                boundary(bytes, start, size > BoundaryBytes)?.let { found = it }
-            }
-            while (at > 0 && found == null) {
-                val start = (at - BoundaryBytes).coerceAtLeast(0)
-                val bytes = ByteArray((at - start).toInt())
-                input.seek(start)
-                input.readFully(bytes)
-                for (index in bytes.lastIndex downTo 0) {
-                    if (bytes[index] != NewLine) continue
-                    val position = start + index
-                    val finish = end
-                    if (finish == null) appendAt = position + 1 else record(position + 1, finish)
-                    end = position
-                    if (found != null) break
-                }
-                at = start
-            }
-            if (found == null) end?.let { record(0, it) }
-            appendAt
-        }
-        if (codexBoundaries.size >= ParsedKept) codexBoundaries.clear()
-        codexBoundaries[file.path] = BoundaryCursor(attributes.fileKey(), attributes.size(), attributes.lastModifiedTime(), prefix, tail(attributes.size()), scanned, found)
-        return found
-    }
-
     private fun codexSession(file: File, titles: Map<String, String>, root: String, open: Set<String>?, now: Long): HarnessSession? {
         val base = parsed(file, root) { codexParse(file, root) } ?: return null
         val held = open?.contains(file.path)
@@ -585,7 +479,7 @@ object HarnessSessions {
         val events = tail.filter { it.string("type") == "event_msg" }.mapNotNull { it.nested("payload")?.string("type") }
             .filter { it != "token_count" && it != "thread_settings_applied" }
         val (checklist, checklistAt) = codexChecklist(tail, root)
-        val boundary = codexBoundary(file)
+        val boundary = WorkLogs.codexStatus(file)
         val window = if (file.length() <= TailBytes) tail else head + tail
         val cursor = CodexTelemetry.SessionCursor(context?.string("model"))
         val samples = window.mapNotNull { record ->

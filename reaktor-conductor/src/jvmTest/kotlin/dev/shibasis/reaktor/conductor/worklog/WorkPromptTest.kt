@@ -29,7 +29,7 @@ class WorkPromptTest {
         try {
             val file = directory.resolve("transcript.jsonl")
             javaClass.getResourceAsStream("/worklog/chat-envelopes/$fixture.jsonl")!!.use { input -> file.outputStream().use(input::copyTo) }
-            val log = RunLogs.prompts(WorkLogs.read(runtime, file, directory.path), emptyList(), profile = true)
+            val log = RunLogs.prompts(WorkLogs.read(runtime, file, directory.path), emptyList())
             assertEquals(3, log.turns.size)
             assertEquals("Inspect the fixture graph.", log.turns[0].prompt)
             val context = assertNotNull(log.turns[0].context)
@@ -49,13 +49,13 @@ class WorkPromptTest {
 
     @Test fun canonicalPromptsKeepTheTypedRoleParagraphAndNativeContext() {
         val sent = "You are Reviewer.\n\nInspect the ports.\n\n## Your task\nA typed question\n\nYour role, Reviewer: Preserve source intent.\n"
-        val parsed = WorkPrompts.of(sent, profile = true)
+        val parsed = WorkPrompts.of(sent)
         val events = listOf(ThreadEvent(EventId("human"), Author.Human(), EventKind.Prompt, "A typed question\n\nYour role, Reviewer: Preserve source intent."))
         val native = WorkLog(listOf(WorkTurn("native", parsed.text, 1, 2, emptyList(), context = parsed.context)))
         val rebuilt = RunLogs.prompts(native, events).turns.single()
         assertEquals("A typed question\n\nYour role, Reviewer: Preserve source intent.", rebuilt.prompt)
         assertTrue(rebuilt.context === parsed.context)
-        val canonical = RunLogs.of(listOf(events.single().copy(text = sent)), emptyList(), false, profile = true).turns.single()
+        val canonical = RunLogs.of(listOf(events.single().copy(text = sent)), emptyList(), false).turns.single()
         assertEquals("A typed question\n\nYour role, Reviewer: Preserve source intent.", canonical.prompt)
         assertTrue(canonical.context?.sent == sent)
         assertEquals(1, canonical.context?.slices?.size)

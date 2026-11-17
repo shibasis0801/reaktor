@@ -9,8 +9,8 @@ import kotlin.test.*
 class WorkPromptRetentionTest {
     @Test fun aProfileDoesNotChangeTheOwnersTypedRoleParagraph() {
         val typed = "Inspect this example.\n\nYour role, Reader: keep this paragraph exactly."
-        assertEquals(typed, WorkPrompts.of(typed, profile = true).text)
-        assertNull(WorkPrompts.of(typed, profile = true).context)
+        assertEquals(typed, WorkPrompts.of(typed).text)
+        assertNull(WorkPrompts.of(typed).context)
     }
 
     @Test fun theCurrentPromptSurvivesBothReadWindows() {

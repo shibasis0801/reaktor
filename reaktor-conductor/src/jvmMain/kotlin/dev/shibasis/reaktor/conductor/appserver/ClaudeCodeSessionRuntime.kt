@@ -1,7 +1,7 @@
 package dev.shibasis.reaktor.conductor.appserver
 
 import dev.shibasis.reaktor.conductor.*
-import dev.shibasis.reaktor.conductor.cli.ClaudeCodeEventParser
+import dev.shibasis.reaktor.conductor.worklog.ClaudeLog
 import dev.shibasis.reaktor.conductor.cli.claudeArgv
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -106,10 +106,8 @@ private class ClaudeCodeSession(
     }
 
     override val events: Flow<AgentEvent> = channelFlow {
-        val parser = ClaudeCodeEventParser(
-            agent,
-            request.agent.effort?.let { EffortRecord(requested = it, resolved = it) } ?: EffortRecord.none,
-        )
+        val parser = ClaudeLog(request.workingDirectory, cli = true) { null }
+        val effort = request.agent.effort?.let { EffortRecord(requested = it, resolved = it) } ?: EffortRecord.none
         val lines = Channel<String>(256)
         // Deliberately NOT a child of this channelFlow. A blocking stream read cannot be
         // cancelled, so a child would keep the flow from ever completing once the turn ends.
@@ -169,7 +167,7 @@ private class ClaudeCodeSession(
                 }
                 continue
             }
-            parser.onLine(line).forEach { send(it) }
+            if (message != null) parser.events(message, agent).forEach { send(it) }
             if (message?.get("type")?.jsonPrimitive?.contentOrNull == "result") {
                 val finished = synchronized(writeLock) {
                     queued--
@@ -187,7 +185,7 @@ private class ClaudeCodeSession(
         lines.close()
         pending.clear()
         }
-        send(AgentEvent.Finished(agent, parser.finish(
+        send(AgentEvent.Finished(agent, parser.finish(agent, effort,
             exitCode = if (process.isAlive) 0 else process.exitValue(),
             stderr = synchronized(stderr) { stderr.toString() },
         ).let { if (interrupted) it.copy(ok = false, interrupted = true, failure = "Interrupted") else it }))

@@ -45,10 +45,10 @@ object RunLogs {
 
     fun prompts(log: WorkLog, events: List<ThreadEvent>, profile: Boolean = false): WorkLog {
         val source = if (!profile) log else log.copy(turns = log.turns.map { turn ->
-            val parsed = WorkPrompts.of(turn.context?.sent ?: turn.prompt, profile = true)
+            val parsed = WorkPrompts.of(turn.context?.sent ?: turn.prompt)
             if (parsed.text == turn.prompt) turn else turn.copy(prompt = parsed.text, context = parsed.context ?: turn.context)
         })
-        val asked = events.filter { it.author is Author.Human }.map { WorkPrompts.of(it.text, profile) }
+        val asked = events.filter { it.author is Author.Human }.map { WorkPrompts.of(it.text) }
         val normalized = source.turns.map { it.prompt?.trim()?.replace(Whitespace, " ") }
         val turns = source.turns.toMutableList()
         var next = 0
@@ -86,7 +86,7 @@ object RunLogs {
         var ended: Long? = at
 
         fun build(profile: Boolean): WorkTurn {
-            val parsed = WorkPrompts.of(prompt, profile)
+            val parsed = WorkPrompts.of(prompt)
             return WorkTurn(id, parsed.text, at, ended, did + listOfNotNull(contributions.takeIf { it.isNotEmpty() }?.let { steps ->
                 WorkStep.Subagent("$id:council", steps.first().at, "${steps.size} council contributions · proposals and cross-review", steps = steps, status = StepStatus.Done)
             }) + said, context = parsed.context)
