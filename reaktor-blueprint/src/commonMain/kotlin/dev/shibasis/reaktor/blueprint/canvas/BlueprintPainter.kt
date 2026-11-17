@@ -797,13 +797,11 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         if (look.rows.isNotEmpty()) h = maxOf(h, node.pinHeader + look.rows.size * BlueprintEngine.RowHeight + node.pinFooter)
         if (look.face == BlueprintFace.Prose) {
             val style = proseTitles.first()
-            w = maxOf(BlueprintEngine.CardWidth, widestRow, look.title.split(Regex("\\s+")).maxOfOrNull { width(it, style) }?.plus(ProseInset + MachineSignal.Space.s3.value + actionWidth(look)) ?: 0.0,
-                width(look.subtitle, footerStyle) + ProseInset + MachineSignal.Space.s3.value + actionWidth(look))
+            w = maxOf(BlueprintEngine.CardWidth, widestRow, look.title.split(Regex("\\s+")).maxOfOrNull { width(it, style) }?.plus(ProseInset + MachineSignal.Space.s3.value + actionWidth(look)) ?: 0.0)
             val room = (w - ProseInset - MachineSignal.Space.s3.value - actionWidth(look)).toFloat()
             val title = measurer.measure(look.title, style, constraints = Constraints(maxWidth = room.toInt()))
             val top = MachineSignal.Space.s6.value + MachineSignal.Space.s0_5.value
-            val bottom = if (look.subtitle.isEmpty()) MachineSignal.Space.s2_5.value else top
-            h = maxOf(h, title.size.height + top + bottom.toDouble())
+            h = maxOf(h + (proseSubtitle(look, room)?.wrapHeight() ?: 0f), title.size.height + top + proseFooter(look, room).toDouble())
         }
         look.agent?.takeIf { it.companions.isNotEmpty() }?.let {
             w = maxOf(w, MachineSignal.Space.s3.value * 2.0 + MachineSignal.AgentBadge.size.value * (it.companions.size + 1) + MachineSignal.AgentBadge.gap.value * it.companions.size)
@@ -895,9 +893,9 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
                 marks.forEach { (value, _) -> mark(value, Blueprint.ProseMeta.sp) }
                 look.eyebrow?.let { text(it.uppercase(), eyebrowStyle, room - used) }
                 val title = proseTitle(card, look, room, h)
-                if (title == null || title.size.height + 34f > h - if (look.subtitle.isNotEmpty()) 34f else 10f) fits = false
+                if (title == null || title.size.height + 34f > h - proseFooter(look, room)) fits = false
                 title?.let { texts += it; smallest = min(smallest, it.layoutInput.style.fontSize.value) }
-                text(look.subtitle, footerStyle, room)
+                proseSubtitle(look, room)?.let { texts += it; smallest = min(smallest, it.layoutInput.style.fontSize.value) }
             }
         }
         return PaintContent(card.width, card.height, smallest.toDouble(), fits && texts.none { it.hasVisualOverflow })
@@ -1083,7 +1081,15 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
 
     private fun proseTitleBottom(card: Card, look: BlueprintCardLook, height: Float): Float =
         card.pins.filter { it.y > BlueprintEngine.HeaderHeight }.minOfOrNull { it.y - BlueprintEngine.RowHeight / 2 - BlueprintEngine.RowHeight / 3 }?.toFloat()
-            ?: (height - if (look.subtitle.isNotEmpty()) 34f else 10f)
+            ?: (height - proseFooter(look, card.width.toFloat() - ProseInset - 12f - actionWidth(look)))
+
+    private fun proseSubtitle(look: BlueprintCardLook, room: Float): TextLayoutResult? =
+        look.subtitle.takeIf(String::isNotEmpty)?.let { words(it, footerStyle, room, SubtitleLines) }
+
+    private fun proseFooter(look: BlueprintCardLook, room: Float): Float =
+        if (look.subtitle.isEmpty()) 10f else 34f + (proseSubtitle(look, room)?.wrapHeight() ?: 0f)
+
+    private fun TextLayoutResult.wrapHeight(): Float = getLineBottom(lineCount - 1) - getLineBottom(0)
 
     private fun proseTitle(card: Card, look: BlueprintCardLook, width: Float, height: Float): TextLayoutResult? =
         Blueprint.ProseTitles.indices.firstNotNullOfOrNull { k ->
@@ -1123,7 +1129,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
                 ?.takeIf { it.size.height + 34f <= proseTitleBottom(card, look, bodyHeight) }
             title?.let { paint(it, left, y + 34f) }
         }
-        if (look.subtitle.isNotEmpty()) words(look.subtitle, footerStyle, room)?.let { paint(it, left, y + bodyHeight - 28f) }
+        proseSubtitle(look, room)?.let { paint(it, left, y + bodyHeight - 28f - it.wrapHeight()) }
         drawRows(card, look, x, y, columns)
         drawProgress(look, x, y, w, bodyHeight)
         drawBorder(look.selected, look.outline, x, y, w, h)
@@ -1278,6 +1284,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         const val TitledTint = .38f
         const val TitledInset = 18f
         val ProseLines = intArrayOf(3, 4, 5)
+        const val SubtitleLines = 2
         const val Joiners = ",;:·–-"
         const val PlateHeight = 28f
         const val PlateFloor = 96f
