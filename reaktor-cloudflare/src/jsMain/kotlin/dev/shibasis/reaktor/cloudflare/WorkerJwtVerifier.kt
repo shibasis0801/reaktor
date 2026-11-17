@@ -43,17 +43,25 @@ class WorkerJwtVerifier(
         if (dynString(header.alg) != "ES256") return null // pin the algorithm
         val kid = dynString(header.kid)
 
-        // Resolve the verification key; on a kid miss, force-refresh JWKS once (handles key rotation).
-        var key = selectKey(loadJwks(forceRefresh = false), kid)
+        var held = loadJwks(forceRefresh = kid == null) ?: return null
+        var refreshed = kid == null
+        var key = selectKey(parseOrNull(held.text), kid, allowSingle = refreshed)
         if (key == null) {
-            key = selectKey(loadJwks(forceRefresh = true), kid)
-            if (key == null) return null
+            held = loadJwks(forceRefresh = true) ?: return null
+            refreshed = true
+            key = selectKey(parseOrNull(held.text), kid, allowSingle = true) ?: return null
         }
 
         val signingInput = parts[0] + "." + parts[1]
-        val signatureValid = runCatching {
-            verifyEs256(key, base64UrlToBytes(parts[2]), encodeUtf8(signingInput)).await()
+        suspend fun valid(candidate: dynamic): Boolean = runCatching {
+            verifyEs256(candidate, base64UrlToBytes(parts[2]), encodeUtf8(signingInput)).await()
         }.getOrDefault(false)
+        var signatureValid = valid(key)
+        if (!signatureValid && !refreshed && jwksJson.isNullOrBlank() && nowMillis() - held.fetchedAtMillis >= 60_000) {
+            held = loadJwks(forceRefresh = true) ?: return null
+            key = selectKey(parseOrNull(held.text), kid, allowSingle = true) ?: return null
+            signatureValid = valid(key)
+        }
         if (!signatureValid) return null
 
         val payload = runCatching { decodeJwtSegment(parts[1]) }.getOrNull() ?: return null
@@ -71,46 +79,40 @@ class WorkerJwtVerifier(
         return VerifiedToken(payload)
     }
 
-    private suspend fun loadJwks(forceRefresh: Boolean): dynamic {
+    private suspend fun loadJwks(forceRefresh: Boolean): HeldJwks? {
         val pinned = jwksJson?.takeIf { it.isNotBlank() }
-        if (pinned != null) return parseJson(pinned)
+        if (pinned != null) return HeldJwks(pinned, nowMillis())
 
-        val cache = kv // local val so the smart-cast survives into the inline runCatching lambdas below
         val stale = jwksMemory[jwksUrl]
+        val now = nowMillis()
         if (!forceRefresh) {
-            val held = jwksMemory[jwksUrl]
-            if (held != null && held.freshAt(nowMillis())) {
-                val parsed = parseOrNull(held.text)
-                if (parsed != null) return parsed
-            }
-            val fromColo = cacheApiRead(jwksUrl)
-            if (fromColo != null) {
-                val parsed = parseOrNull(fromColo)
-                if (parsed != null) {
-                    remember(fromColo)
-                    return parsed
-                }
-            }
-            val fromKv = cache?.getString(cacheKey)
-            if (fromKv != null) {
-                val parsed = parseOrNull(fromKv)
-                if (parsed != null) {
-                    remember(fromKv)
-                    cacheApiWrite(jwksUrl, fromKv, cacheTtlSeconds)
-                    return parsed
+            if (stale != null && stale.freshAt(now, cacheTtlSeconds)) return stale
+            for (source in 0..1) {
+                val text = (if (source == 0) cacheApiRead(jwksUrl) else kv?.getString(cacheKey)) ?: continue
+                val parsed = parseOrNull(text) ?: continue
+                val fetchedAt = dynNumber(parsed._reaktorFetchedAt) ?: 0.0
+                val held = HeldJwks(text, fetchedAt)
+                if (held.freshAt(now, cacheTtlSeconds)) {
+                    jwksMemory[jwksUrl] = held
+                    return held
                 }
             }
         }
-
-        val text = runCatching { fetchText(jwksUrl) }.getOrNull() ?: return stale?.let { parseOrNull(it.text) }
-        remember(text)
-        cacheApiWrite(jwksUrl, text, cacheTtlSeconds)
-        if (cache != null) runCatching { cache.putString(cacheKey, text, cacheTtlSeconds) }
-        return parseOrNull(text)
-    }
-
-    private fun remember(text: String) {
-        jwksMemory[jwksUrl] = HeldJwks(text, nowMillis() + cacheTtlSeconds * 1000.0)
+        val lastRefresh = jwksRefreshes[jwksUrl]
+        if (lastRefresh != null && now - lastRefresh in 0.0..29_999.999) return stale
+        if (forceRefresh || stale != null) jwksRefreshes[jwksUrl] = now
+        val text = runCatching { fetchText(jwksUrl) }.getOrNull() ?: return stale
+        val parsed = parseOrNull(text) ?: return stale
+        val keys = parsed.keys
+        if (!(js("Array.isArray(keys)") as Boolean)) return stale
+        parsed._reaktorFetchedAt = now
+        val dated = js("JSON.stringify(parsed)").unsafeCast<String>()
+        val held = HeldJwks(dated, now)
+        jwksMemory[jwksUrl] = held
+        cacheApiWrite(jwksUrl, dated, cacheTtlSeconds)
+        val cache = kv
+        if (cache != null) runCatching { cache.putString(cacheKey, dated, cacheTtlSeconds) }
+        return held
     }
 
     private suspend fun fetchText(url: String): String? {
@@ -172,11 +174,12 @@ private fun VerifiedToken.toPlainJsObject(): Any {
     return out.unsafeCast<Any>()
 }
 
-private class HeldJwks(val text: String, private val expiresAtMillis: Double) {
-    fun freshAt(now: Double) = now < expiresAtMillis
+private class HeldJwks(val text: String, val fetchedAtMillis: Double) {
+    fun freshAt(now: Double, ttlSeconds: Int) = now >= fetchedAtMillis && now - fetchedAtMillis < ttlSeconds * 1000.0
 }
 
 private val jwksMemory: MutableMap<String, HeldJwks> = mutableMapOf()
+private val jwksRefreshes: MutableMap<String, Double> = mutableMapOf()
 
 private suspend fun cacheApiRead(key: String): String? {
     val response = runCatching { cacheMatch(key).await() }.getOrNull() ?: return null
@@ -200,18 +203,16 @@ private fun nowMillis(): Double = js("Date.now()") as Double
 
 private fun parseOrNull(text: String): dynamic = runCatching { parseJson(text) }.getOrNull()
 
-private fun selectKey(jwks: dynamic, kid: String?): dynamic {
+private fun selectKey(jwks: dynamic, kid: String?, allowSingle: Boolean = false): dynamic {
     if (jwks == null) return null
     val keys = jwks.keys
     if (!(js("Array.isArray(keys)") as Boolean)) return null
     val length = keys.length as Int
     for (index in 0 until length) {
         val candidate = keys[index]
-        if (kid == null) return candidate
-        if (dynString(candidate.kid) == kid) return candidate
+        if (kid != null && dynString(candidate.kid) == kid) return candidate
     }
-    // kid was present but unmatched: if exactly one key is published, use it.
-    return if (kid != null && length == 1) keys[0] else null
+    return if (allowSingle && length == 1) keys[0] else null
 }
 
 private fun nowSeconds(): Double = (js("Date.now()") as Double) / 1000.0
