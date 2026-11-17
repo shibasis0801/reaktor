@@ -20,6 +20,23 @@ class AgentServiceHostTest {
 
     @AfterTest fun clean() { directory.toFile().deleteTreeSafely(within = File("/tmp")) }
 
+    @Test fun aWorkspaceFailureDoesNotPreventTheFollowingWorkspaceFromReopening() {
+        val vanished = directory.resolve("graph-tab-owner-vanished").toString()
+        val unmounted = "/Volumes/hangar-unmounted-fixture"
+        val valid = directory.resolve("still-present").toFile().apply { mkdirs() }.path
+        val opened = mutableListOf<String>()
+        val reports = mutableListOf<String>()
+        val failure = assertFailsWith<IllegalStateException> {
+            AgentServiceHost.reopen(listOf(HostedWorkspace(vanished), HostedWorkspace(unmounted), HostedWorkspace(valid)), reports::add) { workspace ->
+                opened += workspace.root
+                if (workspace.root == unmounted) "Volume is unavailable" else null
+            }
+        }
+        assertEquals(listOf(unmounted, valid), opened)
+        assertTrue(failure.message.orEmpty().contains(unmounted))
+        assertEquals(1, reports.size)
+    }
+
     @Test fun anUpgradeSkipsAVanishedTemporaryWorkspaceAndReopensTheRest() {
         val vanished = directory.resolve("graph-tab-owner-vanished").toString()
         val valid = directory.resolve("still-present").toFile().apply { mkdirs() }.path

@@ -44,7 +44,9 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
     fun JsonObject.thread(by: BoardActor?): String = text("thread") ?: text("continuation")?.let(PlanReadPage::thread) ?: by?.session ?: error("Name the thread: hangar:, claude:, codex: or agy: with its id")
     fun plan(value: WorkPlan, history: Boolean): JsonElement {
         val document = workspace.documentPlan(value)
-        return AgentWorkspaceJson.encodeToJsonElement(WorkPlan.serializer(), if (history) document else document.copy(changes = emptyList()))
+        val encoded = AgentWorkspaceJson.encodeToJsonElement(WorkPlan.serializer(), if (history) document else document.copy(changes = emptyList()))
+        return if (document.documentPath != null && document.documentText == null) JsonObject(encoded.jsonObject +
+            ("documentError" to JsonPrimitive("Could not read ${document.documentPath}; check that it is a readable UTF-8 Markdown file under plans/ and at most 512 KB"))) else encoded
     }
     fun changes(values: List<PlanChange>) = AgentWorkspaceJson.encodeToJsonElement(ListSerializer(PlanChange.serializer()), values)
     val api = PlansApi()
@@ -61,14 +63,16 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
         },
         McpTool("agent_plan_read", "Read a thread's plan: the high-level design and running checklist its agent keeps, which people edit in Hangar. " +
             "Items carry a status, the items they wait on (after), the item they belong to (parent), links into Reaktor (refs) and the seat of an attached agent. " +
-            "Pass since, the revision you last read, to get news and your scope. When newsTruncated is true, read again with since=newsSince before advancing to the plan revision. Follow continuation and reassemble metadataFragment first. Follow continuation until absent. " +
+            "Pass since, the revision you last read, to get news and your scope. " + PlanBrief.News + " Follow continuation until absent. " +
             "A metadataFragment carries JSON text at its offset; concatenate it before decoding claims, ready, news and history. With history=true, changes are in plan.changes on the first page, or in metadata.history when too large. An item fragment uses the same protocol for one item.",
             api.read.request.descriptor.jsonSchema(), true, true) { args ->
             args.only("thread", "since", "history", "by", "budgetBytes", "frame", "continuation")
             val reader = args.actor()
             val identity = reader?.let(workspace::planIdentity)
-            val read = workspace.plans.read(args.thread(reader), args.long("since"), reader)
-            val history = args["history"]?.jsonPrimitive?.booleanOrNull == true
+            val cursor = args.text("continuation")?.let(PlanReadPage::selection)
+            val since = args.long("since") ?: cursor?.since
+            val read = workspace.plans.read(args.thread(reader), since, reader)
+            val history = args["history"]?.jsonPrimitive?.booleanOrNull ?: cursor?.history ?: false
             val presence = workspace.presence.read(listOf(read.plan))
             val claims = PlanClaims.resolve(read.plan, presence, presence.observedAt)
             val ready = when {
@@ -77,14 +81,16 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
                 else -> listOfNotNull(workspace.nextPlan(read.plan.thread, reader).candidate)
             }
             val answer = buildJsonObject {
-                put("plan", plan(read.plan, history))
+                val document = plan(read.plan, history)
+                put("plan", document)
+                document.jsonObject["documentError"]?.let { put("documentError", it) }
                 put("claims", AgentWorkspaceJson.encodeToJsonElement(PlanClaims.serializer(), if (history) claims else claims.active()))
                 put("ready", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(PlanCandidate.serializer()), ready))
-                if (args.long("since") != null) put("news", changes(read.news))
+                if (since != null) { put("news", changes(read.news)); put("since", since) }
             }
             if (reader?.kind == BoardActorKind.Agent || args["budgetBytes"] != null || args["frame"] != null || args["continuation"] != null)
                 PlanReadPage.answer(read.plan, identity ?: BoardActor(BoardActorKind.Person, "Reader"), answer,
-                    args.text("frame"), args.text("continuation"), args.long("budgetBytes")?.toInt(), scoped = args.long("since") != null)
+                    args.text("frame"), args.text("continuation"), args.long("budgetBytes")?.toInt(), scoped = since != null, since = since, historyRequested = history)
             else answer
         },
         McpTool("agent_plan_schedule", "Remaining item steps, critical path and slack, schedulable dependency width and unresolved blockers. No duration estimates.",
@@ -134,11 +140,9 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
                 title = args.text("title"), goal = args.text("goal"), base = args.long("base"), seat = args.text("seat"), message = args.text("message"),
                 documentPath = args.text("documentPath"), requestId = args.text("requestId"),
                 documentText = args.text("documentText"), approval = args.text("approval")?.let(PlanApproval::valueOf),
-                limits = args["limits"]?.let { value ->
-                    val current = workspace.plans.plan(args.thread(writer))?.limits ?: PlanLimits()
-                    val fields = AgentWorkspaceJson.encodeToJsonElement(PlanLimits.serializer(), current).jsonObject
-                    AgentWorkspaceJson.decodeFromJsonElement(PlanLimits.serializer(), JsonObject(fields + value.jsonObject))
-                },
+                limits = args["limits"]?.let { AgentWorkspaceJson.decodeFromJsonElement(PlanLimits.serializer(), it) },
+                limitFields = args["limits"]?.jsonObject?.keys,
+
             )
             val applied = workspace.plans.write(args.thread(writer), patch, writer)
             buildJsonObject {

@@ -63,6 +63,7 @@ class AgentWorkspaceConnection private constructor(
     private val closed = AtomicBoolean()
     private val runTransfers = ConcurrentHashMap<String, Mutex>()
     private val heldRuns = LinkedHashMap<String, AgentRunRecord>()
+    private var heldRunBytes = 0L
     private var heldIncarnation: String? = null
     private val receivedBytes = AtomicLong()
     private val receivedUpdates = AtomicLong()
@@ -149,7 +150,7 @@ class AgentWorkspaceConnection private constructor(
     private suspend fun receiveRun(id: String, afterRevision: Long? = null, timeoutMillis: Long = 0, initial: JsonElement? = null): AgentRunRecord = runTransfers.computeIfAbsent(id) { Mutex() }.withLock {
         val owner = incarnation
         var current = synchronized(heldRuns) {
-            if (heldIncarnation != owner) { heldRuns.clear(); heldIncarnation = owner }
+            if (heldIncarnation != owner) { heldRuns.clear(); heldRunBytes = 0; heldIncarnation = owner }
             heldRuns[id]
         }
         var waiting = afterRevision
@@ -166,9 +167,12 @@ class AgentWorkspaceConnection private constructor(
             receivedUpdates.incrementAndGet()
             current = AgentRunTransfer.apply(value, current)
             synchronized(heldRuns) {
-                heldRuns.remove(id)
+                heldRuns.remove(id)?.let { heldRunBytes -= AgentRunTransfer.retainedBytes(it) }
                 heldRuns[id] = current
-                while (heldRuns.size > 100) heldRuns.remove(heldRuns.keys.first())
+                heldRunBytes += AgentRunTransfer.retainedBytes(requireNotNull(current))
+                while (heldRuns.size > 100 || heldRunBytes > AgentRunTransfer.CacheBudget) {
+                    heldRunBytes -= AgentRunTransfer.retainedBytes(requireNotNull(heldRuns.remove(heldRuns.keys.first())))
+                }
             }
             complete = value.jsonObject["complete"]?.jsonPrimitive?.booleanOrNull != false
             waiting = null
@@ -503,6 +507,10 @@ class AgentWorkspaceConnection private constructor(
 }
 
 internal object AgentRunTransfer {
+    const val CacheBudget = 33_554_432L
+    fun retainedBytes(run: AgentRunRecord): Long = streams(run).values.sumOf { it.length.toLong() * 3 } +
+        ConductorJson.encodeToString(AgentRunRecord.serializer(), header(run)).length.toLong() * 3
+
     const val Budget = 256_000
 
     private fun streams(run: AgentRunRecord): LinkedHashMap<String, String> = linkedMapOf("output" to run.output, "reasoning" to run.reasoning).apply {
@@ -518,14 +526,14 @@ internal object AgentRunTransfer {
         run?.let { streams(it).forEach { (key, text) -> put(key, buildJsonObject { put("length", text.length); put("sha256", digest(text)) }) } }
     }
 
-    fun delta(run: AgentRunRecord, held: JsonObject, budget: Int = Budget): JsonObject {
+    fun delta(run: AgentRunRecord, held: JsonObject, budget: Int = Budget, includeHeader: Boolean = true): JsonObject {
         val texts = streams(run)
         val patches = linkedMapOf<String, JsonElement>()
         val unique = linkedMapOf<String, String>()
         var complete = true
         fun envelope(done: Boolean) = buildJsonObject {
             put("runDelta", 1)
-            put("record", ConductorJson.encodeToJsonElement(AgentRunRecord.serializer(), header(run)))
+            if (includeHeader) put("record", ConductorJson.encodeToJsonElement(AgentRunRecord.serializer(), header(run)))
             put("streams", JsonObject(patches))
             put("complete", done)
         }
@@ -558,7 +566,7 @@ internal object AgentRunTransfer {
     fun apply(value: JsonElement, prior: AgentRunRecord?): AgentRunRecord {
         val body = value.jsonObject
         if (body["runDelta"] == null) return ConductorJson.decodeFromJsonElement(AgentRunRecord.serializer(), value)
-        val run = ConductorJson.decodeFromJsonElement(AgentRunRecord.serializer(), body.getValue("record"))
+        val run = body["record"]?.let { ConductorJson.decodeFromJsonElement(AgentRunRecord.serializer(), it) } ?: requireNotNull(prior) { "Run journal needs its complete record" }
         require(prior == null || prior.id == run.id) { "Run delta belongs to another run" }
         val previous = prior?.let(::streams).orEmpty()
         val received = linkedMapOf<String, String>()
@@ -572,35 +580,81 @@ internal object AgentRunTransfer {
                     old.take(offset) + patch.getValue("text").jsonPrimitive.content
                 }
         }
+        require(body["complete"]?.jsonPrimitive?.booleanOrNull != false || received.any { (key, text) -> text != previous[key].orEmpty() }) {
+            "Run delta is incomplete and made no progress"
+        }
         return run.copy(output = received["output"].orEmpty(), reasoning = received["reasoning"].orEmpty(),
             participants = run.participants.mapValues { (id, part) -> part.copy(output = received["participant:$id:output"].orEmpty(), reasoning = received["participant:$id:reasoning"].orEmpty()) })
     }
 
-    internal data class Replay(val run: AgentRunRecord?, val completeBytes: Int, val torn: Boolean)
+    internal data class Replay(val run: AgentRunRecord?, val completeBytes: Int, val torn: Boolean, val tornPath: Path? = null)
 
     fun read(path: Path): AgentRunRecord? = replay(path).run
 
     internal fun replay(path: Path): Replay {
-        val bytes = Files.readAllBytes(path)
-        var run: AgentRunRecord? = null
-        var start = 0
+        var header: AgentRunRecord? = null
+        val builders = linkedMapOf<String, StringBuilder>()
         var complete = 0
-        for (end in 0..bytes.size) {
-            if (end < bytes.size && bytes[end] != '\n'.code.toByte()) continue
-            if (end == start) {
-                complete = minOf(end + 1, bytes.size)
-            } else {
-                try {
-                    val line = bytes.decodeToString(start, end, throwOnInvalidSequence = true)
-                    if (line.isNotBlank()) run = apply(ConductorJson.parseToJsonElement(line), run)
-                    complete = minOf(end + 1, bytes.size)
-                } catch (failure: Exception) {
-                    return Replay(run, complete, true)
+        var bad: Path? = null
+        var baseRevision: Long? = null
+        fun accept(value: JsonElement, journal: Boolean) {
+            val body = value.jsonObject
+            if (body["runDelta"] == null) {
+                val record = ConductorJson.decodeFromJsonElement(AgentRunRecord.serializer(), value)
+                header = AgentRunTransfer.header(record)
+                builders.clear()
+                streams(record).forEach { (key, text) -> builders[key] = StringBuilder(text) }
+                return
+            }
+            val revision = body["revision"]?.jsonPrimitive?.longOrNull
+            if (journal && revision != null && baseRevision != null && revision <= baseRevision!!) return
+            val next = body["record"]?.let { ConductorJson.decodeFromJsonElement(AgentRunRecord.serializer(), it) }
+                ?: requireNotNull(header) { "Run journal needs its complete record" }
+            require(header == null || header!!.id == next.id) { "Run delta belongs to another run" }
+            body.getValue("streams").jsonObject.forEach { (key, element) ->
+                val patch = element.jsonObject
+                val alias = patch["alias"]?.jsonPrimitive?.contentOrNull
+                if (alias != null) builders[key] = requireNotNull(builders[alias])
+                else {
+                    val old = builders[key] ?: StringBuilder()
+                    val text = if (builders.any { it.key != key && it.value === old }) StringBuilder(old) else old
+                    val offset = patch.getValue("offset").jsonPrimitive.int
+                    require(offset in 0..text.length) { "Run journal needs an earlier sample" }
+                    text.setLength(offset)
+                    text.append(patch.getValue("text").jsonPrimitive.content)
+                    builders[key] = text
                 }
             }
-            start = end + 1
+            header = next
         }
-        return Replay(run, complete, run == null)
+        fun lines(file: Path, journal: Boolean) {
+            val bytes = Files.readAllBytes(file)
+            var start = 0
+            for (end in 0..bytes.size) {
+                if (end < bytes.size && bytes[end] != '\n'.code.toByte()) continue
+                try {
+                    if (end > start) {
+                        val line = bytes.decodeToString(start, end, throwOnInvalidSequence = true)
+                        if (line.isNotBlank()) accept(ConductorJson.parseToJsonElement(line), journal)
+                    }
+                    complete = minOf(end + 1, bytes.size)
+                } catch (failure: Exception) {
+                    bad = file
+                    return
+                }
+                start = end + 1
+            }
+        }
+        lines(path, false)
+        baseRevision = header?.revision
+        val journal = path.resolveSibling(path.fileName.toString().removeSuffix(".json") + ".journal")
+        if (bad == null && Files.exists(journal)) lines(journal, true)
+        val run = header?.let { value -> value.copy(output = builders["output"]?.toString().orEmpty(),
+            reasoning = builders["reasoning"]?.toString().orEmpty(), participants = value.participants.mapValues { (id, part) ->
+                part.copy(output = builders["participant:$id:output"]?.toString().orEmpty(),
+                    reasoning = builders["participant:$id:reasoning"]?.toString().orEmpty())
+            }) }
+        return Replay(run, complete, bad != null || run == null, bad)
     }
 
     fun endsInNewline(path: Path): Boolean = Files.size(path) == 0L || Files.newByteChannel(path).use { channel ->

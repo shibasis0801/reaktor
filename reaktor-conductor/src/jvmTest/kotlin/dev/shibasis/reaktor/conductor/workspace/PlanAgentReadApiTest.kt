@@ -321,6 +321,43 @@ class PlanAgentReadApiTest {
         val refusal = assertFailsWith<IllegalArgumentException> {
             PlanRules.apply(plan, PlanPatch(limits = PlanLimits(8)), agent, 2)
         }
-        assertTrue(refusal.message.orEmpty().contains("person"), "The reason must name the person role that can change limits")
+        assertEquals("Only a person, the plan's creator or its thread's agent can change its limits", refusal.message)
     }
+    @Test fun aContinuationAlonePreservesItsSinceFrameAndHistorySelection() = fixture { workspace ->
+        workspace.plans.write("hangar:bounded", PlanPatch(title = "Continuity", ops =
+            listOf(PlanOp.Add("Area", key = "area", kind = PlanKind.Component)) +
+                List(15) { PlanOp.Add("Task $it", key = "p$it", parent = "area", detail = "detail ".repeat(500), refs = listOf(PlanPeople.ref(agent))) }), person)
+        repeat(12) { workspace.plans.write("hangar:bounded", PlanPatch(emptyList(), message = "Evidence $it " + "évidence ".repeat(200)), person) }
+        val read = agentPlanTools(workspace).single { it.name == "agent_plan_read" }
+        var page = read.invoke(args(buildJsonObject {
+            put("since", 1); put("frame", "area"); put("history", true); put("budgetBytes", 8192)
+        })).jsonObject
+        val history = StringBuilder()
+        var turns = 0
+        var completed = false
+        do {
+            assertTrue(page["restart"]?.jsonPrimitive?.booleanOrNull != true)
+            page["metadataFragment"]?.jsonObject?.let { history.append(it.getValue("text").jsonPrimitive.content) }
+            val cursor = page["continuation"]?.jsonPrimitive?.contentOrNull
+            if (cursor == null) { completed = true; break }
+            page = read.invoke(buildJsonObject {
+                put("by", AgentWorkspaceJson.encodeToJsonElement(BoardActor.serializer(), agent))
+                put("budgetBytes", 8192); put("continuation", cursor)
+            }).jsonObject
+            assertTrue(++turns < 100)
+        } while (true)
+        assertTrue(completed)
+        assertEquals(13, AgentWorkspaceJson.parseToJsonElement(history.toString()).jsonObject.getValue("history").jsonArray.size)
+    }
+
+    @Test fun anUnreadableLinkedDocumentNamesItsPathAndTheProblem() = fixture { workspace ->
+        workspace.plans.write("hangar:bounded", PlanPatch(title = "Missing document", ops = emptyList(), documentPath = "plans/vanished.md"), person)
+        val page = agentPlanTools(workspace).single { it.name == "agent_plan_read" }.invoke(buildJsonObject {
+            put("thread", "hangar:bounded"); put("by", AgentWorkspaceJson.encodeToJsonElement(BoardActor.serializer(), person))
+        }).jsonObject
+        val error = page["documentError"]?.jsonPrimitive?.content.orEmpty()
+        assertTrue(error.contains("plans/vanished.md"))
+        assertTrue(error.contains("read", ignoreCase = true))
+    }
+
 }

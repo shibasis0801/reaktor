@@ -35,7 +35,9 @@ class PlanNextTest {
         val next = workspace.nextPlan("hangar:limit", codex, take = true, item = "sixth")
         assertNull(next.candidate)
         assertTrue(next.reason.contains("limit-agent"))
-        assertTrue(next.reason.contains("earlier in the patch"))
+        assertTrue(next.reason.contains("finish or release one"))
+        assertTrue(next.reason.contains("plan.write"))
+        assertTrue(!next.reason.contains("earlier in the patch"))
         assertEquals(PlanStatus.Todo, workspace.plans.plan("hangar:limit")!!.item("sixth")!!.status)
     }
 

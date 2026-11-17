@@ -4,22 +4,32 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
 
 @Serializable
-private data class PlanReadCursor(val thread: String, val revision: Long, val reader: String, val frame: String? = null,
+data class PlanReadCursor(val thread: String, val revision: Long, val reader: String, val frame: String? = null,
                                   val offset: Int = 0, val fragment: Int = 0, val scoped: Boolean = false,
-                                  val metadataOffset: Int? = null, val metadataDone: Boolean = false)
+                                  val metadataOffset: Int? = null, val metadataDone: Boolean = false,
+                                  val since: Long? = null, val history: Boolean = false, val newsRevision: Long? = null)
 
 object PlanReadPage {
     const val DefaultBytes = 65_536
     const val MaximumBytes = 262_144
     private val json = Json { encodeDefaults = true }
 
-    fun thread(continuation: String): String = json.decodeFromString(PlanReadCursor.serializer(), continuation).thread
+    fun selection(continuation: String): PlanReadCursor = json.decodeFromString(PlanReadCursor.serializer(), continuation)
+    fun thread(continuation: String): String = selection(continuation).thread
 
     fun answer(plan: WorkPlan, reader: BoardActor, extra: JsonObject = JsonObject(emptyMap()), frame: String? = null,
                continuation: String? = null, budgetBytes: Int? = null, scoped: Boolean = false,
+               since: Long? = null, historyRequested: Boolean = false,
                projection: ((WorkPlan) -> JsonObject)? = null): JsonObject {
         val budget = (budgetBytes ?: plan.limits.readBytes).coerceAtMost(minOf(plan.limits.maxReadBytes, MaximumBytes))
         require(budget >= 4096) { "Use an answer budget of at least 4096 bytes" }
+        val prior = continuation?.let(::selection)
+        val selectedFrame = frame ?: prior?.frame
+        val selectedSince = since ?: extra["since"]?.jsonPrimitive?.longOrNull ?: prior?.since
+        val selectedHistory = historyRequested || prior?.history == true
+        val selectedScoped = prior?.scoped ?: scoped
+        val newsFrom = plan.changes.firstOrNull()?.revision
+        val newsGap = selectedSince != null && newsFrom != null && selectedSince < newsFrom - 1
         val news = (extra["news"] as? JsonArray)?.sortedBy { it.jsonObject["revision"]?.jsonPrimitive?.longOrNull ?: 0 }
         val shownNews = news?.let { changes ->
             var bytes = 2
@@ -29,11 +39,12 @@ object PlanReadPage {
             }
         }
         val identity = PlanPeople.ref(reader) + (reader.session ?: "")
-        val cursor = continuation?.let { json.decodeFromString(PlanReadCursor.serializer(), it) }
-            ?: PlanReadCursor(plan.thread, plan.revision, identity, frame, scoped = scoped)
-        if (cursor.thread != plan.thread || cursor.revision != plan.revision || cursor.reader != identity || cursor.frame != frame || cursor.scoped != scoped)
+        val nextNews = shownNews?.lastOrNull()?.jsonObject?.get("revision")?.jsonPrimitive?.longOrNull ?: plan.revision
+        val cursor = prior ?: PlanReadCursor(plan.thread, plan.revision, identity, selectedFrame, scoped = selectedScoped,
+            since = selectedSince, history = selectedHistory, newsRevision = nextNews)
+        if (cursor.thread != plan.thread || cursor.revision != plan.revision || cursor.reader != identity || cursor.frame != selectedFrame || since != null && cursor.since != since || scoped && !cursor.scoped)
             return buildJsonObject { put("restart", true); put("reason", "The plan changed or the selection changed; restart this read"); put("revision", plan.revision) }
-        val order = order(plan, reader, frame, scoped)
+        val order = order(plan, reader, selectedFrame, selectedScoped)
         val orderedIds = order.mapTo(HashSet()) { it.id }
         require(cursor.offset in 0..order.size && cursor.fragment >= 0 && (cursor.metadataOffset ?: 0) >= 0) { "Invalid plan continuation" }
         val remaining = order.drop(cursor.offset)
@@ -54,15 +65,21 @@ object PlanReadPage {
             val claims = (extra["claims"] as? JsonObject)?.get("claims") as? JsonObject
             if (claims != null) put("claims", buildJsonObject { put("claims", JsonObject(claims.filterKeys { it in ids })) })
             (extra["ready"] as? JsonArray)?.let { ready -> put("ready", JsonArray(ready.filter {
-                !scoped || it.jsonObject["item"]?.jsonObject?.get("id")?.jsonPrimitive?.content in orderedIds
+                !selectedScoped || it.jsonObject["item"]?.jsonObject?.get("id")?.jsonPrimitive?.content in orderedIds
             }.map(::compactCandidate))) }
             if (shownNews != null) {
                 put("news", JsonArray(shownNews))
                 put("newsTruncated", shownNews.size < news!!.size)
                 put("newsSince", shownNews.lastOrNull()?.jsonObject?.get("revision") ?: JsonPrimitive(plan.revision))
             }
+            if (newsGap) {
+                put("newsGap", true); put("truncated", true)
+                put("changedItems", JsonArray(plan.items.filter { it.revision > selectedSince!! }.map { JsonPrimitive(it.id) }))
+            }
+            if (newsFrom != null && selectedSince != null) put("newsFrom", newsFrom)
             if (historyInMetadata) put("history", history!!)
-            extra.filterKeys { it !in setOf("plan", "claims", "ready", "news", "newsTruncated", "newsSince") }.forEach { (key, value) -> put(key, value) }
+            (extra["plan"] as? JsonObject)?.get("documentError")?.let { put("documentError", it) }
+            extra.filterKeys { it !in setOf("plan", "claims", "ready", "news", "newsTruncated", "newsSince", "since", "nextSince") }.forEach { (key, value) -> put(key, value) }
             projection?.invoke(page(items))?.forEach { (key, value) -> put(key, value) }
         }
         fun envelope(items: List<PlanItem>, next: String?, fragment: JsonObject? = null,
@@ -76,6 +93,7 @@ object PlanReadPage {
                 if (plan.documentText != null || plan.documentPath != null) put("documentAvailable", true)
                 fields.forEach { (key, value) -> put(key, value) }
                 if (next != null) put("continuation", next)
+                else put("nextSince", cursor.newsRevision ?: nextNews)
                 if (fragment != null) put("fragment", fragment)
                 if (metadataFragment != null) put("metadataFragment", metadataFragment)
             }

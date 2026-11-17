@@ -61,6 +61,35 @@ class AgentTaskSubscriptionTest {
         }
     }
 
+    @Test fun twentyTaskWaitsHoldNoPlatformThreadAndAllAnswerOnOneChange() = runBlocking {
+        fixture { workspace, _ ->
+            val tool = agentWorkspaceTools(workspace).single { it.name == "agent_tasks_wait" }
+            val revision = workspace.tasksPage().revision
+            val entered = CountDownLatch(20)
+            val calls = List(20) {
+                async(Dispatchers.IO) {
+                    entered.countDown()
+                    tool.execute(buildJsonObject { put("revision", revision); put("timeoutMillis", 5000) }).jsonObject
+                }
+            }
+            try {
+                assertTrue(entered.await(2, TimeUnit.SECONDS))
+                delay(150)
+                val parked = Thread.getAllStackTraces().values.count { stack ->
+                    stack.any { it.className.contains("AgentWorkspaceMcp") } &&
+                        stack.any { it.methodName.startsWith("runBlocking") }
+                }
+                println("TASK_WAIT_PLATFORM_THREADS=$parked")
+                assertEquals(0, parked, "Task waits suspend instead of parking a platform thread")
+            } finally {
+                workspace.submit(AgentSubmission("twenty-waits", RuntimeKind.Echo, "Wake every waiter"))
+                withTimeout(3000) { calls.awaitAll() }.forEach {
+                    assertTrue(it.getValue("revision").jsonPrimitive.long > revision)
+                }
+            }
+        }
+    }
+
     private suspend fun fixture(block: suspend (AgentWorkspace, Channel<Unit>) -> Unit) {
         val root = Files.createTempDirectory("task-subscription").toFile()
         val releases = Channel<Unit>(Channel.UNLIMITED)

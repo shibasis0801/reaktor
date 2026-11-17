@@ -140,7 +140,7 @@ class PlanBacklogRulesTest {
         val reason = answer.refused.single().reason
         assertTrue(reason.contains("Fixture owner"))
         assertTrue((0..4).all { reason.contains("p$it") })
-        assertTrue(reason.contains("earlier in the patch"))
+        assertTrue(reason.contains("finish or release one with plan.write before starting another item"))
     }
 
     @Test fun anExplicitIdentityWinsOverTheFirstRefForDoingSlots() {

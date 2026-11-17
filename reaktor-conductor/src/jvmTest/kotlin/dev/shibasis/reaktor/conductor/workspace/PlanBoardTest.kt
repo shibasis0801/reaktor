@@ -69,7 +69,9 @@ class PlanBoardTest {
         assertEquals("builder", PlanPeople.assignee(card.item, source.items.associateBy { it.id }))
         assertEquals("builder", card.people.first().actor.name)
         assertEquals("codex:seat", card.people.first().actor.session)
-        assertEquals(1, card.people.count { it.actor.kind == BoardActorKind.Agent })
+        assertEquals(2, card.people.count { it.actor.kind == BoardActorKind.Agent })
+        assertEquals(listOf("builder", "reviewer", "owner"), card.people.map { it.actor.name })
+        assertEquals(null, card.people[1].actor.session)
         assertEquals("owner", card.people.last().actor.name)
     }
 }

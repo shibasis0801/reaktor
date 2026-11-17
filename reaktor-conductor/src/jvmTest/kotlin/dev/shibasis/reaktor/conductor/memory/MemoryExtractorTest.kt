@@ -20,8 +20,11 @@ class MemoryExtractorTest {
             val scope = MemoryScope(MemoryScopeKind.Workspace, "workspace")
             val run = AgentRunRecord("run", "thread", RuntimeKind.Codex, "fingerprint", "Run", status = AgentRunStatus.Completed,
                 startedAt = 1, updatedAt = 2, output = "Actor writes passed their checks")
-            val extractor = MemoryExtractor(runtime.api) { """[{"kind":"Gotcha","title":"Actor writes","text":"Route writes through the scope actor","links":[]}]""" }
-            val facts = extractor.extract(run, scope, "osprey", listOf("Use actors"))
+            var input = ""
+            val extractor = MemoryExtractor(runtime.api) { input = it; """[{"kind":"Gotcha","title":"Actor writes","text":"Route writes through the scope actor","links":[]}]""" }
+            val longRun = run.copy(output = "old evidence ".repeat(4000) + "FINAL DECISION MARKER")
+            val facts = extractor.extract(longRun, scope, "osprey", listOf("Use actors"))
+            assertContains(input, "FINAL DECISION MARKER")
             assertEquals(MemoryStatus.Proposed, facts.single().status)
             assertTrue(runtime.api.recall(RecallFacts(listOf(scope))).isEmpty())
             assertEquals(facts, extractor.extract(run, scope, "osprey", emptyList()))

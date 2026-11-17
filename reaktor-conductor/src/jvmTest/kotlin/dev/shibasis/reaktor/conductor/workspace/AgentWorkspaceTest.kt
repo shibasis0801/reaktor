@@ -95,6 +95,26 @@ class AgentWorkspaceTest {
         } finally { root.deleteTreeSafely(within = root.parentFile) }
     }
 
+    @Test fun decodedVerifiedRequestsHaveAByteBoundAndEvictedRequestsCanBeReadAgain() = runBlocking {
+        val root = Files.createTempDirectory("verified-request-bound").toFile()
+        val directory = root.toPath().resolve("state")
+        val stoppedScope = CoroutineScope(SupervisorJob().also { it.cancel() } + Dispatchers.IO)
+        try {
+            AgentWorkspace(root, directory, mapOf(RuntimeKind.Echo to EchoRuntime()), scope = stoppedScope,
+                background = false, discover = { ProviderCapability(it) }).use { workspace ->
+                val ids = List(50) { index ->
+                    val run = workspace.submit(AgentSubmission("bounded-$index", RuntimeKind.Echo, "x".repeat(100000)))
+                    workspace.submission(run.id)
+                    run.id
+                }
+                val field = AgentWorkspace::class.java.getDeclaredField("verifiedRequests").apply { isAccessible = true }
+                val held = field.get(workspace) as Map<*, *>
+                assertTrue(held.size < 50, "Five MB of decoded requests cannot all remain cached")
+                assertEquals("x".repeat(100000), workspace.submission(ids.first()).prompt)
+            }
+        } finally { root.deleteTreeSafely(within = root.parentFile) }
+    }
+
     @Test fun planTaskAssociationsSurviveSnapshotsAndOnlyRestoreFromVerifiedRequests() = runBlocking {
         val root = Files.createTempDirectory("agent-plan-logs").toFile()
         val directory = root.toPath().resolve("state")

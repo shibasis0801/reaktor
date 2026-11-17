@@ -92,7 +92,7 @@ object HangarSkill {
         |
         |- Keep statuses current with `{"type": "status", "item": "<key>", "status": "Doing" | "Done" | "Dropped"}` as you start and finish items, and add what you discover as new items.
         |- Pass `base`, the revision you last read. An op on an item someone else changed after it is refused for that item only, and the answer says who changed what.
-        |- `plan.read {"since": <revision>}` lists what the person and the other agents changed. Follow those changes before you go on. When newsTruncated is true, read again with since=newsSince before advancing to the plan revision. Follow continuation and reassemble metadataFragment first.
+        |- `plan.read {"since": <revision>}` lists what the person and the other agents changed. Follow those changes before you go on. ${dev.shibasis.reaktor.conductor.workspace.PlanBrief.News}
         |- An agent attached to a part passes its `seat` and changes only that part.
         |- `session.log {"session": "<an agent's session>"}` reads what another agent did.
         |""".trimMargin() + "\n\n" + HangarWorkflow.guide

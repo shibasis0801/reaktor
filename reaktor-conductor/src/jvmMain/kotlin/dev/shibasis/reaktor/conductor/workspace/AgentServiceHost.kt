@@ -114,15 +114,28 @@ object AgentServiceHost {
     }
 
     internal fun reopen(workspaces: List<HostedWorkspace>, report: (String) -> Unit = System.err::println, open: (HostedWorkspace) -> String?): List<String> {
-        return workspaces.mapNotNull { workspace ->
+        val failures = mutableListOf<String>()
+        val reopened = workspaces.mapNotNull { workspace ->
             val root = File(workspace.root)
             if (!root.isDirectory && AgentWorkspaceRoots.temporary(root)) {
                 report("The kernel skipped a vanished temporary workspace: ${workspace.root.replace('\n', ' ').replace('\r', ' ')}")
                 return@mapNotNull null
             }
-            open(workspace)?.let { error("The kernel could not reopen ${workspace.root}: $it") }
-            workspace.root
+            try {
+                val failure = open(workspace)
+                if (failure == null) workspace.root else {
+                    failures += "${workspace.root}: $failure"
+                    null
+                }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                failures += "${workspace.root}: ${failure.message ?: failure.javaClass.simpleName}"
+                null
+            }
         }
+        check(failures.isEmpty()) { "The kernel could not reopen ${failures.joinToString("; ")}" }
+        return reopened
     }
 
     fun leave(root: File, directory: Path = directory()): String {

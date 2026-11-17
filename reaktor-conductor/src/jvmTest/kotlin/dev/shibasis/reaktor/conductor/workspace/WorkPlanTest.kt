@@ -68,15 +68,19 @@ class WorkPlanTest {
             ops = listOf(PlanOp.Add("API", key = "api"))), claude).plan
         assertEquals(document, WorkPlanStore(path).plan(thread)?.documentPath)
         assertTrue(first.changes.last().summary.any { it.contains(document) })
-        assertFailsWith<IllegalArgumentException> {
-            store.write(thread, PlanPatch(base = first.revision, documentPath = "plans/../outside.md"), person)
+        val invalid = store.write(thread, PlanPatch(base = first.revision, documentPath = "plans/../outside.md"), person)
+        val unauthorized = store.write(thread, PlanPatch(base = first.revision, documentPath = ""), codex)
+        val stale = store.write(thread, PlanPatch(base = first.revision - 1, documentPath = ""), claude)
+        for (answer in listOf(invalid, unauthorized, stale)) {
+            assertEquals(-1, answer.refused.single().op)
+            assertEquals(first.revision, answer.plan.revision)
+            assertEquals(document, answer.plan.documentPath)
+            assertEquals(first.items, answer.plan.items)
         }
-        assertFailsWith<IllegalArgumentException> {
-            store.write(thread, PlanPatch(base = first.revision, documentPath = ""), codex)
-        }
-        assertFailsWith<IllegalArgumentException> {
-            store.write(thread, PlanPatch(base = first.revision - 1, documentPath = ""), claude)
-        }
+        assertEquals("Choose a Markdown document under plans/", invalid.refused.single().reason)
+        assertEquals("Only the plan's owner can change its document", unauthorized.refused.single().reason)
+        assertEquals("Read the current plan and pass its revision as base before changing its document", stale.refused.single().reason)
+        assertEquals(document, WorkPlanStore(path).plan(thread)?.documentPath)
         val cleared = store.write(thread, PlanPatch(base = first.revision, documentPath = ""), person).plan
         assertNull(cleared.documentPath)
         assertEquals(first.items, cleared.items)

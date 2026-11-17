@@ -21,6 +21,8 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption.APPEND
 import java.nio.file.StandardOpenOption.CREATE
+import java.nio.file.StandardOpenOption.WRITE
+import java.nio.file.StandardOpenOption.TRUNCATE_EXISTING
 import java.nio.file.attribute.PosixFilePermissions
 import java.util.UUID
 
@@ -64,9 +66,12 @@ class AgentWorkspace(
     private var closed = false
     private var suspending = false
     private val lastPersisted = mutableMapOf<String, Long>()
-    private val savedRuns = mutableMapOf<String, AgentRunRecord>()
-    private data class VerifiedRequest(val bytes: String, val fingerprint: String, val request: AgentSubmission)
-    private val verifiedRequests = mutableMapOf<String, VerifiedRequest>()
+    private val savedRuns = LinkedHashMap<String, AgentRunRecord>()
+    private var savedRunBytes = 0L
+    private data class VerifiedRequest(val bytes: String, val fingerprint: String, val request: AgentSubmission, val weight: Int)
+    private val verifiedRequests = linkedMapOf<String, VerifiedRequest>()
+    private var verifiedRequestBytes = 0
+    private val journalWrites = mutableMapOf<String, Int>()
     private val serviceStartedAt = System.currentTimeMillis()
     val activity = AgentActivityStore(directory.resolve("activity"))
     private val activityProjection = AgentActivityProjection()
@@ -230,7 +235,14 @@ class AgentWorkspace(
         verifiedRequests[id]?.takeIf { it.bytes == bytes && it.fingerprint == saved.requestFingerprint }?.let { return it.request }
         return ConductorJson.decodeFromString(AgentSubmission.serializer(), source).also { request ->
             require(digest(ConductorJson.encodeToString(AgentSubmission.serializer(), request)) == saved.requestFingerprint)
-            verifiedRequests[id] = VerifiedRequest(bytes, saved.requestFingerprint, request)
+            val entry = VerifiedRequest(bytes, saved.requestFingerprint, request, source.toByteArray(Charsets.UTF_8).size)
+            verifiedRequests.remove(id)?.let { verifiedRequestBytes -= it.weight }
+            verifiedRequests[id] = entry
+            verifiedRequestBytes += entry.weight
+            while (verifiedRequestBytes > 4_194_304 && verifiedRequests.isNotEmpty()) {
+                val oldest = verifiedRequests.keys.first()
+                verifiedRequestBytes -= verifiedRequests.remove(oldest)!!.weight
+            }
         }
     }
     fun planItemForRun(id: String): String? = submission(id).planItem
@@ -1571,7 +1583,8 @@ class AgentWorkspace(
         val record = try {
             val saved = AgentRunTransfer.replay(path)
             if (saved.torn) {
-                quarantineRun(path, id)
+                val tornPath = saved.tornPath ?: path
+                quarantineRun(tornPath, if (tornPath == path) id else "$id.journal")
                 saved.run?.let { atomicWrite(path, ConductorJson.encodeToString(AgentRunRecord.serializer(), it) + "\n") }
             }
             saved.run
@@ -1579,7 +1592,7 @@ class AgentWorkspace(
             quarantineRun(path, id)
             null
         } ?: return@let null
-        savedRuns[id] = record
+        rememberSavedRun(record)
         val planItem = runCatching { retainedSubmission(id, record).planItem }.getOrNull()
         if (record.planItem == planItem) record else record.copy(planItem = planItem)
     }
@@ -1593,19 +1606,39 @@ class AgentWorkspace(
             java.util.logging.Logger.getLogger(AgentWorkspace::class.java.name).warning("Could not move torn run $id to $id.torn: ${failure.javaClass.simpleName}")
         }
     }
+    private fun rememberSavedRun(record: AgentRunRecord) {
+        savedRuns.remove(record.id)?.let { savedRunBytes -= AgentRunTransfer.retainedBytes(it) }
+        savedRuns[record.id] = record
+        savedRunBytes += AgentRunTransfer.retainedBytes(record)
+        while (savedRunBytes > AgentRunTransfer.CacheBudget || savedRuns.size > 100) {
+            savedRunBytes -= AgentRunTransfer.retainedBytes(requireNotNull(savedRuns.remove(savedRuns.keys.first())))
+        }
+    }
+
     private fun persist(record: AgentRunRecord) {
         val path = runPath(record.id)
+        val journal = path.resolveSibling("${record.id}.journal")
         val previous = savedRuns[record.id] ?: path.takeIf(Files::exists)?.let(AgentRunTransfer::read)
-        val delta = AgentRunTransfer.delta(record, AgentRunTransfer.held(previous), Int.MAX_VALUE)
-        AgentRunTransfer.recoverTail(path)
-        val prefix = if (Files.exists(path) && !AgentRunTransfer.endsInNewline(path)) "\n" else ""
-        val line = java.nio.ByteBuffer.wrap((prefix + delta.toString() + "\n").toByteArray(Charsets.UTF_8))
-        java.nio.channels.FileChannel.open(path, CREATE, APPEND).use { channel ->
-            check(channel.write(line) == line.capacity()) { "Run save was interrupted" }
-            Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rw-------"))
-            channel.force(true)
+        val count = journalWrites[record.id] ?: 0
+        val compact = previous == null || record.status in setOf(AgentRunStatus.Completed, AgentRunStatus.Failed, AgentRunStatus.Interrupted, AgentRunStatus.Limited) || count >= 31 ||
+            Files.exists(journal) && Files.size(journal) >= 4_194_304
+        if (compact) {
+            atomicWrite(path, ConductorJson.encodeToString(AgentRunRecord.serializer(), record) + "\n")
+            java.nio.channels.FileChannel.open(journal, CREATE, WRITE, TRUNCATE_EXISTING).use { it.force(true) }
+            journalWrites[record.id] = 0
+        } else {
+            val delta = AgentRunTransfer.delta(record, AgentRunTransfer.held(previous), Int.MAX_VALUE,
+                includeHeader = AgentRunTransfer.header(record) != AgentRunTransfer.header(previous))
+            val value = JsonObject(delta + ("revision" to JsonPrimitive(record.revision)))
+            val line = java.nio.ByteBuffer.wrap((value.toString() + "\n").toByteArray(Charsets.UTF_8))
+            java.nio.channels.FileChannel.open(journal, CREATE, APPEND).use { channel ->
+                check(channel.write(line) == line.capacity()) { "Run save was interrupted" }
+                Files.setPosixFilePermissions(journal, PosixFilePermissions.fromString("rw-------"))
+                channel.force(true)
+            }
+            journalWrites[record.id] = count + 1
         }
-        savedRuns[record.id] = record
+        rememberSavedRun(record)
     }
 
     override fun close() {

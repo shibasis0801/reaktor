@@ -46,6 +46,15 @@ class AgentRunControlTransferTest {
         }
     }
 
+    @Test fun anIncompleteDeltaThatMakesNoProgressIsRefused() = runBlocking {
+        fixture { workspace, id ->
+            val prior = workspace.get(id)
+            val unchanged = AgentRunTransfer.delta(prior, AgentRunTransfer.held(prior))
+            val incomplete = JsonObject(unchanged + ("complete" to JsonPrimitive(false)))
+            assertFailsWith<IllegalArgumentException> { AgentRunTransfer.apply(incomplete, prior) }
+        }
+    }
+
     private suspend fun fixture(block: suspend (AgentWorkspace, String) -> Unit) {
         val root = Files.createTempDirectory("run-control-transfer").toFile()
         val data = root.resolve("state").toPath()

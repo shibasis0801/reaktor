@@ -123,6 +123,7 @@ data class WorkPlan(
     val order: List<String> = emptyList(),
     val documentText: String? = null,
     val approval: PlanApproval = PlanApproval.Draft,
+    val approvalRevision: Long? = null,
 ) {
     private val tree by lazy { PlanTree(items) }
 
@@ -276,6 +277,7 @@ data class PlanPatch(
     val documentPath: String? = null,
     val requestId: String? = null,
     val limits: PlanLimits? = null,
+    val limitFields: Set<String>? = null,
     val documentText: String? = null,
     val approval: PlanApproval? = null,
 )
@@ -305,7 +307,7 @@ object PlanBrief {
         "and give every item refs to the files, symbols, modules, graphs, operations and flows it touches, found with atlas_query rather than guessed. " +
         "A real change has 3 to 8 components and 15 to 60 items."
 
-    const val News = "When newsTruncated is true, read again with since=newsSince before advancing to the plan revision. Follow continuation and reassemble metadataFragment first."
+    const val News = "When newsGap is true, some changes are no longer retained; read the changedItems frames to recover their current state. When newsTruncated is true, read again with since=newsSince before advancing to the plan revision. Follow continuation and reassemble metadataFragment first."
 
     const val Upkeep = "Keep it current while you work: take eligible work with plan.next (take=true, with thread and item for a named handoff) before editing, and mark it Done or Dropped when it ends, since a component's status follows its parts; " +
         "Keep detail current with the most important human outcome. When marking Done, include result {summary, files} if useful to explain work performed outside change.apply. " +
@@ -393,7 +395,7 @@ object PlanRules {
                 val name = items.asSequence().mapNotNull { it.lease?.by ?: it.by }.firstOrNull {
                     holder == "${it.kind}:${it.principal ?: it.name}"
                 }?.name ?: holder
-                "$name has at most $limit Doing leaves per plan and holds ${leaves.joinToString()}; finish or release one earlier in the patch before starting another item"
+                "$name has at most $limit Doing leaves per plan and holds ${leaves.joinToString()}; finish or release one with plan.write before starting another item"
             }
         }
     }
@@ -563,7 +565,16 @@ object PlanRules {
             require(it.startDate == null || it.dueDate == null || it.startDate <= it.dueDate) { "The due date must be on or after the start date" }
         }
 
-        val limits = patch.limits?.also {
+        val limits = patch.limits?.let { requested ->
+            val fields = patch.limitFields
+            if (fields == null) requested else {
+                require(fields.all { it in setOf("doingPerHolder", "readBytes", "maxReadBytes") }) { "Unknown plan limit" }
+                plan.limits.copy(
+                    doingPerHolder = if ("doingPerHolder" in fields) requested.doingPerHolder else plan.limits.doingPerHolder,
+                    readBytes = if ("readBytes" in fields) requested.readBytes else plan.limits.readBytes,
+                    maxReadBytes = if ("maxReadBytes" in fields) requested.maxReadBytes else plan.limits.maxReadBytes)
+            }
+        }?.also {
             require(it.doingPerHolder > 0) { "A holder must be allowed at least one Doing leaf" }
             require(it.readBytes in 4096..it.maxReadBytes && it.maxReadBytes <= 262_144) { "Plan read budgets must be between 4096 and 262144 bytes" }
             require(by.kind == BoardActorKind.Person || by.same(plan.createdBy) || threadAgent) { "Only a person, the plan's creator or its thread's agent can change its limits" }
@@ -778,9 +789,11 @@ object PlanRules {
         var documentPath = plan.documentPath
         var documentText = plan.documentText
         var approval = plan.approval
+        var approvalRevision = plan.approvalRevision
         patch.documentText?.let { text ->
             try {
                 currentRevision()
+                require(plan.documentPath == null || patch.documentPath == "") { "Unlink the file before writing documentText" }
                 require(text.encodeToByteArray().size <= 524_288) { "The plan document is at most 512 KB of UTF-8" }
                 require(by.kind == BoardActorKind.Person || by.same(plan.createdBy) || threadAgent) { "Only the plan's owner can change its document" }
                 if (text != documentText) { documentText = text; summary += "Updated the plan document" }
@@ -792,12 +805,13 @@ object PlanRules {
             try {
                 currentRevision()
                 require(by.kind == BoardActorKind.Person) { "Only a person changes the plan's approval state" }
-                if (state != approval) { approval = state; summary += "Approval → $state" }
+                if (state != approval || state == PlanApproval.Approved && approvalRevision != plan.revision) { approval = state; approvalRevision = if (state == PlanApproval.Approved) revision else null; summary += "Approval → $state" }
             } catch (failure: IllegalArgumentException) {
                 refused += PlanRefusal(-1, reason = failure.message ?: "Refused")
             }
         }
         patch.documentPath?.let { path ->
+            try {
             val nextPath = path.ifEmpty { null }
             if (nextPath != documentPath) {
                 require(nextPath == null || validDocumentPath(nextPath)) { "Choose a Markdown document under plans/" }
@@ -806,6 +820,7 @@ object PlanRules {
                 documentPath = nextPath
                 summary += if (nextPath == null) "Unlinked the plan document" else "Linked plan document $nextPath"
             }
+            } catch (failure: IllegalArgumentException) { refused += PlanRefusal(-1, reason = failure.message ?: "Refused") }
         }
         if (limits != plan.limits) summary += "Changed the plan limits"
         if (title != null) summary += "Renamed the plan “$title”"
@@ -815,7 +830,7 @@ object PlanRules {
         if (summary.isEmpty() && seats == plan.seats && items.values.toList() == plan.items) return PlanApplied(plan, refused, news)
         val changed = plan.copy(
             title = title ?: plan.title, goal = goal ?: plan.goal, items = items.values.toList(), seats = seats, documentPath = documentPath, limits = limits,
-            documentText = documentText, approval = approval, order = order,
+            documentText = documentText, approval = approval, approvalRevision = approvalRevision, order = order,
             revision = revision, next = next, updatedAt = now,
             changes = if (summary.isEmpty()) plan.changes else (plan.changes + PlanChange(revision, now, by, summary, requestId)).takeLast(MaxChanges),
         )
