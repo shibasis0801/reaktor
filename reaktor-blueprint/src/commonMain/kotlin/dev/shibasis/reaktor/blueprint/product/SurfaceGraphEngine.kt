@@ -255,7 +255,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
     protected abstract fun DrawScope.placeholder(i: Int, slot: Int)
     protected open fun headerKey(i: Int): Any? = null
     protected open fun DrawScope.header(i: Int, key: Any, x: Float, y: Float) {}
-    protected open fun banner(i: Int, width: Float, zoom: Double, compact: Boolean): GraphicsLayer? = null
+    protected open fun banner(i: Int, own: Float, free: Float, zoom: Double, compact: Boolean): GraphicsLayer? = null
 
     protected open fun cardId(i: Int): String? = null
 
@@ -956,7 +956,9 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
 
     private fun bannerState() {
         if (bannerOrderOf === frames) return
-        bannerOrder = frames.indices.sortedBy { frames[it].width * frames[it].height }.toIntArray()
+        val slot = HashMap<String, Int>(frames.size * 2).also { map -> frames.forEachIndexed { i, frame -> map[frame.key] = i } }
+        val depth = IntArray(frames.size) { i -> generateSequence(frames[i].parent?.let(slot::get)) { frames[it].parent?.let(slot::get) }.take(frames.size).count() }
+        bannerOrder = frames.indices.sortedWith(compareBy({ depth[it] }, { frames[it].width * frames[it].height })).toIntArray()
         bannerShown = BooleanArray(frames.size); bannerDrawn = FloatArray(frames.size * 4); bannerOrderOf = frames
         bannered = banneredFrames(frames); bannerAt = FloatArray(frames.size * 2)
     }
@@ -981,12 +983,18 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
             val x = (camera.x + frame.x * camera.zoom).toFloat(); val y = (camera.y + frame.y * camera.zoom).toFloat()
             val width = (frame.width * camera.zoom).toFloat(); val height = (frame.height * camera.zoom).toFloat()
             if (x >= viewport.width || y - max(Above * z, BannerHeight) >= viewport.height || x + width <= 0f || y + height <= 0f) continue
-            val layer = banner(i, max(width, room(i, z) * z - BannerGap), camera.zoom, !fixedFrameLabels && height < TallBanner) ?: continue
+            val pinTop = inset[1] + BannerPin; val pinLeft = inset[0] + BannerPin
+            val rightward = max(width, room(i, z) * z - BannerGap)
+            val leftward = if (fixedFrameLabels) width + min(roomLeft(i, z) * z - BannerGap, x - pinLeft) else 0f
+            val layer = banner(i, width, max(rightward, leftward), camera.zoom, !fixedFrameLabels && height < TallBanner) ?: continue
             val tall = layer.size.height.toFloat()
             val lifted = y + bannerLift(tall, z, clear[i])
-            val pinTop = inset[1] + BannerPin; val pinLeft = inset[0] + BannerPin
             val top = if (lifted >= pinTop || y >= pinTop) lifted else min(pinTop, y + height - tall)
-            val left = if (x >= pinLeft) x else min(pinLeft, x + width - layer.size.width)
+            val left = when {
+                layer.size.width > rightward + .5f && layer.size.width <= leftward + .5f -> x + width - layer.size.width
+                x >= pinLeft -> x
+                else -> min(pinLeft, x + width - layer.size.width)
+            }
             val right = left + layer.size.width
             if (y + height - top < tall * .75f) continue
             groups++
@@ -1007,7 +1015,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
             bannerDrawn[drawn * 4] = bx; bannerDrawn[drawn * 4 + 1] = by; bannerDrawn[drawn * 4 + 2] = bx + wide; bannerDrawn[drawn * 4 + 3] = by + tall
             drawn++
             bannerShown[i] = true; bannerAt[i * 2] = bx - x; bannerAt[i * 2 + 1] = by - y
-            clipRect(floor(x), floor(min(top, by)), ceil(x + max(width, bx - x + wide)), ceil(max(y + height, by + tall))) { translate(bx, by) { replayLayer(layer, REPLAY_BANNERS) } }
+            clipRect(floor(min(x, bx)), floor(min(top, by)), ceil(x + max(width, bx - x + wide)), ceil(max(y + height, by + tall))) { translate(bx, by) { replayLayer(layer, REPLAY_BANNERS) } }
         }
         groupsInView = groups; namedInView = drawn
         if (fixedFrameLabels) bannersPlaced(frames.indices.map { i ->
@@ -1032,6 +1040,13 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         val band = frame.y - Above..frame.y + max(BlueprintEngine.FrameTop, (BannerHeight / z).toDouble())
         return frames.filterIndexed { k, it -> k != i && bannered[k] && it.x > frame.x && it.y - Above < band.endInclusive && it.y + it.height > band.start }
             .minOfOrNull { (it.x - frame.x).toFloat() } ?: Float.MAX_VALUE
+    }
+
+    private fun roomLeft(i: Int, z: Float): Float {
+        val frame = frames[i]
+        val band = frame.y - Above..frame.y + max(BlueprintEngine.FrameTop, (BannerHeight / z).toDouble())
+        return frames.filterIndexed { k, it -> k != i && bannered[k] && it.x < frame.x && it.y - Above < band.endInclusive && it.y + it.height > band.start }
+            .minOfOrNull { (frame.x - if (it.x + it.width <= frame.x) it.x + it.width else it.x).toFloat() } ?: Float.MAX_VALUE
     }
 
     private fun banneredFrames(frames: List<Frame>): BooleanArray {
@@ -1072,7 +1087,11 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         corridorAt = FloatArray(pairs.size * 6); corridorCount = IntArray(pairs.size); tallyDrawn = FloatArray(pairs.size * 4)
         pairs.forEachIndexed { n, (key, count) ->
             val a = frames[(key ushr 32).toInt()]; val b = frames[(key and 0xFFFFFFFFL).toInt()]
-            val sx = a.x.toFloat(); val sy = a.y.toFloat(); val ex = b.x.toFloat(); val ey = b.y.toFloat()
+            val ax = (a.x + a.width / 2).toFloat(); val ay = (a.y + a.height / 2).toFloat()
+            val dx = (b.x + b.width / 2).toFloat() - ax; val dy = (b.y + b.height / 2).toFloat() - ay
+            fun reach(frame: Frame) = min(min(if (dx == 0f) 1f else (frame.width / 2).toFloat() / abs(dx), if (dy == 0f) 1f else (frame.height / 2).toFloat() / abs(dy)), .5f)
+            val from = reach(a); val to = 1f - reach(b)
+            val sx = ax + dx * from; val sy = ay + dy * from; val ex = ax + dx * to; val ey = ay + dy * to
             corridorAt[n * 6] = sx; corridorAt[n * 6 + 1] = sy
             corridorAt[n * 6 + 2] = (sx + ex) / 2 - (ey - sy) * CorridorBow; corridorAt[n * 6 + 3] = (sy + ey) / 2 + (ex - sx) * CorridorBow
             corridorAt[n * 6 + 4] = ex; corridorAt[n * 6 + 5] = ey

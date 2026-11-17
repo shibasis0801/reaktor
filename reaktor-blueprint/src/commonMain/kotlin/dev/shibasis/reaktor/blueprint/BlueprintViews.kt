@@ -383,7 +383,7 @@ fun <K> BlueprintCanvas(
                                 frameClick?.invoke(frame)
                                 editor?.request = Request.Rename(Spot(frame.x, frame.y), windowAt, frame.key, true)
                             }))) {
-                            HeaderContent(painter.frameHeaderSlots(frame, look), look.titleContent, look.markContent)
+                            painter.frameLabelSlots(i, look)?.let { HeaderContent(it, look.titleContent, look.markContent) }
                         }
                     }
                 }

@@ -19,19 +19,26 @@ import dev.shibasis.reaktor.graph.core.NodeKind
 import dev.shibasis.reaktor.graph.core.NodeShape
 import dev.shibasis.reaktor.graph.core.PortShape
 import dev.shibasis.reaktor.graph.core.ScopeShape
+import kotlin.math.roundToInt
 
 enum class Detail(val label: String) { Islands("Islands"), Compact("Compact"), Standard("Ports in use"), Ports("Every port") }
 
 data class LayoutRequest(
     val detail: Detail,
     val hidden: Set<String> = emptySet(),
-    val aspect: Double = 16.0 / 9.0,
+    val aspect: Double = Aspect,
     val expandedFlows: Set<String> = emptySet(),
     val after: String? = null,
     val nested: Boolean = false,
     val bundles: Boolean = true,
     val ordered: Boolean = false,
-)
+) {
+    companion object {
+        const val Aspect = 16.0 / 9.0
+        fun aspect(width: Float, height: Float): Double =
+            if (width <= 0f || height <= 0f) Aspect else (width / height.coerceAtLeast(240f) * 4).roundToInt().coerceIn(3, 24) / 4.0
+    }
+}
 
 typealias GraphLayout = BlueprintLayout<LayoutRequest>
 

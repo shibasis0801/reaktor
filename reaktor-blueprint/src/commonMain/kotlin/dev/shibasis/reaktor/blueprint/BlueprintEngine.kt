@@ -460,11 +460,22 @@ object BlueprintEngine {
             if (ra != rb) joined[maxOf(ra, rb)] = minOf(ra, rb)
         }
         val anchored = request.doors.mapTo(HashSet()) { root(it.box) }
-        val pieces = boxes.indices.groupBy(::root).filterKeys { it !in anchored }.values.sortedByDescending { it.size }
-        if (pieces.isEmpty()) return result
-        fun x(at: Int) = result.nodes[at * 2]
-        fun y(at: Int) = result.nodes[at * 2 + 1]
-        val core = boxes.indices.filter { root(it) in anchored }
+        val held = BooleanArray(boxes.size) { root(it) in anchored }
+        val drawn = BooleanArray(result.edges.size) { it < request.routed.size }.also { shown -> request.passes.forEach { if (it.line < shown.size) shown[it.line] = true } }
+        fun tied(at: Int) = sources.getOrNull(at)?.let { held[it] } == true
+        fun marks(axis: Int) = boxes.indices.filter { held[it] }.map { doubleArrayOf(result.nodes[it * 2 + axis], result.nodes[it * 2 + axis] + if (axis == 0) boxes[it].width else boxes[it].height) } +
+            result.edges.indices.filter { drawn[it] && tied(it) }.flatMap { at -> result.edges[at].let { flat -> (axis until flat.size step 2).map { doubleArrayOf(flat[it], flat[it]) } } }
+        val across = Squeeze(marks(0), LayerGap)
+        val down = Squeeze(marks(1), LooseGap)
+        val settled = DoubleArray(result.nodes.size) { at -> if (at / 2 < boxes.size && held[at / 2]) (if (at % 2 == 0) across else down).at(result.nodes[at]) else result.nodes[at] }
+        val traced = result.edges.mapIndexed { at, flat -> if (tied(at)) DoubleArray(flat.size) { (if (it % 2 == 0) across else down).at(flat[it]) } else flat }
+        fun x(at: Int) = settled[at * 2]
+        fun y(at: Int) = settled[at * 2 + 1]
+        var edgeRight = boxes.indices.maxOf { result.nodes[it * 2] + boxes[it].width }
+        var edgeBottom = boxes.indices.maxOf { result.nodes[it * 2 + 1] + boxes[it].height }
+        result.edges.forEachIndexed { at, flat -> if (sources.getOrNull(at) != null) for (point in flat.indices step 2) { edgeRight = maxOf(edgeRight, flat[point]); edgeBottom = maxOf(edgeBottom, flat[point + 1]) } }
+        val padRight = (result.width - edgeRight).coerceAtLeast(0.0)
+        val padBottom = (result.height - edgeBottom).coerceAtLeast(0.0)
         val outlines = HashMap<Int, DoubleArray>()
         fun include(component: Int, px: Double, py: Double) {
             val box = outlines.getOrPut(component) { doubleArrayOf(px, py, px, py) }
@@ -476,7 +487,7 @@ object BlueprintEngine {
             include(component, x(at), y(at))
             include(component, x(at) + boxes[at].width, y(at) + boxes[at].height)
         }
-        result.edges.forEachIndexed { at, edge ->
+        traced.forEachIndexed { at, edge ->
             val component = sources.getOrNull(at)?.let(::root) ?: return@forEachIndexed
             for (point in edge.indices step 2) include(component, edge[point], edge[point + 1])
         }
@@ -486,37 +497,78 @@ object BlueprintEngine {
         val coreLeft = coreBounds.minOf { it[0] }
         val coreTop = coreBounds.minOf { it[1] }
         val coreWidth = coreBounds.maxOf { it[2] } - coreLeft
-        val coreBottom = top + coreBounds.maxOf { it[3] } - coreTop
+        val coreHeight = coreBounds.maxOf { it[3] } - coreTop
+        val pieces = boxes.indices.groupBy(::root).filterKeys { it !in anchored }.values.sortedByDescending { it.size }
         val bounds = pieces.map { outlines.getValue(root(it.first())) }
-        val area = bounds.sumOf { (it[2] - it[0] + LooseGap) * (it[3] - it[1] + LooseGap) }
-        val coreHeight = coreBottom - top
-        val beside = coreHeight > coreWidth
-        val breadth = if (beside) coreHeight else coreWidth
-        val spots = Layered.shelves(bounds.map { (it[2] - it[0]) to (it[3] - it[1]) }, LooseGap, (breadth * breadth / area).coerceIn(1.0, 8.0))
-        val looseHeight = bounds.indices.maxOf { spots[it].second + bounds[it][3] - bounds[it][1] }
-        val corridors = request.doors.filter { it.exit }.map { y(it.box) + BlueprintEngine.DoorSize / 2 + top - coreTop }.sorted()
-        var looseTop = top
-        if (beside) corridors.forEach { corridor ->
-            if (looseTop < corridor + LooseGap && looseTop + looseHeight > corridor - LooseGap) looseTop = corridor + LooseGap
+        val sizes = bounds.map { (it[2] - it[0]) to (it[3] - it[1]) }
+        val area = sizes.sumOf { (wide, tall) -> (wide + LooseGap) * (tall + LooseGap) }
+        val corridors = request.doors.filter { it.exit }.map { y(it.box) + DoorSize / 2 - coreTop }.sorted()
+        class Shelved(beside: Boolean, spread: Double) {
+            val spots: List<Pair<Double, Double>>
+            val width: Double
+            val height: Double
+            init {
+                val shelved = Layered.shelves(sizes, LooseGap, spread)
+                val lowered = HashMap<Double, Double>()
+                var pushed = 0.0
+                if (beside) shelved.map { it.second }.distinct().sorted().forEach { shelf ->
+                    val tall = sizes.indices.filter { shelved[it].second == shelf }.maxOf { sizes[it].second }
+                    var at = shelf + pushed
+                    corridors.forEach { corridor -> if (at < corridor + LooseGap / 2 && at + tall > corridor - LooseGap / 2) at = corridor + LooseGap / 2 }
+                    pushed = at - shelf
+                    lowered[shelf] = pushed
+                }
+                spots = shelved.map { (px, py) -> if (beside) coreWidth + LooseGap + px to py + (lowered[py] ?: 0.0) else px to coreHeight + LooseGap + py }
+                width = maxOf(coreWidth, sizes.indices.maxOfOrNull { spots[it].first + sizes[it].first } ?: 0.0)
+                height = maxOf(coreHeight, sizes.indices.maxOfOrNull { spots[it].second + sizes[it].second } ?: 0.0)
+            }
+            private val shape = width / height.coerceAtLeast(1.0)
+            val proportioned = shape in LooseNarrow..LooseWide
+            val cost = width * height * (1 + abs(ln(shape / LooseShape)))
         }
+        val shelved = if (pieces.isEmpty()) null else listOf(true, false).flatMap { beside ->
+            val breadth = (if (beside) coreHeight else coreWidth).coerceAtLeast(1.0)
+            val natural = (if (beside) area / (breadth * breadth) else breadth * breadth / area).coerceIn(1 / LooseSpread, LooseSpread)
+            (generateSequence(1 / LooseSpread) { it * 2 }.takeWhile { it <= LooseSpread } + natural).distinct().map { Shelved(beside, it) }.toList()
+        }.let { shapes -> shapes.filter { it.proportioned }.ifEmpty { shapes }.minBy { it.cost } }
         val dx = DoubleArray(boxes.size)
         val dy = DoubleArray(boxes.size)
-        core.forEach { dx[it] = left - coreLeft; dy[it] = top - coreTop }
+        boxes.indices.forEach { if (held[it]) { dx[it] = left - coreLeft; dy[it] = top - coreTop } }
         pieces.forEachIndexed { at, piece -> piece.forEach {
-            dx[it] = left + (if (beside) coreWidth + LooseGap else 0.0) + spots[at].first - bounds[at][0]
-            dy[it] = (if (beside) looseTop else top + coreHeight + LooseGap) + spots[at].second - bounds[at][1]
+            dx[it] = left + shelved!!.spots[at].first - bounds[at][0]
+            dy[it] = top + shelved.spots[at].second - bounds[at][1]
         } }
-        val nodes = DoubleArray(result.nodes.size) { result.nodes[it] + if (it / 2 < boxes.size) (if (it % 2 == 0) dx[it / 2] else dy[it / 2]) else 0.0 }
-        val edges = result.edges.mapIndexed { at, flat -> val box = sources.getOrNull(at) ?: return@mapIndexed flat; DoubleArray(flat.size) { flat[it] + if (it % 2 == 0) dx[box] else dy[box] } }
-        val padRight = (result.width - outlines.values.maxOf { it[2] }).coerceAtLeast(0.0)
-        val padBottom = (result.height - outlines.values.maxOf { it[3] }).coerceAtLeast(0.0)
+        val nodes = DoubleArray(settled.size) { settled[it] + if (it / 2 < boxes.size) (if (it % 2 == 0) dx[it / 2] else dy[it / 2]) else 0.0 }
+        val edges = traced.mapIndexed { at, flat -> val box = sources.getOrNull(at) ?: return@mapIndexed flat; DoubleArray(flat.size) { flat[it] + if (it % 2 == 0) dx[box] else dy[box] } }
         var right = boxes.indices.maxOf { nodes[it * 2] + boxes[it].width }
         var bottom = boxes.indices.maxOf { nodes[it * 2 + 1] + boxes[it].height }
-        edges.forEach { flat -> for (at in flat.indices step 2) { right = maxOf(right, flat[at]); bottom = maxOf(bottom, flat[at + 1]) } }
+        edges.forEachIndexed { at, flat -> if (sources.getOrNull(at) != null) for (point in flat.indices step 2) { right = maxOf(right, flat[point]); bottom = maxOf(bottom, flat[point + 1]) } }
         return FrameResult(right + padRight, bottom + padBottom, nodes, edges, result.failure)
     }
 
+    private class Squeeze(spans: List<DoubleArray>, limit: Double) {
+        private val starts: DoubleArray
+        private val shifts: DoubleArray
+
+        init {
+            val merged = ArrayList<DoubleArray>()
+            spans.sortedBy { it[0] }.forEach { span ->
+                val last = merged.lastOrNull()
+                if (last != null && span[0] <= last[1] + limit) last[1] = maxOf(last[1], span[1]) else merged += doubleArrayOf(span[0], span[1])
+            }
+            starts = DoubleArray(merged.size) { merged[it][0] }
+            shifts = DoubleArray(merged.size)
+            for (at in 1 until merged.size) shifts[at] = shifts[at - 1] + merged[at][0] - merged[at - 1][1] - limit
+        }
+
+        fun at(value: Double): Double = if (starts.isEmpty()) value else value - shifts[(starts.above(value) - 1).coerceAtLeast(0)]
+    }
+
     private const val LooseGap = 36.0
+    private const val LooseSpread = 8.0
+    private const val LooseShape = 1.6
+    private const val LooseNarrow = 2.0 / 3.0
+    private const val LooseWide = 4.0
 
     internal fun stitch(pieces: List<List<Pair<Double, Double>>>): List<Pair<Double, Double>> {
         val points = ArrayList<Pair<Double, Double>>(pieces.sumOf { it.size })
@@ -892,7 +944,14 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
         val routed = inside.values.flatMapTo(HashSet()) { list -> list.filter { !it.curved }.map { it.id } }
         val keyed = blocks.associateBy { it.group.key }
         val crossing = joined.filter { it.id !in routed && it.id !in overlays && rootOf[it.from] != rootOf[it.to] && rootOf[it.from] in keyed && rootOf[it.to] in keyed }
-        val flow = if (crossing.isEmpty() || options.packed) null else flow(blocks, keyed, crossing, aspect)
+        val beside = HashMap<String, MutableSet<String>>()
+        joined.forEach { edge ->
+            val from = rootOf[edge.from]?.takeIf { edge.id in overlays && it in keyed } ?: return@forEach
+            val to = rootOf[edge.to]?.takeIf { it in keyed && it != from } ?: return@forEach
+            beside.getOrPut(from) { HashSet() } += to
+            beside.getOrPut(to) { HashSet() } += from
+        }
+        val flow = if (crossing.isEmpty() || options.packed) null else flow(blocks, keyed, crossing, aspect, beside)
         val placement = flow?.let { blocks.map { block -> block to it.origins.getValue(block.group.key) } }
             ?: if (options.fill) BlueprintEngine.fill(blocks, aspect) else BlueprintEngine.pack(blocks, aspect)
         val origins = placement.associate { (block, origin) -> block.group.key to origin }
@@ -949,6 +1008,7 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
         const val Tries = 6
         const val Spur = 16.0
         const val CompactGain = 0.05
+        val ColumnLimits = listOf(2.0, 1.5, 1.2, 1.0)
     }
 
     private class Flow(val origins: Map<String, Pair<Double, Double>>, val trunks: Map<Pair<String?, String?>, List<Pair<Double, Double>>>, val width: Double, val height: Double)
@@ -965,33 +1025,47 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
         return block.layout.frames.firstOrNull { it.key == id }?.let { BlueprintEngine.FrameTop + it.y + BlueprintEngine.FrameTop / 2 }
     }
 
-    private fun flow(blocks: List<BlueprintEngine.Block>, keyed: Map<String, BlueprintEngine.Block>, crossing: List<FrameEdge>, aspect: Double): Flow {
+    private fun flow(blocks: List<BlueprintEngine.Block>, keyed: Map<String, BlueprintEngine.Block>, crossing: List<FrameEdge>, aspect: Double, beside: Map<String, Set<String>>): Flow {
         val pairs = LinkedHashMap<Pair<String, String>, MutableList<FrameEdge>>()
         crossing.forEach { edge -> pairs.getOrPut(rootOf.getValue(edge.from) to rootOf.getValue(edge.to)) { ArrayList() } += edge }
-        val tied = pairs.keys.flatMapTo(HashSet()) { listOf(it.first, it.second) }
-        val loose = blocks.filter { it.group.key !in tied }
-        if (loose.isEmpty() || loose.size == blocks.size) return laid(blocks, keyed, pairs, aspect)
-        return tucked(laid(blocks - loose.toSet(), keyed, pairs, aspect), keyed, loose) ?: laid(blocks, keyed, pairs, aspect)
+        val joined = HashMap<String, String>()
+        fun head(key: String): String = generateSequence(key) { joined[it] }.last()
+        pairs.keys.forEach { (from, to) -> val one = head(from); val other = head(to); if (one != other) joined[other] = one }
+        val parts = blocks.groupBy { head(it.group.key) }.values.sortedByDescending { part -> part.sumOf { it.width * it.height } }
+        if (parts.size == 1) return laid(blocks, keyed, pairs, aspect)
+        fun settled(part: List<BlueprintEngine.Block>): Flow = part.singleOrNull()?.let { Flow(mapOf(it.group.key to (0.0 to 0.0)), emptyMap(), it.width, it.height) }
+            ?: part.mapTo(HashSet()) { it.group.key }.let { keys -> laid(part, keyed, pairs.filterKeys { it.first in keys }, aspect) }
+        return tucked(settled(parts.first()), keyed, parts.drop(1).map(::settled), aspect, beside)
     }
 
-    private fun tucked(core: Flow, keyed: Map<String, BlueprintEngine.Block>, loose: List<BlueprintEngine.Block>): Flow? {
+    private fun tucked(core: Flow, keyed: Map<String, BlueprintEngine.Block>, islands: List<Flow>, aspect: Double, beside: Map<String, Set<String>>): Flow {
         val gap = BlueprintEngine.GroupGap
         val taken = core.origins.map { (key, origin) -> keyed.getValue(key).let { doubleArrayOf(origin.first, origin.second, origin.first + it.width, origin.second + it.height) } }.toMutableList()
         val corridors = core.trunks.values.flatMap { it.zipWithNext() }.map { (a, b) -> doubleArrayOf(minOf(a.first, b.first), minOf(a.second, b.second), maxOf(a.first, b.first), maxOf(a.second, b.second)) }
         fun clear(box: DoubleArray, margin: Double, x: Double, y: Double, width: Double, height: Double) =
             x - margin >= box[2] || x + width + margin <= box[0] || y - margin >= box[3] || y + height + margin <= box[1]
         val origins = LinkedHashMap(core.origins)
-        loose.sortedByDescending { it.width * it.height }.forEach { block ->
-            val xs = listOf(0.0, core.width - block.width) + taken.flatMap { listOf(it[2] + gap, it[0] - gap - block.width) }
-            val ys = listOf(0.0, core.height - block.height) + taken.flatMap { listOf(it[3] + gap, it[1] - gap - block.height) }
-            val spot = ys.flatMap { y -> xs.map { x -> x to y } }
-                .filter { (x, y) -> x >= 0 && y >= 0 && x + block.width <= core.width && y + block.height <= core.height }
-                .filter { (x, y) -> taken.all { clear(it, gap, x, y, block.width, block.height) } && corridors.all { clear(it, gap / 2, x, y, block.width, block.height) } }
-                .minByOrNull { (x, y) -> core.width - x - block.width + y } ?: return null
-            origins[block.group.key] = spot
-            taken += doubleArrayOf(spot.first, spot.second, spot.first + block.width, spot.second + block.height)
+        val trunks = HashMap(core.trunks)
+        var width = core.width
+        var height = core.height
+        islands.sortedWith(compareByDescending<Flow> { it.height }.thenByDescending { it.width }).forEach { island ->
+            fun reach(x: Double, y: Double) = floor(maxOf(maxOf(width, x + island.width) / aspect, maxOf(height, y + island.height)))
+            val drawn = island.origins.keys.flatMapTo(HashSet()) { beside[it].orEmpty() }.mapNotNull { key ->
+                origins[key]?.let { (left, top) -> keyed.getValue(key).let { doubleArrayOf(left, top, left + it.width, top + it.height) } }
+            }
+            fun apart(x: Double, y: Double) = drawn.sumOf { maxOf(0.0, it[0] - x - island.width, x - it[2]) + maxOf(0.0, it[1] - y - island.height, y - it[3]) }
+            val xs = (listOf(0.0, width + gap) + taken.flatMap { listOf(it[2] + gap, it[0], it[0] - gap - island.width) }).filter { it >= 0 }.distinct()
+            val ys = (listOf(0.0) + taken.flatMap { listOf(it[3] + gap, it[1], it[1] - gap - island.height) }).filter { it >= 0 }.distinct()
+            val (x, y) = ys.flatMap { y -> xs.map { x -> x to y } }
+                .filter { (x, y) -> taken.all { clear(it, gap, x, y, island.width, island.height) } && corridors.all { clear(it, gap / 2, x, y, island.width, island.height) } }
+                .minWith(compareBy<Pair<Double, Double>>({ reach(it.first, it.second) }, { apart(it.first, it.second) }, { it.second }, { it.first }))
+            island.origins.forEach { (key, at) -> origins[key] = x + at.first to y + at.second }
+            island.trunks.forEach { (pair, points) -> trunks[pair] = BlueprintEngine.translate(points, x, y) }
+            taken += doubleArrayOf(x, y, x + island.width, y + island.height)
+            width = maxOf(width, x + island.width)
+            height = maxOf(height, y + island.height)
         }
-        return Flow(origins, core.trunks, core.width, core.height)
+        return Flow(origins, trunks, width, height)
     }
 
     private fun laid(blocks: List<BlueprintEngine.Block>, keyed: Map<String, BlueprintEngine.Block>, pairs: Map<Pair<String, String>, List<FrameEdge>>, aspect: Double): Flow {
@@ -1009,11 +1083,14 @@ class BlueprintPlan(val groups: List<BlueprintGroup>, edges: List<BlueprintEdge>
         }
         val nodes = blocks.map { LayeredNode(it.group.key, it.width, it.height, ports[it.group.key].orEmpty()) }
         val area = blocks.sumOf { (it.width + BlueprintEngine.GroupGap) * (it.height + BlueprintEngine.GroupGap) }
-        val spacing = LayeredSpacing(node = BlueprintEngine.GroupGap, layer = BlueprintEngine.GroupGap * 1.5, edge = 10.0,
-            component = BlueprintEngine.GroupGap, aspect = aspect, wrapHeight = maxOf(2 * sqrt(area / aspect), blocks.maxOf { it.height }), align = LayeredAlign.West)
+        val even = sqrt(area / aspect)
+        val tallest = blocks.maxOf { it.height }
+        fun spacing(limit: Double, compact: Boolean) = LayeredSpacing(node = BlueprintEngine.GroupGap, layer = BlueprintEngine.GroupGap * 1.5, edge = 10.0,
+            component = BlueprintEngine.GroupGap, aspect = aspect, wrapHeight = maxOf(limit * even, tallest), align = LayeredAlign.West, compact = compact)
         fun reach(flow: Flow) = maxOf(flow.width / aspect, flow.height)
-        val free = arranged(blocks, nodes, edges, pairs, spacing, aspect)
-        val tight = arranged(blocks, nodes, edges, pairs, spacing.copy(compact = true), aspect)
+        val free = arranged(blocks, nodes, edges, pairs, spacing(ColumnLimits.first(), false), aspect)
+        val tight = ColumnLimits.flatMap { limit -> listOf(false, true).map { compact -> spacing(limit, compact) } }.drop(1)
+            .map { arranged(blocks, nodes, edges, pairs, it, aspect) }.minBy(::reach)
         return if (reach(tight) < reach(free) * (1 - CompactGain)) tight else free
     }
 

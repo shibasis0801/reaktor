@@ -120,7 +120,11 @@ internal data class BlueprintHeaderSlots(val title: BlueprintTitleSlot?, val mar
 private data class PlacedMark(val mark: BlueprintMark, val measured: Measured, val bounds: Rect) {
     fun slot() = BlueprintMarkSlot(mark, bounds, measured.text?.layoutInput?.style)
 }
-private data class FrameHeader(val title: BlueprintTitleSlot, val labels: List<Pair<TextLayoutResult, Float>>, val marks: List<PlacedMark>)
+private data class FrameHeader(val title: BlueprintTitleSlot, val labels: List<Pair<TextLayoutResult, Float>>, val marks: List<PlacedMark>, val extent: Float)
+private class FramePlate(val key: BlueprintFrameLook, val entries: List<String>) {
+    val headers = arrayOfNulls<FrameHeader>(entries.size + 1)
+    var widths: FloatArray? = null
+}
 
 // Composition can replace handlers without changing anything in the recorded picture.
 private fun BlueprintCardLook.paintKey(): PaintKey {
@@ -584,25 +588,31 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         }
     }
 
-    override fun banner(i: Int, width: Float, zoom: Double, compact: Boolean): GraphicsLayer? {
+    override fun banner(i: Int, own: Float, free: Float, zoom: Double, compact: Boolean): GraphicsLayer? {
         val frame = frames.getOrNull(i)?.takeIf { it.label.isNotBlank() } ?: return null
         val look = frameLooks.getOrNull(i) ?: return null
         if (fixedFrameLabels) {
-            val natural = 60f + measure(frame.label, headerStyles[0], Float.MAX_VALUE).size.width +
-                measure(look.count, headerStyles[1], Float.MAX_VALUE).size.width +
-                measure(frame.detail.joinToString(" · "), headerStyles[2], Float.MAX_VALUE).size.width +
-                look.marks.sumOf { measureMark(it).width.toDouble() + 8.0 }.toFloat()
-            val shown = natural.coerceAtMost(width.coerceAtLeast(BlueprintEngine.CardWidth.toFloat()))
-            val labeled = frame.copy(width = shown.toDouble())
-            return bannerLayer(i, listOf(framePaintKeys[i], frame.label, shown, fixedFrameLabels)) { layer ->
-                layer.record(unit, LayoutDirection.Ltr, IntSize(ceil(shown).toInt(), BlueprintEngine.FrameTop.toInt())) {
-                    drawRoundRect(colors.surface.copy(alpha = .92f), Offset.Zero,
-                        Size(shown, BlueprintEngine.FrameTop.toFloat()), CornerRadius(MachineSignal.Radius.panel.value))
-                    drawRect(look.lit ?: accent, Offset.Zero, Size(3f, BlueprintEngine.FrameTop.toFloat()))
-                    drawHeader(labeled, look, 0f, 0f)
+            val plate = plate(i, frame)
+            fun whole(captions: Int) = plate.headers[captions] ?: frameHeader(frame.copy(width = PlateRoom), look, PlateHeight, captions).also { plate.headers[captions] = it }
+            val spare = own - whole(0).extent - 8f
+            val captions = if (spare <= 0f || plate.entries.isEmpty()) 0 else (plate.widths ?: FloatArray(plate.entries.size) {
+                measure(caption(plate.entries, it + 1), headerStyles[2], PlateRoom.toFloat()).size.width.toFloat()
+            }.also { plate.widths = it }).indexOfLast { it <= spare } + 1
+            val room = max(max(own, free), PlateFloor)
+            val fits = whole(captions).extent <= room
+            val tight = if (fits) 0f else floor(room / 8f) * 8f
+            return bannerLayer(i, listOf(framePaintKeys[i], frame.label, tight, captions)) { layer ->
+                val header = if (fits) whole(captions) else frameHeader(frame.copy(width = tight.toDouble()), look, PlateHeight, 0)
+                val shown = if (fits) header.extent else min(header.extent, tight)
+                plateHeaders[i] = header
+                layer.record(unit, LayoutDirection.Ltr, IntSize(ceil(shown).toInt(), ceil(PlateHeight).toInt())) {
+                    drawRoundRect(colors.surface.copy(alpha = .92f), Offset.Zero, Size(shown, PlateHeight), CornerRadius(MachineSignal.Radius.panel.value))
+                    drawRect(look.lit ?: accent, Offset.Zero, Size(3f, PlateHeight))
+                    drawHeader(header, 0f, 0f, PlateHeight, look)
                 }
             }
         }
+        val width = free
         val count = if (compact) "" else look.count
         val whole = areaLabels.getOrPut(Triple(frame.label, count, Int.MAX_VALUE)) { areaText(frame.label, count, Int.MAX_VALUE) }
         val natural = max(whole.first.size.width, whole.second?.size?.width ?: 0) + 22f
@@ -1174,18 +1184,27 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         }
     }
 
-    private fun frameHeader(frame: Frame, look: BlueprintFrameLook): FrameHeader {
-        val height = BlueprintEngine.FrameTop.toFloat()
+    private fun captions(frame: Frame) = frame.detail.filter { it.isNotBlank() && it != frame.label }
+
+    private fun caption(entries: List<String>, shown: Int) =
+        entries.take(shown).joinToString(" · ") + if (shown in 1 until entries.size) " · +${entries.size - shown}" else ""
+
+    private fun plate(i: Int, frame: Frame): FramePlate {
+        if (platesOf !== frames) { plates = arrayOfNulls(frames.size); plateHeaders = arrayOfNulls(frames.size); platesOf = frames }
+        plates[i]?.let { if (it.key == framePaintKeys[i]) return it }
+        return FramePlate(framePaintKeys[i], captions(frame)).also { plates[i] = it }
+    }
+
+    private fun frameHeader(frame: Frame, look: BlueprintFrameLook, height: Float = BlueprintEngine.FrameTop.toFloat(), captions: Int = -1): FrameHeader {
         val left = 34f
         val right = frame.width.toFloat() - 12f
         val controls = look.marks.filter { it in look.markContent }.distinct().map { it to measureMark(it) }
         val textRight = right - markWidth(controls, 8f)
-        val detail = frame.detail.joinToString(" · ")
-        val info = listOf(look.count, detail)
+        val entries = captions(frame)
         val titleRoom = (textRight - left).coerceAtLeast(0f)
         val titleText = measure(frame.label, headerStyles[0], titleRoom)
         val titleWidth = if (look.titleContent == null) titleText.size.width.toFloat() else {
-            val infoRoom = info.mapIndexed { i, value ->
+            val infoRoom = listOf(look.count, entries.joinToString(" · ")).mapIndexed { i, value ->
                 measure(value, headerStyles[i + 1], titleRoom).size.width + 8f
             }.sum().coerceAtMost(titleRoom / 3f)
             minOf(maxOf(titleText.size.width.toFloat(), BlueprintEngine.CardWidth.toFloat() / 3f), titleRoom - infoRoom)
@@ -1194,11 +1213,15 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         var at = title.bounds.right + 8f
         val labels = buildList {
             if (look.titleContent == null) add(titleText to left)
-            info.forEachIndexed { i, value ->
-                val text = measure(value, headerStyles[i + 1], textRight - at)
-                add(text to at)
-                at += text.size.width + 8f
+            fun place(value: String, style: TextStyle) {
+                val text = measure(value, style, PlateRoom.toFloat()).takeIf { it.size.width <= textRight - at }
+                text?.let { add(it to at) }
+                at += (text?.size?.width ?: 0) + 8f
             }
+            place(look.count, headerStyles[1])
+            val whole = if (captions >= 0) captions.coerceAtMost(entries.size)
+                else (entries.size downTo 1).firstOrNull { measure(caption(entries, it), headerStyles[2], PlateRoom.toFloat()).size.width <= textRight - at } ?: 0
+            place(caption(entries, whole), headerStyles[2])
         }
         val marks = buildList {
             for (mark in look.marks) {
@@ -1215,25 +1238,31 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
                 at += measured.width + 8f
             }
         }
-        return FrameHeader(title, labels, marks)
+        val extent = maxOf(title.bounds.right, labels.filter { it.first.size.width > 0 }.maxOfOrNull { (text, x) -> x + text.size.width } ?: 0f, marks.maxOfOrNull { it.bounds.right } ?: 0f) + 12f
+        return FrameHeader(title, labels, marks, extent)
     }
 
-    fun frameHeaderSlots(frame: Frame, look: BlueprintFrameLook): BlueprintHeaderSlots {
-        val header = frameHeader(frame, look)
-        return BlueprintHeaderSlots(header.title.takeIf { look.titleContent != null },
-            header.marks.filter { it.mark in look.markContent }.map(PlacedMark::slot))
-    }
+    private fun slots(header: FrameHeader, look: BlueprintFrameLook) = BlueprintHeaderSlots(header.title.takeIf { look.titleContent != null },
+        header.marks.filter { it.mark in look.markContent }.map(PlacedMark::slot))
+
+    fun frameHeaderSlots(frame: Frame, look: BlueprintFrameLook): BlueprintHeaderSlots = slots(frameHeader(frame, look), look)
+
+    fun frameLabelSlots(i: Int, look: BlueprintFrameLook): BlueprintHeaderSlots? = plateHeaders.getOrNull(i)?.let { slots(it, look) }
 
     val frameLabels = mutableStateOf<List<Rect?>>(emptyList())
+    private var plates = arrayOfNulls<FramePlate>(0)
+    private var plateHeaders = arrayOfNulls<FrameHeader>(0)
+    private var platesOf: List<Frame>? = null
 
     override fun bannersPlaced(bounds: List<Rect?>) {
         if (frameLabels.value != bounds) frameLabels.value = bounds
     }
 
-    private fun DrawScope.drawHeader(frame: Frame, look: BlueprintFrameLook, x: Float, y: Float) {
-        val height = BlueprintEngine.FrameTop.toFloat()
+    private fun DrawScope.drawHeader(frame: Frame, look: BlueprintFrameLook, x: Float, y: Float) =
+        drawHeader(frameHeader(frame, look), x, y, BlueprintEngine.FrameTop.toFloat(), look)
+
+    private fun DrawScope.drawHeader(header: FrameHeader, x: Float, y: Float, height: Float, look: BlueprintFrameLook) {
         icon(look.icon).draw(this, x + 12f, y + (height - 14f) / 2, 14f, tint)
-        val header = frameHeader(frame, look)
         header.labels.forEach { (text, at) -> paint(text, x + at, y + (height - text.size.height) / 2) }
         drawHeaderMarks(header.marks, x, y)
     }
@@ -1250,5 +1279,8 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         const val TitledInset = 18f
         val ProseLines = intArrayOf(3, 4, 5)
         const val Joiners = ",;:·–-"
+        const val PlateHeight = 28f
+        const val PlateFloor = 96f
+        const val PlateRoom = 16000.0
     }
 }
