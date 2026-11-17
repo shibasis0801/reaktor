@@ -38,7 +38,7 @@ class HarnessSessionsTest {
         File(home, ".codex/sessions/2026/10/01/rollout-2026-10-01T10-00-00-x1.jsonl").apply { parentFile.mkdirs() }.apply {
             writeText(listOf(
                 """{"timestamp":"2026-10-01T10:00:00Z","type":"session_meta","payload":{"id":"x1","cwd":"$parent","originator":"Codex Desktop","cli_version":"0.159.0","timestamp":"2026-10-01T10:00:00Z"}}""",
-                """{"timestamp":"2026-10-01T10:00:01Z","type":"turn_context","payload":{"cwd":"$parent","model":"gpt-6.1-sol","effort":"xhigh","workspace_roots":["$parent"]}}""",
+                """{"timestamp":"2026-10-01T10:00:01Z","type":"turn_context","payload":{"cwd":"$parent","model":"gpt-6.1-sol","effort":"xhigh","workspace_roots":["$ws"]}}""",
                 """{"timestamp":"2026-10-02T06:58:00Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"McpToolCall","server":"reaktor","tool":"system_topology","status":"completed"}}}""",
                 """{"timestamp":"2026-10-02T06:58:30Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"FileChange","changes":{"$ws/targets/botServer/wrangler.json":{"type":"update"}}}}}""",
                 """{"timestamp":"2026-10-02T06:58:40Z","type":"event_msg","payload":{"type":"item_completed","item":{"type":"CommandExecution","command":["/bin/zsh","-lc","./gradlew :engine:jvmTest\n--console=plain"]}}}""",
@@ -51,6 +51,46 @@ class HarnessSessionsTest {
     @AfterTest fun clean() {
         home.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
         workspace.parentFile.deleteTreeSafely(within = java.io.File(System.getProperty("java.io.tmpdir")))
+    }
+
+    @Test fun aParentWorkspaceDoesNotDonateItsSessionsToAChild() {
+        claude("-parent", "parent-only", workspace.parentFile.path, now - 1000,
+            """{"type":"user","cwd":"${workspace.parentFile.path}","sessionId":"parent-only","message":{"content":"Parent work"}}""")
+        assertTrue(HarnessSessions.read(workspace, home, now, processes()).none { it.id == "parent-only" })
+    }
+
+    @Test fun aCompletedCodexTurnIsEndedImmediatelyWhenItsProcessClosed() {
+        val file = File(home, ".codex/sessions/2026/10/01/rollout-2026-10-01T10-00-00-x1.jsonl")
+        file.appendText("""{"timestamp":"2026-10-02T06:59:59Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"finished"}}""" + "\n")
+        file.setLastModified(now - 1000)
+        assertEquals(HarnessActivity.Ended, HarnessSessions.read(workspace, home, now, processes()).first { it.id == "x1" }.activity)
+    }
+
+    @Test fun aRecentlyClosedCodexProcessDoesNotKeepItsTurnWorking() {
+        val file = File(home, ".codex/sessions/2026/10/01/rollout-2026-10-01T10-00-00-x1.jsonl")
+        file.appendText("""{"timestamp":"2026-10-02T06:59:59Z","type":"event_msg","payload":{"type":"task_started","turn_id":"closed"}}""" + "\n")
+        file.setLastModified(now - 1000)
+        assertEquals(HarnessActivity.Ended, HarnessSessions.read(workspace, home, now, processes()).first { it.id == "x1" }.activity)
+    }
+
+    @Test fun aClaudeResultEndsImmediatelyWithoutALiveProcess() {
+        val file = File(home, ".claude/projects/-in-workspace/c1.jsonl")
+        file.appendText("""{"type":"result","timestamp":"2026-10-02T06:59:59Z","result":"An invented finished answer"}""" + "\n")
+        file.setLastModified(now - 1000)
+        assertEquals(HarnessActivity.Ended, HarnessSessions.read(workspace, home, now, processes()).first { it.id == "c1" }.activity)
+    }
+
+    @Test fun aGeminiAnswerWaitsQuietlyAndAnErrorEndsImmediately() {
+        val file = home.resolve(".gemini/antigravity-cli/brain/gemini-fixture/.system_generated/logs/transcript.jsonl").apply { parentFile.mkdirs() }
+        file.writeText("""{"step_index":0,"type":"USER_INPUT","content":"Invented task"}""" + "\n" +
+            """{"step_index":1,"type":"PLANNER_RESPONSE","content":"Finished answer","tool_calls":[{"name":"view_file","args":{"AbsolutePath":"${workspace.path}/Source.kt"}}]}""" + "\n" +
+            """{"step_index":2,"type":"VIEW_FILE","content":"Invented result"}""" + "\n")
+        file.setLastModified(now - 1000)
+        fun read() = HarnessSessions.read(workspace, home, now, processes()).first { it.id == "gemini-fixture" }
+        assertEquals(HarnessActivity.Waiting, read().activity)
+        file.appendText("""{"step_index":3,"type":"ERROR_MESSAGE","content":"Invented failure"}""" + "\n")
+        file.setLastModified(now)
+        assertEquals(HarnessActivity.Ended, read().activity)
     }
 
     @Test fun findsTheClaudeAndCodexSessionsWorkingOnThisWorkspace() {
@@ -99,7 +139,7 @@ class HarnessSessionsTest {
 
     @Test fun transcriptsWrittenUnderOneSessionAreOneSessionFromTheLatestTranscript() {
         val latest = File(home, ".codex/sessions/2026/10/01/rollout-2026-10-01T12-00-00-x1.jsonl").apply {
-            writeText("""{"timestamp":"2026-10-01T12:00:00Z","type":"session_meta","payload":{"id":"x1","cwd":"${workspace.parentFile.path}","timestamp":"2026-10-01T12:00:00Z"}}""" + "\n")
+            writeText("""{"timestamp":"2026-10-01T12:00:00Z","type":"session_meta","payload":{"id":"x1","cwd":"${workspace.path}","timestamp":"2026-10-01T12:00:00Z"}}""" + "\n")
             setLastModified(now - 60_000)
         }
         val codex = HarnessSessions.read(workspace, home, now).filter { it.runtime == RuntimeKind.Codex }
@@ -124,9 +164,7 @@ class HarnessSessionsTest {
         assertEquals(111L, sessions.getValue("c5").pid)
         assertEquals(HarnessActivity.Waiting, sessions.getValue("c1").activity)
         assertEquals("Hangar agent pane", sessions.getValue("c1").title)
-        assertEquals("Planning the week", sessions.getValue("c9").title)
-        assertEquals(HarnessActivity.Waiting, sessions.getValue("c9").activity)
-        assertEquals("", sessions.getValue("c9").transcript)
+        assertTrue("c9" !in sessions)
         assertEquals(null, sessions["c3"])
     }
 
@@ -166,7 +204,7 @@ class HarnessSessionsTest {
         assertEquals(HarnessActivity.Waiting, state(open = true))
         transcript.appendText("""{"timestamp":"2026-10-02T06:59:00Z","type":"event_msg","payload":{"type":"task_started","turn_id":"t2"}}""" + "\n")
         assertEquals(HarnessActivity.Working, state(open = true))
-        assertEquals(HarnessActivity.Working, state(open = false, modified = now - 30_000))
+        assertEquals(HarnessActivity.Ended, state(open = false, modified = now - 30_000))
         assertEquals(HarnessActivity.Ended, state(open = false))
         transcript.appendText("""{"timestamp":"2026-10-02T06:59:10Z","type":"event_msg","payload":{"type":"exec_approval_request","call_id":"a1"}}""" + "\n" +
             """{"timestamp":"2026-10-02T06:59:11Z","type":"event_msg","payload":{"type":"token_count","info":{}}}""" + "\n")

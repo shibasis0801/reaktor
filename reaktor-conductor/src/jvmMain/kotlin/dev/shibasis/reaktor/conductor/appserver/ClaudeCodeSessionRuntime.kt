@@ -89,6 +89,8 @@ private class ClaudeCodeSession(
     private val pending = ConcurrentHashMap<String, ClaudeRequest>()
     private val generation = java.util.UUID.randomUUID().toString()
     @Volatile private var interrupted = false
+    @Volatile private var receiving = false
+    private var queued = 0
 
     @Volatile private var turn: String? = null
     override val activeTurn: String? get() = turn
@@ -116,6 +118,7 @@ private class ClaudeCodeSession(
             lines.close()
         }
 
+        receiving = true
         val initialized = CompletableDeferred<JsonObject>()
         val initId = "$generation-initialize"
         controls[initId] = initialized
@@ -131,6 +134,7 @@ private class ClaudeCodeSession(
             writeUser(request.prompt)
         }
 
+        try {
         for (line in lines) {
             val message = runCatching { Json.parseToJsonElement(line).jsonObject }.getOrNull()
             when (message?.get("type")?.jsonPrimitive?.contentOrNull) {
@@ -166,14 +170,23 @@ private class ClaudeCodeSession(
                 continue
             }
             parser.onLine(line).forEach { send(it) }
-            if (message?.get("type")?.jsonPrimitive?.contentOrNull == "result") break
+            if (message?.get("type")?.jsonPrimitive?.contentOrNull == "result") {
+                val finished = synchronized(writeLock) {
+                    queued--
+                    (queued <= 0).also { if (it) turn = null }
+                }
+                if (finished) break
+            }
         }
 
+        } finally {
+        receiving = false
         turn = null
         startup.cancel()
         reader.cancel()
         lines.close()
         pending.clear()
+        }
         send(AgentEvent.Finished(agent, parser.finish(
             exitCode = if (process.isAlive) 0 else process.exitValue(),
             stderr = synchronized(stderr) { stderr.toString() },
@@ -181,10 +194,12 @@ private class ClaudeCodeSession(
     }
 
     override suspend fun steer(text: String, expectedTurn: String?): CommandOutcome {
-        val active = turn ?: return CommandOutcome.Stale(expectedTurn, null)
-        if (expectedTurn != null && expectedTurn != active) return CommandOutcome.Stale(expectedTurn, active)
-        return runCatching { writeUser(text); CommandOutcome.Accepted }
+        return synchronized(writeLock) {
+        val active = turn ?: return@synchronized CommandOutcome.Stale(expectedTurn, null)
+        if (expectedTurn != null && expectedTurn != active) return@synchronized CommandOutcome.Stale(expectedTurn, active)
+        runCatching { writeUser(text); CommandOutcome.Accepted }
             .getOrElse { CommandOutcome.Failed(it.message ?: "Input could not be sent") }
+        }
     }
 
     override suspend fun resolve(requestId: String, decision: AgentDecision): CommandOutcome = synchronized(pending) {
@@ -224,13 +239,16 @@ private class ClaudeCodeSession(
         stdin.write(message.toString()); stdin.write("\n"); stdin.flush()
     }
 
-    private fun writeUser(text: String) = write(buildJsonObject {
+    private fun writeUser(text: String) = synchronized(writeLock) {
+        queued++
+        write(buildJsonObject {
         put("type", "user")
         putJsonObject("message") {
             put("role", "user")
             putJsonArray("content") { addJsonObject { put("type", "text"); put("text", text) } }
         }
     })
+    }
 
     override fun close() {
         controls.values.forEach { it.cancel() }

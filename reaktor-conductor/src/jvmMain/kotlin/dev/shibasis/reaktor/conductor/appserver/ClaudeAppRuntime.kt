@@ -7,12 +7,15 @@ import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.*
 import java.io.File
 import java.util.UUID
+import java.nio.file.Files
+import java.nio.file.attribute.PosixFilePermissions
+import dev.shibasis.reaktor.conductor.worklog.WorkLogs
 
 class ClaudeAppRuntime(
     private val app: ClaudeApp = ClaudeApp(),
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
     private val outside: InteractiveAgentRuntime = ClaudeCodeSessionRuntime(scope = scope),
-    private val briefs: File = File(System.getProperty("java.io.tmpdir"), "reaktor-briefs"),
+    private val briefs: File = File(System.getProperty("user.home"), ".reaktor/briefs"),
 ) : InteractiveAgentRuntime {
     override val kind: RuntimeKind = RuntimeKind.ClaudeCode
 
@@ -59,10 +62,12 @@ private class ClaudeAppSession(
     @Volatile private var turn: String? = null
     @Volatile private var session: ClaudeApp.Session? = null
     @Volatile private var closed = false
+    private var briefFile: File? = null
 
     override val activeTurn: String? get() = turn
 
     override val events: Flow<AgentEvent> = channelFlow {
+        try {
         val since = System.currentTimeMillis()
         val known = withContext(Dispatchers.IO) { app.sessions().map { it.id }.toSet() }
         val earlier = resume?.let { withContext(Dispatchers.IO) { app.session(it) } }
@@ -75,7 +80,7 @@ private class ClaudeAppSession(
             }
         }
         send(AgentEvent.Activity(agent, waiting()))
-        val opened = awaitSession(since, known, maxOf(request.agent.budget.timeoutMillis, SendWindow))
+        val opened = awaitSession(since, known, from, maxOf(request.agent.budget.timeoutMillis, SendWindow))
         if (opened == null) {
             send(AgentEvent.Finished(agent, AgentOutcome(agent, "", false, interrupted = closed,
                 failure = if (closed) "Interrupted" else "Nobody sent it in the Claude app in time")))
@@ -89,6 +94,7 @@ private class ClaudeAppSession(
             "Claude app session · ${opened.title ?: opened.id}", ActivityStatus.Recorded, output = opened.id)))
         val outcome = try { follow(opened, from) { send(it) } } finally { turn = null }
         send(AgentEvent.Finished(agent, outcome))
+        } finally { briefFile?.delete(); briefFile = null }
     }
 
     private val sent: String by lazy { brief() }
@@ -96,7 +102,12 @@ private class ClaudeAppSession(
     private fun brief(): String {
         val text = if (request.agent.tools.allowWrites) request.prompt else "$InspectOnly\n\n${request.prompt}"
         if (text.length <= ClaudeApp.PromptLimit) return text
-        val file = File(briefs, "${UUID.randomUUID()}.md").apply { parentFile.mkdirs(); writeText(text) }
+        Files.createDirectories(briefs.toPath(), PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------")))
+        Files.setPosixFilePermissions(briefs.toPath(), PosixFilePermissions.fromString("rwx------"))
+        val file = Files.createTempFile(briefs.toPath(), "brief-", ".md",
+            PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"))).toFile()
+        briefFile = file
+        file.writeText(text)
         return "Read the brief at ${file.path} and do what it says."
     }
 
@@ -111,13 +122,34 @@ private class ClaudeAppSession(
         return AgentActivityItem("claude-app-send", ActivityKind.Control, title, ActivityStatus.Waiting, output = output)
     }
 
-    private suspend fun awaitSession(since: Long, known: Set<String>, window: Long): ClaudeApp.Session? {
+    private suspend fun awaitSession(since: Long, known: Set<String>, from: Long, window: Long): ClaudeApp.Session? {
         val deadline = since + window
         val opening = sent.trim().take(Opening)
+        if (resume != null) {
+            val opened = withContext(Dispatchers.IO) { app.session(resume) } ?: return null
+            val transcript = withContext(Dispatchers.IO) { app.transcript(opened.cli) } ?: return null
+            val tail = TranscriptTail(transcript, from)
+            try {
+                while (!closed) {
+                    val submitted = tail.lines().any { line ->
+                        val row = runCatching { Json.parseToJsonElement(line).jsonObject }.getOrNull()
+                        val content = (row?.get("message") as? JsonObject)?.get("content")
+                        row?.get("type")?.jsonPrimitive?.contentOrNull == "user" &&
+                            row["isSidechain"]?.jsonPrimitive?.booleanOrNull != true &&
+                            (content is JsonPrimitive || (content as? JsonArray).orEmpty().any {
+                                (it as? JsonObject)?.get("type")?.jsonPrimitive?.contentOrNull == "text"
+                            })
+                    }
+                    if (submitted) return opened
+                    val remaining = deadline - System.currentTimeMillis()
+                    if (remaining <= 0 || !tail.await(remaining)) return null
+                }
+            } finally { tail.close() }
+            return null
+        }
         while (!closed && System.currentTimeMillis() < deadline) {
             val found = withContext(Dispatchers.IO) {
-                if (resume != null) app.session(resume)
-                else app.sessions(since - Slack).filter { it.id !in known && File(it.directory).canonicalPath == directory.path }
+                app.sessions(since - Slack).filter { it.id !in known && File(it.directory).canonicalPath == directory.path }
                     .let { fresh -> fresh.firstOrNull { firstPrompt(it)?.startsWith(opening) == true } ?: fresh.singleOrNull() }
             }
             if (found != null) return found
@@ -148,14 +180,14 @@ private class ClaudeAppSession(
                 tail.lines().forEach { line -> reader.line(line).forEach { emit(it) } }
                 val status = withContext(Dispatchers.IO) { app.status(opened.cli) }
                 if (status == "busy") busy = true
-                if (status != "busy" && reader.ended && (busy || reader.answered) || busy && status == "idle") {
+                if (reader.ended || busy && status == "idle") {
                     tail.lines().forEach { line -> reader.line(line).forEach { emit(it) } }
                     return reader.outcome(opened, false)
                 }
                 if (closed) return reader.outcome(opened, true)
                 if (System.currentTimeMillis() > deadline)
                     return reader.outcome(opened, false, "The turn passed its ${request.agent.budget.timeoutMillis} ms budget; it keeps running in the Claude app")
-                tail.await(1_000)
+                tail.await((deadline - System.currentTimeMillis()).coerceAtLeast(1))
             }
         } finally {
             tail.close()
@@ -176,6 +208,8 @@ private class ClaudeAppSession(
 
     override fun close() {
         closed = true
+        briefFile?.delete()
+        briefFile = null
     }
 
     private companion object {

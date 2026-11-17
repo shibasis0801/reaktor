@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.conductor.worklog
 
+import dev.shibasis.reaktor.conductor.*
 import dev.shibasis.reaktor.conductor.telemetry.GeminiTelemetry
 import kotlinx.serialization.json.JsonObject
 
@@ -8,6 +9,32 @@ internal class AntigravityLog(private val root: String?) : LogParser {
 
     private val turns = Turns("agy-")
     private val waiting = ArrayDeque<Pending>()
+    private val toolNames = mutableMapOf<String, String>()
+    private var sink: ((AgentEvent) -> Unit)? = null
+    private val agent = AgentId("gemini-transcript")
+    private val telemetry = GeminiTelemetry.SessionCursor()
+    val paths = linkedSetOf<String>()
+    val samples get() = telemetry.records()
+    private var spoke = false
+
+    fun events(record: JsonObject): List<AgentEvent> {
+        val events = mutableListOf<AgentEvent>()
+        sink = { events += it }
+        try { line(record) } finally { sink = null }
+        return events
+    }
+
+    private fun add(turn: TurnBuilder, step: WorkStep): Int {
+        when (step) {
+            is WorkStep.Message -> {
+                sink?.invoke(AgentEvent.Delta(agent, if (spoke) "\n\n${step.text}" else step.text))
+                spoke = true
+            }
+            is WorkStep.Reasoning -> sink?.invoke(AgentEvent.Reasoning(agent, step.text, ReasoningFidelity.Thinking))
+            else -> sink?.invoke(AgentEvent.Activity(agent, activity(step)))
+        }
+        return turn.add(step)
+    }
 
     override fun line(record: JsonObject) {
         val at = instant(record.str("created_at"))
@@ -18,38 +45,44 @@ internal class AntigravityLog(private val root: String?) : LogParser {
                 waiting.forEach { pending -> turns.at(pending.turn).settle(pending.step) }
                 waiting.clear()
                 turns.start(prompt.trim(), at, prompt)
+                spoke = false
             }
             "PLANNER_RESPONSE" -> {
                 val turn = turns.ensure(at)
+                telemetry.ingest(record)
                 GeminiTelemetry.parseRecord(record)?.normalize()?.let { sample ->
                     if (sample.hasTokens || sample.costUsd != null) {
                         turn.sample(sample.toWorkUsageSample())
                     }
                 }
-                record.str("thinking")?.trim()?.takeIf(String::isNotEmpty)?.let { turn.add(WorkStep.Reasoning("agy:$index:thinking", at, it, summary = false)) }
-                record.str("content")?.trim()?.takeIf(String::isNotEmpty)?.let { turn.add(WorkStep.Message("agy:$index:text", at, it)) }
+                record.str("thinking")?.trim()?.takeIf(String::isNotEmpty)?.let { add(turn, WorkStep.Reasoning("agy:$index:thinking", at, it, summary = false)) }
+                record.str("content")?.trim()?.takeIf(String::isNotEmpty)?.let { add(turn, WorkStep.Message("agy:$index:text", at, it)) }
                 record.list("tool_calls").mapNotNull { it as? JsonObject }.forEachIndexed { position, call ->
-                    waiting += Pending(turns.lastIndex, turn.add(call("agy:$index:$position", at, call.str("name").orEmpty(), call.obj("args")?.parsedArguments() ?: JsonObject(emptyMap()))))
+                    val id = "agy:$index:$position"
+                    val name = call.str("name").orEmpty()
+                    toolNames[id] = name
+                    waiting += Pending(turns.lastIndex, add(turn, call(id, at, name, call.obj("args")?.parsedArguments() ?: JsonObject(emptyMap()))))
                 }
                 turn.open = waiting.isNotEmpty()
             }
             "GENERIC" -> {
                 val pending = waiting.removeFirstOrNull()
                 if (pending == null) {
-                    record.str("content")?.trim()?.takeIf(String::isNotEmpty)?.let { turns.ensure(at).add(WorkStep.Message("agy:$index", at, it)) }
+                    record.str("content")?.trim()?.takeIf(String::isNotEmpty)?.let { add(turns.ensure(at), WorkStep.Message("agy:$index", at, it)) }
                     turns.current?.open = false
-                } else result(pending, record.str("content"), status, at, "content" in record.list("truncated_fields").mapNotNull { it.plain() })
+                } else result(pending, if (status == StepStatus.Failed) record.str("error") ?: record.str("content") else record.str("content"), status, at, "content" in record.list("truncated_fields").mapNotNull { it.plain() })
             }
-            "CHECKPOINT" -> turns.ensure(at).add(WorkStep.Note("agy:$index", at, NoteKind.Checkpoint, "Checkpoint"))
+            "CHECKPOINT" -> add(turns.ensure(at), WorkStep.Note("agy:$index", at, NoteKind.Checkpoint, "Checkpoint"))
             "ERROR_MESSAGE" -> {
                 waiting.removeFirstOrNull()?.let { pending ->
                     result(pending, record.str("content"), StepStatus.Failed, at, "content" in record.list("truncated_fields").mapNotNull { it.plain() })
                 }
-                turns.ensure(at).add(WorkStep.Note("agy:$index", at, NoteKind.Error, LogText.oneLine(record.str("content")) ?: "Antigravity reported an error"))
+                add(turns.ensure(at), WorkStep.Note("agy:$index", at, NoteKind.Error, LogText.oneLine(record.str("content")) ?: "Antigravity reported an error"))
+                turns.current?.open = false
             }
             "SYSTEM_MESSAGE", "CONVERSATION_HISTORY" -> Unit
             else -> waiting.removeFirstOrNull()?.let { pending ->
-                result(pending, record.str("content"), status, at, "content" in record.list("truncated_fields").mapNotNull { it.plain() })
+                result(pending, if (status == StepStatus.Failed) record.str("error") ?: record.str("content") else record.str("content"), status, at, "content" in record.list("truncated_fields").mapNotNull { it.plain() })
             }
         }
     }
@@ -64,6 +97,7 @@ internal class AntigravityLog(private val root: String?) : LogParser {
     }
 
     private fun call(id: String, at: Long?, name: String, args: JsonObject): WorkStep {
+        listOf("Cwd", "TargetFile", "AbsolutePath", "Path", "SearchDirectory", "SearchPath", "DirectoryPath").mapNotNullTo(paths) { args.str(it) }
         val purpose = args.str("toolSummary")
         val file = LogText.relative(args.str("TargetFile") ?: args.str("AbsolutePath") ?: args.str("Path"), root)
         return when (name) {
@@ -88,6 +122,11 @@ internal class AntigravityLog(private val root: String?) : LogParser {
         }
     }
 
+    private fun activity(step: WorkStep): AgentActivityItem = step.activity().let { item ->
+        item.copy(id = item.id.replace(':', '-'), title = toolNames[step.id] ?: item.title,
+            kind = if (step is WorkStep.Note && step.kind == NoteKind.Checkpoint) ActivityKind.Checkpoint else item.kind)
+    }
+
     private fun result(pending: Pending, content: String?, status: StepStatus, at: Long?, truncated: Boolean) {
         val turn = turns.at(pending.turn)
         turn.touch(at)
@@ -101,6 +140,7 @@ internal class AntigravityLog(private val root: String?) : LogParser {
             is WorkStep.Tool -> step.copy(output = output, cut = cut || truncated, millis = millis, status = status)
             else -> step
         }
+        sink?.invoke(AgentEvent.Activity(agent, activity(turn.steps[pending.step])))
         turn.open = waiting.any { it.turn == pending.turn }
     }
 }

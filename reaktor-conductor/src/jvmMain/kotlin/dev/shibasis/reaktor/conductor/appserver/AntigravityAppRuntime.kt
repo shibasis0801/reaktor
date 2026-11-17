@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.conductor.appserver
 
 import dev.shibasis.reaktor.conductor.*
 import dev.shibasis.reaktor.conductor.cli.*
+import dev.shibasis.reaktor.conductor.worklog.*
 import dev.shibasis.reaktor.conductor.telemetry.GeminiTelemetry
 import dev.shibasis.reaktor.conductor.telemetry.rollupTelemetry
 import kotlinx.coroutines.*
@@ -169,33 +170,36 @@ private class AntigravityAppSession(
 
     private suspend fun follow(id: String, from: Long, before: Int, reader: AntigravityTranscriptEvents, model: String,
                                emit: suspend (AgentEvent) -> Unit): AgentOutcome {
-        val tail = TranscriptTail(app.transcript(id), from)
+        val file = app.transcript(id)
+        val tail = TranscriptTail(file, from)
         val deadline = System.currentTimeMillis() + request.agent.budget.timeoutMillis
+        var offset = from
         var seenRunning = false
+        AntigravityConversationModels.remember(id, request.agent.model)
         try {
             while (true) {
-                tail.lines().forEach { line -> reader.line(line).forEach { emit(it) } }
+                val snapshot = withContext(Dispatchers.IO) { WorkLogs.gemini(file, directory.canonicalPath, offset) }
+                snapshot.events.forEach { event -> emit(when (event) {
+                    is AgentEvent.Delta -> event.copy(agent = agent)
+                    is AgentEvent.Reasoning -> event.copy(agent = agent)
+                    is AgentEvent.Activity -> event.copy(agent = agent)
+                    else -> event
+                }) }
+                offset = snapshot.offset
+                reader.accept(snapshot.log, snapshot.events)
                 val run = withContext(Dispatchers.IO) { runCatching { app.run(hub, id) }.getOrNull() }
                 if (run?.running == true) seenRunning = true
-                if (run != null && !run.running && (seenRunning || run.steps > before + 1)) {
-                    repeat(10) {
-                        tail.lines().forEach { line -> reader.line(line).forEach { emit(it) } }
-                        if (reader.settled) return reader.outcome(run, id, project, model, request.agent.effort, interrupted)
-                        tail.await(500)
-                    }
+                if (run != null && !run.running && (seenRunning || run.steps > before + 1) && reader.settled)
                     return reader.outcome(run, id, project, model, request.agent.effort, interrupted)
-                }
                 if (closed) return reader.outcome(run, id, project, model, request.agent.effort, true)
-                if (System.currentTimeMillis() > deadline) {
+                val remaining = deadline - System.currentTimeMillis()
+                if (remaining <= 0 || !tail.await(remaining)) {
                     withContext(Dispatchers.IO) { runCatching { app.cancel(hub, id) } }
                     return reader.outcome(run, id, project, model, request.agent.effort, false,
                         limit = "The turn reached its ${request.agent.budget.timeoutMillis} ms budget; Antigravity was asked to stop it")
                 }
-                tail.await(1_000)
             }
-        } finally {
-            tail.close()
-        }
+        } finally { tail.close() }
     }
 
     private fun title(): String {
@@ -232,11 +236,8 @@ private class AntigravityAppSession(
 }
 
 internal class AntigravityTranscriptEvents(private val agent: AgentId) {
-    private val pending = ArrayDeque<String>()
-    private val names = mutableMapOf<String, String>()
-    private val telemetry = GeminiTelemetry.SessionCursor()
-    private var spoke = false
-
+    private val parser = AntigravityLog(null)
+    private var usage: WorkUsage? = null
     var answer: String = ""
         private set
     var failure: String? = null
@@ -248,46 +249,23 @@ internal class AntigravityTranscriptEvents(private val agent: AgentId) {
 
     fun line(text: String): List<AgentEvent> {
         val row = runCatching { Json.parseToJsonElement(text).jsonObject }.getOrNull() ?: return emptyList()
-        val index = row.string("step_index") ?: return emptyList()
-        settled = false
-        return when (row.string("type")) {
-            "PLANNER_RESPONSE" -> buildList {
-                progressed = true
-                telemetry.ingest(row)
-                row.string("thinking")?.trim()?.takeIf(String::isNotEmpty)?.let { add(AgentEvent.Reasoning(agent, it, ReasoningFidelity.Thinking)) }
-                row.string("content")?.trim()?.takeIf(String::isNotEmpty)?.let {
-                    add(AgentEvent.Delta(agent, if (spoke) "\n\n$it" else it))
-                    spoke = true
-                    answer = it
-                }
-                val calls = (row["tool_calls"] as? JsonArray).orEmpty().mapNotNull { it as? JsonObject }
-                calls.forEachIndexed { position, call ->
-                    val id = "agy-$index-$position"
-                    val name = call.string("name") ?: "Antigravity tool"
-                    pending += id
-                    names[id] = name
-                    add(AgentEvent.Activity(agent, AgentActivityItem(id, ActivityKind.Tool, name, ActivityStatus.Started,
-                        input = call["args"]?.toString()?.take(12_000))))
-                }
-                settled = calls.isEmpty()
-            }
-            "GENERIC" -> pending.removeFirstOrNull()?.let { id ->
-                val failed = row.string("status") == "ERROR" || row.string("error") != null
-                listOf(AgentEvent.Activity(agent, AgentActivityItem(id, ActivityKind.Tool, names[id] ?: "Antigravity tool",
-                    if (failed) ActivityStatus.Failed else ActivityStatus.Completed,
-                    output = (row.string("error") ?: row.string("content"))?.take(12_000))))
-            }.orEmpty()
-            "CHECKPOINT" -> listOf(AgentEvent.Activity(agent, AgentActivityItem("agy-$index", ActivityKind.Checkpoint,
-                "Antigravity checkpoint", ActivityStatus.Completed)))
-            "ERROR_MESSAGE" -> {
-                val message = row.string("content")?.trim()?.takeIf(String::isNotEmpty) ?: "Antigravity reported an error"
-                failure = message
-                settled = true
-                listOf(AgentEvent.Activity(agent, AgentActivityItem("agy-$index", ActivityKind.Control, "Antigravity error",
-                    ActivityStatus.Failed, output = message.take(12_000))))
-            }
-            else -> emptyList()
-        }
+        val events = parser.events(row).map { event -> when (event) {
+            is AgentEvent.Delta -> event.copy(agent = agent)
+            is AgentEvent.Reasoning -> event.copy(agent = agent)
+            is AgentEvent.Activity -> event.copy(agent = agent)
+            else -> event
+        } }
+        accept(parser.log(false), events)
+        return events
+    }
+
+    fun accept(log: WorkLog, events: List<AgentEvent>) {
+        val turn = log.turns.lastOrNull() ?: return
+        if (events.any { it is AgentEvent.Delta || it is AgentEvent.Reasoning || it is AgentEvent.Activity && it.item.kind == ActivityKind.Tool }) progressed = true
+        answer = turn.steps.filterIsInstance<WorkStep.Message>().joinToString("\n\n") { it.text }
+        failure = turn.steps.filterIsInstance<WorkStep.Note>().lastOrNull { it.kind == NoteKind.Error }?.text
+        settled = !turn.open
+        usage = turn.usage
     }
 
     fun outcome(run: AntigravityApp.Run?, conversation: String, project: AntigravityApp.Project, model: String,
@@ -304,17 +282,10 @@ internal class AntigravityTranscriptEvents(private val agent: AgentId) {
             answer.isBlank() -> "Antigravity ended the turn without an answer (${ended ?: "no termination reason"})"
             else -> "Antigravity ended the turn with $ended"
         }
-        val rollup = telemetry.records().map { it.copy(model = model).normalize() }.rollupTelemetry()
-        val usage = if (rollup.requests > 0) AgentUsage(
-            inputTokens = rollup.inputTokens,
-            outputTokens = rollup.outputTokens,
-            cachedInputTokens = rollup.cachedInputTokens,
-            cacheWriteInputTokens = rollup.cacheWriteInputTokens,
-            reasoningOutputTokens = rollup.reasoningOutputTokens,
-            scope = UsageScope.Turn,
-        ) else null
+        val recordedUsage = usage?.let { AgentUsage(inputTokens = it.input, outputTokens = it.output,
+            cachedInputTokens = it.cached, cacheWriteInputTokens = it.cacheWrite, reasoningOutputTokens = it.reasoning, scope = UsageScope.Turn) }
         return AgentOutcome(agent, answer, ok, failure = reason, session = ProviderSession(RuntimeKind.Gemini, conversation),
-            usage = usage,
+            usage = recordedUsage,
             effort = EffortRecord(requested = effort, resolved = effort), interrupted = interrupted,
             attributes = mapOf("executorHarness" to "Antigravity app", "entitlement" to "GoogleAgent", "model" to model,
                 "conversation" to conversation, "project" to project.id))
@@ -325,12 +296,29 @@ internal class AntigravityTranscriptEvents(private val agent: AgentId) {
 
 internal class TranscriptTail(private val file: File, private var offset: Long) : AutoCloseable {
     private var partial = ByteArray(0)
+    private var watched: java.nio.file.Path? = null
     private var watcher: WatchService? = null
+    @Volatile private var closed = false
+
+    init { register() }
+
+    private fun register() {
+        if (closed) return
+        val directory = generateSequence(file.parentFile) { it.parentFile }.firstOrNull(File::isDirectory)?.toPath() ?: return
+        if (directory == watched) return
+        watcher?.close()
+        watcher = FileSystems.getDefault().newWatchService().also {
+            directory.register(it, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY, StandardWatchEventKinds.ENTRY_DELETE)
+        }
+        watched = directory
+    }
 
     fun lines(): List<String> {
+        register()
         if (!file.isFile) return emptyList()
         val length = file.length()
-        if (length <= offset) return emptyList()
+        if (length < offset) { offset = 0; partial = ByteArray(0) }
+        if (length == offset) return emptyList()
         val fresh = RandomAccessFile(file, "r").use { handle ->
             handle.seek(offset)
             ByteArray((length - offset).toInt()).also(handle::readFully)
@@ -346,22 +334,32 @@ internal class TranscriptTail(private val file: File, private var offset: Long) 
         return bytes.copyOfRange(0, end).decodeToString().split('\n').filter(String::isNotBlank)
     }
 
-    suspend fun await(millis: Long) = withContext(Dispatchers.IO) {
-        val directory = file.parentFile
-        if (watcher == null && directory.isDirectory) {
-            watcher = FileSystems.getDefault().newWatchService().also {
-                directory.toPath().register(it, StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY)
+    suspend fun await(millis: Long): Boolean {
+        register()
+        val active = watcher ?: return false
+        val until = System.nanoTime() + millis * 1_000_000
+        return try {
+            runInterruptible(Dispatchers.IO) {
+                while (!closed) {
+                    val remaining = until - System.nanoTime()
+                    if (remaining <= 0) return@runInterruptible false
+                    val key = active.poll(remaining, TimeUnit.NANOSECONDS) ?: return@runInterruptible false
+                    val relevant = key.pollEvents().any { event ->
+                        event.kind() == StandardWatchEventKinds.OVERFLOW || (event.context() as? java.nio.file.Path)?.let { path ->
+                            val changed = watched?.resolve(path)?.toAbsolutePath()?.normalize()
+                            changed != null && file.toPath().toAbsolutePath().normalize().startsWith(changed)
+                        } == true
+                    }
+                    if (!key.reset()) return@runInterruptible true
+                    if (relevant) return@runInterruptible true
+                }
+                false
             }
-        }
-        val active = watcher
-        if (active == null) delay(millis)
-        else active.poll(millis, TimeUnit.MILLISECONDS)?.let { key ->
-            key.pollEvents()
-            key.reset()
-        }
+        } catch (_: java.nio.file.ClosedWatchServiceException) { false }
     }
 
     override fun close() {
+        closed = true
         watcher?.close()
     }
 }

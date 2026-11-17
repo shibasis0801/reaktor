@@ -5,6 +5,8 @@ import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.net.URLDecoder
@@ -29,6 +31,63 @@ class ClaudeAppTest {
         work.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")))
     }
 
+    @Test fun aResumeWaitsForANewUserRecordBeforeStartingItsTurn() = kotlinx.coroutines.runBlocking {
+        send("Earlier question")
+        val events = mutableListOf<AgentEvent>()
+        val waiting = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val runtime = ClaudeAppRuntime(app(), outside = Outside(), briefs = File(home, "briefs"))
+        val session = runtime.open(AgentRequest(spec(true), "New question", work.path, resume = ProviderSession(RuntimeKind.ClaudeCode, "cli-1")))
+        val job = async { session.events.onEach { event -> events += event; if (event is AgentEvent.Activity && event.item.id == "claude-app-send") waiting.complete(Unit) }.toList() }
+        try {
+            kotlinx.coroutines.withTimeout(2000) { waiting.await() }
+            repeat(8) { kotlinx.coroutines.yield() }
+            assertFalse(events.any { it is AgentEvent.Started }, "An existing session is not evidence that its new prompt was sent")
+            File(home, ".claude/projects/-work/cli-1.jsonl").appendText("""{"type":"user","message":{"content":"New question"}}
+{"type":"assistant","message":{"stop_reason":"end_turn","content":[{"type":"text","text":"New answer"}]}}
+""")
+            assertEquals("New answer", kotlinx.coroutines.withTimeout(4000) { job.await() }.filterIsInstance<AgentEvent.Finished>().single().outcome.text)
+        } finally { job.cancel(); session.close() }
+    }
+
+    @Test fun aKnownResumeWaitsForTheTranscriptWithoutReadingTheStoreOnATimer() = runBlocking {
+        send("Earlier question")
+        val waiting = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val session = ClaudeAppRuntime(app(), outside = Outside(), briefs = File(home, "briefs"))
+            .open(AgentRequest(spec(true), "Next question", work.path, resume = ProviderSession(RuntimeKind.ClaudeCode, "cli-1")))
+        val job = async { session.events.onEach { if (it is AgentEvent.Activity && it.item.id == "claude-app-send") waiting.complete(Unit) }.toList() }
+        try {
+            kotlinx.coroutines.withTimeout(2000) { waiting.await() }
+            kotlinx.coroutines.delay(100)
+            val recording = jdk.jfr.Recording().apply { enable("jdk.FileRead").withThreshold(java.time.Duration.ZERO); start() }
+            kotlinx.coroutines.delay(2200)
+            recording.stop()
+            val saved = home.resolve("resume-reads.jfr")
+            recording.dump(saved.toPath()); recording.close()
+            val reads = jdk.jfr.consumer.RecordingFile.readAllEvents(saved.toPath()).count {
+                it.eventType.name == "jdk.FileRead" && it.getString("path")?.contains("claude-code-sessions") == true
+            }
+            assertEquals(0, reads, "A known session re-read its app store while waiting for the user's prompt")
+            File(home, ".claude/projects/-work/cli-1.jsonl").appendText("""{"type":"user","message":{"content":"Next question"}}
+{"type":"assistant","message":{"stop_reason":"end_turn","content":[{"type":"text","text":"New answer"}]}}
+""")
+            assertEquals("New answer", kotlinx.coroutines.withTimeout(2000) { job.await() }.filterIsInstance<AgentEvent.Finished>().single().outcome.text)
+        } finally { job.cancel(); session.close() }
+    }
+
+    @Test fun longBriefsAreOwnerOnlyAndRemovedAfterTheRun() = runBlocking {
+        var saved: File? = null
+        val secure = ClaudeApp(home, File(home, "Applications/Claude.app")) { url ->
+            val message = sent(url)
+            saved = File(message.removePrefix("Read the brief at ").removeSuffix(" and do what it says."))
+            val permissions = Files.getPosixFilePermissions(saved!!.toPath())
+            assertEquals(setOf(java.nio.file.attribute.PosixFilePermission.OWNER_READ, java.nio.file.attribute.PosixFilePermission.OWNER_WRITE), permissions)
+            send(message)
+        }
+        ClaudeAppRuntime(secure, outside = Outside(), briefs = File(home, "private-briefs"))
+            .run(AgentRequest(spec(true), "x".repeat(20000), work.path)).toList()
+        assertFalse(requireNotNull(saved).exists())
+    }
+
     @Test fun aRunOpensInTheClaudeAppAndFollowsTheSessionOnceItIsSent() = runBlocking {
         val events = ClaudeAppRuntime(app(), outside = Outside(), briefs = File(home, "briefs"))
             .run(AgentRequest(spec(writes = true), "Review the agents pane", work.path)).toList()
@@ -46,14 +105,22 @@ class ClaudeAppTest {
 
     @Test fun anInspectOnlyBriefSaysSoAndALongOneGoesThroughAFile() = runBlocking {
         val prompt = "Audit the pane. " + "x".repeat(20_000)
-        val events = ClaudeAppRuntime(app(), outside = Outside(), briefs = File(home, "briefs"))
+        var contents = ""
+        val capture = ClaudeApp(home, File(home, "Applications/Claude.app")) { url ->
+            launched += url
+            val message = sent(url)
+            contents = File(message.removePrefix("Read the brief at ").removeSuffix(" and do what it says.")).readText()
+            send(message)
+        }
+        val events = ClaudeAppRuntime(capture, outside = Outside(), briefs = File(home, "briefs"))
             .run(AgentRequest(spec(writes = false), prompt, work.path)).toList()
         assertTrue(events.filterIsInstance<AgentEvent.Finished>().single().outcome.ok)
         val sent = sent(launched.single())
         assertTrue(sent.startsWith("Read the brief at ${File(home, "briefs").path}/"))
         val brief = File(sent.removePrefix("Read the brief at ").removeSuffix(" and do what it says."))
-        assertTrue(brief.readText().startsWith("Inspect only: read, search and report."))
-        assertTrue(brief.readText().endsWith(prompt))
+        assertFalse(brief.exists())
+        assertTrue(contents.startsWith("Inspect only: read, search and report."))
+        assertTrue(contents.endsWith(prompt))
     }
 
     @Test fun steeringAndStoppingShowTheSessionInTheApp() = runBlocking {

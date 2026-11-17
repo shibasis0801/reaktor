@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.conductor.appserver
 
 import dev.shibasis.reaktor.conductor.*
 import dev.shibasis.reaktor.conductor.worklog.WorkLogs
+import dev.shibasis.reaktor.conductor.worklog.CodexLog
 import dev.shibasis.reaktor.conductor.cli.codexApprovals
 import dev.shibasis.reaktor.conductor.telemetry.CodexTelemetry
 import dev.shibasis.reaktor.conductor.cli.codexMcpArgs
@@ -194,81 +195,62 @@ internal class CodexDesktopSession(
     }
 
     private suspend fun FlowCollector<AgentEvent>.follow(file: File, offset: Long): AgentOutcome {
-        val answer = StringBuilder()
-        var completed: AgentOutcome? = null
+        val reader = CodexLog(directory.path)
+        val tail = TranscriptTail(file, offset)
         var shortfall: String? = null
-        file.toPath().let { path ->
-            Files.newByteChannel(path, StandardOpenOption.READ).use { channel ->
-                channel.position(offset)
-                val buffer = ByteArray(8192)
-                val line = ByteArrayOutputStream()
-                var heard = System.currentTimeMillis()
-                var stalled = false
-                while (completed == null && currentCoroutineContext().isActive) {
-                    val count = channel.read(ByteBuffer.wrap(buffer))
-                    if (count <= 0) {
-                        if (!stalled && System.currentTimeMillis() - heard > DesktopStallMillis) {
-                            stalled = true
-                            emit(AgentEvent.Activity(agent, AgentActivityItem("desktop-stall", ActivityKind.Control, "No progress in ChatGPT.app", ActivityStatus.Waiting,
-                                output = desktopStallNotice(threadId, started = turn != null))))
-                        }
-                        delay(100)
-                        continue
-                    }
+        var heard = System.currentTimeMillis()
+        var stalled = false
+        try {
+            while (currentCoroutineContext().isActive) {
+                val lines = tail.lines()
+                if (lines.isNotEmpty()) {
                     heard = System.currentTimeMillis()
                     if (stalled) {
                         stalled = false
                         emit(AgentEvent.Activity(agent, AgentActivityItem("desktop-stall", ActivityKind.Control, "Progress resumed in ChatGPT.app", ActivityStatus.Completed)))
                     }
-                    for (index in 0 until count) {
-                        val byte = buffer[index]
-                        if (byte == '\n'.code.toByte()) {
-                            val record = runCatching { Json.parseToJsonElement(line.toString(StandardCharsets.UTF_8)).jsonObject }.getOrNull()
-                            line.reset()
-                            val payload = record?.takeIf { it["type"]?.jsonPrimitive?.contentOrNull == "event_msg" }
-                                ?.get("payload") as? JsonObject ?: continue
-                            when (payload["type"]?.jsonPrimitive?.contentOrNull) {
-                                "task_started" -> {
-                                    turn = payload["turn_id"]?.jsonPrimitive?.contentOrNull
-                                    turn?.let { emit(AgentEvent.TurnStarted(agent, it)) }
-                                }
-                                "hook_started", "hook_completed" -> codexHookActivity(agent, payload.objectOrEmpty("run"),
-                                    payload["type"]?.jsonPrimitive?.contentOrNull == "hook_completed")?.let { emit(it) }
-                                "item_completed" -> {
-                                    val item = payload["item"] as? JsonObject
-                                    if (item?.get("type")?.jsonPrimitive?.contentOrNull == "agentMessage")
-                                        item["text"]?.jsonPrimitive?.contentOrNull?.let { answer.replace(0, answer.length, it) }
-                                }
-                                "thread_settings_applied" -> if (shortfall == null) codexDesktopShortfall(request.agent.tools, payload.objectOrEmpty("thread_settings"))?.let { found ->
-                                    val failure = "ChatGPT.app runs Codex thread $threadId with $found. " +
-                                        "Runs go to ChatGPT.app only while its Codex config sets approval_policy = \"never\" and the sandbox_mode they ask for."
-                                    shortfall = failure
-                                    emit(AgentEvent.Activity(agent, AgentActivityItem("desktop-permissions", ActivityKind.Control, "ChatGPT.app permissions fall short", ActivityStatus.Failed, output = failure)))
-                                }
-                                "token_count" -> payload.objectOrEmpty("info").objectOrEmpty("total_token_usage").toAppUsage()?.let {
-                                    usage = it
-                                    emit(AgentEvent.Usage(agent, it))
-                                }
-                                "task_complete" -> {
-                                    val text = payload["last_agent_message"]?.jsonPrimitive?.contentOrNull ?: answer.toString()
-                                    completed = AgentOutcome(agent, text, shortfall == null, failure = shortfall,
-                                        session = threadId?.let { ProviderSession(RuntimeKind.Codex, it) }, usage = usage, effort = effort)
-                                    turn = null
-                                }
-                                "turn_aborted" -> {
-                                    completed = AgentOutcome(agent, answer.toString(), false, interrupted = true,
-                                        failure = shortfall ?: "Turn interrupted in ChatGPT.app",
-                                        session = threadId?.let { ProviderSession(RuntimeKind.Codex, it) }, usage = usage, effort = effort)
-                                    turn = null
-                                }
-                                else -> Unit
-                            }
-                        } else line.write(byte.toInt())
+                }
+                for (line in lines) {
+                    val record = runCatching { Json.parseToJsonElement(line).jsonObject }.getOrNull() ?: continue
+                    val payload = record["payload"] as? JsonObject
+                    val type = payload?.get("type")?.jsonPrimitive?.contentOrNull
+                    if (record["type"]?.jsonPrimitive?.contentOrNull == "event_msg") when (type) {
+                        "task_started" -> {
+                            turn = payload["turn_id"]?.jsonPrimitive?.contentOrNull
+                            turn?.let { emit(AgentEvent.TurnStarted(agent, it)) }
+                        }
+                        "hook_started", "hook_completed" -> codexHookActivity(agent, payload.objectOrEmpty("run"), type == "hook_completed")?.let { emit(it) }
+                        "thread_settings_applied" -> if (shortfall == null) codexDesktopShortfall(request.agent.tools, payload.objectOrEmpty("thread_settings"))?.let { found ->
+                            val failure = "ChatGPT.app runs Codex thread $threadId with $found. " +
+                                "Runs go to ChatGPT.app only while its Codex config sets approval_policy = \"never\" and the sandbox_mode they ask for."
+                            shortfall = failure
+                            emit(AgentEvent.Activity(agent, AgentActivityItem("desktop-permissions", ActivityKind.Control, "ChatGPT.app permissions fall short", ActivityStatus.Failed, output = failure)))
+                        }
+                        "token_count" -> payload.objectOrEmpty("info").objectOrEmpty("total_token_usage").toAppUsage()?.let {
+                            usage = it
+                            emit(AgentEvent.Usage(agent, it))
+                        }
+                    }
+                    val named = payload?.get("turn_id")?.jsonPrimitive?.contentOrNull
+                    if (type in setOf("task_complete", "turn_aborted") && (turn == null || named != null && named != turn)) continue
+                    reader.events(record, agent).forEach { emit(it) }
+                    if (type in setOf("task_complete", "turn_aborted")) {
+                        turn = null
+                        val aborted = type == "turn_aborted"
+                        return AgentOutcome(agent, reader.answer, !aborted && shortfall == null,
+                            failure = shortfall ?: if (aborted) "Turn interrupted in ChatGPT.app" else null,
+                            session = threadId?.let { ProviderSession(RuntimeKind.Codex, it) }, usage = usage, effort = effort, interrupted = aborted)
                     }
                 }
+                if (!stalled && System.currentTimeMillis() - heard > DesktopStallMillis) {
+                    stalled = true
+                    emit(AgentEvent.Activity(agent, AgentActivityItem("desktop-stall", ActivityKind.Control, "No progress in ChatGPT.app", ActivityStatus.Waiting,
+                        output = desktopStallNotice(threadId, started = turn != null))))
+                }
+                tail.await(DesktopStallMillis)
             }
-        }
-        return completed ?: AgentOutcome(agent, answer.toString(), false, failure = "Codex app rollout ended before completion",
+        } finally { tail.close() }
+        return AgentOutcome(agent, reader.answer, false, failure = "Codex app rollout ended before completion",
             session = threadId?.let { ProviderSession(RuntimeKind.Codex, it) }, usage = usage, effort = effort)
     }
 

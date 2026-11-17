@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.conductor.worklog
 
+import dev.shibasis.reaktor.conductor.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -154,3 +155,21 @@ internal fun JsonElement?.plain(): String? = when (this) {
 }
 
 internal fun instant(value: String?): Long? = value?.let { runCatching { Instant.parse(it).toEpochMilli() }.getOrNull() }
+
+    internal fun WorkStep.activity(): AgentActivityItem {
+        val status = when (status) {
+            StepStatus.Running -> ActivityStatus.Started
+            StepStatus.Done -> ActivityStatus.Completed
+            StepStatus.Failed -> ActivityStatus.Failed
+            StepStatus.Interrupted -> ActivityStatus.Interrupted
+        }
+        return when (this) {
+            is WorkStep.Command -> AgentActivityItem(id, ActivityKind.Tool, command, status, input = command, output = output)
+            is WorkStep.Edit -> AgentActivityItem(id, ActivityKind.Tool, "Edit $file", status, subjectRefs = listOf(file))
+            is WorkStep.Tool -> AgentActivityItem(id, ActivityKind.Tool, name, status, input, output, subjectRefs = listOfNotNull(summary))
+            is WorkStep.Plan -> AgentActivityItem(id, ActivityKind.Plan, "Plan", status)
+            is WorkStep.Question -> AgentActivityItem(id, ActivityKind.Control, text, ActivityStatus.Waiting)
+            is WorkStep.Note -> AgentActivityItem(id, ActivityKind.Control, text, status)
+            else -> AgentActivityItem(id, ActivityKind.Agent, "Subagent", status)
+        }
+    }

@@ -7,6 +7,9 @@ import dev.shibasis.reaktor.conductor.telemetry.GeminiTelemetry
 import dev.shibasis.reaktor.conductor.telemetry.ProviderTelemetry
 import dev.shibasis.reaktor.conductor.telemetry.TelemetryRollup
 import dev.shibasis.reaktor.conductor.telemetry.rollupTelemetry
+import dev.shibasis.reaktor.conductor.worklog.WorkLogs
+import dev.shibasis.reaktor.conductor.worklog.WorkStep
+import dev.shibasis.reaktor.conductor.worklog.NoteKind
 import dev.shibasis.reaktor.conductor.worklog.Checklist
 import dev.shibasis.reaktor.conductor.worklog.PlanItem
 import dev.shibasis.reaktor.conductor.worklog.PlanState
@@ -312,7 +315,7 @@ object HarnessSessions {
         }
     }
 
-    private class ClaudeParsed(val session: HarnessSession, val customTitle: String?, val prompt: String?)
+    private class ClaudeParsed(val session: HarnessSession, val customTitle: String?, val prompt: String?, val ended: Boolean)
 
     private fun claudeSession(file: File, root: String, live: Map<String, ClaudeLive>, now: Long): HarnessSession? {
         val base = parsed(file, root) { claudeParse(file, root) } ?: return null
@@ -320,7 +323,7 @@ object HarnessSessions {
         return base.session.copy(
             title = (base.customTitle ?: running?.name ?: base.prompt ?: "Untitled session").oneLine(),
             origin = running?.entrypoint ?: base.session.origin,
-            activity = running?.activity ?: if (now - base.session.lastActiveAt <= HarnessSession.LiveMillis) HarnessActivity.Working else HarnessActivity.Ended,
+            activity = running?.activity ?: if (base.ended) HarnessActivity.Ended else if (now - base.session.lastActiveAt <= HarnessSession.LiveMillis) HarnessActivity.Working else HarnessActivity.Ended,
             status = running?.status,
             pid = running?.pid,
         )
@@ -370,6 +373,7 @@ object HarnessSessions {
                 checklistAt = checklistAt,
                 telemetry = rollup,
             ),
+            ended = tail.lastOrNull { it.string("type") in setOf("assistant", "user", "result") }?.let { it.string("type") == "result" || it.nested("message")?.string("stop_reason") == "end_turn" } == true,
             customTitle = (head + tail).lastOrNull { it.string("type") == "custom-title" }?.string("customTitle"),
             prompt = head.firstNotNullOfOrNull(::claudePrompt),
         )
@@ -475,22 +479,38 @@ object HarnessSessions {
 
     private data class TurnBoundary(val type: String, val at: Long?, val offset: Long)
     private data class BoundaryCursor(val key: Any?, val length: Long, val modified: java.nio.file.attribute.FileTime,
-        val scanned: Long, val boundary: TurnBoundary?)
+        val prefix: Int, val tail: Int, val scanned: Long, val boundary: TurnBoundary?)
     private val codexBoundaries = ConcurrentHashMap<String, BoundaryCursor>()
     private const val BoundaryBytes = 64 * 1024
+    private val BoundaryType = Regex(""""payload"\s*:\s*\{\s*"type"\s*:\s*"(task_started|task_complete|turn_aborted)"""")
+    private val BoundaryTime = Regex(""""timestamp"\s*:\s*"([^"]+)"""")
+    private val BoundaryEvent = Regex(""""type"\s*:\s*"event_msg"""")
 
-    private fun boundary(bytes: ByteArray, offset: Long): TurnBoundary? {
+    private fun boundary(bytes: ByteArray, offset: Long, prefix: Boolean = false): TurnBoundary? {
         if (listOf("task_started", "task_complete", "turn_aborted").none { bytes.find(it.encodeToByteArray(), 0) >= 0 }) return null
-        val record = parse(bytes.decodeToString())?.takeIf { it.string("type") == "event_msg" } ?: return null
-        val type = record.nested("payload")?.string("type")?.takeIf { it in setOf("task_started", "task_complete", "turn_aborted") } ?: return null
-        return TurnBoundary(type, instant(record.string("timestamp")), offset)
+        val text = bytes.decodeToString()
+        val record = parse(text)
+        val type = if (record?.string("type") == "event_msg") record.nested("payload")?.string("type")
+            else if (prefix && BoundaryEvent.containsMatchIn(text)) BoundaryType.find(text)?.groupValues?.get(1) else null
+        if (type !in setOf("task_started", "task_complete", "turn_aborted")) return null
+        return TurnBoundary(type!!, instant(record?.string("timestamp") ?: BoundaryTime.find(text)?.groupValues?.get(1)), offset)
     }
 
     @Synchronized private fun codexBoundary(file: File): TurnBoundary? {
         val attributes = java.nio.file.Files.readAttributes(file.toPath(), java.nio.file.attribute.BasicFileAttributes::class.java)
+        val prefix = RandomAccessFile(file, "r").use { input ->
+            ByteArray(minOf(input.length(), 512).toInt()).also(input::readFully).let { bytes ->
+                bytes.copyOfRange(0, bytes.indexOf(NewLine).takeIf { it >= 0 } ?: bytes.size).contentHashCode()
+            }
+        }
+        fun tail(end: Long): Int = RandomAccessFile(file, "r").use { input ->
+            val start = (end - 512).coerceAtLeast(0)
+            input.seek(start)
+            ByteArray((end - start).toInt()).also(input::readFully).contentHashCode()
+        }
         val prior = codexBoundaries[file.path]?.takeIf {
-            it.key == attributes.fileKey() && attributes.size() >= it.length &&
-                (attributes.size() > it.length || attributes.lastModifiedTime() == it.modified)
+            it.key == attributes.fileKey() && it.prefix == prefix && attributes.size() >= it.length &&
+                (attributes.size() > it.length || attributes.lastModifiedTime() == it.modified) && tail(it.length) == it.tail
         }
         var found = prior?.boundary
         val scanned = if (prior != null) {
@@ -501,37 +521,36 @@ object HarnessSessions {
             }
         } else RandomAccessFile(file, "r").use { input ->
             var at = input.length()
-            var pending = byteArrayOf()
-            var overlong = false
-            var appendAt: Long? = null
+            var end: Long? = null
+            var appendAt = 0L
+            fun record(start: Long, finish: Long) {
+                val size = finish - start
+                if (size <= 0) return
+                val bytes = ByteArray(minOf(size, BoundaryBytes.toLong()).toInt())
+                input.seek(start)
+                input.readFully(bytes)
+                boundary(bytes, start, size > BoundaryBytes)?.let { found = it }
+            }
             while (at > 0 && found == null) {
                 val start = (at - BoundaryBytes).coerceAtLeast(0)
                 val bytes = ByteArray((at - start).toInt())
                 input.seek(start)
                 input.readFully(bytes)
-                var end = bytes.size
                 for (index in bytes.lastIndex downTo 0) {
                     if (bytes[index] != NewLine) continue
-                    if (appendAt == null) appendAt = start + index + 1
-                    if (!overlong && end - index - 1 + pending.size <= BoundaryBytes) {
-                        boundary(bytes.copyOfRange(index + 1, end) + pending, start + index + 1)?.let { found = it }
-                        if (found != null) break
-                    }
-                    pending = byteArrayOf()
-                    overlong = false
-                    end = index
-                }
-                if (found == null) {
-                    if (!overlong && end + pending.size <= BoundaryBytes) pending = bytes.copyOfRange(0, end) + pending
-                    else { pending = byteArrayOf(); overlong = true }
+                    val position = start + index
+                    val finish = end
+                    if (finish == null) appendAt = position + 1 else record(position + 1, finish)
+                    end = position
+                    if (found != null) break
                 }
                 at = start
             }
-            if (found == null && !overlong) found = boundary(pending, 0)
-            appendAt ?: 0L
+            if (found == null) end?.let { record(0, it) }
+            appendAt
         }
         if (codexBoundaries.size >= ParsedKept) codexBoundaries.clear()
-        codexBoundaries[file.path] = BoundaryCursor(attributes.fileKey(), attributes.size(), attributes.lastModifiedTime(), scanned, found)
+        codexBoundaries[file.path] = BoundaryCursor(attributes.fileKey(), attributes.size(), attributes.lastModifiedTime(), prefix, tail(attributes.size()), scanned, found)
         return found
     }
 
@@ -542,7 +561,7 @@ object HarnessSessions {
         return base.session.copy(
             title = (titles[base.session.id] ?: base.prompt ?: "Untitled session").oneLine(),
             activity = when {
-                base.turning && (held == true || recent) -> if (base.asking) HarnessActivity.NeedsYou else HarnessActivity.Working
+                base.turning && (held == true || held == null && recent) -> if (base.asking) HarnessActivity.NeedsYou else HarnessActivity.Working
                 !base.turning && held == true -> HarnessActivity.Waiting
                 else -> HarnessActivity.Ended
             },
@@ -613,9 +632,7 @@ object HarnessSessions {
         }.toMap()
         return antigravityFiles(home, since).mapNotNull { file ->
             val id = file.parentFile.parentFile.parentFile.name
-            runCatching { parsed(file, root) { antigravityParse(file, id, folders[id], root) } }.getOrNull()?.let { session ->
-                session.copy(activity = if (now - session.lastActiveAt <= HarnessSession.LiveMillis) HarnessActivity.Working else HarnessActivity.Ended)
-            }
+            runCatching { parsed(file, root) { antigravityParse(file, id, folders[id], root) } }.getOrNull()
         }
     }
 
@@ -624,39 +641,28 @@ object HarnessSessions {
             .filter { it.isFile && it.lastModified() >= since }
 
     private fun antigravityParse(file: File, id: String, folder: String?, root: String): HarnessSession? {
-        val head = records(file, fromEnd = false, HeadBytes)
-        if (head.none { it.string("type") == "USER_INPUT" }) return null
-        val tail = records(file, fromEnd = true, TailBytes)
-        val calls = (head + tail).flatMap { record -> (record["tool_calls"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonObject)?.nested("args")?.parsedArguments() } }
-        val paths = calls.mapNotNull { args -> args.string("Cwd") ?: args.string("TargetFile") ?: args.string("AbsolutePath") ?: args.string("Path") ?: args.string("SearchDirectory") }
-        if (folder?.let { related(it, root) } != true && paths.none { related(it, root) }) return null
-        val steps = tail.flatMap { antigravitySteps(it, root) }
+        val snapshot = WorkLogs.gemini(file, root)
+        val log = snapshot.log
+        val turn = log.turns.lastOrNull() ?: return null
+        if (log.turns.none { it.prompt != null }) return null
+        if (folder?.let { related(it, root) } != true && snapshot.paths.none { related(it, root) }) return null
+        val steps = log.turns.flatMap { it.steps }.mapNotNull { step -> when (step) {
+            is WorkStep.Command -> HarnessStep(step.at, "run command", step.command.oneLine(), false)
+            is WorkStep.Edit -> HarnessStep(step.at, "edit", step.file, false, step.file)
+            is WorkStep.Tool -> HarnessStep(step.at, step.name, step.summary, step.server == "reaktor" || step.name.startsWith("mcp_reaktor"))
+            else -> null
+        } }
         val desktop = "/.gemini/antigravity/brain/" in file.path
         val model = if (desktop) AntigravityConversationModels.of(id) else "gemini-4-argon-high"
-        val window = if (file.length() <= TailBytes) tail else head + tail
-        val deduplicated = linkedMapOf<String, ProviderTelemetry.Gemini>()
-        window.forEachIndexed { idx, record ->
-            val parsed = GeminiTelemetry.parseRecord(record, fallbackModel = model) as? ProviderTelemetry.Gemini ?: return@forEachIndexed
-            val key = parsed.stepIndex?.let { "step:$it" } ?: "idx:$idx"
-            val prior = deduplicated[key]
-            deduplicated[key] = if (prior == null) parsed else prior.copy(
-                freshInputTokens = listOfNotNull(prior.freshInputTokens, parsed.freshInputTokens).maxOrNull(),
-                cacheReadTokens = listOfNotNull(prior.cacheReadTokens, parsed.cacheReadTokens).maxOrNull(),
-                outputTokens = listOfNotNull(prior.outputTokens, parsed.outputTokens).maxOrNull(),
-                thinkingTokens = listOfNotNull(prior.thinkingTokens, parsed.thinkingTokens).maxOrNull(),
-            )
-        }
-        val samples = deduplicated.values.map { it.normalize() }.filter { it.hasTokens || it.costUsd != null }
+        val samples = snapshot.samples.map { it.copy(model = model).normalize() }.filter { it.hasTokens || it.costUsd != null }
         val rollup = samples.takeIf { it.isNotEmpty() }?.rollupTelemetry()
-        val tokens = rollup?.let {
-            if (it.inputTokens != null || it.outputTokens != null) (it.inputTokens ?: 0L) + (it.outputTokens ?: 0L) else null
-        }
+        val tokens = rollup?.let { if (it.inputTokens != null || it.outputTokens != null) (it.inputTokens ?: 0L) + (it.outputTokens ?: 0L) else null }
         return HarnessSession(
             runtime = RuntimeKind.Gemini,
             id = id,
-            title = head.firstNotNullOfOrNull(::antigravityPrompt)?.oneLine() ?: "Untitled session",
+            title = log.turns.firstNotNullOfOrNull { it.prompt }?.oneLine() ?: "Untitled session",
             directory = folder ?: root,
-            startedAt = head.firstNotNullOfOrNull { instant(it.string("created_at")) },
+            startedAt = log.turns.firstNotNullOfOrNull { it.startedAt },
             lastActiveAt = file.lastModified(),
             origin = if (desktop) "ide" else "cli",
             version = null,
@@ -668,6 +674,11 @@ object HarnessSessions {
             transcript = file.path,
             files = steps.mapNotNull { it.file }.distinct(),
             telemetry = rollup,
+            activity = when {
+                turn.steps.any { it is WorkStep.Note && it.kind in setOf(NoteKind.Error, NoteKind.Interrupted) } -> HarnessActivity.Ended
+                turn.open -> HarnessActivity.Working
+                else -> HarnessActivity.Waiting
+            },
         )
     }
 
@@ -796,7 +807,7 @@ object HarnessSessions {
 
     private fun related(directory: String, root: String): Boolean {
         val path = directory.removePrefix("file://").trimEnd('/')
-        return path.isNotEmpty() && (path == root || path.startsWith("$root/") || root.startsWith("$path/"))
+        return path.isNotEmpty() && (path == root || path.startsWith("$root/"))
     }
 
     private fun instant(value: String?): Long? = value?.let { runCatching { Instant.parse(it).toEpochMilli() }.getOrNull() }

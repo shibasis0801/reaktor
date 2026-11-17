@@ -120,7 +120,7 @@ class AntigravityAppTest {
         assertTrue(reader.progressed)
         val outcome = reader.outcome(AntigravityApp.Run(false, 6, "EXECUTOR_TERMINATION_REASON_NO_TOOL_CALL"), "c", project, "gemini-4-argon-high", NativeEffort("high"), false)
         assertTrue(outcome.ok, outcome.failure)
-        assertEquals("MARKER", outcome.text)
+        assertEquals("Reading the marker.\n\nMARKER", outcome.text)
         assertEquals(ProviderSession(RuntimeKind.Gemini, "c"), outcome.session)
         assertEquals(AgentUsage(inputTokens = 320, outputTokens = 14, cachedInputTokens = 100, scope = UsageScope.Turn), outcome.usage)
         assertEquals("Antigravity app", outcome.attributes["executorHarness"])

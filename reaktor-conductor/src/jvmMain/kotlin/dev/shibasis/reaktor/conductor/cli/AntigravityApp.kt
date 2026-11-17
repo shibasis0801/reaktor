@@ -17,6 +17,7 @@ class AntigravityApp(
     private val home: File = File(System.getProperty("user.home")),
     private val bundle: File = File("/Applications/Antigravity.app"),
     private val alive: (Long) -> Boolean = { pid -> ProcessHandle.of(pid).map { it.isAlive }.orElse(false) },
+    private val transport: ((Hub, String, JsonObject) -> JsonObject)? = null,
 ) {
     data class Hub(val port: Int, val csrf: String) {
         override fun toString() = "Hub(port=$port)"
@@ -55,6 +56,7 @@ class AntigravityApp(
     }
 
     fun call(hub: Hub, method: String, body: JsonObject = JsonObject(emptyMap())): JsonObject {
+        transport?.let { return it(hub, method, body) }
         val request = HttpRequest.newBuilder(URI("http://127.0.0.1:${hub.port}/exa.language_server_pb.LanguageServerService/$method"))
             .timeout(Duration.ofSeconds(30))
             .header("Content-Type", "application/json")
@@ -183,15 +185,9 @@ class AntigravityApp(
 }
 
 object AntigravityConversationModels {
-    private const val KeptMillis = 600_000L
-    private val app = AntigravityApp()
-    private val known = java.util.concurrent.ConcurrentHashMap<String, Pair<Long, String?>>()
-
-    fun of(conversation: String): String? {
-        val now = System.currentTimeMillis()
-        known[conversation]?.takeIf { now - it.first < KeptMillis }?.let { return it.second }
-        val model = runCatching { app.hub()?.let { hub -> app.model(hub, conversation)?.let(AntigravityApp::variant) } }.getOrNull()
-        known[conversation] = now to model
-        return model
+    private val known = java.util.concurrent.ConcurrentHashMap<String, String>()
+    fun of(conversation: String): String? = known[conversation]
+    internal fun remember(conversation: String, model: String?) {
+        if (model != null) known[conversation] = model
     }
 }

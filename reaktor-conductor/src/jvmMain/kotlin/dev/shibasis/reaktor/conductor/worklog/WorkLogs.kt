@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.conductor.worklog
 
 import dev.shibasis.reaktor.conductor.RuntimeKind
+import dev.shibasis.reaktor.conductor.AgentEvent
 import dev.shibasis.reaktor.conductor.telemetry.ClaudeTelemetry
 import dev.shibasis.reaktor.conductor.telemetry.CodexTelemetry
 import kotlinx.serialization.json.JsonObject
@@ -24,12 +25,16 @@ object WorkLogs {
         var length = -1L
         var modified = -1L
         var log = WorkLog.Empty
+        val events = mutableListOf<Pair<Long, AgentEvent>>()
     }
 
     private class Agents(val modified: Long, val files: Map<String, File>)
 
     private val scans = ConcurrentHashMap<String, Scan>()
     private val agents = ConcurrentHashMap<String, Agents>()
+
+    private fun scanKey(runtime: RuntimeKind, file: File, root: String?, whole: Boolean) =
+        "$runtime\u0000${file.canonicalPath}\u0000${root?.let { File(it).canonicalPath }}\u0000$whole"
 
     fun transcript(runtime: RuntimeKind, session: String, home: File = File(System.getProperty("user.home")), now: Instant = Instant.now()): File? = when (runtime) {
         RuntimeKind.ClaudeCode -> File(home, ".claude/projects").listFiles().orEmpty().asSequence().filter(File::isDirectory)
@@ -42,7 +47,7 @@ object WorkLogs {
 
     fun read(runtime: RuntimeKind, file: File, root: String?, whole: Boolean = false): WorkLog {
         if (!file.isFile) return WorkLog.Empty
-        val key = "$runtime\u0000${file.path}\u0000$root\u0000$whole"
+        val key = scanKey(runtime, file, root, whole)
         val length = file.length()
         val known = scans[key]?.takeIf { it.offset <= length }
         val scan = known ?: run {
@@ -65,11 +70,28 @@ object WorkLogs {
         return synchronized(scan) {
             val modified = file.lastModified()
             if (scan.length != length || scan.modified != modified) {
-                scan.offset = lines(file, scan.offset, skipFirst = false) { scan.parser.line(it) }
+                scan.offset = linesAt(file, scan.offset, skipFirst = false) { end, record ->
+                    val parser = scan.parser
+                    if (parser is AntigravityLog) parser.events(record).forEach { scan.events += end to it }
+                    else parser.line(record)
+                }
                 scan.length = length
                 scan.modified = modified
             }
             scan.parser.log(earlier = scan.start > 0).also { scan.log = it }
+        }
+    }
+
+    internal data class GeminiSnapshot(val log: WorkLog, val offset: Long, val events: List<AgentEvent>, val paths: Set<String>,
+        val samples: List<dev.shibasis.reaktor.conductor.telemetry.ProviderTelemetry.Gemini>)
+
+    internal fun gemini(file: File, root: String?, from: Long = Long.MAX_VALUE): GeminiSnapshot {
+        val log = read(RuntimeKind.Gemini, file, root)
+        val key = scanKey(RuntimeKind.Gemini, file, root, false)
+        val scan = scans[key] ?: return GeminiSnapshot(log, 0, emptyList(), emptySet(), emptyList())
+        return synchronized(scan) {
+            val parser = scan.parser as AntigravityLog
+            GeminiSnapshot(scan.log, scan.offset, scan.events.asSequence().filter { it.first > from }.map { it.second }.toList(), parser.paths.toSet(), parser.samples)
         }
     }
 
@@ -152,7 +174,10 @@ object WorkLogs {
             record(0, end)
         }
 
-    internal fun lines(file: File, from: Long, skipFirst: Boolean, each: (JsonObject) -> Unit): Long = RandomAccessFile(file, "r").use { raf ->
+    internal fun lines(file: File, from: Long, skipFirst: Boolean, each: (JsonObject) -> Unit): Long =
+        linesAt(file, from, skipFirst) { _, record -> each(record) }
+
+    private fun linesAt(file: File, from: Long, skipFirst: Boolean, each: (Long, JsonObject) -> Unit): Long = RandomAccessFile(file, "r").use { raf ->
         val length = raf.length()
         raf.seek(from)
         val buffer = ByteArray(1 shl 16)
@@ -168,7 +193,7 @@ object WorkLogs {
                 if (buffer[index] != NewLine) continue
                 if (!skipping) {
                     line.write(buffer, begin, index - begin)
-                    parseRecord(line.toString(Charsets.UTF_8))?.let(each)
+                    parseRecord(line.toString(Charsets.UTF_8))?.let { each(position + index + 1, it) }
                 }
                 line.reset()
                 skipping = false
