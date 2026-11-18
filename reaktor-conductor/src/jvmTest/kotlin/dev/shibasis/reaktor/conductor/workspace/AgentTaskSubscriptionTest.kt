@@ -57,6 +57,11 @@ class AgentTaskSubscriptionTest {
                 assertEquals("", page.runs.single().reasoning)
                 assertTrue(page.runs.single().participants.values.all { it.output.isEmpty() && it.reasoning.isEmpty() })
                 assertTrue(AgentWorkspaceJson.encodeToString(AgentTasksPage.serializer(), page).encodeToByteArray().size < 65536)
+                releases.send(Unit)
+                withTimeout(3000) {
+                    do { page = pages.receive() } while (page.runs.single().status == AgentRunStatus.Running)
+                }
+                assertEquals(AgentRunStatus.Completed, page.runs.single().status)
             } finally { collector.cancelAndJoin(); pages.close() }
         }
     }
@@ -100,6 +105,7 @@ class AgentTaskSubscriptionTest {
                 releases.receive()
                 emit(AgentEvent.Delta(request.agent.id, "Measured output"))
                 releases.receive()
+                emit(AgentEvent.Finished(request.agent.id, AgentOutcome(request.agent.id, "Measured output", true)))
             }
         }
         try {

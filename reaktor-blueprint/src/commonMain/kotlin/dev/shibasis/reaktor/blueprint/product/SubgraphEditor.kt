@@ -18,7 +18,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.StrokeCap
@@ -334,8 +333,7 @@ private fun SuppliedSubgraphBlueprint(source: GraphShape, full: BlueprintLayout<
     }
     dev.shibasis.reaktor.ui.machinesignal.MachineSignalSurface(
         dev.shibasis.reaktor.ui.machinesignal.MachineSignalVariant.Editor,
-        dev.shibasis.reaktor.ui.machinesignal.MachineSignalDensity.Compact,
-        mode = if (palette.canvas.luminance() > .5f) dev.shibasis.reaktor.ui.machinesignal.MachineSignalMode.Light else dev.shibasis.reaktor.ui.machinesignal.MachineSignalMode.Dark) {
+        dev.shibasis.reaktor.ui.machinesignal.MachineSignalDensity.Compact) {
         val faint = Blueprint.Faint
         BlueprintCanvas(full, state, selection.nodes, selected,
             linkStyle = { link -> linkStyle(link, selection)?.let { style ->
@@ -379,8 +377,7 @@ private fun SubgraphBlueprint(nodes: List<SearchNode>, links: List<SearchEdge>, 
     }
     dev.shibasis.reaktor.ui.machinesignal.MachineSignalSurface(
         dev.shibasis.reaktor.ui.machinesignal.MachineSignalVariant.Editor,
-        dev.shibasis.reaktor.ui.machinesignal.MachineSignalDensity.Compact,
-        mode = if (palette.canvas.luminance() > .5f) dev.shibasis.reaktor.ui.machinesignal.MachineSignalMode.Light else dev.shibasis.reaktor.ui.machinesignal.MachineSignalMode.Dark) {
+        dev.shibasis.reaktor.ui.machinesignal.MachineSignalDensity.Compact) {
         dev.shibasis.reaktor.blueprint.BlueprintGraph(model.editor, state,
             cardLook = { node -> model.look(node.id, palette).copy(tag = "subgraph-node:${node.id}", action = node.label, muted = node.id !in document.nodes || selected != null && node.id != selected && node.id !in related) },
             groupLook = { dev.shibasis.reaktor.blueprint.BlueprintFrameLook(SurfaceGraphSymbol, "") },

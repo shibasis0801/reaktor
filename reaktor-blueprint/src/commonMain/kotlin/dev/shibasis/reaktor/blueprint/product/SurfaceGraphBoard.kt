@@ -7,7 +7,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.luminance
 import dev.shibasis.reaktor.blueprint.editor.EditReceipt
 import dev.shibasis.reaktor.blueprint.editor.Selection
 import dev.shibasis.reaktor.blueprint.kanban.BlueprintKanban
@@ -15,7 +14,6 @@ import dev.shibasis.reaktor.blueprint.kanban.KanbanLane
 import dev.shibasis.reaktor.blueprint.kanban.KanbanProjection
 import dev.shibasis.reaktor.blueprint.kanban.rememberBlueprintKanbanState
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignalDensity
-import dev.shibasis.reaktor.ui.machinesignal.MachineSignalMode
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignalSurface
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignalVariant
 
@@ -38,6 +36,7 @@ fun SurfaceGraphBoard(
     onNotice: ((String) -> Unit)? = null,
     visible: (SurfaceGraphNode) -> Boolean = { true },
     closingReasonOf: (SurfaceGraphNode) -> String? = { null },
+    fillLanes: Boolean = false,
 ) {
     val model = remember(sceneKey, nodes, appearance) { SurfaceGraphSimple(nodes, emptyList(), appearance) }
     val lane by rememberUpdatedState(laneOf)
@@ -56,12 +55,11 @@ fun SurfaceGraphBoard(
         if (model.editor.selection.nodes.singleOrNull() != selectedId && (selectedId == null || selectedId in model.nodes))
             model.editor.select(Selection(nodes = selectedId?.let(::setOf).orEmpty()))
     }
-    MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact,
-        mode = if (appearance.canvas.luminance() > .5f) MachineSignalMode.Light else MachineSignalMode.Dark) {
+    MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact) {
         BlueprintKanban(sceneKey, projection, model.editor, cardLook = { shape -> model.look(shape.id, appearance).let { look -> model.nodes[shape.id]?.color?.let { look.copy(outline = it) } ?: look } }, modifier, state,
             onMove = if (onMove == null && onMoveResult == null) null else { node, to ->
                 onMoveResult?.invoke(node.id, to.id) ?: if (move?.invoke(node.id, to.id) == true)
                     EditReceipt.Accepted(model.editor.editRevision) else EditReceipt.Refused("This move was not saved")
-            }, onOpen = onOpen, onClear = onClear, onNotice = onNotice)
+            }, onOpen = onOpen, onClear = onClear, onNotice = onNotice, fillLanes = fillLanes)
     }
 }

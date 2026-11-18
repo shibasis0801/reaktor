@@ -59,6 +59,30 @@ class TaskContextTest {
         return value
     }
 
+    @Test fun everyIncludedContextEntryReachesTheRuntimeUnchanged() = fixture { _, owner, _, _, runtime ->
+        val entries = (1..23).map { ContextEntry("included:$it", "source", "Included $it", "x".repeat(850), "Chosen by the owner") }
+        val packet = ContextPacket(workspaceId = "fixture", principalId = "owner", source = "Context pane", entries = entries)
+        assertTrue(ConductorJson.encodeToString(ContextPacket.serializer(), packet).length < 24000)
+        val run = owner.submit(AgentSubmission("included-packet", RuntimeKind.Codex, "Use every included entry", context = packet))
+        withTimeout(10000) { while (runtime.requests.isEmpty()) delay(10) }
+        val received = assertNotNull(owner.get(run.id).context)
+        val included = received.entries.filter { it.ref.startsWith("included:") }
+        assertEquals(entries.map { it.ref }, included.map { it.ref })
+        assertTrue(entries == included, "An included entry was changed")
+        assertEquals(packet.omittedEntries, received.omittedEntries)
+        entries.forEach { assertTrue(runtime.requests.single().prompt.contains(it.ref), "The dispatched prompt lost ${it.ref}") }
+    }
+
+    @Test fun anOversizeContextRefusalNamesTheBudgetAndHowToRecover() = fixture { _, owner, _, _, _ ->
+        val packet = ContextPacket(workspaceId = "fixture", principalId = "owner", source = "Context pane", entries = listOf(
+            ContextEntry("large", "source", "Large source", "x".repeat(24000), "Included")))
+        val failure = assertFailsWith<IllegalArgumentException> {
+            owner.submit(AgentSubmission("oversize-packet", RuntimeKind.Codex, "Use the context", context = packet))
+        }
+        assertTrue(failure.message.orEmpty().contains("24,000"), failure.message)
+        assertTrue(failure.message.orEmpty().contains("remove", true), failure.message)
+    }
+
     @Test fun atlasSliceIsBoundedOptionalAndSharedWithDispatch() {
         var calls = 0
         val slice = ContextPacket(workspaceId = "fixture", principalId = "coordinator", source = "Atlas", entries = listOf(

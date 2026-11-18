@@ -1,5 +1,8 @@
 package dev.shibasis.reaktor.blueprint
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
 import dev.shibasis.reaktor.blueprint.canvas.Area
 import dev.shibasis.reaktor.ui.machinesignal.colors
 
@@ -30,6 +33,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -45,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.lerp
@@ -67,6 +72,7 @@ import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
@@ -243,7 +249,7 @@ fun <K> BlueprintCanvas(
     val graphics = LocalGraphicsContext.current
     val colors = MachineSignal.colors
     val painter = remember(graphics, resolver, direction, fonts, base, colors, denseOverview, mapLayers, mapDetail, mapLabels) {
-        BlueprintPainter(graphics, TextMeasurer(resolver, Density(1f), direction, cacheSize = if (mapLayers) MapTextCache else 512), BlueprintType(fonts.ui, fonts.mono, base, fonts.graphLabel), colors, denseOverview, mapLayers, mapDetail, mapLabels)
+        BlueprintPainter(graphics, TextMeasurer(resolver, Density(1f), direction, cacheSize = MapTextCache), BlueprintType(fonts.ui, fonts.mono, base, fonts.graphLabel), colors, denseOverview, mapLayers, mapDetail, mapLabels)
     }
     fun syncPainter() {
         canvas.insetTop = topInset.value.toDouble()
@@ -369,7 +375,10 @@ fun <K> BlueprintCanvas(
                     }
                 }
             }
-            if (mapLabels) painter.frameLabels.value.forEachIndexed { i, bounds ->
+            if (mapLabels && frameLooks.any { it.hasHeaderContent }) {
+                syncPainter()
+                painter.inset(canvas.insetStart.toFloat(), canvas.insetTop.toFloat(), canvas.insetEnd.toFloat(), canvas.insetBottom.toFloat())
+                painter.prepareFrameLabels(canvas.viewport(), Size((canvas.flow.canvasSize.width / density).toFloat(), (canvas.flow.canvasSize.height / density).toFloat())).forEachIndexed { i, bounds ->
                 if (bounds != null) frameLooks.getOrNull(i)?.takeIf { it.hasHeaderContent }?.let { look ->
                     val frame = layout.frames[i].copy(width = bounds.width.toDouble())
                     var windowAt by remember(frame.key) { mutableStateOf(Offset.Zero) }
@@ -387,6 +396,7 @@ fun <K> BlueprintCanvas(
                         }
                     }
                 }
+            }
             }
         },
     ) { camera, viewport, scale ->
@@ -600,20 +610,42 @@ fun measureBlueprintBody(node: BlueprintNode, look: BlueprintCardLook): Blueprin
 }
 
 @Composable
-fun measureBlueprintBodies(entries: Map<String, Pair<BlueprintNode, BlueprintCardLook>>): Map<String, BlueprintBody> {
+fun measureBlueprintBodies(entries: Map<String, Pair<BlueprintNode, BlueprintCardLook>>, background: Boolean = false,
+    onMeasure: (() -> Unit)? = null, onFontResolver: ((FontFamily.Resolver) -> Unit)? = null): Map<String, BlueprintBody> {
     val fonts = LocalMachineSignalFonts.current
     val base = LocalTextStyle.current
     val resolver = LocalFontFamilyResolver.current
     val direction = LocalLayoutDirection.current
     val graphics = LocalGraphicsContext.current
     val colors = MachineSignal.colors
+    if (background) {
+        val createResolver = blueprintBodyFontResolverFactory()
+        val measured by produceState<Pair<Map<String, Pair<BlueprintNode, BlueprintCardLook>>, Map<String, BlueprintBody>>?>(
+            null, entries, listOf(graphics, createResolver, direction, fonts, base, colors)) {
+            val bodies = withContext(Dispatchers.Default) {
+                onMeasure?.invoke()
+                val bodyResolver = createResolver()
+                onFontResolver?.invoke(bodyResolver)
+                val painter = BlueprintPainter(graphics, TextMeasurer(bodyResolver, Density(1f), direction, cacheSize = 2048),
+                    BlueprintType(fonts.ui, fonts.mono, base, fonts.graphLabel), colors)
+                entries.mapValues { (_, pair) -> painter.body(pair.first, pair.second) }
+            }
+            value = entries to bodies
+        }
+        return measured?.takeIf { it.first == entries }?.second.orEmpty()
+    }
     val painter = remember(graphics, resolver, direction, fonts, base, colors) {
         BlueprintPainter(graphics, TextMeasurer(resolver, Density(1f), direction, cacheSize = 2048), BlueprintType(fonts.ui, fonts.mono, base, fonts.graphLabel), colors)
     }
     return remember(painter, entries) {
+        onMeasure?.invoke()
+        onFontResolver?.invoke(resolver)
         entries.mapValues { (_, pair) -> painter.body(pair.first, pair.second) }
     }
 }
+
+@Composable
+internal expect fun blueprintBodyFontResolverFactory(): () -> FontFamily.Resolver
 
 @Composable
 fun BlueprintLegend(entries: List<LegendEntry>, modifier: Modifier = Modifier) {

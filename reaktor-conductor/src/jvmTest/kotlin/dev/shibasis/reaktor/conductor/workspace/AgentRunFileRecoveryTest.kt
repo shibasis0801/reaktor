@@ -54,6 +54,58 @@ class AgentRunFileRecoveryTest {
         } finally { root.deleteTreeSafely(within = root.parentFile) }
     }
 
+    @Test fun aCompleteRecordFromANewerVersionIsLeftUntouched() {
+        val root = Files.createTempDirectory("newer-run-version").toFile()
+        val data = root.toPath().resolve("state")
+        val runs = data.resolve("runs")
+        Files.createDirectories(runs)
+        val newer = record("newer-version")
+        val path = runs.resolve("${newer.id}.json")
+        val text = ConductorJson.encodeToString(AgentRunRecord.serializer(), newer).replace("Completed", "FutureStatus") + "\n"
+        Files.writeString(path, text)
+        try {
+            AgentWorkspace(root, data, emptyMap(), background = false, discover = { ProviderCapability(it) }).use { workspace ->
+                assertTrue(workspace.list().isEmpty())
+                assertTrue(Files.exists(path), "A complete record from a newer version must not be quarantined")
+                assertEquals(text, Files.readString(path))
+                assertFalse(Files.exists(runs.resolve("${newer.id}.torn")))
+            }
+        } finally { root.deleteTreeSafely(within = root.parentFile) }
+    }
+
+    @Test fun everyTornTailKeepsItsOwnQuarantineFile() {
+        val root = Files.createTempDirectory("repeated-torn-tail").toFile()
+        val data = root.toPath().resolve("state")
+        val runs = data.resolve("runs")
+        Files.createDirectories(runs)
+        val saved = record("repeated-torn")
+        val path = runs.resolve("${saved.id}.json")
+        val first = runs.resolve("${saved.id}.torn")
+        Files.writeString(first, "first torn sample")
+        Files.writeString(path, ConductorJson.encodeToString(AgentRunRecord.serializer(), saved) + "\n{\"id\":")
+        try {
+            AgentWorkspace(root, data, emptyMap(), background = false, discover = { ProviderCapability(it) }).use { workspace ->
+                assertEquals(saved, workspace.get(saved.id))
+                assertEquals("first torn sample", Files.readString(first))
+                assertTrue(Files.exists(runs.resolve("${saved.id}.torn.1")))
+            }
+        } finally { root.deleteTreeSafely(within = root.parentFile) }
+    }
+
+    @Test fun anUnreadableRunPathIsNeverQuarantined() {
+        val root = Files.createTempDirectory("unreadable-run").toFile()
+        val data = root.toPath().resolve("state")
+        val path = data.resolve("runs/${digest("unreadable")}.json")
+        Files.createDirectories(path)
+        try {
+            AgentWorkspace(root, data, emptyMap(), background = false, discover = { ProviderCapability(it) }).use { workspace ->
+                assertTrue(workspace.list().isEmpty())
+                assertTrue(Files.isDirectory(path))
+                assertFalse(Files.exists(path.resolveSibling("${digest("unreadable")}.torn")))
+            }
+        } finally { root.deleteTreeSafely(within = root.parentFile) }
+    }
+
     private fun record(key: String) = AgentRunRecord(digest(key), "thread-$key", RuntimeKind.Echo, "fixture", "Recovery fixture",
         status = AgentRunStatus.Completed, startedAt = 1, updatedAt = 1)
 }

@@ -94,6 +94,7 @@ fun BlueprintKanban(
     onOpen: (String) -> Unit = {},
     onClear: () -> Unit = { editor.select(Selection()) },
     onNotice: ((String) -> Unit)? = null,
+    fillLanes: Boolean = false,
 ) {
     val colors = MachineSignal.colors
     val scope = rememberCoroutineScope()
@@ -136,16 +137,19 @@ fun BlueprintKanban(
         return true
     }
     DisposableEffect(source, state) { onDispose { if (state.drag?.source == source) state.cancel() } }
-    Box(modifier.background(colors.canvas).testTag("blueprint-kanban")
+    BoxWithConstraints(modifier.background(colors.canvas).testTag("blueprint-kanban")
         .onGloballyPositioned { origin = it.boundsInRoot().topLeft }
         .focusRequester(focus).onPreviewKeyEvent(::key).focusable()) {
+        val laneWidth = if (fillLanes && projection.columns.isNotEmpty())
+            ((maxWidth - MachineSignal.Space.s3 * (projection.columns.size + 1)) / projection.columns.size).coerceAtLeast(MachineSignal.Editor.navigatorWidth)
+        else MachineSignal.Editor.navigatorWidth
         Column(Modifier.fillMaxSize()) {
             LazyRow(Modifier.weight(1f).fillMaxWidth(), state = state.board(source),
                 contentPadding = PaddingValues(MachineSignal.Space.s3), horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s3)) {
                 items(projection.columns, key = { it.lane.id }) { column ->
                     val lane = column.lane
                     val hot = state.drag?.takeIf { it.source == source }?.at?.let { bounds[lane.id]?.contains(it) } == true
-                    Column(Modifier.fillMaxHeight().width(MachineSignal.Editor.navigatorWidth).testTag("kanban-lane-${lane.id}")
+                    Column(Modifier.fillMaxHeight().width(laneWidth).testTag("kanban-lane-${lane.id}")
                         .onGloballyPositioned { bounds[lane.id] = it.boundsInRoot() }
                         .border(MachineSignal.Stroke.hairline, if (hot) colors.controlAccent else colors.line, RoundedCornerShape(MachineSignal.Radius.panel))) {
                         Row(Modifier.fillMaxWidth().height(MachineSignal.Editor.toolbarHeight).padding(horizontal = MachineSignal.Space.s3)
@@ -197,7 +201,7 @@ fun BlueprintKanban(
         state.drag?.takeIf { it.source == source }?.let { drag ->
             projection.columns.asSequence().flatMap { it.items.asSequence() }.find { it.id == drag.id }?.let { node ->
                 Box(Modifier.offset { val at = drag.at - origin - drag.grab; IntOffset(at.x.roundToInt(), at.y.roundToInt()) }
-                    .width(MachineSignal.Editor.navigatorWidth).testTag("kanban-drag")) {
+                    .width(laneWidth).testTag("kanban-drag")) {
                     KanbanCard(node, cardLook(node), true, projection.closingReasons[node.id], {}, onAgentOpen,
                         Modifier.fillMaxWidth(), tag = "kanban-drag-card-${node.id}")
                 }

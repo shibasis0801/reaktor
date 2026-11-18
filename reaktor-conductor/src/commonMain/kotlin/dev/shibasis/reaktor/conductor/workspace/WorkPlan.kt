@@ -124,6 +124,7 @@ data class WorkPlan(
     val documentText: String? = null,
     val approval: PlanApproval = PlanApproval.Draft,
     val approvalRevision: Long? = null,
+    val approvalChangedRevision: Long? = null,
 ) {
     private val tree by lazy { PlanTree(items) }
 
@@ -613,6 +614,8 @@ object PlanRules {
                     is PlanOp.Update -> {
                         val item = items[op.item] ?: error("${op.item} is not on the plan")
                         (allowed(item.id) ?: fresh(item.id))?.let(::error)
+                        if (op.effort != null || op.startDate != null || op.dueDate != null || op.clearEffort || op.clearStartDate || op.clearDueDate)
+                            require(patch.base != null || plan.revision == 0L) { "Name the revision you read before changing effort or dates" }
                         if (op.orderBefore != null || op.orderLast) currentRevision()
                         if (op.orderBefore != null || op.orderLast) {
                             require(op.orderBefore == null || !op.orderLast) { "Choose a position before an item or at the end" }
@@ -708,7 +711,24 @@ object PlanRules {
                         require(!reaches(listOf(op.from), subtree(op.to))) { "${op.to} waiting on ${op.from} would make a cycle" }
                         if (op.from in to.after) null else {
                             items[to.id] = touch(to.copy(after = to.after + op.from))
-                            "${to.id} waits on ${op.from}"
+                            val arranged = (order + items.keys).distinct()
+                            val moved = if (order.isNotEmpty() && arranged.indexOf(to.id) < arranged.indexOf(op.from)) {
+                                currentRevision()
+                                val affected = arranged.filter { reaches(listOf(it), setOf(to.id)) }
+                                val nextOrder = arranged.toMutableList()
+                                affected.forEach { id ->
+                                    val prerequisites = lineage(id).flatMap { items[it]?.after.orEmpty() }.distinct()
+                                    val last = prerequisites.maxOfOrNull(nextOrder::indexOf) ?: -1
+                                    if (last >= nextOrder.indexOf(id)) {
+                                        nextOrder.remove(id)
+                                        nextOrder.add(prerequisites.maxOf(nextOrder::indexOf) + 1, id)
+                                    }
+                                }
+                                order = nextOrder
+                                affected
+                            } else emptyList()
+                            "${to.id} waits on ${op.from}" + moved.takeIf { it.isNotEmpty() }
+                                ?.let { "; Moved ${it.joinToString()} after ${op.from}" }.orEmpty()
                         }
                     }
                     is PlanOp.Disconnect -> {
@@ -790,6 +810,7 @@ object PlanRules {
         var documentText = plan.documentText
         var approval = plan.approval
         var approvalRevision = plan.approvalRevision
+        var approvalChangedRevision = plan.approvalChangedRevision
         patch.documentText?.let { text ->
             try {
                 currentRevision()
@@ -805,7 +826,7 @@ object PlanRules {
             try {
                 currentRevision()
                 require(by.kind == BoardActorKind.Person) { "Only a person changes the plan's approval state" }
-                if (state != approval || state == PlanApproval.Approved && approvalRevision != plan.revision) { approval = state; approvalRevision = if (state == PlanApproval.Approved) revision else null; summary += "Approval → $state" }
+                if (state != approval || state == PlanApproval.Approved && approvalRevision != plan.revision) { approval = state; approvalRevision = if (state == PlanApproval.Approved) revision else null; approvalChangedRevision = null; summary += "Approval → $state" }
             } catch (failure: IllegalArgumentException) {
                 refused += PlanRefusal(-1, reason = failure.message ?: "Refused")
             }
@@ -828,9 +849,12 @@ object PlanRules {
         patch.message?.replace(Regex("\\s+"), " ")?.trim()?.takeIf(String::isNotEmpty)?.let { summary += "Says: ${BoardText.bounded(it, "A message", 2_000)}" }
         val news = plan.news(patch.base ?: plan.revision, by)
         if (summary.isEmpty() && seats == plan.seats && items.values.toList() == plan.items) return PlanApplied(plan, refused, news)
+        if (approval == PlanApproval.Approved && plan.approval == PlanApproval.Approved && by.kind != BoardActorKind.Person)
+            approvalChangedRevision = revision
         val changed = plan.copy(
             title = title ?: plan.title, goal = goal ?: plan.goal, items = items.values.toList(), seats = seats, documentPath = documentPath, limits = limits,
-            documentText = documentText, approval = approval, approvalRevision = approvalRevision, order = order,
+            documentText = documentText, approval = approval, approvalRevision = approvalRevision,
+            approvalChangedRevision = approvalChangedRevision, order = order,
             revision = revision, next = next, updatedAt = now,
             changes = if (summary.isEmpty()) plan.changes else (plan.changes + PlanChange(revision, now, by, summary, requestId)).takeLast(MaxChanges),
         )

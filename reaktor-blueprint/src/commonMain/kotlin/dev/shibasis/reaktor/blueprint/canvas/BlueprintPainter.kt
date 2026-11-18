@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.blueprint.canvas
 
+import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.MutableState
 import androidx.compose.ui.geometry.CornerRadius
@@ -37,6 +38,8 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import dev.shibasis.composeflow.model.Viewport
 import dev.shibasis.reaktor.blueprint.Blueprint
+import dev.shibasis.reaktor.blueprint.atTime
+import kotlin.time.Clock
 import dev.shibasis.reaktor.blueprint.BlueprintBadgeStyle
 import dev.shibasis.reaktor.blueprint.BlueprintCardLook
 import dev.shibasis.reaktor.blueprint.BlueprintEngine
@@ -412,7 +415,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
     }
 
     private fun paint(i: Int, until: TimeSource.Monotonic.ValueTimeMark? = null): CardPaint? {
-        val look = looks.getOrNull(i)?.takeIf { shown(i) } ?: return null
+        val look = looks.getOrNull(i)?.takeIf { shown(i) }?.atTime(Clock.System.now().toEpochMilliseconds()) ?: return null
         val kept = paints[i]
         if (kept != null && kept.measured.card === cards[i] && kept.measured.look == look) return kept
         if (until?.hasPassedNow() == true) { changed = true; return kept }
@@ -526,7 +529,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         val look = frameLooks.getOrNull(i) ?: return
         val edge = if (look.selected) accent else look.lit
         stroker.roundRect(x0, y0, x1, y1, MachineSignal.Radius.panel.value * z, tolerance)
-        stroker.fill(solid, fringe, colors.surface.copy(alpha = if (frames[i].muted || look.muted) .2f else .5f).toArgb(), min(x1 - x0, y1 - y0))
+        stroker.fill(solid, fringe, (look.lit?.let { lerp(colors.surface, it, OverviewTint) } ?: colors.surface).copy(alpha = if (frames[i].muted || look.muted) .2f else .5f).toArgb(), min(x1 - x0, y1 - y0))
         stroker.outline(solid, (if (edge != null) 1.5f else 1f) * z / 2, fringe, (edge ?: colors.line).toArgb(), if (look.selected) .9f else if (edge != null) .75f else .24f)
     }
 
@@ -534,7 +537,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         val look = looks.getOrNull(i) ?: return
         val faded = dim.getOrElse(i) { false }
         stroker.roundRect(x0, y0, x1, y1, cardRadius * z, tolerance)
-        val fill = look.fill ?: lerp(colors.card, look.tone, OverviewTint)
+        val fill = lerp(look.fill ?: colors.card, look.tone, OverviewTint)
         stroker.fill(solid, fringe, lerp(colors.card, fill, if (faded) FadedTint else 1f).toArgb(), min(x1 - x0, y1 - y0))
         stroker.outline(solid, max(z / 2, .5f), fringe, (look.outline ?: look.tone).toArgb(), if (look.selected) 1f else if (faded) .2f else .8f)
     }
@@ -781,7 +784,8 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         fun width(value: String, style: TextStyle) = measurer.measure(value, style, maxLines = 1).size.width.toDouble()
         val marks = look.marks.sumOf { measureMark(it).width.toDouble() + MachineSignal.Editor.controlGap.value }
         val folded = look.folded?.let { width(it, foldedStyle) + MachineSignal.Space.s2.value } ?: 0.0
-        var w = maxOf(BlueprintEngine.CardWidth, width(look.title, titleStyle) + BlueprintEngine.RowHeight * 2 + marks + actionWidth(look),
+        var w = if (look.face == BlueprintFace.Prose) BlueprintEngine.CardWidth else maxOf(BlueprintEngine.CardWidth,
+            width(look.title, titleStyle) + BlueprintEngine.RowHeight * 2 + marks + actionWidth(look),
             width(look.subtitle, subtitleStyles[if (look.subtitleMono) 1 else 0]) + BlueprintEngine.RowHeight + folded)
         val oneSided = node.inputs.isEmpty() || node.outputs.isEmpty()
         fun rowWidth(row: BlueprintPinLook): Double = cellWidth(row).toDouble() + pinTextMargin
@@ -811,7 +815,12 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         return dev.shibasis.reaktor.blueprint.BlueprintBody(ceil(w), ceil(h - node.pinHeader))
     }
 
-    private fun agentHeight(agent: dev.shibasis.reaktor.blueprint.BlueprintAgent, width: Float): Float {
+    private fun agentHeight(agent: dev.shibasis.reaktor.blueprint.BlueprintAgent, width: Float): Float =
+        retained(agentHeights, agent.copy(activity = dev.shibasis.reaktor.blueprint.BlueprintAgent.Activity.Assigned, otherAgents = 99) to width) {
+            measuredAgentHeight(agent, width)
+        }
+
+    private fun measuredAgentHeight(agent: dev.shibasis.reaktor.blueprint.BlueprintAgent, width: Float): Float {
         if (agent.companions.isNotEmpty()) return MachineSignal.AgentBadge.size.value + MachineSignal.AgentBadge.gap.value * 2
         val room = width - MachineSignal.Space.s3.value * 2 - MachineSignal.AgentBadge.size.value - MachineSignal.AgentBadge.gap.value
         val style = type.style(MachineSignal.Type.body2, colors.textStrong)
@@ -1059,7 +1068,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
 
     private fun DrawScope.drawTitled(card: Card, look: BlueprintCardLook, name: String, x: Float, y: Float) {
         val w = card.width.toFloat(); val h = card.height.toFloat()
-        drawRoundRect(Brush.horizontalGradient(listOf(look.fill ?: lerp(colors.card, look.tone, TitledTint), look.fill ?: lerp(colors.card, look.tone, TitledTint * .6f)), x, x + w), Offset(x, y), Size(w, h), CornerRadius(MachineSignal.Radius.node.value))
+        drawRoundRect(Brush.horizontalGradient(listOf(lerp(look.fill ?: colors.card, look.tone, TitledTint), lerp(look.fill ?: colors.card, look.tone, TitledTint * .6f)), x, x + w), Offset(x, y), Size(w, h), CornerRadius(MachineSignal.Radius.node.value))
         drawBorder(look.selected || card.id == selected, look.outline, x, y, w, h)
         val room = h - TitledInset * 2; val line = titledStyle.lineHeight.value; val k = min(1f, room / line)
         val style = if (k < 1f) titledStyle.copy(fontSize = titledStyle.fontSize * k, lineHeight = titledStyle.lineHeight * k) else titledStyle
@@ -1083,8 +1092,20 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         card.pins.filter { it.y > BlueprintEngine.HeaderHeight }.minOfOrNull { it.y - BlueprintEngine.RowHeight / 2 - BlueprintEngine.RowHeight / 3 }?.toFloat()
             ?: (height - proseFooter(look, card.width.toFloat() - ProseInset - 12f - actionWidth(look)))
 
+    private val subtitleLayouts = LinkedHashMap<Pair<String, Float>, TextLayoutResult?>()
+    private val titleLayouts = LinkedHashMap<List<Any?>, TextLayoutResult?>()
+    private val agentHeights = LinkedHashMap<Pair<dev.shibasis.reaktor.blueprint.BlueprintAgent, Float>, Float>()
+
+    private fun <K, V> retained(cache: LinkedHashMap<K, V>, key: K, measure: () -> V): V {
+        if (cache.containsKey(key)) return cache.getValue(key)
+        val result = measure()
+        cache[key] = result
+        if (cache.size > MapTextCache) cache.remove(cache.keys.first())
+        return result
+    }
+
     private fun proseSubtitle(look: BlueprintCardLook, room: Float): TextLayoutResult? =
-        look.subtitle.takeIf(String::isNotEmpty)?.let { words(it, footerStyle, room, SubtitleLines) }
+        retained(subtitleLayouts, look.subtitle to room) { look.subtitle.takeIf(String::isNotEmpty)?.let { words(it, footerStyle, room, SubtitleLines) } }
 
     private fun proseFooter(look: BlueprintCardLook, room: Float): Float =
         if (look.subtitle.isEmpty()) 10f else 34f + (proseSubtitle(look, room)?.wrapHeight() ?: 0f)
@@ -1092,9 +1113,11 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
     private fun TextLayoutResult.wrapHeight(): Float = getLineBottom(lineCount - 1) - getLineBottom(0)
 
     private fun proseTitle(card: Card, look: BlueprintCardLook, width: Float, height: Float): TextLayoutResult? =
-        Blueprint.ProseTitles.indices.firstNotNullOfOrNull { k ->
-            measure(look.title, proseTitles[k], width, ProseLines[k]).takeUnless {
-                it.hasVisualOverflow || it.size.height + 34f > proseTitleBottom(card, look, height)
+        retained(titleLayouts, listOf(look.title, width, proseTitleBottom(card, look, height))) {
+            Blueprint.ProseTitles.indices.firstNotNullOfOrNull { k ->
+                measure(look.title, proseTitles[k], width, ProseLines[k]).takeUnless {
+                    it.hasVisualOverflow || it.size.height + 34f > proseTitleBottom(card, look, height)
+                }
             }
         }
 
@@ -1115,14 +1138,15 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         val w = card.width.toFloat(); val h = card.height.toFloat()
         proseBody(look, x, y, w, h)
         drawScreenshot(look.image, x, y, w, bodyHeight, look.muted)
-        icon(look.icon).draw(this, x + MachineSignal.Space.s1.value, y + MachineSignal.Space.s2.value, MachineSignal.Editor.smallIconSize.value, look.tone)
+        icon(look.icon).draw(this, x + MachineSignal.Space.s2.value, y + MachineSignal.Space.s2.value, MachineSignal.Editor.smallIconSize.value, look.tone)
         val left = x + ProseInset
         val right = w - 12f - actionWidth(look)
         val room = right - ProseInset
         val marks = proseMarks(look, right)
         drawHeaderMarks(marks, x, y)
-        val eyebrowWidth = (marks.lastOrNull()?.let { it.bounds.left - 6f } ?: right) - ProseInset
-        look.eyebrow?.let { eyebrow -> words(eyebrow.uppercase(), eyebrowStyle, eyebrowWidth)?.let { paint(it, left, y + 11f) } }
+        val eyebrowLeft = MachineSignal.Space.s2.value + MachineSignal.Editor.smallIconSize.value + MachineSignal.Space.s1.value
+        val eyebrowWidth = (marks.lastOrNull()?.let { it.bounds.left - 6f } ?: right) - eyebrowLeft
+        look.eyebrow?.let { eyebrow -> words(eyebrow.uppercase(), eyebrowStyle, eyebrowWidth)?.let { paint(it, x + eyebrowLeft, y + 11f) } }
         if (look.titleContent == null) {
             val fitted = proseTitle(card, look, room, bodyHeight)
             val title = fitted ?: words(look.title, proseTitles.last(), room, ProseLines.last())
@@ -1255,14 +1279,10 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
 
     fun frameLabelSlots(i: Int, look: BlueprintFrameLook): BlueprintHeaderSlots? = plateHeaders.getOrNull(i)?.let { slots(it, look) }
 
-    val frameLabels = mutableStateOf<List<Rect?>>(emptyList())
+    val frameLabels = object : State<List<Rect?>> { override val value get() = placedFrameLabels }
     private var plates = arrayOfNulls<FramePlate>(0)
     private var plateHeaders = arrayOfNulls<FrameHeader>(0)
     private var platesOf: List<Frame>? = null
-
-    override fun bannersPlaced(bounds: List<Rect?>) {
-        if (frameLabels.value != bounds) frameLabels.value = bounds
-    }
 
     private fun DrawScope.drawHeader(frame: Frame, look: BlueprintFrameLook, x: Float, y: Float) =
         drawHeader(frameHeader(frame, look), x, y, BlueprintEngine.FrameTop.toFloat(), look)

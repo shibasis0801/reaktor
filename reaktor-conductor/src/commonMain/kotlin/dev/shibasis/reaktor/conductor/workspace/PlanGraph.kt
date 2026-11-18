@@ -7,14 +7,15 @@ import dev.shibasis.reaktor.graph.core.ShapeAttributes
 import dev.shibasis.reaktor.graph.core.node.BasicNode
 import dev.shibasis.reaktor.graph.core.node.Node
 import dev.shibasis.reaktor.graph.core.shape
-import dev.shibasis.reaktor.graph.di.KoinDependencyAdapter
+import dev.shibasis.reaktor.graph.di.DependencyAdapter
+import dev.shibasis.reaktor.graph.di.DependencyScopeCapability
 import dev.shibasis.reaktor.portgraph.graph.connect
 import dev.shibasis.reaktor.portgraph.port.Key
 import dev.shibasis.reaktor.portgraph.port.Type
 import dev.shibasis.reaktor.portgraph.port.registerConsumer
 import dev.shibasis.reaktor.portgraph.port.registerProvider
 import kotlinx.serialization.json.JsonPrimitive
-import org.koin.dsl.koinApplication
+import kotlin.reflect.KClass
 
 object PlanIds {
     fun plan(thread: String): String = thread
@@ -41,7 +42,7 @@ object PlanPorts {
 }
 
 class PlanGraph(plans: List<WorkPlan>, code: Boolean = true, links: (String) -> List<String> = { emptyList() }) : AutoCloseable {
-    val graph = Graph(dependencyAdapter = KoinDependencyAdapter(koinApplication {}), label = "Plans")
+    val graph = Graph(dependencyAdapter = PlanDependencies(), label = "Plans")
     val scopes: List<PlanScope> = plans.map { plan -> graph.Graph { parent -> PlanScope(parent, plan, includeCode = code, links = links) } }
 
     fun shape(): GraphShape = graph.shape().stable(buildMap {
@@ -182,4 +183,39 @@ class ReaktorRefNode(graph: Graph, val plan: WorkPlan, val ref: String) : BasicN
     }
 
     fun wire(targets: List<ReaktorRefNode>) = targets.forEach { target -> connect(registerConsumer<ReaktorRefNode>(Key(PlanPorts.refIn(target.ref)), PlanItemNode.RefType), target.provided).getOrThrow() }
+}
+
+private class PlanDependencies : DependencyAdapter<Unit>(Unit) {
+    private class Scope(override val id: String, val parent: DependencyScopeCapability?) : DependencyScopeCapability {
+        val values = mutableMapOf<Pair<KClass<*>, String?>, Any>()
+        val factories = mutableMapOf<Pair<KClass<*>, String?>, DependencyScopeCapability.() -> Any>()
+        override fun <T : Any> get(type: KClass<T>, qualifier: String?, parameters: Map<String, Any?>): T {
+            val key = type to qualifier
+            val value = values[key] ?: factories[key]?.invoke(this) ?: return requireNotNull(parent) {
+                "No plan graph dependency for ${type.simpleName}"
+            }.get(type, qualifier, parameters)
+            @Suppress("UNCHECKED_CAST")
+            return value as T
+        }
+        override fun close() { values.clear(); factories.clear() }
+    }
+
+    override fun createScope(id: String, parent: DependencyScopeCapability?, configure: ScopeBuilder.() -> Unit): DependencyScopeCapability {
+        val scope = Scope(id, parent)
+        configure(object : ScopeBuilder {
+            override fun <T : Any> factory(type: KClass<T>, qualifier: String?, definition: DependencyScopeCapability.() -> T) {
+                scope.factories[type to qualifier] = definition
+            }
+            override fun <T : Any> singleton(type: KClass<T>, qualifier: String?, definition: DependencyScopeCapability.() -> T) {
+                scope.factories[type to qualifier] = { scope.values.getOrPut(type to qualifier) { definition(scope) } }
+            }
+        })
+        return scope
+    }
+    override fun closeScope(scope: DependencyScopeCapability) = scope.close()
+    override fun <T : Any> get(scope: DependencyScopeCapability, type: KClass<T>, qualifier: String?, parameters: Map<String, Any?>): T =
+        scope.get(type, qualifier, parameters)
+    override fun <T : Any> register(scope: DependencyScopeCapability, instance: T, type: KClass<T>, qualifier: String?) {
+        (scope as Scope).values[type to qualifier] = instance
+    }
 }

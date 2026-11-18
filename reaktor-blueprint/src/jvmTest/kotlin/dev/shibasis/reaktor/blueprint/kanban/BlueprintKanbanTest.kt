@@ -124,6 +124,14 @@ class BlueprintKanbanTest {
         }
     }
 
+    @Test fun theNativeCardDrawsItsKindAndEachMarkAsItsOwnChip() = runBlocking(Dispatchers.Swing) {
+        Scene(editor(listOf(task(0)))).use { p ->
+            p.settle()
+            assertTrue(p.tag("kanban-eyebrow-task-0").config[SemanticsProperties.Text].any { it.text == "CHECK" })
+            assertTrue(p.tag("kanban-mark-task-0-0").config[SemanticsProperties.Text].any { it.text == "High" })
+        }
+    }
+
     private inner class Scene(val editor: GraphEditor, val mode: MachineSignalMode = MachineSignalMode.Dark) : AutoCloseable {
         val state = BlueprintKanbanState()
         val looks = hashSetOf<String>()
@@ -134,7 +142,7 @@ class BlueprintKanbanTest {
                 val projection = remember(editor.shape) { KanbanProjection.from(editor.shape, lanes, { it.attributes["status"] }) }
                 BlueprintKanban("launch", projection, editor, cardLook = { node ->
                     looks += node.id
-                    BlueprintCardLook(Color.Blue, icon, node.label, "Blueprint presentation", marks = listOf(BlueprintMark("High", Color.Blue)), agent = agent)
+                    BlueprintCardLook(Color.Blue, icon, node.label, "Blueprint presentation", marks = listOf(BlueprintMark("High", Color.Blue)), agent = agent, eyebrow = "CHECK")
                 }, modifier = Modifier.fillMaxSize(), state = state, proposal = ::proposal, onAgentOpen = { opened = it })
             }
         }

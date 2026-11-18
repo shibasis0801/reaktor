@@ -10,6 +10,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import dev.shibasis.reaktor.blueprint.BlueprintAgent
@@ -33,9 +36,16 @@ internal fun KanbanCard(node: NodeShape, look: BlueprintCardLook, selected: Bool
             if (selected) colors.controlAccent else status ?: colors.line, shape)
         .clickable(onClick = onSelect).semantics { this.selected = selected }.testTag(tag)
         .padding(MachineSignal.Space.s3), verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2)) {
+        look.eyebrow?.takeIf(String::isNotBlank)?.let {
+            Text(it, Modifier.fillMaxWidth().testTag("kanban-eyebrow-${node.id}"), role = Type.Meta, ink = Ink.Muted)
+        }
         Text(look.title, Modifier.fillMaxWidth().testTag("kanban-title-${node.id}"), role = Type.Body, lines = Int.MAX_VALUE)
         if (look.subtitle.isNotBlank()) Text(look.subtitle, Modifier.fillMaxWidth(), role = Type.Meta, ink = Ink.Muted, lines = Int.MAX_VALUE)
-        if (look.marks.isNotEmpty()) Text(look.marks.joinToString(" · ") { it.text }, Modifier.fillMaxWidth(), role = Type.Meta, lines = Int.MAX_VALUE)
+        look.marks.forEachIndexed { index, mark ->
+            Text(buildAnnotatedString { withStyle(SpanStyle(color = mark.color)) { append(mark.text) } }, Modifier.clip(shape).background(mark.color.copy(alpha = .18f))
+                .padding(horizontal = MachineSignal.Space.s2, vertical = MachineSignal.Space.s1)
+                .testTag("kanban-mark-${node.id}-$index"), role = Type.Meta, lines = Int.MAX_VALUE)
+        }
         if (closingReason != null) Text(closingReason, Modifier.fillMaxWidth().testTag("kanban-reason-${node.id}"), role = Type.Meta, ink = Ink.Muted, lines = Int.MAX_VALUE)
         look.agent?.let { agent -> BlueprintAgentBadge(agent, { onAgentOpen(agent) }, Modifier.fillMaxWidth(), tag = "kanban-agent-${node.id}", onParticipantOpen = onAgentOpen) }
     }

@@ -32,6 +32,14 @@ class PlanScheduleDocumentCommonTest {
         assertTrue(refused.refused.single().reason.contains("build changed at revision"))
     }
 
+    @Test fun scheduleUpdatesWithoutAReadRevisionCannotOverwriteAnotherActor() {
+        val other = BoardActor(BoardActorKind.Agent, "Other agent", "codex:other")
+        val moved = PlanRules.apply(source, PlanPatch(base = 0, ops = listOf(PlanOp.Update("build", effort = 21.0))), other, 10).plan
+        val refused = PlanRules.apply(moved, PlanPatch(ops = listOf(PlanOp.Update("build", effort = 8.0))), owner, 20)
+        assertEquals(moved, refused.plan)
+        assertTrue(refused.refused.single().reason.contains("revision"))
+    }
+
     @Test fun effortAndCalendarDatesRoundTripInTheCommonPlan() {
         val change = patch(buildJsonObject {
             put("type", "update"); put("item", "build"); put("effort", 8.0)

@@ -55,7 +55,7 @@ class SubgraphEditorMountTest {
         val original = Subgraph("saved-view", "Saved context", "Retained intent", search.id, "source-1",
             source.nodes.map { it.id }, source.wires.map { it.id }, status = "saved", revision = 4)
         val palette = SurfaceGraphAppearance(Color.White, Color.White, Color.Black, Color.Gray, Color.LightGray, Color.Blue)
-        for (mode in listOf(MachineSignalMode.Light, MachineSignalMode.Dark)) for (density in listOf(1f, 2f)) {
+        for (mode in MachineSignalMode.entries) for (density in listOf(1f, 2f)) {
             var documents by mutableStateOf(listOf(original))
             val writes = mutableListOf<Pair<Subgraph, Int>>()
             val canvas = GraphCanvasState(.002..16.0)
@@ -72,6 +72,7 @@ class SubgraphEditorMountTest {
                     if (typed) SubgraphEditor(search, documents, appearance, { "new-view" }, save, Modifier.fillMaxSize(),
                         sourceGraph = source, sourceLayout = full,
                         sourceCardLook = { node ->
+                            assertEquals(colors, MachineSignal.colors, "A supplied subgraph retains its ambient palette")
                             suppliedNodes[node.id] = node
                             BlueprintCardLook(Color.Blue, SurfaceGraphSymbol, node.label, "${node.type} · ${node.attributes.getValue("fact")}",
                                 action = node.label, marks = listOf(BlueprintMark("Recorded mark", Color.Blue)),

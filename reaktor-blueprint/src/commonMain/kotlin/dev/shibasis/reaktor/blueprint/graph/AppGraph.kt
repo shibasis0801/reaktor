@@ -8,6 +8,7 @@ import dev.shibasis.reaktor.graph.core.NodeShape
 import dev.shibasis.reaktor.graph.core.PortShape
 import dev.shibasis.reaktor.graph.core.PortWiring
 import dev.shibasis.reaktor.graph.core.ScopeShape
+import dev.shibasis.reaktor.graph.core.WireShape
 
 const val IslandScopePrefix = "island:"
 const val CallPrefix = "call:"
@@ -74,6 +75,10 @@ private fun linkPart(value: String): String = buildString {
     }
 }
 
+fun WireShape.graphWireId(): String = sourceId.ifEmpty {
+    "${linkPart(provider)}.${linkPart(providerPort)}>${linkPart(consumer)}.${linkPart(consumerPort)}"
+}
+
 class AppGraph(
     val shape: GraphShape,
     val source: GraphSource = GraphSource.Desktop,
@@ -94,7 +99,7 @@ class AppGraph(
         if (!telemetryBindings && (internalBinding(wire.consumer, wire.consumerPort, false) || internalBinding(wire.provider, wire.providerPort, true))) return@mapNotNull null
         val provider = visibleFor(wire.provider) ?: return@mapNotNull null
         val consumer = visibleFor(wire.consumer) ?: return@mapNotNull null
-        wire to Wire(wire.sourceId.ifEmpty { "${linkPart(wire.provider)}.${linkPart(wire.providerPort)}>${linkPart(wire.consumer)}.${linkPart(wire.consumerPort)}" },
+        wire to Wire(wire.graphWireId(),
             provider, wire.providerPort, consumer, wire.consumerPort, wire.type, wire.condition)
     }.distinctBy { it.second.id }
     val wires: List<Wire> = boundWires.map { it.second }

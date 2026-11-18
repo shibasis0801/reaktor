@@ -970,7 +970,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
         groupsInView = groups; namedInView = groups; unnamedInView.clear()
     }
 
-    private fun DrawScope.drawBanners(camera: Viewport) {
+    fun prepareFrameLabels(camera: Viewport, view: Size): List<Rect?> {
         val z = camera.zoom.toFloat()
         bannerState()
         var drawn = 0
@@ -982,7 +982,7 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
             if (!bannered[i]) continue
             val x = (camera.x + frame.x * camera.zoom).toFloat(); val y = (camera.y + frame.y * camera.zoom).toFloat()
             val width = (frame.width * camera.zoom).toFloat(); val height = (frame.height * camera.zoom).toFloat()
-            if (x >= viewport.width || y - max(Above * z, BannerHeight) >= viewport.height || x + width <= 0f || y + height <= 0f) continue
+            if (x >= view.width || y - max(Above * z, BannerHeight) >= view.height || x + width <= 0f || y + height <= 0f) continue
             val pinTop = inset[1] + BannerPin; val pinLeft = inset[0] + BannerPin
             val rightward = max(width, room(i, z) * z - BannerGap)
             val leftward = if (fixedFrameLabels) width + min(roomLeft(i, z) * z - BannerGap, x - pinLeft) else 0f
@@ -1008,26 +1008,63 @@ internal abstract class SurfaceGraphEngine(protected val graphics: GraphicsConte
             if (blocked >= 0 && max(y, pinTop) != by && max(y, pinTop) + tall <= y + height) { by = max(y, pinTop); blocked = blocker(bx, by) }
             if (blocked >= 0 && bannerDrawn[blocked * 4 + 2] + BannerGap + wide <= x + width) { bx = bannerDrawn[blocked * 4 + 2] + BannerGap; blocked = blocker(bx, by) }
             if (blocked >= 0 && bannerDrawn[blocked * 4 + 3] + BannerGap + tall <= y + height) { by = bannerDrawn[blocked * 4 + 3] + BannerGap; bx = left; blocked = blocker(bx, by) }
-            if (blocked >= 0 && y + height + BannerGap / 2 + tall <= viewport.height) { by = y + height + BannerGap / 2; bx = left; blocked = blocker(bx, by) }
+            if (blocked >= 0 && y + height + BannerGap / 2 + tall <= view.height) { by = y + height + BannerGap / 2; bx = left; blocked = blocker(bx, by) }
             if (blocked >= 0 && y - tall - 2f >= pinTop) { by = y - tall - 2f; bx = left; blocked = blocker(bx, by) }
-            if (blocked >= 0 && bannerDrawn[blocked * 4 + 2] + BannerGap <= x + width && bannerDrawn[blocked * 4 + 2] + BannerGap + wide <= viewport.width) { bx = bannerDrawn[blocked * 4 + 2] + BannerGap; blocked = blocker(bx, by) }
+            if (blocked >= 0 && bannerDrawn[blocked * 4 + 2] + BannerGap <= x + width && bannerDrawn[blocked * 4 + 2] + BannerGap + wide <= view.width) { bx = bannerDrawn[blocked * 4 + 2] + BannerGap; blocked = blocker(bx, by) }
+            if (fixedFrameLabels) {
+                fun cardsAt(top: Float): List<Int> = (0 until cardBox.size / 4).filter { k ->
+                    shown(k) && bx < camera.x + cardBox[k * 4 + 2] * camera.zoom && bx + wide > camera.x + cardBox[k * 4] * camera.zoom &&
+                        top < camera.y + cardBox[k * 4 + 3] * camera.zoom && top + tall > camera.y + cardBox[k * 4 + 1] * camera.zoom
+                }
+                val wanted = by
+                var hits = cardsAt(by)
+                var steps = 0
+                while (hits.isNotEmpty() && steps++ <= cardBox.size / 4) {
+                    by = hits.minOf { (camera.y + cardBox[it * 4 + 1] * camera.zoom).toFloat() } - tall - 2f
+                    hits = cardsAt(by)
+                }
+                if (by < pinTop) {
+                    by = wanted
+                    hits = cardsAt(by)
+                    steps = 0
+                    while (hits.isNotEmpty() && steps++ <= cardBox.size / 4) {
+                        by = hits.maxOf { (camera.y + cardBox[it * 4 + 3] * camera.zoom).toFloat() } + 2f
+                        hits = cardsAt(by)
+                    }
+                }
+                blocked = blocker(bx, by)
+                if (hits.isNotEmpty() || by + tall > view.height) blocked = Int.MAX_VALUE
+            }
             if (blocked >= 0) { unnamedInView += frame.label; continue }
             bannerDrawn[drawn * 4] = bx; bannerDrawn[drawn * 4 + 1] = by; bannerDrawn[drawn * 4 + 2] = bx + wide; bannerDrawn[drawn * 4 + 3] = by + tall
             drawn++
             bannerShown[i] = true; bannerAt[i * 2] = bx - x; bannerAt[i * 2 + 1] = by - y
-            clipRect(floor(min(x, bx)), floor(min(top, by)), ceil(x + max(width, bx - x + wide)), ceil(max(y + height, by + tall))) { translate(bx, by) { replayLayer(layer, REPLAY_BANNERS) } }
+
         }
         groupsInView = groups; namedInView = drawn
-        if (fixedFrameLabels) bannersPlaced(frames.indices.map { i ->
+        val bounds = frames.indices.map { i ->
             if (!bannerShown[i]) null else banners[i]?.let { layer ->
                 val x = (camera.x + frames[i].x * camera.zoom).toFloat() + bannerAt[i * 2]
                 val y = (camera.y + frames[i].y * camera.zoom).toFloat() + bannerAt[i * 2 + 1]
                 Rect(x, y, x + layer.size.width, y + layer.size.height)
             }
-        })
+        }
+        placedFrameLabels = bounds
+        return bounds
     }
 
-    protected open fun bannersPlaced(bounds: List<Rect?>) = Unit
+    protected var placedFrameLabels: List<Rect?> = emptyList()
+        private set
+
+    private fun DrawScope.drawBanners(camera: Viewport) {
+        prepareFrameLabels(camera, viewport).forEachIndexed { i, bounds ->
+            if (bounds != null) banners[i]?.let { layer ->
+                clipRect(floor(bounds.left), floor(bounds.top), ceil(bounds.right), ceil(bounds.bottom)) {
+                    translate(bounds.left, bounds.top) { replayLayer(layer, REPLAY_BANNERS) }
+                }
+            }
+        }
+    }
 
     private fun nothingAbove(i: Int): Boolean {
         val left = frameBox[i * 4]; val top = frameBox[i * 4 + 1]; val right = frameBox[i * 4 + 2]

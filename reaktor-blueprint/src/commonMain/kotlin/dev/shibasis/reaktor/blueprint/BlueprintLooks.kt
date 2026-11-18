@@ -71,9 +71,24 @@ data class BlueprintCardLook(
     val titleContent: (@Composable (TextStyle) -> Unit)? = null,
     val markContent: Map<BlueprintMark, @Composable () -> Unit> = emptyMap(),
     val fill: Color? = null,
+    val heldSince: Long? = null,
+    val leaseUntil: Long? = null,
 ) {
     internal val hasHeaderContent: Boolean get() = titleContent != null || markContent.isNotEmpty()
     val drawsControls: Boolean get() = hasHeaderContent || choice != null || actions.isNotEmpty() || pins.any { it?.choice != null } || rows.any { it.onClick != null || it.content.choice != null }
+}
+
+internal fun BlueprintCardLook.atTime(now: Long): BlueprintCardLook {
+    val since = heldSince ?: return this
+    val minutes = ((now - since).coerceAtLeast(0L) / 60000)
+    val elapsed = when {
+        leaseUntil?.let { it <= now } == true -> "lease lapsed"
+        minutes >= 1440 -> "${minutes / 1440}d ${minutes / 60 % 24}h"
+        minutes >= 60 -> "${minutes / 60}h ${minutes % 60}m"
+        minutes > 0 -> "${minutes}m"
+        else -> "just now"
+    }
+    return copy(subtitle = "$subtitle · $elapsed")
 }
 
 data class BlueprintFrameLook(
