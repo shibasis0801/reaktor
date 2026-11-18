@@ -89,7 +89,6 @@ private class ClaudeCodeSession(
     private val pending = ConcurrentHashMap<String, ClaudeRequest>()
     private val generation = java.util.UUID.randomUUID().toString()
     @Volatile private var interrupted = false
-    @Volatile private var receiving = false
     private var queued = 0
 
     @Volatile private var turn: String? = null
@@ -116,7 +115,6 @@ private class ClaudeCodeSession(
             lines.close()
         }
 
-        receiving = true
         val initialized = CompletableDeferred<JsonObject>()
         val initId = "$generation-initialize"
         controls[initId] = initialized
@@ -132,8 +130,11 @@ private class ClaudeCodeSession(
             writeUser(request.prompt)
         }
 
+        var afterResult = false
         try {
-        for (line in lines) {
+        while (true) {
+            val next = if (afterResult) withTimeoutOrNull(500) { lines.receiveCatching() } else lines.receiveCatching()
+            val line = next?.getOrNull() ?: break
             val message = runCatching { Json.parseToJsonElement(line).jsonObject }.getOrNull()
             when (message?.get("type")?.jsonPrimitive?.contentOrNull) {
                 // Answers to our own control requests never reach the transcript parser.
@@ -145,6 +146,7 @@ private class ClaudeCodeSession(
                 }
                 // The CLI asking us for a tool decision.
                 "control_request" -> {
+                    afterResult = false
                     val ask = claudeRequest(message, generation, turn)
                     if (ask != null) {
                         pending[ask.pending.id] = ask
@@ -167,6 +169,7 @@ private class ClaudeCodeSession(
                 }
                 continue
             }
+            afterResult = false
             if (message != null) parser.events(message, agent).forEach { send(it) }
             if (message?.get("type")?.jsonPrimitive?.contentOrNull == "result") {
                 val finished = synchronized(writeLock) {
@@ -174,12 +177,12 @@ private class ClaudeCodeSession(
                     (queued <= 0).also { if (it) turn = null }
                 }
                 if (finished) break
+                afterResult = true
             }
         }
 
         } finally {
-        receiving = false
-        turn = null
+        synchronized(writeLock) { turn = null; queued = 0 }
         startup.cancel()
         reader.cancel()
         lines.close()
@@ -223,7 +226,10 @@ private class ClaudeCodeSession(
             })
             withTimeoutOrNull(5000) {
                 val response = waiting.await()
-                if (response["subtype"]?.jsonPrimitive?.contentOrNull == "success") { interrupted = true; CommandOutcome.Accepted }
+                if (response["subtype"]?.jsonPrimitive?.contentOrNull == "success") {
+                    synchronized(writeLock) { interrupted = true; queued = 0 }
+                    CommandOutcome.Accepted
+                }
                 else CommandOutcome.Failed(response.toString().take(200))
             } ?: CommandOutcome.Failed("No control_response within 5s")
         } catch (failure: Exception) {

@@ -12,6 +12,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 
 object WorkLogs {
     private const val WindowBytes = 8L shl 20
@@ -28,12 +29,70 @@ object WorkLogs {
         val events = mutableListOf<Pair<Long, AgentEvent>>()
         var earlierPromptNotShown = false
         var promptOffset = 0L
+        var discardedThrough = 0L
+        var lastUsed = 0L
+        var dirty = true
+        var paths = emptySet<String>()
+        var samples = emptyList<dev.shibasis.reaktor.conductor.telemetry.ProviderTelemetry.Gemini>()
     }
 
     private class Agents(val modified: Long, val files: Map<String, File>)
 
     private val scans = ConcurrentHashMap<String, Scan>()
     private val agents = ConcurrentHashMap<String, Agents>()
+    private val followers = ConcurrentHashMap<String, ConcurrentHashMap<Long, Long>>()
+    private val sequence = AtomicLong()
+
+    private fun prune(key: String, scan: Scan) {
+        val through = followers[key]?.values?.minOrNull() ?: Long.MAX_VALUE
+        var end = 0
+        while (end < scan.events.size && scan.events[end].first <= through) end++
+        if (end > 0) {
+            scan.discardedThrough = maxOf(scan.discardedThrough, scan.events[end - 1].first)
+            scan.events.subList(0, end).clear()
+        }
+    }
+
+    internal fun hasGeminiFollower(file: File): Boolean {
+        val prefix = "${RuntimeKind.Gemini}\u0000${file.canonicalPath}\u0000"
+        return followers.any { (key, values) -> key.startsWith(prefix) && values.isNotEmpty() }
+    }
+
+    internal class GeminiFollower internal constructor(private val file: File, private val root: String?, private val from: Long) : AutoCloseable {
+        private val key = scanKey(RuntimeKind.Gemini, file, root, false)
+        private val id = sequence.incrementAndGet()
+        private var closed = false
+        init {
+            synchronized(followers) { followers.computeIfAbsent(key) { ConcurrentHashMap() }[id] = from }
+            scans[key]?.let { scan -> synchronized(scan) { if (from < scan.discardedThrough) scans.remove(key, scan) } }
+        }
+        @Synchronized fun read(): GeminiSnapshot {
+            check(!closed) { "The transcript follower is closed" }
+            val scan = update(RuntimeKind.Gemini, file, root, materialize = true)
+                ?: return GeminiSnapshot(WorkLog.Empty, from, emptyList(), emptySet(), emptyList())
+            return synchronized(scan) {
+                val offset = followers[key]?.get(id) ?: from
+                var low = 0
+                var high = scan.events.size
+                while (low < high) {
+                    val middle = (low + high) ushr 1
+                    if (scan.events[middle].first <= offset) low = middle + 1 else high = middle
+                }
+                val events = scan.events.subList(low, scan.events.size).map { it.second }
+                followers[key]?.set(id, scan.offset)
+                prune(key, scan)
+                GeminiSnapshot(scan.log, scan.offset, events, scan.paths, scan.samples)
+            }
+        }
+        @Synchronized override fun close() {
+            if (closed) return
+            closed = true
+            synchronized(followers) { followers[key]?.let { values -> values.remove(id); if (values.isEmpty()) followers.remove(key, values) } }
+            scans[key]?.let { scan -> synchronized(scan) { prune(key, scan) } }
+        }
+    }
+
+    internal fun followGemini(file: File, root: String?, from: Long = 0) = GeminiFollower(file, root, from)
 
     private fun scanKey(runtime: RuntimeKind, file: File, root: String?, whole: Boolean) =
         "$runtime\u0000${file.canonicalPath}\u0000${root?.let { File(it).canonicalPath }}\u0000$whole"
@@ -71,17 +130,26 @@ object WorkLogs {
             previous?.record?.let(reader::line)
             Scan(start, reader).also {
                 it.earlierPromptNotShown = previous?.capped == true
-                if (scans.size >= Kept) scans.clear()
-                scans[key] = it
+                synchronized(scans) {
+                    if (scans.size >= Kept) scans.entries.filter { entry -> followers[entry.key].isNullOrEmpty() }
+                        .minByOrNull { entry -> entry.value.lastUsed }?.let { entry -> scans.remove(entry.key, entry.value) }
+                    scans[key] = it
+                }
             }
         }
         return synchronized(scan) {
+            scan.lastUsed = sequence.incrementAndGet()
             val modified = file.lastModified()
             if (scan.length != length || scan.modified != modified) {
                 scan.offset = linesAt(file, scan.offset, skipFirst = false) { end, record ->
+                    scan.dirty = true
                     val parser = scan.parser
                     when (parser) {
-                        is AntigravityLog -> parser.events(record).forEach { scan.events += end to it }
+                        is AntigravityLog -> {
+                            val events = parser.events(record)
+                            if (!followers[key].isNullOrEmpty()) events.forEach { scan.events += end to it }
+                            else scan.discardedThrough = end
+                        }
                         is ClaudeLog -> {
                             parser.recordOffset(end)
                             val prompts = parser.prompts
@@ -94,8 +162,12 @@ object WorkLogs {
                 scan.length = length
                 scan.modified = modified
             }
-            if (materialize) scan.log = scan.parser.log(earlier = scan.start > 0).let { log ->
-                log.copy(earlierPromptNotShown = scan.earlierPromptNotShown && log.turns.firstOrNull()?.prompt == null)
+            if (materialize && scan.dirty) {
+                scan.log = scan.parser.log(earlier = scan.start > 0).let { log ->
+                    log.copy(earlierPromptNotShown = scan.earlierPromptNotShown && log.turns.firstOrNull()?.prompt == null)
+                }
+                (scan.parser as? AntigravityLog)?.let { parser -> scan.paths = parser.paths.toSet(); scan.samples = parser.samples }
+                scan.dirty = false
             }
             scan
         }
@@ -105,13 +177,10 @@ object WorkLogs {
         val samples: List<dev.shibasis.reaktor.conductor.telemetry.ProviderTelemetry.Gemini>)
 
     internal fun gemini(file: File, root: String?, from: Long = Long.MAX_VALUE): GeminiSnapshot {
-        val log = read(RuntimeKind.Gemini, file, root)
-        val key = scanKey(RuntimeKind.Gemini, file, root, false)
-        val scan = scans[key] ?: return GeminiSnapshot(log, 0, emptyList(), emptySet(), emptyList())
-        return synchronized(scan) {
-            val parser = scan.parser as AntigravityLog
-            GeminiSnapshot(scan.log, scan.offset, scan.events.asSequence().filter { it.first > from }.map { it.second }.toList(), parser.paths.toSet(), parser.samples)
-        }
+        if (from != Long.MAX_VALUE) return followGemini(file, root, from).use { it.read() }
+        val scan = update(RuntimeKind.Gemini, file, root, materialize = true)
+            ?: return GeminiSnapshot(WorkLog.Empty, 0, emptyList(), emptySet(), emptyList())
+        return synchronized(scan) { GeminiSnapshot(scan.log, scan.offset, emptyList(), scan.paths, scan.samples) }
     }
 
     internal data class ClaudeSnapshot(val offset: Long, val promptOffset: Long, val events: List<AgentEvent>,

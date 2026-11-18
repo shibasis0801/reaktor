@@ -61,6 +61,7 @@ data class HarnessSession(
     val checklistAt: Long? = null,
     val telemetry: TelemetryRollup? = null,
     val turnStartedAt: Long? = null,
+    val turnId: String? = null,
 ) {
     val doorCalls: Int get() = steps.count { it.door }
 
@@ -158,7 +159,7 @@ object HarnessSessions {
             RuntimeKind.Codex -> codexSession(file, mapOf(session.id to session.title), session.directory, processes.openTranscripts(), now)
             RuntimeKind.ClaudeCode -> claudeSession(file, session.directory, claudeLive(home, session.directory, processes), now)
             RuntimeKind.Gemini -> parsed(file, session.directory) { antigravityParse(file, session.id, session.directory, session.directory) }
-                ?.copy(activity = if (now - file.lastModified() <= HarnessSession.LiveMillis) HarnessActivity.Working else HarnessActivity.Ended)
+                ?.let { it.copy(activity = geminiActivity(file, session.directory, now)) }
             else -> session
         }
     }
@@ -510,6 +511,7 @@ object HarnessSessions {
                 checklistAt = checklistAt,
                 telemetry = rollup,
                 turnStartedAt = boundary?.takeIf { it.type == "task_started" }?.at,
+                turnId = boundary?.takeIf { it.type == "task_started" }?.turnId,
             ),
             prompt = items.firstNotNullOfOrNull { record ->
                 record.nested("payload")?.nested("item")?.takeIf { it.string("type") == "UserMessage" }?.let(::codexText)
@@ -527,6 +529,24 @@ object HarnessSessions {
         return antigravityFiles(home, since).mapNotNull { file ->
             val id = file.parentFile.parentFile.parentFile.name
             runCatching { parsed(file, root) { antigravityParse(file, id, folders[id], root) } }.getOrNull()
+                ?.let { it.copy(activity = geminiActivity(file, root, now)) }
+        }
+    }
+
+    private fun geminiActivity(file: File, root: String, now: Long): HarnessActivity {
+        AntigravityApp.recordedRun(file, now)?.let { run ->
+            return when {
+                run.running -> HarnessActivity.Working
+                !run.ended.isNullOrBlank() && run.ended != "EXECUTOR_TERMINATION_REASON_NO_TOOL_CALL" -> HarnessActivity.Ended
+                else -> HarnessActivity.Waiting
+            }
+        }
+        val turn = WorkLogs.read(RuntimeKind.Gemini, file, root).turns.lastOrNull() ?: return HarnessActivity.Ended
+        return when {
+            turn.steps.any { it is WorkStep.Note && it.kind in setOf(NoteKind.Error, NoteKind.Interrupted) } -> HarnessActivity.Ended
+            turn.open && now - file.lastModified() <= HarnessSession.LiveMillis -> HarnessActivity.Working
+            turn.open -> HarnessActivity.Ended
+            else -> HarnessActivity.Waiting
         }
     }
 

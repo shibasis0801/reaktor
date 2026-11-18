@@ -95,6 +95,22 @@ class CodexBoundaryCasesTest {
         assertEquals(HarnessActivity.Waiting, read().activity)
         assertNull(read().turnStartedAt)
     }
+    @Test fun aBoundaryRewrittenInTheMiddleIsNotHiddenByAnAppend() = fixture { file, read ->
+        val padding = "x".repeat(2000)
+        file.appendText("""{"padding":"$padding"}""" + "\n" + event("task_started") + """{"padding":"$padding"}""" + "\n")
+        assertEquals(HarnessActivity.Working, read().activity)
+        val bytes = file.readBytes()
+        val text = bytes.toString(Charsets.UTF_8)
+        val offset = text.lastIndexOf("task_started")
+        java.io.RandomAccessFile(file, "rw").use { input ->
+            input.seek(offset.toLong())
+            input.write("turn_aborted".toByteArray())
+            input.seek(input.length())
+            input.write("{}\n".toByteArray())
+        }
+        assertEquals(HarnessActivity.Waiting, read().activity)
+    }
+
     private fun event(type: String, extra: String = "") = """{"timestamp":"${Instant.ofEpochMilli(started)}","type":"event_msg","payload":{"type":"$type","turn_id":"turn"$extra}}""" + "\n"
     private fun fixture(test: (File, () -> HarnessSession) -> Unit) {
         val home = Files.createTempDirectory("boundary-cases").toFile()

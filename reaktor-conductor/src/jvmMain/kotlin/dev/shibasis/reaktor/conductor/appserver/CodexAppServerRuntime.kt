@@ -198,6 +198,7 @@ internal class CodexDesktopSession(
         val reader = CodexLog(directory.path)
         val tail = TranscriptTail(file, offset)
         var shortfall: String? = null
+        val deadline = System.currentTimeMillis() + request.agent.budget.timeoutMillis
         var heard = System.currentTimeMillis()
         var stalled = false
         try {
@@ -250,7 +251,14 @@ internal class CodexDesktopSession(
                     emit(AgentEvent.Activity(agent, AgentActivityItem("desktop-stall", ActivityKind.Control, "No progress in ChatGPT.app", ActivityStatus.Waiting,
                         output = desktopStallNotice(threadId, started = turn != null))))
                 }
-                tail.await(DesktopStallMillis)
+                val remaining = deadline - System.currentTimeMillis()
+                if (remaining <= 0) {
+                    turn = null
+                    return AgentOutcome(agent, reader.answer, false,
+                        failure = "The turn passed its ${request.agent.budget.timeoutMillis} ms budget; it may keep running in the Codex app. Open the thread there to stop it.",
+                        session = threadId?.let { ProviderSession(RuntimeKind.Codex, it) }, usage = usage, effort = effort)
+                }
+                tail.await(minOf(DesktopStallMillis, remaining))
             }
         } finally { tail.close() }
         return AgentOutcome(agent, reader.answer, false, failure = "Codex app rollout ended before completion",

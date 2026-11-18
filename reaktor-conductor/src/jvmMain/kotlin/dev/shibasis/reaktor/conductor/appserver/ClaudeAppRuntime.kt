@@ -64,6 +64,8 @@ private class ClaudeAppSession(
     @Volatile private var session: ClaudeApp.Session? = null
     @Volatile private var closed = false
     private var briefFile: File? = null
+    private var briefChannel: java.nio.channels.FileChannel? = null
+    private var briefLock: java.nio.channels.FileLock? = null
 
     override val activeTurn: String? get() = turn
 
@@ -95,7 +97,7 @@ private class ClaudeAppSession(
             "Claude app session · ${opened.title ?: opened.id}", ActivityStatus.Recorded, output = opened.id)))
         val outcome = try { follow(opened, from) { send(it) } } finally { turn = null }
         send(AgentEvent.Finished(agent, outcome))
-        } finally { briefFile?.delete(); briefFile = null }
+        } finally { clearBrief() }
     }
 
     private val sent: String by lazy { brief() }
@@ -105,11 +107,38 @@ private class ClaudeAppSession(
         if (text.length <= ClaudeApp.PromptLimit) return text
         Files.createDirectories(briefs.toPath(), PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------")))
         Files.setPosixFilePermissions(briefs.toPath(), PosixFilePermissions.fromString("rwx------"))
+        sweepBriefs()
         val file = Files.createTempFile(briefs.toPath(), "brief-", ".md",
             PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"))).toFile()
         briefFile = file
+        briefChannel = java.nio.channels.FileChannel.open(file.toPath(), java.nio.file.StandardOpenOption.WRITE)
+        briefLock = briefChannel!!.lock()
         file.writeText(text)
         return "Read the brief at ${file.path} and do what it says."
+    }
+
+    private fun sweepBriefs() {
+        val owner = Files.getOwner(briefs.toPath())
+        val before = System.currentTimeMillis() - 86_400_000L
+        briefs.listFiles().orEmpty().filter { it.name.startsWith("brief-") && it.name.endsWith(".md") }.forEach { file ->
+            runCatching {
+                val path = file.toPath()
+                if (!Files.isRegularFile(path, java.nio.file.LinkOption.NOFOLLOW_LINKS) ||
+                    Files.getOwner(path, java.nio.file.LinkOption.NOFOLLOW_LINKS) != owner || file.lastModified() >= before) return@runCatching
+                java.nio.channels.FileChannel.open(path, java.nio.file.StandardOpenOption.WRITE).use { channel ->
+                    channel.tryLock()?.use { Files.deleteIfExists(path) }
+                }
+            }
+        }
+    }
+
+    @Synchronized private fun clearBrief() {
+        runCatching { briefLock?.release() }
+        runCatching { briefChannel?.close() }
+        briefLock = null
+        briefChannel = null
+        briefFile?.delete()
+        briefFile = null
     }
 
     private fun waiting(): AgentActivityItem {
@@ -207,8 +236,7 @@ private class ClaudeAppSession(
 
     override fun close() {
         closed = true
-        briefFile?.delete()
-        briefFile = null
+        clearBrief()
     }
 
     private companion object {

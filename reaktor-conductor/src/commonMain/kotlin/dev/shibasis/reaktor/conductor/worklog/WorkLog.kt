@@ -32,6 +32,7 @@ data class WorkTurn(
     val open: Boolean = false,
     val usageSamples: List<WorkUsageSample> = emptyList(),
     val context: WorkContext? = null,
+    val vendorTurnId: String? = null,
 ) {
     val files: List<String> get() = steps.flatMap(WorkStep::edits).map { it.file }.distinct()
     val millis: Long? get() = startedAt?.let { start -> endedAt?.minus(start)?.takeIf { it >= 0 } }

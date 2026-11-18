@@ -18,6 +18,7 @@ internal class CodexLog(private val root: String?) : LogParser {
     private val live = StringBuilder()
     private var liveId: String? = null
     private var sequence = 0
+    private var spoke = false
     var answer: String = ""
         private set
     private var status: CodexTurnBoundary? = null
@@ -66,9 +67,10 @@ internal class CodexLog(private val root: String?) : LogParser {
             "agent_message_delta" -> payload.str("delta")?.let { delta ->
                 val turn = turns.ensure(at)
                 if (liveId == null) liveId = "codex:stream:${sequence++}"
+                val separator = if (live.isEmpty() && spoke) "\n\n" else ""
                 live.append(delta)
                 record(turn, WorkStep.Message(liveId!!, at, live.toString()), emit = false)
-                sink?.invoke(AgentEvent.Delta(eventAgent, delta))
+                sink?.invoke(AgentEvent.Delta(eventAgent, separator + delta))
             }
             "agent_reasoning_delta", "reasoning_summary_text_delta" -> payload.str("delta")?.let {
                 sink?.invoke(AgentEvent.Reasoning(eventAgent, it, ReasoningFidelity.Summary))
@@ -77,9 +79,12 @@ internal class CodexLog(private val root: String?) : LogParser {
                 turnId = payload.str("turn_id")
                 turnStartedAt = at
                 answer = ""
+                spoke = false
                 live.clear()
                 liveId = null
-                turns.current?.open = true
+                turns.current?.let { current ->
+                    if (current.open && current.vendorTurnId == null) current.vendorTurnId = turnId
+                }
             }
             "task_complete" -> {
                 payload.str("last_agent_message")?.let { answer = it }
@@ -130,7 +135,10 @@ internal class CodexLog(private val root: String?) : LogParser {
         val stamp = started ?: at
         val id = item.str("id") ?: "${turns.lastIndex}:${item.str("type")}:$at"
         if (item.str("type") in setOf("UserMessage", "userMessage")) {
-            turns.start(text(item), stamp, item["content"].plain())
+            turns.start(text(item), stamp, item["content"].plain()).vendorTurnId = turnId
+            spoke = false
+            live.clear()
+            liveId = null
             return
         }
         val turn = turns.ensure(stamp)
@@ -140,11 +148,12 @@ internal class CodexLog(private val root: String?) : LogParser {
         val failed = item.str("status") in listOf("failed", "declined", "errored")
         when (item.str("type")) {
             "AgentMessage", "agentMessage" -> (text(item) ?: item.str("text"))?.let { value ->
-                if (live.isEmpty()) sink?.invoke(AgentEvent.Delta(eventAgent, value))
+                if (live.isEmpty()) sink?.invoke(AgentEvent.Delta(eventAgent, (if (spoke) "\n\n" else "") + value))
                 else if (value.startsWith(live.toString()) && value.length > live.length) sink?.invoke(AgentEvent.Delta(eventAgent, value.substring(live.length)))
                 liveId?.let { prior -> turn.steps.removeAll { it.id == prior } }
                 record(turn, WorkStep.Message(id, stamp, value), emit = false)
                 answer = value
+                spoke = true
                 live.clear()
                 liveId = null
             }

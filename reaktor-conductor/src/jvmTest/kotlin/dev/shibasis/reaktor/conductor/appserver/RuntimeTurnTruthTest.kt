@@ -33,6 +33,20 @@ class RuntimeTurnTruthTest {
         }
     }
 
+    @Test fun successiveDesktopMessagesHaveABlankLineInLiveText() = runBlocking {
+        desktop { file, session ->
+            val received = mutableListOf<AgentEvent>()
+            val output = async { withTimeout(5000) { session.events.onEach { received += it }.toList() } }
+            withTimeout(3000) { while (session.activeTurn == null) yield() }
+            file.event("""{"type":"item_completed","item":{"type":"AgentMessage","id":"first","text":"I read the file"}}""")
+            file.event("""{"type":"item_completed","item":{"type":"AgentMessage","id":"second","text":"Here is the result"}}""")
+            file.event("""{"type":"task_complete","turn_id":"ours","last_agent_message":"Here is the result"}""")
+            val events = output.await()
+            assertEquals("I read the file\n\nHere is the result", events.filterIsInstance<AgentEvent.Delta>().joinToString("") { it.text })
+            assertEquals("Here is the result", events.filterIsInstance<AgentEvent.Finished>().single().outcome.text)
+        }
+    }
+
     @Test fun anEarlierTurnCompletingAfterQueueIsNotThisRequestsAnswer() = runBlocking {
         desktop(earlier = true) { file, session ->
             val output = async { withTimeout(5000) { session.events.toList() } }

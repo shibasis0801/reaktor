@@ -93,6 +93,64 @@ class HarnessSessionsTest {
         assertEquals(HarnessActivity.Ended, read().activity)
     }
 
+    @Test fun geminiRefreshAgreesWithDiscoveryForAQuietAnswerAndAnError() {
+        val file = home.resolve(".gemini/antigravity-cli/brain/refresh-fixture/.system_generated/logs/transcript.jsonl").apply { parentFile.mkdirs() }
+        file.writeText("""{"step_index":0,"type":"USER_INPUT","content":"Invented task"}""" + "\n" +
+            """{"step_index":1,"type":"PLANNER_RESPONSE","content":"Finished answer","tool_calls":[{"name":"view_file","args":{"AbsolutePath":"${workspace.path}/Source.kt"}}]}""" + "\n" +
+            """{"step_index":2,"type":"VIEW_FILE","content":"Invented result"}""" + "\n")
+        file.setLastModified(now - 1000)
+        fun listed(at: Long) = HarnessSessions.read(workspace, home, at, processes()).first { it.id == "refresh-fixture" }
+        for (at in listOf(now, now + 180_000)) {
+            val session = listed(at)
+            assertEquals(session.activity, HarnessSessions.refresh(session, home, at, processes())?.activity)
+            assertEquals(HarnessActivity.Waiting, session.activity)
+        }
+        file.appendText("""{"step_index":3,"type":"ERROR_MESSAGE","content":"Invented failure"}""" + "\n")
+        file.setLastModified(now)
+        val failed = listed(now)
+        assertEquals(HarnessActivity.Ended, HarnessSessions.refresh(failed, home, now, processes())?.activity)
+    }
+
+    @Test fun geminiDiscoveryUsesTheRuntimeStatusWithoutAnHttpReadOfItsOwn() = kotlinx.coroutines.runBlocking {
+        val id = "cached-status"
+        val file = home.resolve(".gemini/antigravity/brain/$id/.system_generated/logs/transcript.jsonl").apply { parentFile.mkdirs() }
+        file.writeText("""{"type":"USER_INPUT","content":"Invented request"}""" + "\n" +
+            """{"type":"PLANNER_RESPONSE","content":"Invented answer","tool_calls":[{"id":"call","name":"view_file","args":{"AbsolutePath":"${workspace.path}/Source.kt"}}]}""" + "\n" +
+            """{"type":"GENERIC","content":"Invented result"}""" + "\n")
+        file.setLastModified(now - 1000)
+        var running = true
+        var calls = 0
+        val app = AntigravityApp(home = home, transport = { _, _, _ ->
+            calls++
+            kotlinx.serialization.json.buildJsonObject {
+                put("trajectorySummaries", kotlinx.serialization.json.buildJsonObject {
+                    put(id, kotlinx.serialization.json.buildJsonObject {
+                        put("status", kotlinx.serialization.json.JsonPrimitive(if (running) "CASCADE_RUN_STATUS_RUNNING" else "CASCADE_RUN_STATUS_IDLE"))
+                        put("stepCount", kotlinx.serialization.json.JsonPrimitive(3))
+                        put("latestExecutorTerminationReason", kotlinx.serialization.json.JsonPrimitive(if (running) "" else "EXECUTOR_TERMINATION_REASON_USER_CANCELED"))
+                    })
+                })
+            }
+        })
+        fun read() = HarnessSessions.read(workspace, home, now, processes()).first { it.id == id }
+        app.run(AntigravityApp.Hub(1, "invented"), id)
+        assertEquals(HarnessActivity.Working, read().activity)
+        assertEquals(1, calls)
+        running = false
+        app.run(AntigravityApp.Hub(1, "invented"), id)
+        val ended = read()
+        assertEquals(HarnessActivity.Ended, ended.activity)
+        assertEquals(ended.activity, HarnessSessions.refresh(ended, home, now, processes())?.activity)
+        assertEquals(HarnessActivity.Ended, HarnessSessions.refresh(ended, home, now + HarnessSession.LiveMillis * 3, processes())?.activity)
+        assertEquals(2, calls)
+    }
+
+    @Test fun aSiblingWorkspaceDoesNotDonateItsSessions() {
+        claude("-sibling", "sibling-only", workspace.path + "-hangar-chat", now - 1000,
+            """{"type":"user","cwd":"${workspace.path}-hangar-chat","sessionId":"sibling-only","message":{"content":"Sibling work"}}""")
+        assertTrue(HarnessSessions.read(workspace, home, now, processes()).none { it.id == "sibling-only" })
+    }
+
     @Test fun findsTheClaudeAndCodexSessionsWorkingOnThisWorkspace() {
         val sessions = HarnessSessions.read(workspace, home, now)
         assertEquals(listOf("c1", "x1"), sessions.map { it.id })

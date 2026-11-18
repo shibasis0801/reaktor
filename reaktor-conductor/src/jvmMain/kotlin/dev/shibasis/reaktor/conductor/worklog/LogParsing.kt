@@ -22,6 +22,7 @@ internal class TurnBuilder(val id: String, val prompt: String?, val startedAt: L
     var endedAt: Long? = startedAt
     var usage: WorkUsage? = null
     var open = true
+    var vendorTurnId: String? = null
 
     fun add(step: WorkStep): Int {
         steps += step
@@ -48,7 +49,7 @@ internal class TurnBuilder(val id: String, val prompt: String?, val startedAt: L
     }
 
     fun build(): WorkTurn {
-        return WorkTurn(id, if (parsed.context == null) prompt else parsed.text, startedAt, endedAt, steps.toList(), usage, open, usageSamples.toList(), parsed.context)
+        return WorkTurn(id, if (parsed.context == null) prompt else parsed.text, startedAt, endedAt, steps.toList(), usage, open, usageSamples.toList(), parsed.context, vendorTurnId)
     }
 }
 

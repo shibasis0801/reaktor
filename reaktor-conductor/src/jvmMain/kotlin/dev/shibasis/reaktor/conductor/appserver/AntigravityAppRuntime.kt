@@ -161,45 +161,53 @@ private class AntigravityAppSession(
 
     private suspend fun continueIn(id: String, emit: suspend (AgentEvent) -> Unit): AgentOutcome {
         val from = app.transcript(id).takeIf(File::isFile)?.length() ?: 0L
+        val follower = WorkLogs.followGemini(app.transcript(id), directory.canonicalPath, from)
+        try {
         val before = withContext(Dispatchers.IO) { app.run(hub, id)?.steps ?: 0 }
         withContext(Dispatchers.IO) { app.send(hub, project, directory, id, antigravityPrompt(request)) }
         emit(AgentEvent.Started(agent, ProviderSession(RuntimeKind.Gemini, id)))
         val model = request.agent.model?.let { antigravityAppModel(it, request.agent.effort) } ?: "the conversation's model"
-        return follow(id, from, before, AntigravityTranscriptEvents(agent), model, emit)
+        return follow(id, from, before, AntigravityTranscriptEvents(agent), model, emit, follower)
+        } finally { follower.close() }
     }
 
     private suspend fun follow(id: String, from: Long, before: Int, reader: AntigravityTranscriptEvents, model: String,
-                               emit: suspend (AgentEvent) -> Unit): AgentOutcome {
+                               emit: suspend (AgentEvent) -> Unit, follower: WorkLogs.GeminiFollower = WorkLogs.followGemini(app.transcript(id), directory.canonicalPath, from)): AgentOutcome {
         val file = app.transcript(id)
         val tail = TranscriptTail(file, from)
         val deadline = System.currentTimeMillis() + request.agent.budget.timeoutMillis
-        var offset = from
+        var changed = true
         var seenRunning = false
+        var lastRunning = false
         AntigravityConversationModels.remember(id, request.agent.model)
         try {
             while (true) {
-                val snapshot = withContext(Dispatchers.IO) { WorkLogs.gemini(file, directory.canonicalPath, offset) }
-                snapshot.events.forEach { event -> emit(when (event) {
-                    is AgentEvent.Delta -> event.copy(agent = agent)
-                    is AgentEvent.Reasoning -> event.copy(agent = agent)
-                    is AgentEvent.Activity -> event.copy(agent = agent)
-                    else -> event
+                if (changed) {
+                    val snapshot = withContext(Dispatchers.IO) { follower.read() }
+                    snapshot.events.forEach { event -> emit(when (event) {
+                        is AgentEvent.Delta -> event.copy(agent = agent)
+                        is AgentEvent.Reasoning -> event.copy(agent = agent)
+                        is AgentEvent.Activity -> event.copy(agent = agent)
+                        else -> event
                 }) }
-                offset = snapshot.offset
                 reader.accept(snapshot.log, snapshot.events)
+                }
                 val run = withContext(Dispatchers.IO) { runCatching { app.run(hub, id) }.getOrNull() }
+                if (run != null) lastRunning = run.running
                 if (run?.running == true) seenRunning = true
                 if (run != null && !run.running && (seenRunning || run.steps > before + 1) && reader.settled)
                     return reader.outcome(run, id, project, model, request.agent.effort, interrupted)
                 if (closed) return reader.outcome(run, id, project, model, request.agent.effort, true)
                 val remaining = deadline - System.currentTimeMillis()
-                if (remaining <= 0 || !tail.await(remaining)) {
+                if (remaining <= 0) {
                     withContext(Dispatchers.IO) { runCatching { app.cancel(hub, id) } }
                     return reader.outcome(run, id, project, model, request.agent.effort, false,
                         limit = "The turn reached its ${request.agent.budget.timeoutMillis} ms budget; Antigravity was asked to stop it")
                 }
+                val wait = if (lastRunning && reader.progressed && reader.settled) minOf(1_000L, remaining) else remaining
+                changed = tail.await(wait)
             }
-        } finally { tail.close() }
+        } finally { tail.close(); follower.close() }
     }
 
     private fun title(): String {
@@ -238,8 +246,11 @@ private class AntigravityAppSession(
 internal class AntigravityTranscriptEvents(private val agent: AgentId) {
     private val parser = AntigravityLog(null)
     private var usage: WorkUsage? = null
-    var answer: String = ""
-        private set
+    private val answerText = StringBuilder()
+    private var answerValue: String? = ""
+    val answer: String get() = answerValue ?: answerText.toString().also { answerValue = it }
+    private var parsedTurn: String? = null
+    private var parsedSteps = 0
     var failure: String? = null
         private set
     var settled: Boolean = false
@@ -262,8 +273,23 @@ internal class AntigravityTranscriptEvents(private val agent: AgentId) {
     fun accept(log: WorkLog, events: List<AgentEvent>) {
         val turn = log.turns.lastOrNull() ?: return
         if (events.any { it is AgentEvent.Delta || it is AgentEvent.Reasoning || it is AgentEvent.Activity && it.item.kind == ActivityKind.Tool }) progressed = true
-        answer = turn.steps.filterIsInstance<WorkStep.Message>().joinToString("\n\n") { it.text }
-        failure = turn.steps.filterIsInstance<WorkStep.Note>().lastOrNull { it.kind == NoteKind.Error }?.text
+        if (parsedTurn != turn.id || parsedSteps > turn.steps.size) {
+            parsedTurn = turn.id
+            parsedSteps = 0
+            answerText.setLength(0)
+            answerValue = ""
+            failure = null
+        }
+        for (index in parsedSteps until turn.steps.size) when (val step = turn.steps[index]) {
+            is WorkStep.Message -> {
+                if (answerText.isNotEmpty()) answerText.append("\n\n")
+                answerText.append(step.text)
+                answerValue = null
+            }
+            is WorkStep.Note -> if (step.kind == NoteKind.Error) failure = step.text
+            else -> Unit
+        }
+        parsedSteps = turn.steps.size
         settled = !turn.open
         usage = turn.usage
     }

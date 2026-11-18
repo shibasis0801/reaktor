@@ -88,6 +88,25 @@ class ClaudeAppTest {
         assertFalse(requireNotNull(saved).exists())
     }
 
+    @Test fun anOldOrphanBriefIsRemovedButAFreshOrLockedBriefIsKept() = runBlocking {
+        val folder = File(home, "private-briefs").apply { mkdirs() }
+        fun brief(name: String, old: Boolean) = folder.resolve(name).apply {
+            writeText("invented")
+            Files.setPosixFilePermissions(toPath(), java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"))
+            if (old) setLastModified(System.currentTimeMillis() - 2 * 86_400_000L)
+        }
+        val orphan = brief("brief-orphan.md", true)
+        val fresh = brief("brief-fresh.md", false)
+        val other = brief("other-owner.md", true)
+        val active = brief("brief-active.md", true)
+        java.io.RandomAccessFile(active, "rw").use { input -> input.channel.lock().use {
+            ClaudeAppRuntime(app(), outside = Outside(), briefs = folder)
+                .run(AgentRequest(spec(true), "x".repeat(20000), work.path)).toList()
+            assertFalse(orphan.exists())
+            assertTrue(fresh.exists()); assertTrue(other.exists()); assertTrue(active.exists())
+        } }
+    }
+
     @Test fun aRunOpensInTheClaudeAppAndFollowsTheSessionOnceItIsSent() = runBlocking {
         val events = ClaudeAppRuntime(app(), outside = Outside(), briefs = File(home, "briefs"))
             .run(AgentRequest(spec(writes = true), "Review the agents pane", work.path)).toList()

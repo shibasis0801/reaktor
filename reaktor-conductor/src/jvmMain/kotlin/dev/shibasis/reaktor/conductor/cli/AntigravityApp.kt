@@ -96,7 +96,9 @@ class AntigravityApp(
     }
 
     fun run(hub: Hub, conversation: String): Run? =
-        runOf((call(hub, "GetAllCascadeTrajectories")["trajectorySummaries"] as? JsonObject)?.get(conversation) as? JsonObject)
+        runOf((call(hub, "GetAllCascadeTrajectories")["trajectorySummaries"] as? JsonObject)?.get(conversation) as? JsonObject)?.also { run ->
+            synchronized(observed) { observed[transcript(conversation).canonicalPath] = ObservedRun(System.currentTimeMillis(), run) }
+        }
 
     fun cancel(hub: Hub, conversation: String) {
         call(hub, "CancelCascadeInvocation", buildJsonObject { put("cascadeId", conversation) })
@@ -128,6 +130,16 @@ class AntigravityApp(
     }
 
     companion object {
+        private data class ObservedRun(val at: Long, val run: Run)
+        private val observed = object : LinkedHashMap<String, ObservedRun>(16, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, ObservedRun>) = size > 2048
+        }
+        internal fun recordedRun(file: File, now: Long): Run? = synchronized(observed) {
+            observed[file.canonicalPath]?.takeIf {
+                if (it.run.running) dev.shibasis.reaktor.conductor.worklog.WorkLogs.hasGeminiFollower(file) || now - it.at <= HarnessSession.LiveMillis
+                else file.lastModified() <= it.at
+            }?.run
+        }
         private val Uuid = Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 
         internal fun choose(projects: List<Project>, path: String): Project? =
