@@ -24,3 +24,5 @@ actual fun devToolsPlatformInfo(): DevToolsPlatformInfo = WebPlatformInfo
 
 actual fun devToolsTransport(port: Int): AgentTransport =
     BrowserDialTransport(if (port == DevToolsProtocol.DefaultLoopbackPort) DevToolsProtocol.BrowserPort else port)
+
+actual fun devToolsTransport(applicationId: String): AgentTransport = BrowserDialTransport(DevToolsProtocol.BrowserPort)

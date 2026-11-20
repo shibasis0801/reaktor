@@ -57,6 +57,8 @@ interface AgentTransport {
 
 expect fun devToolsTransport(port: Int = DevToolsProtocol.DefaultLoopbackPort): AgentTransport
 
+expect fun devToolsTransport(applicationId: String): AgentTransport
+
 /**
  * Serves one agent over one transport.
  *

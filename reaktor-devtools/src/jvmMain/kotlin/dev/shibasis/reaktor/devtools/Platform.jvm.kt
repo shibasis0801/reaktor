@@ -23,3 +23,5 @@ private object JvmPlatformInfo : DevToolsPlatformInfo {
 actual fun devToolsPlatformInfo(): DevToolsPlatformInfo = JvmPlatformInfo
 
 actual fun devToolsTransport(port: Int): AgentTransport = TcpAgentTransport(port)
+
+actual fun devToolsTransport(applicationId: String): AgentTransport = TcpAgentTransport(DevToolsProtocol.loopbackPort(applicationId))

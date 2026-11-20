@@ -49,6 +49,9 @@ actual fun devToolsPlatformInfo(): DevToolsPlatformInfo = AndroidPlatformInfo
 actual fun devToolsTransport(port: Int): AgentTransport =
     LocalSocketTransport(DevToolsProtocol.AndroidSocketName)
 
+actual fun devToolsTransport(applicationId: String): AgentTransport =
+    LocalSocketTransport(DevToolsProtocol.androidSocketName(applicationId))
+
 class LocalSocketTransport(private val socketName: String) : AgentTransport {
     private var server: LocalServerSocket? = null
 

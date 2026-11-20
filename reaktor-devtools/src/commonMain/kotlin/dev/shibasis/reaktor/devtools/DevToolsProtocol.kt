@@ -21,6 +21,20 @@ object DevToolsProtocol {
     const val DefaultLoopbackPort: Int = 47_821
 
     const val BrowserPort: Int = 47_822
+
+    const val AppPortFirst: Int = 47_830
+    const val AppPortCount: Int = 160
+
+    fun androidSocketName(applicationId: String): String = "$AndroidSocketName.$applicationId"
+
+    fun loopbackPort(applicationId: String): Int {
+        var hash = 0x811c9dc5.toInt()
+        for (unit in applicationId) {
+            hash = hash xor unit.code
+            hash *= 0x01000193
+        }
+        return AppPortFirst + (hash and Int.MAX_VALUE) % AppPortCount
+    }
     const val BrowserPath: String = "/agent"
     const val BrowserTabParameter: String = "tab"
     const val BrowserNameParameter: String = "name"

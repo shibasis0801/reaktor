@@ -36,6 +36,9 @@ actual fun devToolsPlatformInfo(): DevToolsPlatformInfo = DarwinPlatformInfo
 
 actual fun devToolsTransport(port: Int): AgentTransport = RelistenOnForeground(TcpAgentTransport(port))
 
+actual fun devToolsTransport(applicationId: String): AgentTransport =
+    RelistenOnForeground(TcpAgentTransport(DevToolsProtocol.loopbackPort(applicationId)))
+
 private class RelistenOnForeground(private val tcp: TcpAgentTransport) : AgentTransport by tcp {
     private val observer = NSNotificationCenter.defaultCenter.addObserverForName(
         name = UIApplicationWillEnterForegroundNotification,
