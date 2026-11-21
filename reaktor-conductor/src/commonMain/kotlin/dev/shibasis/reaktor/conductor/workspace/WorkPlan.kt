@@ -396,7 +396,7 @@ object PlanRules {
                 val name = items.asSequence().mapNotNull { it.lease?.by ?: it.by }.firstOrNull {
                     holder == "${it.kind}:${it.principal ?: it.name}"
                 }?.name ?: holder
-                "$name has at most $limit Doing leaves per plan and holds ${leaves.joinToString()}; finish or release one with plan.write before starting another item"
+                "$name has at most $limit Doing leaves per plan and holds ${leaves.joinToString()}; finish or release one in an earlier op or with plan.write before starting another item"
             }
         }
     }
@@ -814,7 +814,7 @@ object PlanRules {
         patch.documentText?.let { text ->
             try {
                 currentRevision()
-                require(plan.documentPath == null || patch.documentPath == "") { "Unlink the file before writing documentText" }
+                require((patch.documentPath ?: plan.documentPath).isNullOrBlank()) { "Unlink the file before writing documentText" }
                 require(text.encodeToByteArray().size <= 524_288) { "The plan document is at most 512 KB of UTF-8" }
                 require(by.kind == BoardActorKind.Person || by.same(plan.createdBy) || threadAgent) { "Only the plan's owner can change its document" }
                 if (text != documentText) { documentText = text; summary += "Updated the plan document" }

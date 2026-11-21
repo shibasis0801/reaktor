@@ -73,7 +73,7 @@ internal class ClaudeLog(private val root: String?, cli: Boolean = false, privat
 
     fun finish(agent: AgentId, effort: EffortRecord, exitCode: Int, stderr: String): AgentOutcome {
         val body = resultText ?: streamedText?.toString() ?: answer
-        val ok = completed && failure == null && exitCode == 0 && body.isNotBlank()
+        val ok = completed && failure == null && exitCode == 0 && (resultText != null || body.isNotBlank())
         return AgentOutcome(agent, body, ok, failure = when {
             ok -> null
             failure != null -> failure
@@ -165,14 +165,15 @@ internal class ClaudeLog(private val root: String?, cli: Boolean = false, privat
         val turn = turns.ensure(at)
         val index = turns.lastIndex
         message.str("model")?.takeUnless { it == "<synthetic>" }?.let { model = it }
-        telemetry.ingest(record)?.let { update ->
+        val parent = record.str("parent_tool_use_id")
+        if (streamedText == null || parent == null) telemetry.ingest(record)?.let { update ->
             val delta = update.delta
             if (delta.hasTokens || delta.costUsd != null || delta.compacted) samples += delta
             if (delta.hasTokens || delta.costUsd != null) {
                 turn.sample(delta.toWorkUsageSample().copy(context = update.merged.contextTokens))
             }
         }
-        if (message.str("id") != null && message.obj("usage") != null) emit?.invoke(AgentEvent.Usage(eventAgent, telemetry.aggregatedLiveUsage()))
+        if ((streamedText == null || parent == null) && message.str("id") != null && message.obj("usage") != null) emit?.invoke(AgentEvent.Usage(eventAgent, telemetry.aggregatedLiveUsage()))
         when (message.str("stop_reason")) {
             "end_turn", "stop_sequence", "max_tokens", "refusal" -> turn.open = false
             null -> Unit
@@ -181,12 +182,13 @@ internal class ClaudeLog(private val root: String?, cli: Boolean = false, privat
         message.list("content").mapNotNull { it as? JsonObject }.forEachIndexed { position, block ->
             val id = "${message.str("id") ?: at}:${block.str("id") ?: position}"
             when (block.str("type")) {
-                "text" -> block.str("text")?.trim()?.takeIf(String::isNotEmpty)?.let {
-                    turn.add(WorkStep.Message(id, at, it))
+                "text" -> block.str("text")?.takeIf { streamedText != null || it.isNotBlank() }?.let { raw ->
+                    val text = raw.trim()
+                    if (text.isNotEmpty()) turn.add(WorkStep.Message(id, at, text))
                     val parent = record.str("parent_tool_use_id")
                     if (parent == null) streamedText?.append(block.str("text").orEmpty())
                     emit?.invoke(if (parent == null) AgentEvent.Delta(eventAgent, block.str("text").orEmpty()) else
-                        AgentEvent.Activity(eventAgent, AgentActivityItem("message:$parent", ActivityKind.Agent, "Subagent output", output = it, parentId = parent)))
+                        AgentEvent.Activity(eventAgent, AgentActivityItem("message:$parent", ActivityKind.Agent, "Subagent output", output = raw, parentId = parent)))
                 }
                 "thinking" -> block.str("thinking")?.trim()?.takeIf(String::isNotEmpty)?.let {
                     turn.add(WorkStep.Reasoning(id, at, it, summary = false, millis = record.num("thinkingDurationMs")))

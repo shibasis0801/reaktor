@@ -47,6 +47,13 @@ class PlanContinuityRegressionTest {
         assertEquals(p.revision, page["nextSince"]?.jsonPrimitive?.long)
     }
 
+    @Test fun onePatchCannotHideNewDocumentTextBehindANewFileLink() {
+        val p = plan()
+        val result = PlanRules.apply(p, PlanPatch(emptyList(), base = p.revision, documentPath = "plans/new.md", documentText = "Hidden text"), person, 300)
+        assertNull(result.plan.documentText)
+        assertContains(result.refused.single().reason, "Unlink")
+    }
+
     @Test fun aLinkedDocumentCannotBeSilentlyShadowedBySharedText() {
         val p = plan().copy(documentPath = "plans/work.md")
         val result = PlanRules.apply(p, PlanPatch(emptyList(), base = p.revision, documentText = "Invisible text"), person, 300)

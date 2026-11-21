@@ -207,6 +207,22 @@ class ClusterStatusTest {
         }
     }
 
+    @Test fun aPublicationNobodyOwnsIsAbandonedAndLeavesTheActiveList() = temporary { root ->
+        for ((id, pid) in listOf("ownerless" to null, "reused" to 11)) {
+            receipt(root, id, pid = pid)
+            val path = root.resolve("logs/$id.json")
+            val original = Json.parseToJsonElement(Files.readString(path)) as kotlinx.serialization.json.JsonObject
+            Files.writeString(path, buildJsonObject {
+                original.forEach { (key, value) -> put(key, value) }
+                put("pending_publications", buildJsonArray {})
+            }.toString())
+        }
+        val anotherProcess = ClusterReader(root, now = { at }, alive = { true }, processStart = { "a different process" }, truthOverride = "Fixture")
+        assertEquals(mapOf("ownerless" to "Abandoned", "reused" to "Abandoned"), anotherProcess.jobs(since = 0).jobs.associate { it.id to it.state })
+        assertEquals(emptyList(), anotherProcess.jobs(since = at + 1).jobs.map { it.id })
+        assertEquals(mapOf("ownerless" to "Abandoned", "reused" to "Publishing"), reader(root).jobs(since = 0).jobs.associate { it.id to it.state })
+    }
+
     @Test fun aReusedPidDoesNotMakeAnOldReceiptRunning() = temporary { root ->
         receipt(root, "reused", pid = 11)
         val reader = ClusterReader(root, now = { at }, alive = { true }, processStart = { "a different process" }, truthOverride = "Fixture")

@@ -194,19 +194,18 @@ private class ClaudeAppSession(
         }
         val transcript = file ?: return reader.outcome(opened, closed, "The Claude app session wrote no transcript")
         val tail = TranscriptTail(transcript, from)
-        var offset = from
+        val follower = WorkLogs.followClaude(transcript, directory.path, from)
         var busy = false
         try {
             while (true) {
-                withContext(Dispatchers.IO) { WorkLogs.claudeTurn(transcript, directory.path, offset) }?.let { snapshot ->
-                    offset = snapshot.offset
+                withContext(Dispatchers.IO) { follower.read() }?.let { snapshot ->
                     reader.accept(snapshot)
                     snapshot.events.forEach { emit(it.forAgent(agent)) }
                 }
                 val status = withContext(Dispatchers.IO) { app.status(opened.cli) }
                 if (status == "busy") busy = true
                 if (reader.ended || busy && status == "idle") {
-                    withContext(Dispatchers.IO) { WorkLogs.claudeTurn(transcript, directory.path, offset) }?.let { snapshot ->
+                    withContext(Dispatchers.IO) { follower.read() }?.let { snapshot ->
                         reader.accept(snapshot)
                         snapshot.events.forEach { emit(it.forAgent(agent)) }
                     }
@@ -218,6 +217,7 @@ private class ClaudeAppSession(
                 tail.await((deadline - System.currentTimeMillis()).coerceAtLeast(1))
             }
         } finally {
+            follower.close()
             tail.close()
         }
     }

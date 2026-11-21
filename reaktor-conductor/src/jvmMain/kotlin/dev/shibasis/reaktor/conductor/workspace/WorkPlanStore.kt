@@ -17,11 +17,13 @@ import java.util.concurrent.locks.ReentrantLock
 class WorkPlanStore(private val directory: Path, inbox: Path? = null,
     private val identity: (BoardActor) -> BoardActor = { it }, private val clock: () -> Long = System::currentTimeMillis,
     private val activity: (String) -> Long? = { null },
+    private val activeTurns: (Set<String>) -> Set<String> = { emptySet() },
     private val resolveRefs: suspend (List<String>, Long) -> Map<String, List<String>> = { refs, _ -> refs.associateWith(AgentSourceScope::local) },
     private val cachedRefs: (List<String>) -> Map<String, List<String>> = { emptyMap() },
     private val messages: ((WorkPlan, WorkPlan?, BoardActor) -> Unit)? = null) : AutoCloseable {
     private val inbox = inbox?.let(::ThreadInbox)
     private val plans = ConcurrentHashMap<String, WorkPlan>()
+    private val observedTurns = HashMap<String, Long>()
     private val changed = MutableStateFlow(0L)
     val changes: StateFlow<Long> = changed.asStateFlow()
 
@@ -84,6 +86,15 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
         caller.set(call)
         var failure: Throwable? = null
         try {
+            val wanted = synchronized(this) {
+                val now = clock()
+                val held = plans.values.flatMap { it.items }.mapNotNull { it.lease }.mapNotNull { it.by.session }.toSet()
+                observedTurns.keys.retainAll(held)
+                plans.values.flatMap { it.items }.mapNotNull { it.lease }.filter { leaseUntil(it) <= now }
+                    .mapNotNullTo(HashSet()) { it.by.session }
+            }
+            val working = if (wanted.isEmpty()) emptySet() else activeTurns(wanted).intersect(wanted)
+            synchronized(this) { working.forEach { observedTurns[it] = clock() } }
             return body()
         } catch (error: Throwable) {
             failure = error
@@ -149,7 +160,7 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
         val actors = HashMap<BoardActor, BoardActor>()
         fun actor(value: BoardActor) = actors.getOrPut(value) { identity(value) }
         return plan.copy(
-            items = logged(plan, plan).items.map { it.copy(by = it.by?.let(::actor), lease = it.lease?.let { lease -> lease.copy(by = actor(lease.by), expiresAt = lease.until(PlanIdentity.agent(lease.by)?.let(activity))) }) },
+            items = logged(plan, plan).items.map { it.copy(by = it.by?.let(::actor), lease = it.lease?.let { lease -> lease.copy(by = actor(lease.by), expiresAt = leaseUntil(lease)) }) },
             seats = plan.seats.map { seat ->
                 val agent = (seat.session ?: seat.run?.let { "${BoardRefs.Hangar}$it" })?.let { actor(BoardActor(BoardActorKind.Agent, seat.profile, it)).agent }
                 seat.copy(agent = agent ?: seat.agent)
@@ -279,9 +290,12 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
         }
     }
 
+    private fun leaseUntil(lease: PlanLease): Long = maxOf(lease.until(PlanIdentity.agent(lease.by)?.let(activity)),
+        lease.by.session?.let(observedTurns::get)?.plus(PlanLease.DurationMillis) ?: Long.MIN_VALUE)
+
     private fun expire() {
         val now = clock()
-        requeue("Lease expired after quiet activity") { item -> item.lease?.let { it.until(PlanIdentity.agent(it.by)?.let(activity)) <= now } == true }
+        requeue("Lease expired after quiet activity") { item -> item.lease?.let { leaseUntil(it) <= now } == true }
     }
 
     fun release(agent: String, note: String): List<String> = access(true) { requeue(note) { it.holder?.let(PlanIdentity::agent) == agent } }
@@ -370,7 +384,7 @@ class WorkPlanStore(private val directory: Path, inbox: Path? = null,
                 logs.removeAll { it.session == session && it.startedAt == lease.takenAt }
                 if (end > lease.takenAt) logs += span
             }
-            fun until(lease: PlanLease) = lease.until(PlanIdentity.agent(lease.by)?.let(activity))
+            fun until(lease: PlanLease) = leaseUntil(lease)
             old?.lease?.let { lease ->
                 val same = item.lease?.let { it.takenAt == lease.takenAt && it.by.session == lease.by.session } == true
                 record(lease, if (same) until(lease) else minOf(now, until(lease)))

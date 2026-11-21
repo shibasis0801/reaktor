@@ -16,8 +16,8 @@ class MemoryExtractor(private val api: MemoryApi, private val complete: suspend 
         val links = run.context?.entries.orEmpty().filter { it.kind == "graph-subject" }.map { it.ref }.take(100)
         val input = buildJsonObject {
             put("run", run.id)
-            put("summary", run.output.takeLast(12000))
-            put("messages", messages.takeLast(10).joinToString("\n").take(12000))
+            put("summary", run.output.takeLast(12000).dropWhile(Char::isLowSurrogate))
+            put("messages", messages.takeLast(10).joinToString("\n").takeLast(12000).dropWhile(Char::isLowSurrogate))
             put("links", links.joinToString("\n"))
         }
         val answer = complete(input.toString()).trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim()

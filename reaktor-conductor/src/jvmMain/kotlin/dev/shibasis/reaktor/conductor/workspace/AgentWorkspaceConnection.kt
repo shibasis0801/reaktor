@@ -700,11 +700,7 @@ internal object AgentRunTransfer {
         byte.array()[0] == '\n'.code.toByte()
     }
 
-    fun recoverTail(path: Path) {
-        if (!Files.exists(path) || endsInNewline(path)) return
-        val saved = replay(path)
-        if (saved.torn) FileChannel.open(path, WRITE).use { it.truncate(saved.completeBytes.toLong()) }
-    }
+
 }
 
 private fun runTransferTools(workspace: AgentWorkspace, tools: List<McpTool>): List<McpTool> {

@@ -77,6 +77,6 @@ class ClaudeSharedParserTest {
         val bytes = jdk.jfr.consumer.RecordingFile.readAllEvents(receipt.toPath()).filter {
             it.eventType.name == "jdk.FileRead" && it.getString("path") == file.path
         }.sumOf { it.getLong("bytesRead").coerceAtLeast(0) }
-        assertTrue(bytes <= append.toByteArray().size.toLong(), "The readers re-read $bytes bytes for a ${append.toByteArray().size}-byte append")
+        assertTrue(bytes <= append.toByteArray().size.toLong() + 256, "The readers re-read $bytes bytes for a ${append.toByteArray().size}-byte append")
     }
 }

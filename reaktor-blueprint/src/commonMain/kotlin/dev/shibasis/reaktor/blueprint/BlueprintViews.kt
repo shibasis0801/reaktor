@@ -349,12 +349,12 @@ fun <K> BlueprintCanvas(
                 FrameMarker(frame, Area(frame.x, frame.y, frame.width, BlueprintEngine.FrameTop), look,
                     frameClick?.let { click -> { focus(); click(frame) } }, slots)
             }
-            GraphMarkers(canvas, stillBoxes, { markerId(stillIndices[it]) }, follow = false, batch = if (mapLayers) MapMarkerBatch else Int.MAX_VALUE) { marker, _ ->
+            GraphMarkers(canvas, stillBoxes, { markerId(stillIndices[it]) }, follow = mapLayers, batch = if (mapLayers) MapMarkerBatch else Int.MAX_VALUE) { marker, _ ->
                 val i = stillIndices[marker]
                 if (i < layout.frames.size) Region(layout.frames[i], frameLooks[i])
                 else looks[i - layout.frames.size]?.let { look -> Marker(cards[i - layout.frames.size], look) }
             }
-            if (liveBoxes.isNotEmpty()) GraphMarkers(canvas, liveBoxes, { markerId(liveIndices[it]) }, batch = if (mapLayers) MapMarkerBatch else Int.MAX_VALUE) { marker, _ ->
+            if (liveBoxes.isNotEmpty()) GraphMarkers(canvas, liveBoxes, { markerId(liveIndices[it]) }, immediate = mapLayers) { marker, _ ->
                 val i = liveIndices[marker]
                 val moving = editor?.takeIf { it.settled.cards === layout.cards }?.layout
                 if (i < layout.frames.size) {
@@ -458,6 +458,8 @@ internal object BlueprintBadgeStyle {
     const val HorizontalPadding = 5f
     const val MinHeight = 16f
     const val Radius = 3f
+    const val DotRadius = 2f
+    const val DotRoom = 8f
     const val Tint = .18f
     val Shape = RoundedCornerShape(Radius.dp)
 }
@@ -473,7 +475,10 @@ fun BlueprintBadge(mark: BlueprintMark, highlighted: Boolean = false) {
             .padding(horizontal = BlueprintBadgeStyle.HorizontalPadding.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(mark.text, style = LocalTextStyle.current.copy(color = mark.color), maxLines = 1, softWrap = false)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1)) {
+            Box(Modifier.size(MachineSignal.Space.s1).background(mark.color, CircleShape))
+            dev.shibasis.reaktor.surface.compose.Text(mark.text, ink = dev.shibasis.reaktor.surface.Ink.Strong)
+        }
     }
 }
 

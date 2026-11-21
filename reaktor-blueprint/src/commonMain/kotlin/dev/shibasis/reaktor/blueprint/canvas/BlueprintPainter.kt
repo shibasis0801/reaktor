@@ -185,8 +185,8 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
     private val areaTallyStyle = type.style(11.sp, colors.textMuted)
     private val areaLabels = HashMap<Triple<String, String, Int>, Pair<TextLayoutResult, TextLayoutResult?>>()
     private val proseTitles = Blueprint.ProseTitles.map(::prose)
-    private val eyebrowStyle = type.style(Blueprint.ProseMeta.sp, colors.textMuted, weight = FontWeight.SemiBold).copy(letterSpacing = .6.sp)
-    private val footerStyle = type.style(Blueprint.ProseMeta.sp, colors.textMuted)
+    private val eyebrowStyle = type.style(Blueprint.ProseMeta.sp, colors.textStrong, weight = FontWeight.SemiBold).copy(letterSpacing = .6.sp)
+    private val footerStyle = type.style(Blueprint.ProseMeta.sp, colors.textStrong)
 
     private fun prose(size: Double) = type.style(size.sp, colors.textStrong, weight = FontWeight.SemiBold).copy(lineHeight = (size * ProseLeading).sp)
 
@@ -552,9 +552,8 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
 
     private fun cardMarks(look: BlueprintCardLook, room: Float, meta: TextUnit = MachineSignal.Type.label): List<Pair<BlueprintMark, Measured>> {
         val ordered = look.marks.distinct().sortedBy { it.kind != BlueprintMark.Kind.Badge }
-        if (look.markContent.isEmpty()) return ordered.take(2).map { it to measureMark(it, meta) }
         val controls = ordered.filter { it in look.markContent }
-        val marks = controls + ordered.filterNot { it in look.markContent }.take(1)
+        val marks = if (look.markContent.isEmpty()) ordered else controls + ordered.filterNot { it in look.markContent }.take(1)
         var remaining = room
         return marks.mapNotNull { mark ->
             val measured = measureMark(mark, meta)
@@ -942,8 +941,8 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
         BlueprintMark.Kind.Dot -> Measured(7f, 7f, null)
         BlueprintMark.Kind.Tag -> measurer.measure(mark.text.uppercase(), type.style(meta, colors.canvas, weight = FontWeight.Bold), maxLines = 1)
             .let { Measured(it.size.width + 8f, it.size.height + 2f, it) }
-        BlueprintMark.Kind.Badge -> measurer.measure(mark.text, type.style(meta, mark.color), maxLines = 1)
-            .let { Measured(it.size.width + BlueprintBadgeStyle.HorizontalPadding * 2, max(BlueprintBadgeStyle.MinHeight, it.size.height.toFloat()), it) }
+        BlueprintMark.Kind.Badge -> measurer.measure(mark.text, type.style(meta, colors.textStrong), maxLines = 1)
+            .let { Measured(it.size.width + BlueprintBadgeStyle.HorizontalPadding * 2 + BlueprintBadgeStyle.DotRoom, max(BlueprintBadgeStyle.MinHeight, it.size.height.toFloat()), it) }
         BlueprintMark.Kind.Pill -> measurer.measure(mark.text, type.style(meta, colors.textStrong, mono = true), maxLines = 1)
             .let { Measured(it.size.width + 10f, it.size.height + 2f, it) }
     }
@@ -955,7 +954,13 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
             BlueprintMark.Kind.Badge -> drawRoundRect(mark.color.copy(alpha = BlueprintBadgeStyle.Tint), Offset(x, y), size, CornerRadius(BlueprintBadgeStyle.Radius))
             BlueprintMark.Kind.Pill -> drawRoundRect(mark.color.copy(alpha = .28f), Offset(x, y), size, CornerRadius(8f))
         }
-        measured.text?.let { paint(it, x + (measured.width - it.size.width) / 2, y + (measured.height - it.size.height) / 2) }
+        if (mark.kind == BlueprintMark.Kind.Badge) {
+            drawCircle(mark.color, BlueprintBadgeStyle.DotRadius, Offset(x + BlueprintBadgeStyle.HorizontalPadding + BlueprintBadgeStyle.DotRadius, y + measured.height / 2))
+        }
+        measured.text?.let {
+            val left = if (mark.kind == BlueprintMark.Kind.Badge) x + BlueprintBadgeStyle.HorizontalPadding + BlueprintBadgeStyle.DotRoom else x + (measured.width - it.size.width) / 2
+            paint(it, left, y + (measured.height - it.size.height) / 2)
+        }
     }
 
     private fun markWidth(marks: List<Pair<BlueprintMark, Measured>>, gap: Float) =
@@ -1078,8 +1083,9 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
 
     private fun DrawScope.drawBorder(selected: Boolean, outline: Color?, x: Float, y: Float, w: Float, h: Float) {
         val border = when { selected -> 2f; outline != null -> 1.6f; else -> 1f }
-        val edge = when { selected -> accent; outline != null -> outline; else -> colors.line.copy(alpha = .45f) }
+        val edge = outline ?: if (selected) accent else colors.line.copy(alpha = .45f)
         drawRoundRect(edge, Offset(x + border / 2, y + border / 2), Size(w - border, h - border), CornerRadius(MachineSignal.Radius.node.value - border / 2), style = Stroke(border))
+        if (selected && outline != null) drawRoundRect(colors.textStrong, Offset(x + 4f, y + 4f), Size(w - 8f, h - 8f), CornerRadius((MachineSignal.Radius.node.value - 4f).coerceAtLeast(0f)), style = Stroke(1.6f))
     }
 
     private fun DrawScope.proseBody(look: BlueprintCardLook, x: Float, y: Float, w: Float, h: Float) {
@@ -1105,7 +1111,7 @@ internal class BlueprintPainter(graphics: GraphicsContext, private val measurer:
     }
 
     private fun proseSubtitle(look: BlueprintCardLook, room: Float): TextLayoutResult? =
-        retained(subtitleLayouts, look.subtitle to room) { look.subtitle.takeIf(String::isNotEmpty)?.let { words(it, footerStyle, room, SubtitleLines) } }
+        retained(subtitleLayouts, look.subtitle to room) { look.subtitle.takeIf(String::isNotEmpty)?.let { measure(it, footerStyle, room, SubtitleLines) } }
 
     private fun proseFooter(look: BlueprintCardLook, room: Float): Float =
         if (look.subtitle.isEmpty()) 10f else 34f + (proseSubtitle(look, room)?.wrapHeight() ?: 0f)

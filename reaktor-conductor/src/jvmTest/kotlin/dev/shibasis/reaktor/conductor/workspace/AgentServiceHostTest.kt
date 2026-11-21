@@ -34,6 +34,8 @@ class AgentServiceHostTest {
         }
         assertEquals(listOf(unmounted, valid), opened)
         assertTrue(failure.message.orEmpty().contains(unmounted))
+        assertContains(failure.message.orEmpty(), "Reopened 1 workspace")
+        assertContains(failure.message.orEmpty(), valid)
         assertEquals(1, reports.size)
     }
 

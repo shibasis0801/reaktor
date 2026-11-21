@@ -85,7 +85,7 @@ class ClusterReader(
             val status = when {
                 finished != null -> if ((record["cancelled"] as? JsonPrimitive)?.booleanOrNull == true) "Cancelled" else "Finished"
                 pid != null && !alive(pid) -> "Abandoned"
-                publishing -> "Publishing"
+                publishing -> if (pid == null || ownerStart != null && processStart(pid)?.let { it != ownerStart } == true) "Abandoned" else "Publishing"
                 exit != null -> "Finished"
                 pid != null && ownerStart != null -> processStart(pid)?.let { if (it == ownerStart) "Running" else "Abandoned" } ?: "Unknown"
                 else -> "Unknown"

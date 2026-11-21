@@ -86,14 +86,14 @@ class ClusterSettings(state: Path = ClusterLocations.state()) {
     }
 
     private fun requireState() {
-        require(Files.isDirectory(state, NOFOLLOW_LINKS) && generateSequence(state) { it.parent }.none(Files::isSymbolicLink)) {
-            "Cluster state must be an existing directory without symbolic links"
-        }
+        require(generateSequence(state) { it.parent }.none(Files::isSymbolicLink)) { "Build router settings are not read through a symbolic link: $state" }
+        require(Files.isDirectory(state, NOFOLLOW_LINKS)) { "$NotSetUp: there is no folder $state" }
     }
 
     private fun source(): Pair<ByteArray, JsonObject> {
         requireState()
-        require(Files.isRegularFile(config, NOFOLLOW_LINKS) && Files.size(config) <= 1_048_576) { "Cluster configuration is unavailable or too large" }
+        require(Files.isRegularFile(config, NOFOLLOW_LINKS)) { "$NotSetUp: there is no file $config" }
+        require(Files.size(config) <= 1_048_576) { "Build router settings in $config are larger than 1 MB" }
         val bytes = Files.readAllBytes(config)
         require(bytes.size <= 1_048_576) { "Cluster configuration is too large" }
         val document = json.parseToJsonElement(bytes.decodeToString()) as? JsonObject
@@ -128,5 +128,8 @@ class ClusterSettings(state: Path = ClusterLocations.state()) {
 
     private fun digest(bytes: ByteArray): String = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
 
-    private companion object { val writes = Any() }
+    companion object {
+        const val NotSetUp = "The build router is not set up on this Mac"
+        private val writes = Any()
+    }
 }

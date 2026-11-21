@@ -343,7 +343,7 @@ object AiPlatforms {
                 category = "Inference",
                 authStatus = base.credential,
                 available = connected,
-                rateLimitSummary = "Workers Paid · ${"%.0f".format(totalNeurons)} neurons (7d)",
+                rateLimitSummary = "${"%.0f".format(totalNeurons)} neurons (7d)",
                 requests7d = totalWorkerRequests,
                 summary = "Direct serverless GPU inference for ${base.models.size} Workers AI models (text, embeddings, vision, audio, image)",
                 docsUrl = "https://developers.cloudflare.com/workers-ai/get-started/rest-api/",
@@ -426,7 +426,7 @@ object AiPlatforms {
                     label = "Workers AI Free Tier Daily Neurons",
                     usedPercent = ((totalNeurons / 7.0) / 10_000.0 * 100.0).coerceIn(0.0, 100.0),
                     remaining = "${"%.0f".format((10_000.0 - (totalNeurons / 7.0)).coerceAtLeast(0.0))} / day free",
-                    limit = "10,000 neurons/day free + Workers Paid",
+                    limit = "10,000 neurons/day free",
                 )
             )
             base.gateways.forEach { gw ->
@@ -458,12 +458,12 @@ object AiPlatforms {
             outputTokens7d = totalOutputTokens,
             reasoningTokens7d = 0,
             credits = AiCreditBalance(
-                status = if (connected) "Active · Workers Paid" else "Disconnected",
+                status = if (connected) "Connected" else "Disconnected",
                 availableUsd = null,
                 used7dUsd = totalSpendUsd,
                 limitUsd = null,
                 neurons7d = totalNeurons,
-                planTier = base.gateways.firstOrNull()?.billing ?: "Workers Paid + AI Gateway",
+                planTier = base.gateways.firstOrNull()?.billing,
                 summary = if (connected) {
                     "${base.gateways.size} gateways (${base.gateways.joinToString { it.id }}) · ${"%.0f".format(totalNeurons)} neurons · ${"$%.4f".format(totalSpendUsd)} 7d spend · $spendLimitsCount spend limits"
                 } else {
@@ -658,9 +658,9 @@ object AiPlatforms {
 
         val creditStatus = when {
             liveProbe?.availableCreditUsd != null -> "Credits: ${"$%.2f".format(liveProbe.availableCreditUsd)} available"
-            localCodex.planType != null -> "Active · ${localCodex.planType.uppercase()} Plan"
-            connected -> "Active · Connected"
-            else -> "No API Key"
+            localCodex.planType != null -> "Connected · ${localCodex.planType.uppercase()} plan"
+            connected -> "Connected"
+            else -> "No credential found"
         }
 
         val creditSummary = buildString {
@@ -701,12 +701,12 @@ object AiPlatforms {
                 used7dUsd = used7dUsd,
                 limitUsd = liveProbe?.grantedCreditUsd,
                 neurons7d = null,
-                planTier = localCodex.planType?.uppercase() ?: if (apiKey != null) "API Platform" else "Codex Harness",
+                planTier = localCodex.planType?.uppercase(),
                 summary = creditSummary,
             ),
             allowances = allowances,
             capabilities = listOf("Responses API", "Chat Completions", "Reasoning (o3/Sol)", "Realtime WebRTC", "Embeddings", "Images (gpt-image-1)", "50% Batch API"),
-            note = "Codex Sol 6.1 xhigh + ${catalogModels.size} models indexed (${localCodex.sessionCount7d} local sessions in 7d)",
+            note = "${catalogModels.size} models indexed · ${localCodex.sessionCount7d} local Codex sessions in 7 days",
             error = liveProbe?.error,
         )
         return PlatformBundle(snapshot, endpoints, catalogModels)
@@ -726,7 +726,7 @@ object AiPlatforms {
             System.getenv("ANTHROPIC_ADMIN_API_KEY")?.isNotBlank() == true -> "ANTHROPIC_ADMIN_API_KEY"
             envKey != null -> "ANTHROPIC_API_KEY"
             fileKey != null -> fileKey.first
-            hasClaudeCli -> "Claude Code Max / OAuth (~/.claude)"
+            hasClaudeCli -> "Claude Code sign-in (~/.claude)"
             else -> "Not configured"
         }
 
@@ -771,7 +771,7 @@ object AiPlatforms {
                 category = "Messages & Reasoning",
                 authStatus = authSource,
                 available = connected,
-                rateLimitSummary = liveProbe?.rateLimitSummary ?: "Claude Max / Tier 4",
+                rateLimitSummary = liveProbe?.rateLimitSummary,
                 requests7d = localClaude.requests7d + gwRequests,
                 summary = "Primary multimodal conversation, interleaved extended thinking, prompt caching, PDF support, and computer use / tool execution",
                 docsUrl = "https://docs.anthropic.com/en/api/messages",
@@ -854,7 +854,7 @@ object AiPlatforms {
             provider = "anthropic",
             connected = connected,
             authSource = authSource,
-            accountOrOrg = if (hasClaudeCli) "Claude Code + Anthropic Console" else null,
+            accountOrOrg = null,
             baseUrl = "https://api.anthropic.com/v1",
             dashboardUrl = "https://console.anthropic.com/settings/billing",
             modelCount = models.size,
@@ -865,17 +865,22 @@ object AiPlatforms {
             outputTokens7d = totalOutput,
             reasoningTokens7d = localClaude.thinkingTokens7d,
             credits = AiCreditBalance(
-                status = if (apiKey != null) "Active · API Key + Max" else if (hasClaudeCli) "Active · Claude Max Plan" else "No API Key",
+                status = when {
+                    liveProbe?.ok == true -> "Connected · API key"
+                    hasClaudeCli -> "Connected · Claude Code on this Mac"
+                    apiKey != null -> "The API key read failed"
+                    else -> "No credential found"
+                },
                 availableUsd = null,
                 used7dUsd = totalCost7d,
                 limitUsd = null,
                 neurons7d = null,
-                planTier = if (apiKey != null) "Anthropic API + Claude Max" else "Claude Max 20x",
+                planTier = null,
                 summary = "7d spend / usage value: ${"$%.2f".format(totalCost7d)} · ${formatCompactTokens(totalCached)} prompt-cached tokens (${localClaude.sessionCount7d} sessions)",
             ),
             allowances = allowances,
             capabilities = listOf("Messages API", "Extended Thinking", "Prompt Caching (90% off)", "Computer & Bash Tools", "PDF & Vision", "50% Message Batches"),
-            note = "Claude Opus 5.5 max default · ${formatCompactTokens(localClaude.cacheReadTokens7d)} cache reads / ${formatCompactTokens(localClaude.cacheCreationTokens7d)} cache writes (7d)",
+            note = "${formatCompactTokens(localClaude.cacheReadTokens7d)} cache reads / ${formatCompactTokens(localClaude.cacheCreationTokens7d)} cache writes (7d)",
             error = liveProbe?.error,
         )
         return PlatformBundle(snapshot, endpoints, models)
@@ -901,7 +906,7 @@ object AiPlatforms {
             envKey != null -> "GOOGLE_API_KEY"
             fileKey != null -> fileKey.first
             agyOauthFile != null -> "Antigravity OAuth (~/.gemini/antigravity-cli)"
-            gcloudAdcFile != null -> "Google Cloud ADC ($gcpProject)"
+            gcloudAdcFile != null -> "Google Cloud ADC${gcpProject?.let { " ($it)" }.orEmpty()}"
             else -> "Not configured"
         }
 
@@ -921,20 +926,12 @@ object AiPlatforms {
         val estimatedCost7d = gwCost + localGemini.cost7dUsd
 
         val allowances = buildList {
-            add(
+            if (agyOauthFile != null) add(
                 AiAllowanceWindow(
-                    label = "Antigravity Seat (Carbon / Argon / Hydrogen)",
+                    label = "Antigravity sign-in",
                     usedPercent = null,
-                    remaining = "Active OAuth Seat",
+                    remaining = "Signed in on this Mac",
                     limit = "${localGemini.conversationCount7d} conversations · ${localGemini.requests7d} turns (7d)",
-                )
-            )
-            add(
-                AiAllowanceWindow(
-                    label = "Google AI Studio / Vertex AI Tier",
-                    usedPercent = null,
-                    remaining = if (apiKey != null) "Pay-as-you-go + Context Caching" else "ADC / OAuth linked",
-                    limit = "1M–2M token context window · 2,000 RPM tier",
                 )
             )
         }
@@ -1046,7 +1043,7 @@ object AiPlatforms {
             provider = "gemini",
             connected = connected,
             authSource = authSource,
-            accountOrOrg = gcpProject ?: "Google AI Studio + Antigravity",
+            accountOrOrg = gcpProject,
             baseUrl = "https://generativelanguage.googleapis.com/v1beta",
             dashboardUrl = "https://aistudio.google.com/app/plan_information",
             modelCount = models.size,
@@ -1057,17 +1054,23 @@ object AiPlatforms {
             outputTokens7d = totalOutput,
             reasoningTokens7d = localGemini.thinkingTokens7d,
             credits = AiCreditBalance(
-                status = if (apiKey != null) "Active · AI Studio Key + OAuth" else if (connected) "Active · Antigravity + GCP" else "No API Key",
+                status = when {
+                    liveProbe?.ok == true -> "Connected · API key"
+                    agyOauthFile != null -> "Connected · Antigravity sign-in"
+                    gcloudAdcFile != null -> "Connected · Google Cloud credentials"
+                    apiKey != null -> "The API key read failed"
+                    else -> "No credential found"
+                },
                 availableUsd = null,
                 used7dUsd = estimatedCost7d,
                 limitUsd = null,
                 neurons7d = null,
-                planTier = if (gcpProject != null) "GCP Billing ($gcpProject) + Antigravity" else "Antigravity Ultra + AI Studio",
-                summary = "Gemini 4 Carbon, Argon & Hydrogen active · ${localGemini.conversationCount7d} brain sessions (7d) · est. value ${"$%.2f".format(estimatedCost7d)}",
+                planTier = null,
+                summary = "${localGemini.conversationCount7d} Antigravity conversations (7d) · estimated value ${"$%.2f".format(estimatedCost7d)}",
             ),
             allowances = allowances,
             capabilities = listOf("Gemini 4 Carbon, Argon & Hydrogen", "1M–2M Context Window", "Context Caching (75% off)", "Multimodal Live WS", "Google Search Grounding", "Imagen 3 & Veo 2"),
-            note = "Gemini 4 Carbon, Argon & Hydrogen first-class in Reaktor+ (${localGemini.requests7d} steps in 7d)",
+            note = "${localGemini.requests7d} Antigravity steps in 7 days",
             error = liveProbe?.error,
         )
         return PlatformBundle(snapshot, endpoints, models)
@@ -1192,7 +1195,8 @@ object AiPlatforms {
     )
 
     private suspend fun probeGeminiApi(apiKey: String): GeminiProbeResult = runCatching {
-        val req = HttpRequest.newBuilder(URI.create("https://generativelanguage.googleapis.com/v1beta/models?pageSize=100&key=$apiKey"))
+        val req = HttpRequest.newBuilder(URI.create("https://generativelanguage.googleapis.com/v1beta/models?pageSize=100"))
+            .header("x-goog-api-key", apiKey)
             .timeout(Duration.ofSeconds(10))
             .GET()
             .build()
@@ -1565,7 +1569,8 @@ object AiPlatforms {
                     put("parts", JsonArray(listOf(buildJsonObject { put("text", prompt) })))
                 })))
             }
-            val req = HttpRequest.newBuilder(URI.create("https://generativelanguage.googleapis.com/v1beta/models/$apiModel:generateContent?key=$key"))
+            val req = HttpRequest.newBuilder(URI.create("https://generativelanguage.googleapis.com/v1beta/models/$apiModel:generateContent"))
+                .header("x-goog-api-key", key)
                 .header("Content-Type", "application/json")
                 .timeout(Duration.ofSeconds(60))
                 .POST(HttpRequest.BodyPublishers.ofString(payload.toString()))

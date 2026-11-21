@@ -2,6 +2,9 @@ package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.conductor.*
 import dev.shibasis.reaktor.conductor.cli.CliCapabilities
+import dev.shibasis.reaktor.conductor.cli.HarnessActivity
+import dev.shibasis.reaktor.conductor.cli.HarnessSession
+import dev.shibasis.reaktor.conductor.cli.HarnessSessions
 import dev.shibasis.reaktor.conductor.store.FileThreadStore
 import dev.shibasis.reaktor.conductor.memory.MemorySession
 import kotlinx.coroutines.*
@@ -57,6 +60,7 @@ class AgentWorkspace(
     private val scopeModules: (List<String>) -> List<String> = { emptyList() },
     grantAdvisory: (File, Boolean) -> String? = { _, _ -> null },
     private val transcriptRevision: (ProviderSession) -> String? = { null },
+    private val nativeTurns: () -> List<HarnessSession> = { HarnessSessions.read(root) },
 ) : AutoCloseable {
     private val lock = Any()
     private val changes = MutableStateFlow(0L)
@@ -97,7 +101,7 @@ class AgentWorkspace(
     val messages get() = messageStorage.value
     private val planScopes = PlanRefResolver(root, kernelRead, scopeModules)
     val plans = WorkPlanStore(directory.resolve("plans"), Path.of(System.getProperty("user.home"), ".reaktor", "inbox"),
-        identity = ::planIdentity, activity = presence::lastSeen,
+        identity = ::planIdentity, activity = presence::lastSeen, activeTurns = ::activePlanTurns,
         resolveRefs = planScopes::resolve, cachedRefs = planScopes::cached, messages = { plan, previous, by ->
             messages.planChanged(plan, previous, by)
             preemptPlans()
@@ -134,6 +138,18 @@ class AgentWorkspace(
         require(!ref.startsWith(BoardRefs.Hangar) && planRun(ref) == null) { "Managed runs retain their resolved profile" }
         val target = BoardActor(BoardActorKind.Agent, "native", ref)
         return profiles.bind(target, profile, by, expectedRevision)
+    }
+
+    private fun activePlanTurns(sessions: Set<String>): Set<String> {
+        val managed = sessions.associateWith(::planRun)
+        val active = managed.filterValues { it?.status == AgentRunStatus.Running }.keys.toMutableSet()
+        if (managed.values.any { it == null }) {
+            nativeTurns().filter { it.activity == HarnessActivity.Working || it.activity == HarnessActivity.NeedsYou }.forEach { turn ->
+                val session = BoardRefs.session(turn.runtime, turn.id)
+                if (session in sessions) active += session
+            }
+        }
+        return active
     }
 
     private fun planRun(ref: String): AgentRunRecord? = synchronized(lock) {
@@ -1665,7 +1681,8 @@ class AgentWorkspace(
         val journal = path.resolveSibling("${record.id}.journal")
         val previous = savedRuns[record.id] ?: path.takeIf(Files::exists)?.let(AgentRunTransfer::read)
         val count = journalWrites[record.id] ?: 0
-        val compact = previous == null || record.status in setOf(AgentRunStatus.Completed, AgentRunStatus.Failed, AgentRunStatus.Interrupted, AgentRunStatus.Limited) || count >= 31 ||
+        val torn = Files.exists(journal) && !AgentRunTransfer.endsInNewline(journal)
+        val compact = torn || previous == null || record.status in setOf(AgentRunStatus.Completed, AgentRunStatus.Failed, AgentRunStatus.Interrupted, AgentRunStatus.Limited) || count >= 31 ||
             Files.exists(journal) && Files.size(journal) >= 4_194_304
         if (compact) {
             atomicWrite(path, ConductorJson.encodeToString(AgentRunRecord.serializer(), record) + "\n")

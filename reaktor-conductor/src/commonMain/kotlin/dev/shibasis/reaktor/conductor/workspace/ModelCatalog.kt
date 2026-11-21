@@ -74,6 +74,8 @@ data class CatalogPoint(val pick: CatalogPick, val score: Double, val harness: S
     val key: String get() = harness?.let { "${pick.key}@$it" } ?: pick.key
 }
 
+// Keep ModelCatalog (including Artificial Analysis index/cost/timing snapshots) and Hangar's
+// AgentDefaults (plus AntigravityRuntime for Gemini/agy models) updated together when adding models.
 object ModelCatalog {
     val intelligence = CatalogSource("Artificial Analysis model leaderboard", "https://artificialanalysis.ai/leaderboards/models", "12 Nov 2026")
     val codingAgents = CatalogSource("Artificial Analysis Coding Agent Index, captured by benchlm.ai", "https://benchlm.ai/benchmarks/aacodingagents", "10 Nov 2026")
@@ -103,6 +105,12 @@ object ModelCatalog {
         CatalogModel("claude-haiku-5-5", ModelFamily.Claude, "Haiku 5.5", claude, listOf(v("max", "claude-haiku-5-5", 36, 0.41, 14.8, 185.68, "Claude Code" to 37.3), v("xhigh", "claude-haiku-5-5", 35, 0.25, 9.6, 57.64),
             v("high", "claude-haiku-5-5", 30, 0.16, 6.4, 21.41), v("medium", "claude-haiku-5-5", 25, 0.09, 4.0, 11.63),
             v("low", "claude-haiku-5-5", 19, 0.04, 2.1, 7.26)), pricing = CatalogPricing(claudePricing, 0.10, 0.50, 0.01, 0.125, 0.20, longContextAbove = 100_000, longContextMultiplier = 5.0)),
+        CatalogModel("gpt-6.2-astra", ModelFamily.Codex, "Astra 6.2", gpt, listOf(v("ultra", "gpt-6.2-astra", null, null, null, null), v("max", "gpt-6.2-astra", 62, 4.00, null, null),
+            v("xhigh", "gpt-6.2-astra", 62, 2.52, null, null), v("high", "gpt-6.2-astra", 60, 2.07, null, null),
+            v("medium", "gpt-6.2-astra", 57, 1.62, null, null), v("low", "gpt-6.2-astra", 46, 0.66, null, null))),
+        CatalogModel("gpt-6.2-sol", ModelFamily.Codex, "Sol 6.2", gpt, listOf(v("ultra", "gpt-6.2-sol", null, null, null, null), v("max", "gpt-6.2-sol", 57, 1.01, null, null),
+            v("xhigh", "gpt-6.2-sol", 56, 0.65, null, null), v("high", "gpt-6.2-sol", 55, 0.56, null, null),
+            v("medium", "gpt-6.2-sol", 53, 0.41, null, null), v("low", "gpt-6.2-sol", 41, 0.18, null, null))),
         CatalogModel("gpt-6-astra", ModelFamily.Codex, "Astra 6", gpt, listOf(v("max", "gpt-6-astra", 57, 6.24, 23.0, 249.02, "Codex" to 54.7), v("xhigh", "gpt-6-astra", 55, 3.66, 11.3, 113.66),
             v("high", "gpt-6-astra", 55, 3.24, 9.7, 66.07), v("medium", "gpt-6-astra", 52, 2.73, 7.0, 6.03),
             v("low", "gpt-6-astra", 43, 1.42, 3.8, 3.59))),
@@ -115,6 +123,8 @@ object ModelCatalog {
         CatalogModel("gpt-6-luna", ModelFamily.Codex, "Luna 6", gpt, listOf(v("max", "gpt-6-luna", 28, 0.15, 11.5, 81.37, "Codex" to 31.2), v("xhigh", "gpt-6-luna", 23, 0.10, 7.1, 20.48),
             v("high", "gpt-6-luna", 21, 0.07, 5.7, 12.79), v("medium", "gpt-6-luna", 18, 0.04, 3.3, 6.19),
             v("low", "gpt-6-luna", 10, 0.01, 0.6, 3.39), v("none", "gpt-6-luna", 9, 0.07, 1.9, 1.60))),
+        CatalogModel("gemini-4-neon", ModelFamily.Gemini, "Gemini 4 Neon", gemini, listOf(v("xhigh", "gemini-4-neon-xhigh", 61, 6.44, null, 56.51), v("high", "gemini-4-neon-high", 60, 3.74, null, null),
+            v("medium", "gemini-4-neon-medium", 55, 1.90, null, null), v("low", "gemini-4-neon-low", 44, 0.75, null, null))),
         CatalogModel("gemini-4-carbon", ModelFamily.Gemini, "Gemini 4 Carbon", gemini, listOf(v("high", "gemini-4-carbon-high", 60, 7.76, 26.1, 66.01, "Antigravity" to 59.4), v("medium", "gemini-4-carbon-medium", 58, 6.59, 23.8, 23.21),
             v("low", "gemini-4-carbon-low", 54, 7.19, 23.3, 12.24))),
         CatalogModel("gemini-4-argon", ModelFamily.Gemini, "Gemini 4 Argon", gemini, listOf(v("high", "gemini-4-argon-high", 50, 9.95, 29.6, 39.35, "Antigravity" to 53.2))),

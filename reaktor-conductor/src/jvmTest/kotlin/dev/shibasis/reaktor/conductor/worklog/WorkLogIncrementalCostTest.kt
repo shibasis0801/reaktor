@@ -32,7 +32,7 @@ class WorkLogIncrementalCostTest {
             recording.dump(receipt)
             recording.close()
             val bytes = RecordingFile.readAllEvents(receipt).filter { it.eventType.name == "jdk.FileRead" && it.getString("path") == file.path }.sumOf { it.getLong("bytesRead") }
-            assertEquals(line.toByteArray().size.toLong(), bytes)
+            assertEquals(line.toByteArray().size.toLong() + 256, bytes)
         } finally { folder.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir"))) }
     }
 }

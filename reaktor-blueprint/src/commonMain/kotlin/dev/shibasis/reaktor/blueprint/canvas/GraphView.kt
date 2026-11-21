@@ -318,11 +318,19 @@ private class Shown(val indices: List<Int>, val view: Viewport, val zoom: Double
 
 @Composable
 internal fun GraphMarkers(state: GraphCanvasState, boxes: List<Bounds>, id: (Int) -> Any, minZoom: Double = 0.0, follow: Boolean = true,
-                          batch: Int = Int.MAX_VALUE, content: @Composable (Int, Double) -> Unit) {
+                          batch: Int = Int.MAX_VALUE, immediate: Boolean = false, content: @Composable (Int, Double) -> Unit) {
     val flow = state.flow
     val ambient = LocalDensity.current
     val density = ambient.density
-    var shown by remember(boxes, flow, density) { mutableStateOf<Shown?>(null) }
+    fun visible(view: Viewport, canvas: IntSize): Shown {
+        val scale = view.zoom
+        val reach = if (batch == Int.MAX_VALUE) .25 else 0.0
+        val mx = canvas.width / scale * reach; val my = canvas.height / scale * reach
+        val left = -view.x / scale - mx; val top = -view.y / scale - my
+        val right = (canvas.width - view.x) / scale + mx; val bottom = (canvas.height - view.y) / scale + my
+        return Shown(if (scale / density < minZoom) emptyList() else boxes.indices.filter { boxes[it].let { box -> box.x < right && box.y < bottom && box.x + box.width > left && box.y + box.height > top } }, view, scale / density)
+    }
+    var shown by remember(boxes, flow, density, immediate) { mutableStateOf(if (immediate) visible(flow.viewport, flow.canvasSize) else null) }
     var placed by remember(boxes, flow, density) { mutableStateOf<Set<Int>>(emptySet()) }
     if (batch != Int.MAX_VALUE) LaunchedEffect(shown) {
         val now = shown ?: return@LaunchedEffect
@@ -364,14 +372,8 @@ internal fun GraphMarkers(state: GraphCanvasState, boxes: List<Bounds>, id: (Int
             val laidOut = seen?.second?.let { it.width > 0 && it.height > 0 } == true
             if (laidOut) while (true) { delay(SettleMillis); val next = flow.viewport to flow.canvasSize; if (next == now) break; now = next }
             seen = now
-            val (view, canvas) = now
-            val scale = view.zoom
-            val reach = if (batch == Int.MAX_VALUE) .25 else 0.0
-            val mx = canvas.width / scale * reach; val my = canvas.height / scale * reach
-            val left = -view.x / scale - mx; val top = -view.y / scale - my
-            val right = (canvas.width - view.x) / scale + mx; val bottom = (canvas.height - view.y) / scale + my
-            shown = Shown(if (scale / density < minZoom) emptyList() else boxes.indices.filter { boxes[it].let { box -> box.x < right && box.y < bottom && box.x + box.width > left && box.y + box.height > top } }, view, scale / density)
-            rested = view
+            shown = visible(now.first, now.second)
+            rested = now.first
         }
     }
     Box(Modifier.fillMaxSize().graphicsLayer {

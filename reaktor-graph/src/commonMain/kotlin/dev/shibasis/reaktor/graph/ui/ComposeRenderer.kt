@@ -8,7 +8,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.RememberObserver
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.key
@@ -54,6 +53,7 @@ fun GraphApplication(
 }
 
 val LocalBackStackEntry = staticCompositionLocalOf<BackStackEntry<*, *>?> { null }
+val LocalGraphPreview = staticCompositionLocalOf { false }
 
 @Composable
 fun GraphContent(
@@ -64,9 +64,9 @@ fun GraphContent(
     val topEntry = entries.lastOrNull()
     val saved = rememberSaveableStateHolder()
     val provided = remember(graph) { mutableSetOf<Uuid>() }
-    val keepers = remember(graph) { mutableMapOf<Uuid, Keeper>() }
 
-    SideEffect {
+    val preview = LocalGraphPreview.current
+    if (!preview) SideEffect {
         val live = entries.mapTo(HashSet()) { it.id }
         provided.filterNot { it in live }.forEach { saved.removeState(it.toString()) }
         provided.retainAll(live)
@@ -88,7 +88,7 @@ fun GraphContent(
                         .fillMaxSize()
                         .then(if (revealing) Modifier.swipedBack(top, backProgress) else Modifier)
                 ) {
-                    EntryContent(entry, isFocused && top, saved, provided, keepers)
+                    EntryContent(entry, isFocused && top, saved, provided)
                 }
             }
         }
@@ -101,15 +101,14 @@ private fun EntryContent(
     isFocused: Boolean,
     saved: SaveableStateHolder,
     provided: MutableSet<Uuid>,
-    keepers: MutableMap<Uuid, Keeper>,
 ) {
     val node = entry.edge.end.attachedNode()
     if (node == null) {
         Logger.w("GraphContent: No attached node for route '${entry.edge.end.id}'. Screen will be blank.")
         return
     }
-    provided += entry.id
-    saved.Kept(entry.id, keepers) {
+    if (!LocalGraphPreview.current) provided += entry.id
+    saved.Kept(entry.id) {
         CompositionLocalProvider(LocalBackStackEntry provides entry) {
             val observer = LocalGraphContentObserver.current
             val content: @Composable () -> Unit = {
@@ -139,17 +138,17 @@ private const val UnderlayDim = .12f
 fun ContainerContent(node: ComposeContainer, isFocused: Boolean) {
     val sections = rememberSaveableStateHolder()
     val rendered = remember(node) { mutableSetOf<Uuid>() }
-    val keepers = remember(node) { mutableMapOf<Uuid, Keeper>() }
 
+    val preview = LocalGraphPreview.current
     node.Content { childGraph, childFocused ->
-        rendered += childGraph.id
-        sections.Kept(childGraph.id, keepers) {
+        if (!preview) rendered += childGraph.id
+        sections.Kept(childGraph.id) {
             GraphContent(childGraph, childFocused && isFocused)
         }
     }
 
     val children = (node as? ContainerNode)?.graphs ?: return
-    SideEffect {
+    if (!preview) SideEffect {
         val alive = children.mapTo(HashSet()) { it.id }
         rendered.filterNot { it in alive }.forEach { sections.removeState(it.toString()) }
         rendered.retainAll(alive)
@@ -157,14 +156,6 @@ fun ContainerContent(node: ComposeContainer, isFocused: Boolean) {
 }
 
 @Composable
-private fun SaveableStateHolder.Kept(key: Uuid, keepers: MutableMap<Uuid, Keeper>, content: @Composable () -> Unit) {
-    val keeper = remember(key) { Keeper(keepers, key) }
-    if (keepers.getOrPut(key) { keeper } === keeper) SaveableStateProvider(key.toString(), content) else content()
-}
-
-private class Keeper(private val keepers: MutableMap<Uuid, Keeper>, private val key: Uuid) : RememberObserver {
-    override fun onRemembered() = Unit
-    override fun onForgotten() = release()
-    override fun onAbandoned() = release()
-    private fun release() { if (keepers[key] === this) keepers.remove(key) }
+private fun SaveableStateHolder.Kept(key: Uuid, content: @Composable () -> Unit) {
+    if (LocalGraphPreview.current) content() else SaveableStateProvider(key.toString(), content)
 }

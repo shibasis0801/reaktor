@@ -28,7 +28,7 @@ class CodexRealPermissionProfileTest {
     }
 
     @Test fun managedWriteEntriesWithoutAnIdAreWorkspacePermissions() {
-        val value = settings("""{"approval_policy":"never","permission_profile":{"type":"managed","file_system":{"type":"restricted","entries":[{"path":{"type":"special","value":{"kind":"root"}},"access":"read"},{"path":{"type":"path","path":"/invented/workspace"},"access":"write"}]},"network":"restricted"}}""")
+        val value = settings("""{"approval_policy":"never","cwd":"/invented/workspace","runtime_workspace_roots":["/invented/workspace"],"permission_profile":{"type":"managed","file_system":{"type":"restricted","entries":[{"path":{"type":"special","value":{"kind":"root"}},"access":"read"},{"path":{"type":"path","path":"/invented/workspace"},"access":"write"}]},"network":"restricted"}}""")
         assertNotNull(codexDesktopShortfall(reader, value))
         assertNotNull(codexDesktopShortfall(writer, value))
         assertNull(codexDesktopShortfall(ToolPolicy(allowWrites = true, sandboxed = true), value))
@@ -128,6 +128,7 @@ class CodexRealPermissionProfileTest {
             session.close()
             assertNotNull(notice, "A permissions shortfall needs an immediate waiting notice")
             assertTrue((notice as AgentEvent.Activity).item.output.orEmpty().contains("on-request"))
+            assertEquals(2, launched.size)
             assertTrue(launched.none { it.lastOrNull()?.startsWith("Stop now") == true })
         } finally { root.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir"))) }
     }

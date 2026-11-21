@@ -54,6 +54,7 @@ fun <K> BlueprintGraph(
     editable: Boolean = true,
     onAgentOpen: (BlueprintAgent) -> Unit = {},
     onFrameClick: ((Frame) -> Unit)? = null,
+    onFrameOpen: ((Frame) -> Unit)? = null,
     onGeometry: ((BlueprintLayout<K>, Double) -> Unit)? = null,
     labelExclusions: List<Rect> = emptyList(),
     focusLabels: Boolean = false,
@@ -70,5 +71,5 @@ fun <K> BlueprintGraph(
         glow = { paint.glow(it) ?: glow(it) }, pinTip = pinTip, onPinClick = onPinClick, onCardOpen = onCardOpen, onPinOpen = onPinOpen, focusable = focusable, port = port,
         editor = editor, cardContent = cardContent, interaction = interaction,
         initialFit = initialFit, foldLook = foldLook,
-        editable = editable, onAgentOpen = onAgentOpen, onFrameClick = onFrameClick, onGeometry = onGeometry, labelExclusions = labelExclusions, focusLabels = focusLabels, denseOverview = denseOverview, subject = subject, topInset = topInset, mapLayers = mapLayers, mapDetail = mapDetail)
+        editable = editable, onAgentOpen = onAgentOpen, onFrameClick = onFrameClick, onFrameOpen = onFrameOpen, onGeometry = onGeometry, labelExclusions = labelExclusions, focusLabels = focusLabels, denseOverview = denseOverview, subject = subject, topInset = topInset, mapLayers = mapLayers, mapDetail = mapDetail)
 }

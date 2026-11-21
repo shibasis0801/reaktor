@@ -8,6 +8,49 @@ import java.nio.file.Files
 import kotlin.test.*
 
 class AgentRunJournalCompatibilityTest {
+    @Test fun aSaveAfterATornJournalCompactsBeforeAppendingAgain() = runBlocking {
+        val root = Files.createTempDirectory("run-torn-append").toFile()
+        val directory = root.toPath().resolve("state")
+        val stopped = CoroutineScope(SupervisorJob().also { it.cancel() } + Dispatchers.IO)
+        try {
+            AgentWorkspace(root, directory, mapOf(RuntimeKind.Echo to EchoRuntime()), scope = stopped,
+                background = false, discover = { ProviderCapability(it) }).use { workspace ->
+                val first = workspace.submit(AgentSubmission("torn-append", RuntimeKind.Echo, "Keep the new complete save"))
+                val path = directory.resolve("runs/${first.id}.json")
+                val journal = path.resolveSibling("${first.id}.journal")
+                Files.writeString(journal, "{\"runDelta\":")
+                val next = first.copy(output = "The complete update after the torn tail", revision = first.revision + 1)
+                val persist = AgentWorkspace::class.java.getDeclaredMethod("persist", AgentRunRecord::class.java).apply { isAccessible = true }
+                persist.invoke(workspace, next)
+                assertEquals(next, AgentRunTransfer.read(path))
+                assertEquals(0, Files.size(journal))
+            }
+        } finally { root.deleteTreeSafely(within = root.parentFile) }
+    }
+
+    @Test fun aNewerBaseIgnoresOlderAndEqualJournalRevisions() = runBlocking {
+        val root = Files.createTempDirectory("run-stale-journal").toFile()
+        val stopped = CoroutineScope(SupervisorJob().also { it.cancel() } + Dispatchers.IO)
+        try {
+            AgentWorkspace(root, root.toPath().resolve("state"), mapOf(RuntimeKind.Echo to EchoRuntime()), scope = stopped,
+                discover = { ProviderCapability(it) }).use { workspace ->
+                val first = workspace.submit(AgentSubmission("stale-journal", RuntimeKind.Echo, "Replay only the later revision"))
+                val path = root.toPath().resolve("state/runs/${first.id}.json")
+                val records = (4L..10L).map { revision -> first.copy(output = "revision-$revision", revision = revision) }
+                val base = records.single { it.revision == 9L }
+                Files.writeString(path, ConductorJson.encodeToString(AgentRunRecord.serializer(), base) + "\n")
+                val lines = records.zipWithNext().map { (before, after) ->
+                    JsonObject(AgentRunTransfer.delta(after, AgentRunTransfer.held(before), Int.MAX_VALUE) + ("revision" to JsonPrimitive(after.revision))).toString()
+                }
+                val journal = path.resolveSibling("${first.id}.journal")
+                Files.writeString(journal, lines.take(5).joinToString("\n", postfix = "\n"))
+                assertEquals(base, AgentRunTransfer.read(path), "The equal revision must not replay")
+                Files.writeString(journal, lines.joinToString("\n", postfix = "\n"))
+                assertEquals(records.last(), AgentRunTransfer.read(path))
+            }
+        } finally { root.deleteTreeSafely(within = root.parentFile) }
+    }
+
     @Test fun journalLinesWithoutAChangedHeaderReplayAllStreams() = runBlocking {
         val root = Files.createTempDirectory("run-journal-builders").toFile()
         val directory = root.toPath().resolve("state")

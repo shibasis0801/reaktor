@@ -134,7 +134,7 @@ object AgentServiceHost {
                 null
             }
         }
-        check(failures.isEmpty()) { "The kernel could not reopen ${failures.joinToString("; ")}" }
+        check(failures.isEmpty()) { "Reopened ${reopened.size} workspace${if (reopened.size == 1) "" else "s"}: ${reopened.joinToString()}; the kernel could not reopen ${failures.joinToString("; ")}" }
         return reopened
     }
 

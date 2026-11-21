@@ -226,8 +226,7 @@ internal class CodexDesktopSession(
                                 "Runs go to ChatGPT.app only while its Codex config sets approval_policy = \"never\" and the sandbox_mode they ask for."
                             shortfall = failure
                             emit(AgentEvent.Activity(agent, AgentActivityItem("desktop-permissions", ActivityKind.Control, "ChatGPT.app permissions fall short", ActivityStatus.Failed, output = failure)))
-                            stalled = true
-                            emit(AgentEvent.Activity(agent, AgentActivityItem("desktop-stall", ActivityKind.Control, "Needs attention in ChatGPT.app", ActivityStatus.Waiting,
+                            emit(AgentEvent.Activity(agent, AgentActivityItem("desktop-permissions-attention", ActivityKind.Control, "Needs attention in ChatGPT.app", ActivityStatus.Waiting,
                                 output = "$failure Open this thread in the Codex app to resolve its permissions or approvals; Hangar cannot interrupt this app turn.")))
                         }
                         "token_count" -> payload.objectOrEmpty("info").objectOrEmpty("total_token_usage").toAppUsage()?.let {
@@ -317,10 +316,21 @@ internal fun codexRecordedSettingsProblem(tools: ToolPolicy, rollout: File): Str
             record.objectOrEmpty("payload")["type"]?.jsonPrimitive?.contentOrNull == "thread_settings_applied"
     }
     if (previous.capped) return "Hangar cannot verify this thread's permissions within the bounded transcript window. Nothing was queued. Open the thread in the Codex app to continue."
-    val settings = previous.record?.objectOrEmpty("payload")?.objectOrEmpty("thread_settings") ?: return null
+    val settings = previous.record?.objectOrEmpty("payload")?.objectOrEmpty("thread_settings")
+    if (settings == null) {
+        val turn = WorkLogs.reverseRecord(rollout, rollout.length(), "") { record ->
+            val payload = record.objectOrEmpty("payload")
+            payload["role"]?.jsonPrimitive?.contentOrNull == "user" ||
+                payload["type"]?.jsonPrimitive?.contentOrNull in setOf("user_message", "userMessage", "UserMessage") ||
+                payload.objectOrEmpty("item")["type"]?.jsonPrimitive?.contentOrNull in setOf("userMessage", "UserMessage")
+        }
+        return if (turn.record != null || turn.capped) "Hangar cannot verify this thread's recorded permissions. Nothing was queued. Open the thread in the Codex app to continue." else null
+    }
     return codexDesktopShortfall(tools, settings)?.let {
-        "This Codex thread records $it; this turn requires ${tools.codexSandbox()} permissions and approval_policy = never. Nothing was queued. " +
-            "Change this thread's permissions in the Codex app, or allow writes here if the recorded full-access permissions are intended."
+        val advice = if (it.startsWith("danger-full-access permissions") && tools.codexSandbox() == "read-only")
+            "Allow writes here if these full-access permissions are intended, or change this thread's permissions in the Codex app."
+        else "Change this thread's permissions in the Codex app."
+        "This Codex thread records $it; this pane asks for ${tools.codexSandbox()} permissions and approval_policy = never. Nothing was queued. $advice"
     }
 }
 
@@ -398,7 +408,20 @@ internal fun codexDesktopShortfall(tools: ToolPolicy, settings: JsonObject): Str
                     val entries = files["entries"] as? JsonArray ?: return unknown
                     val access = entries.map { (it as? JsonObject)?.get("access").plain() }
                     if (access.any { it !in setOf("read", "write", "deny") }) return unknown
-                    if ("write" in access) "workspace-write" else "read-only"
+                    val network = permissions["network"] ?: settings["network"]
+                    if (network.plain() != "restricted") return unknown
+                    val roots = ((settings["runtime_workspace_roots"] as? JsonArray).orEmpty().mapNotNull { it.plain() } + listOfNotNull(settings["cwd"].plain()))
+                        .map { File(it).toPath().toAbsolutePath().normalize() }.toSet()
+                    val writes = entries.filter { (it as? JsonObject)?.get("access").plain() == "write" }
+                    if (writes.any { entry ->
+                        val path = (entry as? JsonObject)?.get("path") as? JsonObject ?: return@any true
+                        when (path["type"].plain()) {
+                            "path" -> path["path"].plain()?.let { File(it).toPath().toAbsolutePath().normalize() !in roots } ?: true
+                            "special" -> path.objectOrEmpty("value")["kind"].plain() !in setOf("tmp", "tmpdir", "temp", "temp_dir")
+                            else -> true
+                        }
+                    }) return unknown
+                    if (writes.isNotEmpty()) "workspace-write" else "read-only"
                 }
                 else -> named ?: return unknown
             }
@@ -407,7 +430,7 @@ internal fun codexDesktopShortfall(tools: ToolPolicy, settings: JsonObject): Str
         else -> return unknown
     }
     return buildList {
-        if (sandbox != tools.codexSandbox()) add("${profile?.takeIf { named == sandbox } ?: sandbox} permissions where it asked for ${tools.codexSandbox()}")
+        if (sandbox != tools.codexSandbox()) add("$sandbox permissions")
         if (approvals != "never") add("$approvals approvals")
     }.takeIf { it.isNotEmpty() }?.joinToString(" and ")
 }

@@ -83,7 +83,7 @@ class CodexDesktopRoutingTest {
         val outcome = events.filterIsInstance<AgentEvent.Finished>().single().outcome
         assertFalse(outcome.ok)
         assertEquals("Finished in the app.", outcome.text)
-        assertTrue(":workspace permissions" in outcome.failure.orEmpty())
+        assertTrue("workspace-write permissions" in outcome.failure.orEmpty())
         assertEquals(ActivityStatus.Failed, events.filterIsInstance<AgentEvent.Activity>().single { it.item.id == "desktop-permissions" }.item.status)
         assertFalse(launched.any { it.take(2) == listOf("codex", "queue") && it.last().startsWith("Stop now") })
     }
@@ -123,7 +123,7 @@ class CodexDesktopRoutingTest {
     }
 
     @Test fun appliedSettingsNameWhatFallsShort() {
-        assertEquals(":workspace permissions where it asked for danger-full-access and on-request approvals",
+        assertEquals("workspace-write permissions and on-request approvals",
             codexDesktopShortfall(writer, applied(":workspace", "on-request")))
         assertEquals("on-request approvals", codexDesktopShortfall(writer, applied(":danger-full-access", "on-request")))
         assertNull(codexDesktopShortfall(writer, applied(":danger-full-access", "never")))

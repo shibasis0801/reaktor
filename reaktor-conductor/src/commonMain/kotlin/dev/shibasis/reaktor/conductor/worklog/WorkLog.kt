@@ -361,7 +361,7 @@ fun WorkLog.slice(from: Long, until: Long): WorkLog {
             usageSamples = samples,
         )
     }
-    return WorkLog(slicedTurns, earlier)
+    return WorkLog(slicedTurns, earlier, earlierPromptNotShown && slicedTurns.firstOrNull()?.id == turns.firstOrNull()?.id)
 }
 
 fun mergeWorkLogs(logs: List<WorkLog>): WorkLog {
@@ -393,6 +393,7 @@ fun mergeWorkLogs(logs: List<WorkLog>): WorkLog {
             )
         }.sortedBy { it.startedAt },
         earlier = logs.any { it.earlier },
+        earlierPromptNotShown = logs.any { it.earlierPromptNotShown },
     )
 }
 
