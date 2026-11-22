@@ -214,7 +214,7 @@ object AgentBundle {
             }
         }
         owned.keys.filter { it.startsWith("profile/") && it.removePrefix("profile/") !in profiles }.forEach { key ->
-            val file = targets.agentHome?.let { NativeAgentProfiles.file(targets.claudeProjectConfig.parentFile, it, key.removePrefix("profile/")) }
+            val file = targets.agentHome?.let { NativeAgentProfiles.fileOrNull(targets.claudeProjectConfig.parentFile, it, key.removePrefix("profile/")) }
             if (file != null && file.takeIf { it.isFile }?.readText() == owned[key]?.jsonPrimitive?.content) {
                 Files.deleteIfExists(file.toPath())
                 messages += "$key: retired"
@@ -270,7 +270,7 @@ object AgentBundle {
                 if (targets.launcher.takeIf { it.isFile }?.readText() == value.jsonPrimitive.content) { targets.launcher.delete(); messages += "$key: removed" }
                 else messages += "$key: modified; preserved"
             } else if (key.startsWith("profile/")) {
-                val file = targets.agentHome?.let { NativeAgentProfiles.file(targets.claudeProjectConfig.parentFile, it, key.removePrefix("profile/")) }
+                val file = targets.agentHome?.let { NativeAgentProfiles.fileOrNull(targets.claudeProjectConfig.parentFile, it, key.removePrefix("profile/")) }
                 if (file != null && file.takeIf { it.isFile }?.readText() == value.jsonPrimitive.content) { Files.deleteIfExists(file.toPath()); messages += "$key: removed" }
                 else messages += "$key: modified; preserved"
             } else if (key.startsWith("skill/")) {

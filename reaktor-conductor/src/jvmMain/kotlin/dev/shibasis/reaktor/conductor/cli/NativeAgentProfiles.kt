@@ -19,12 +19,14 @@ internal object NativeAgentProfiles {
         key to Export(file(root, home, key), content(root, name, profile))
     }.toMap()
 
-    fun file(root: File, home: File, key: String): File {
+    fun file(root: File, home: File, key: String): File = requireNotNull(fileOrNull(root, home, key))
+
+    fun fileOrNull(root: File, home: File, key: String): File? {
         val vendor = key.substringBefore('/')
         val name = key.substringAfter('/')
         val prefix = "reaktor-${digest(root.canonicalPath).take(12)}-"
-        require(vendor in listOf("codex", "claude", "gemini") && name.startsWith(prefix) &&
-            name.removePrefix(prefix).matches(Regex("[a-z][a-z0-9-]{0,63}\\.${if (vendor == "codex") "toml" else "md"}")))
+        if (!(vendor in listOf("codex", "claude", "gemini") && name.startsWith(prefix) &&
+            name.removePrefix(prefix).matches(Regex("[a-z][a-z0-9-]{0,63}\\.${if (vendor == "codex") "toml" else "md"}")))) return null
         return File(home, ".$vendor/agents/$name")
     }
 
