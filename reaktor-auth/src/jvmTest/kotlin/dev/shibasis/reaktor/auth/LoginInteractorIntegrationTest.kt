@@ -59,7 +59,7 @@ class LoginInteractorIntegrationTest {
         assertEquals(PrincipalKind.USER, principal.kind)
         assertNull(principal.identityId)
 
-        val session = AuthDbFixture.sessionById(response.tokenSet.sessionId)
+        val session = AuthDbFixture.sessionById(assertNotNull(response.tokenSet.sessionId))
         assertNotNull(session)
         assertEquals(response.context.principalId, session.principalId)
         assertEquals(appId, session.appId)
@@ -103,7 +103,7 @@ class LoginInteractorIntegrationTest {
         val providerAccounts = AuthDbFixture.providerAccountsByProviderAndSubject(UserProvider.GOOGLE, subject)
         assertEquals(1, providerAccounts.size, "first login persists exactly one provider account")
 
-        val session = AuthDbFixture.sessionById(response.tokenSet.sessionId)
+        val session = AuthDbFixture.sessionById(assertNotNull(response.tokenSet.sessionId))
         assertNotNull(session)
         assertEquals(response.context.principalId, session.principalId)
         assertEquals(appId, session.appId)
