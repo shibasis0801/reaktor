@@ -31,4 +31,6 @@ val SurfaceContracts: Map<String, ComponentContract> = listOf(
     ComponentContract("surface.finding", "Finding", slots = listOf(SlotSchema("mark", SlotKinds.Glyph + SlotKinds.Status, max = 1), SlotSchema("title", SlotKinds.Label, max = 2),
         SlotSchema("aside", SlotKinds.Status), SlotSchema("detail"), SlotSchema("evidence"), SlotSchema("fix"))),
     ComponentContract("surface.state-view", "StateView", slots = listOf(SlotSchema("reason", SlotKinds.Label, max = 2), SlotSchema("action", setOf("Button"), max = 2))),
+    ComponentContract("surface.navigation-bar", "NavigationBar", events = listOf("onSelectedChange"), slots = listOf(SlotSchema("content", setOf("NavigationItem")))),
+    ComponentContract("surface.navigation-item", "NavigationItem", slots = listOf(SlotSchema("icon", SlotKinds.Glyph, max = 1), SlotSchema("label", SlotKinds.Label, max = 1))),
 ).associateBy { it.kind }

@@ -75,6 +75,8 @@ object Appearance {
     val Property = AppearanceKey<PropertyAppearance>("property", BareProperty)
     val Metric = AppearanceKey<MetricAppearance>("metric", BareMetric)
     val Finding = AppearanceKey<FindingAppearance>("finding", BareFinding)
+    val NavigationBar = AppearanceKey<NavigationBarAppearance>("navigationBar", BareNavigationBar)
+    val NavigationItem = AppearanceKey<ItemAppearance>("navigationItem", BareNavigationItem)
 }
 
 fun Appearances(vararg entries: AppearanceEntry<*>): Appearances =
