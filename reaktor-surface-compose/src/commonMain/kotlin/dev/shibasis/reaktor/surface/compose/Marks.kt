@@ -11,6 +11,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import dev.shibasis.reaktor.surface.ThemeSnapshot
 
 data class SparklineProperties(val values: List<Float>, val threshold: Float?)
@@ -23,7 +26,8 @@ fun Sparkline(
     modifier: Modifier = Modifier,
     threshold: Float? = null,
     appearance: SparklineAppearance = LocalAppearances.current[Appearance.Sparkline],
-) = Box(modifier, propagateMinConstraints = true) {
+    summary: String?,
+) = Box(modifier.markSemantics(summary), propagateMinConstraints = true) {
     if (values.size >= 2) {
         val top = topOf(values, threshold)
         appearance.Content(SparklineProperties(values.map { it / top }, threshold?.let { it / top }), Unit, LocalThemeSnapshot.current, rememberFeedback(pressed = false, focusVisible = false), Unit)
@@ -37,11 +41,10 @@ fun Bars(
     values: List<Float>,
     modifier: Modifier = Modifier,
     appearance: BarsAppearance = LocalAppearances.current[Appearance.Bars],
-) = Box(modifier, propagateMinConstraints = true) {
-    if (values.size >= 2) {
-        val top = topOf(values, null)
-        appearance.Content(values.map { it / top }, Unit, LocalThemeSnapshot.current, rememberFeedback(pressed = false, focusVisible = false), Unit)
-    }
+    summary: String?,
+) = Box(modifier.markSemantics(summary), propagateMinConstraints = true) {
+    val top = topOf(values, null)
+    appearance.Content(values.map { it / top }, Unit, LocalThemeSnapshot.current, rememberFeedback(pressed = false, focusVisible = false), Unit)
 }
 
 data class Range(val start: Float, val end: Float)
@@ -54,12 +57,18 @@ fun RangeBar(
     end: Float,
     modifier: Modifier = Modifier,
     appearance: RangeBarAppearance = LocalAppearances.current[Appearance.RangeBar],
-) = Box(modifier, propagateMinConstraints = true) {
+    summary: String?,
+) = Box(modifier.markSemantics(summary), propagateMinConstraints = true) {
     val from = start.coerceIn(0f, 1f)
     appearance.Content(Range(from, end.coerceIn(from, 1f)), Unit, LocalThemeSnapshot.current, rememberFeedback(pressed = false, focusVisible = false), Unit)
 }
 
-private fun topOf(values: List<Float>, threshold: Float?): Float = maxOf(values.max(), threshold ?: 0f).takeIf { it > 0f } ?: 1f
+private fun Modifier.markSemantics(summary: String?): Modifier {
+    require(summary == null || summary.isNotBlank())
+    return if (summary == null) clearAndSetSemantics {} else semantics { contentDescription = summary }
+}
+
+private fun topOf(values: List<Float>, threshold: Float?): Float = maxOf(values.maxOrNull() ?: 0f, threshold ?: 0f).takeIf { it > 0f } ?: 1f
 
 val BareSparkline: SparklineAppearance = object : SparklineAppearance {
     @Composable
@@ -77,7 +86,7 @@ val BareBars: BarsAppearance = object : BarsAppearance {
     @Composable
     override fun Content(properties: List<Float>, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: Unit) {
         Canvas(Modifier.fillMaxSize()) {
-            val slot = size.width / properties.size
+            val slot = size.width / properties.size.coerceAtLeast(1)
             properties.forEachIndexed { index, value ->
                 drawRect(Color.Gray, Offset(index * slot, size.height * (1 - value)), Size(slot * 0.7f, size.height * value))
             }

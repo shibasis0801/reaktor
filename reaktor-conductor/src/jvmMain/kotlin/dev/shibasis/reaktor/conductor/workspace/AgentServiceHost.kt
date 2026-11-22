@@ -94,6 +94,7 @@ object AgentServiceHost {
 
     suspend fun upgrade(command: List<String>, directory: Path = directory()): List<String> {
         val workspaces = hosted(directory)
+        var reopened = emptyList<String>()
         val owners = workspaces.mapNotNull { runCatching { AgentWorkspaceConnection.open(File(it.root), allowStart = false) }.getOrNull() }
         try {
             val processId = hostProcessId(directory)
@@ -103,15 +104,38 @@ object AgentServiceHost {
                 if (processId > 0) withTimeout(60000) { while (alive(processId)) delay(100) }
                 Files.deleteIfExists(launchAgents().resolve("$Label.plist"))
                 start(command, directory)
-                workspaces.forEach { workspace ->
-                    ask(HostRequest("open", workspace.root), directory, OpenMillis).failure?.let { error("The kernel could not reopen ${workspace.root}: $it") }
-                }
+                reopened = reopen(workspaces) { workspace -> ask(HostRequest("open", workspace.root), directory, OpenMillis).failure }
             } catch (failure: Exception) {
                 owners.forEach { runCatching { activeRuns(it, drain = false) } }
                 throw failure
             }
         } finally { owners.forEach { it.close() } }
-        return workspaces.map { it.root }
+        return reopened
+    }
+
+    internal fun reopen(workspaces: List<HostedWorkspace>, report: (String) -> Unit = System.err::println, open: (HostedWorkspace) -> String?): List<String> {
+        val failures = mutableListOf<String>()
+        val reopened = workspaces.mapNotNull { workspace ->
+            val root = File(workspace.root)
+            if (!root.isDirectory && AgentWorkspaceRoots.temporary(root)) {
+                report("The kernel skipped a vanished temporary workspace: ${workspace.root.replace('\n', ' ').replace('\r', ' ')}")
+                return@mapNotNull null
+            }
+            try {
+                val failure = open(workspace)
+                if (failure == null) workspace.root else {
+                    failures += "${workspace.root}: $failure"
+                    null
+                }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                failures += "${workspace.root}: ${failure.message ?: failure.javaClass.simpleName}"
+                null
+            }
+        }
+        check(failures.isEmpty()) { "Reopened ${reopened.size} workspace${if (reopened.size == 1) "" else "s"}: ${reopened.joinToString()}; the kernel could not reopen ${failures.joinToString("; ")}" }
+        return reopened
     }
 
     fun leave(root: File, directory: Path = directory()): String {

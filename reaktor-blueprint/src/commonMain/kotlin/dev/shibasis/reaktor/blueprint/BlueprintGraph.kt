@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.blueprint
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.unit.Dp
@@ -20,6 +21,9 @@ data class BlueprintAgent(
     val effort: String? = null,
     val model: String? = null,
     val role: String? = null,
+    val companions: List<BlueprintAgent> = emptyList(),
+    val key: String? = null,
+    val person: Boolean = false,
 ) {
     init {
         require(otherAgents >= 0)
@@ -67,14 +71,16 @@ fun BlueprintGraph(
     initialFit: (() -> Unit)? = null,
     startInset: Dp = 0.dp,
     topInset: Dp = 48.dp,
+    overlays: BlueprintOverlays = LocalBlueprintOverlays.current,
 ) {
     androidx.compose.runtime.SideEffect { bundles?.let { editor.routing = editor.routing.copy(bundles = it) } }
     val activeOpening = opening ?: editor.opening
     val layout = activeOpening?.layout ?: editor.settled
+    val paint = remember(layout, overlays) { overlays.prepare(layout) }
     val faint = Blueprint.Faint
     val fit = fitKey ?: (layout.key.hashCode() * 31 + layout.cards.keys.hashCode())
     BlueprintCanvas(
-        layout = layout,
+        layout = paint.layout(layout),
         canvas = canvas,
         fitKey = fit,
         fitScene = fitScene ?: fit,
@@ -83,10 +89,11 @@ fun BlueprintGraph(
         topInset = topInset,
         highlight = editor.selection.nodes,
         selected = editor.selection.nodes.singleOrNull(),
-        linkStyle = { link -> linkStyle(link) ?: LinkStyle(faint) },
+        linkStyle = { link -> paint.style(link.id) ?: linkStyle(link) ?: LinkStyle(faint) },
         frameLook = groupLook,
+        glow = paint::glow,
         cardLook = { card -> (editor.node(card.id) ?: editor.ghost(card.id))?.let { node ->
-            cardLook(node).copy(selected = card.id in editor.selection.nodes)
+            paint.decorate(card, cardLook(node).copy(selected = card.id in editor.selection.nodes))
         } },
         onCardClick = { id ->
             editor.select(if (layout.frames.any { it.key == id }) Selection(notes = setOf(id)) else Selection(nodes = setOf(id)))
@@ -99,7 +106,7 @@ fun BlueprintGraph(
         onFrameOpen = onFrameOpen,
         editable = editable,
         modifier = modifier,
-        labels = layout.links.mapNotNull { link -> linkLabel(link)?.let { link.id to it } }.toMap(),
+        labels = layout.links.mapNotNull { link -> linkLabel(link)?.let { link.id to it } }.toMap() + paint.labels,
         focusable = true,
         editor = editor,
         foldLook = foldLook,

@@ -15,6 +15,9 @@ import dev.shibasis.reaktor.board.BoardSnapshot
 import dev.shibasis.reaktor.board.BoardTheme
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
+import kotlinx.browser.document
+import org.w3c.dom.HTMLElement
+import react.useEffectWithCleanup
 import react.useEffectOnceWithCleanup
 import kotlinx.browser.window
 import org.w3c.dom.events.Event
@@ -110,6 +113,18 @@ object ReaktorBoardWeb {
                 attempt++
                 window.removeEventListener("reaktor-ready", ready)
                 if (stop != null) stop()
+            }
+        }
+        val chrome = snapshot?.theme?.chrome.orEmpty().filterKeys { it.startsWith("--hangar-") }
+        val chromeKey = chrome.entries.sortedBy { it.key }.joinToString("\u0000") { "${it.key}\u0001${it.value}" }
+        useEffectWithCleanup(chromeKey) {
+            val style = document.documentElement!!.unsafeCast<HTMLElement>().style
+            val before = chrome.keys.associateWith { style.getPropertyValue(it) to style.getPropertyPriority(it) }
+            chrome.forEach { (name, value) -> style.setProperty(name, value) }
+            onCleanup {
+                before.forEach { (name, value) ->
+                    if (value.first.isEmpty()) style.removeProperty(name) else style.setProperty(name, value.first, value.second)
+                }
             }
         }
         val host = useMemo(snapshot?.revision, snapshot?.places) { BridgeHost(client, canvas, snapshot?.revision ?: 0, snapshot?.places == true) { delta -> setInFlight { it + delta } } }

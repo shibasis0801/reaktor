@@ -34,6 +34,7 @@ class AuthHttpServiceNode(graph: Graph) : BasicNode(graph) {
         override val sessionMe = super.sessionMe.handle { request -> sessionsPort.suspended { me(request) } }
         override val deviceCredential = super.deviceCredential.handle { request -> devicesPort.suspended { issue(request) } }
         override val sessionLogoutAll = super.sessionLogoutAll.handle { request -> sessionsPort.suspended { logoutAll(request) } }
+        override val accountDeletionOptions = super.accountDeletionOptions.handle { request -> accountPort.suspended { deletionOptions(request) } }
         override val accountDeactivate = super.accountDeactivate.handle { request -> accountPort.suspended { deactivate(request) } }
     }
 }

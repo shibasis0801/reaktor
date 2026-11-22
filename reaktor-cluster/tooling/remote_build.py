@@ -106,8 +106,29 @@ def lease(path):
         yield lock
 
 
+def emit_admission(project, tasks, phase, reason=None):
+    run = os.environ.get('DEPENDEASY_OPERATION_RUN_ID')
+    if run:
+        print('@reaktor-build ' + json.dumps({
+            'schema': 1, 'runId': run, 'phase': phase,
+            'project': project, 'tasks': tasks, 'reason': reason,
+        }), flush=True)
+
+
+def ticket_details(ticket):
+    try:
+        with ticket.open() as source:
+            text = source.read(32769)
+        if len(text) > 32768:
+            return {}
+        value = json.loads(text)
+        return value if isinstance(value, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
 @contextlib.contextmanager
-def place_in_line(state):
+def place_in_line(state, details=None):
     """A ticket for the local Gradle lease, held by its locked file while this process waits."""
     line = state / 'local-gradle.line'
     line.mkdir(parents=True, exist_ok=True)
@@ -115,6 +136,9 @@ def place_in_line(state):
     pending = line / ('.' + name)
     with pending.open('w') as handle:
         fcntl.flock(handle, fcntl.LOCK_EX)
+        if details is not None:
+            json.dump(details, handle)
+            handle.flush()
         ticket = pending.rename(line / name)
         try:
             yield ticket
@@ -124,7 +148,12 @@ def place_in_line(state):
 
 def stand_aside(ticket, aside):
     if ticket.exists():
-        ticket.write_text('aside' if aside else '')
+        details = ticket_details(ticket)
+        if details:
+            details['aside'] = aside
+            ticket.write_text(json.dumps(details))
+        else:
+            ticket.write_text('aside' if aside else '')
 
 
 def first_in_line(ticket):
@@ -140,7 +169,7 @@ def first_in_line(ticket):
             continue
         except BlockingIOError:
             try:
-                if other.read_text() == 'aside':
+                if other.read_text() == 'aside' or ticket_details(other).get('aside') is True:
                     continue
             except FileNotFoundError:
                 continue
@@ -157,9 +186,9 @@ def try_lock(handle):
 
 
 @contextlib.contextmanager
-def local_lease(state, wait=0.5, ticket=None):
+def local_lease(state, wait=0.5, ticket=None, details=None):
     """The local Gradle lease in arrival order, so a waiter that polls is not overtaken by later blocking waiters."""
-    waiting = contextlib.nullcontext(ticket) if ticket is not None else place_in_line(state)
+    waiting = contextlib.nullcontext(ticket) if ticket is not None else place_in_line(state, details)
     with waiting as ticket, (state / 'local-gradle.lock').open('a') as lock:
         while not (first_in_line(ticket) and try_lock(lock)):
             time.sleep(wait)
@@ -167,10 +196,11 @@ def local_lease(state, wait=0.5, ticket=None):
         yield lock
 
 
-def disk_admission(helper, host):
+def disk_admission(helper, host, minimum_bytes=0):
     minimum = int(helper.CONFIG.get('minimum_free_disk_mib', 1024)) * 1024 * 1024
     if minimum <= 0:
         raise ValueError('minimum_free_disk_mib must be positive')
+    minimum = max(minimum, minimum_bytes)
     local_free = shutil.disk_usage(helper.STATE).free
     observed = {'minimumFreeBytes': minimum, 'localFreeBytes': local_free}
     if local_free < minimum:
@@ -188,6 +218,33 @@ print(shutil.disk_usage(sys.argv[1]).free)
     return observed
 
 
+def prune_snapshots(state, keep=()):
+    snapshots = state / 'snapshots'
+    if not snapshots.is_dir():
+        return
+    pending = set(keep)
+    runs = state / 'runs'
+    if runs.is_dir():
+        for run in runs.iterdir():
+            try:
+                receipt = json.loads((run / 'receipt.json').read_text())
+            except (OSError, ValueError):
+                continue
+            if not receipt.get('finished') and receipt.get('status') not in {'cancelled', 'failed', 'succeeded'}:
+                pending.add(receipt.get('snapshot'))
+    candidates = sorted((p for p in snapshots.iterdir() if re.fullmatch('[0-9a-f]{64}', p.name)
+                         and p.name not in pending and not p.is_symlink() and (p / 'manifest.json').is_file()),
+                        key=lambda p: p.stat().st_mtime)
+    pins = state / 'snapshot-pins'
+    for old in candidates[:-1]:
+        pin = pins / (old.name + '.lock')
+        if pin.exists():
+            with pin.open('a') as lock:
+                if not try_lock(lock):
+                    continue
+        shutil.rmtree(old, ignore_errors=True)
+
+
 def freeze(helper):
     with lease(helper.STATE / 'capture.lock'):
         remote_retention.require_admission(helper.STATE)
@@ -198,6 +255,7 @@ def freeze(helper):
             destination = helper.STATE / 'snapshots' / identity
             if destination.exists():
                 verify_sources(destination / 'workspace', manifest)
+                prune_snapshots(helper.STATE, keep={identity})
                 return identity
             destination.parent.mkdir(parents=True, exist_ok=True)
             pending = Path(tempfile.mkdtemp(prefix='capture-', dir=destination.parent))
@@ -213,7 +271,6 @@ def freeze(helper):
                     source, target = helper.ROOT / relative, workspace / relative
                     target.parent.mkdir(parents=True, exist_ok=True)
                     if source.is_symlink():
-                        # Absolute in-workspace links become relocatable within the snapshot.
                         link = os.readlink(source)
                         if os.path.isabs(link):
                             raise ValueError(f'Use a relative source symlink: {relative}')
@@ -225,6 +282,7 @@ def freeze(helper):
                     continue
                 (pending / 'manifest.json').write_text(json.dumps(manifest, sort_keys=True) + '\n')
                 pending.rename(destination)
+                prune_snapshots(helper.STATE, keep={identity})
                 return identity
             except (OSError, ValueError):
                 if source_manifest(helper) == manifest:

@@ -12,6 +12,27 @@ import org.koin.dsl.koinApplication
 import kotlin.test.*
 
 class MemoryExtractorTest {
+    @Test fun newestMessagesAndOutputKeepTheirTailWithoutALowSurrogate() = runBlocking {
+        val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
+        val graph = Graph(dependencyAdapter = KoinDependencyAdapter(koinApplication {}))
+        try {
+            val runtime = MemoryRuntime(graph, SqliteObjectDatabase(driver, "extract-tail"))
+            var input = ""
+            val extractor = MemoryExtractor(runtime.api) { input = it; "[]" }
+            val run = AgentRunRecord("run", "thread", RuntimeKind.Codex, "fingerprint", "Run", status = AgentRunStatus.Completed,
+                startedAt = 1, updatedAt = 2, output = "old" + "😀" + "x".repeat(11999))
+            val messages = List(9) { "old-$it ".repeat(400) } + ("😀" + "m".repeat(11985) + "NEWEST MESSAGE")
+            extractor.extract(run, MemoryScope(MemoryScopeKind.Workspace, "workspace"), "lane", messages)
+            val decoded = dev.shibasis.reaktor.conductor.ConductorJson.parseToJsonElement(input) as kotlinx.serialization.json.JsonObject
+            val summary = (decoded.getValue("summary") as kotlinx.serialization.json.JsonPrimitive).content
+            val recent = (decoded.getValue("messages") as kotlinx.serialization.json.JsonPrimitive).content
+            assertTrue(recent.endsWith("NEWEST MESSAGE"))
+            assertTrue(recent.length <= 12000)
+            assertFalse(summary.first().isLowSurrogate())
+            assertFalse(recent.first().isLowSurrogate())
+        } finally { graph.close(); driver.close() }
+    }
+
     @Test fun completedRunsProposeIdempotentFactsAndRejectInventedLinks() = runBlocking {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
         val graph = Graph(dependencyAdapter = KoinDependencyAdapter(koinApplication {}))
@@ -20,8 +41,11 @@ class MemoryExtractorTest {
             val scope = MemoryScope(MemoryScopeKind.Workspace, "workspace")
             val run = AgentRunRecord("run", "thread", RuntimeKind.Codex, "fingerprint", "Run", status = AgentRunStatus.Completed,
                 startedAt = 1, updatedAt = 2, output = "Actor writes passed their checks")
-            val extractor = MemoryExtractor(runtime.api) { """[{"kind":"Gotcha","title":"Actor writes","text":"Route writes through the scope actor","links":[]}]""" }
-            val facts = extractor.extract(run, scope, "osprey", listOf("Use actors"))
+            var input = ""
+            val extractor = MemoryExtractor(runtime.api) { input = it; """[{"kind":"Gotcha","title":"Actor writes","text":"Route writes through the scope actor","links":[]}]""" }
+            val longRun = run.copy(output = "old evidence ".repeat(4000) + "FINAL DECISION MARKER")
+            val facts = extractor.extract(longRun, scope, "osprey", listOf("Use actors"))
+            assertContains(input, "FINAL DECISION MARKER")
             assertEquals(MemoryStatus.Proposed, facts.single().status)
             assertTrue(runtime.api.recall(RecallFacts(listOf(scope))).isEmpty())
             assertEquals(facts, extractor.extract(run, scope, "osprey", emptyList()))

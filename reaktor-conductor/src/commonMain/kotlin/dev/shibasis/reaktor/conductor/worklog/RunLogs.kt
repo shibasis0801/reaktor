@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.conductor.worklog
 
+import dev.shibasis.reaktor.conductor.ConductorJson
+import kotlinx.serialization.json.*
 import dev.shibasis.reaktor.conductor.ActivityKind
 import dev.shibasis.reaktor.conductor.ActivityStatus
 import dev.shibasis.reaktor.conductor.AgentActivityRecord
@@ -8,6 +10,7 @@ import dev.shibasis.reaktor.conductor.EventKind
 import dev.shibasis.reaktor.conductor.ThreadEvent
 
 object RunLogs {
+    private val Whitespace = Regex("\\s+")
     private val CouncilContributions = setOf(EventKind.Proposal, EventKind.Critique, EventKind.Revision)
 
     fun agentName(provider: String): String = when (provider.lowercase()) {
@@ -19,7 +22,7 @@ object RunLogs {
         else -> provider
     }
 
-    fun of(events: List<ThreadEvent>, activity: List<AgentActivityRecord>, partial: Boolean, council: Boolean = false, name: (String) -> String = ::agentName): WorkLog {
+    fun of(events: List<ThreadEvent>, activity: List<AgentActivityRecord>, partial: Boolean, council: Boolean = false, profile: Boolean = false, name: (String) -> String = ::agentName): WorkLog {
         val turns = mutableListOf<Turn>()
         events.forEach { event ->
             val at = event.createdAtEpochMillis.takeIf { it > 0 }
@@ -37,13 +40,43 @@ object RunLogs {
             turn.did += step(record, name)
             if (turn.ended == null || record.recordedAt > turn.ended!!) turn.ended = record.recordedAt
         }
-        return WorkLog(turns.map { it.build() }, partial)
+        return WorkLog(turns.map { it.build(profile) }, partial)
     }
 
-    fun prompts(log: WorkLog, events: List<ThreadEvent>): WorkLog {
-        val asked = events.filter { it.author is Author.Human }.map { it.text }
-        if (asked.size != log.turns.size) return log
-        return log.copy(turns = log.turns.zip(asked) { turn, prompt -> turn.copy(prompt = prompt) })
+    fun prompts(log: WorkLog, events: List<ThreadEvent>, profile: Boolean = false): WorkLog {
+        val source = if (!profile) log else log.copy(turns = log.turns.map { turn ->
+            val parsed = WorkPrompts.of(turn.context?.sent ?: turn.prompt)
+            if (parsed.text == turn.prompt) turn else turn.copy(prompt = parsed.text, context = parsed.context ?: turn.context)
+        })
+        val asked = events.filter { it.author is Author.Human }.map { WorkPrompts.of(it.text) }
+        val normalized = source.turns.map { it.prompt?.trim()?.replace(Whitespace, " ") }
+        val turns = source.turns.toMutableList()
+        var next = 0
+        var matched = false
+        var aligned = true
+        val matchedTurns = mutableSetOf<Int>()
+        asked.forEachIndexed { position, prompt ->
+            val text = prompt.text?.trim()?.replace(Whitespace, " ")
+            val index = (next until turns.size).firstOrNull { normalized[it] == text }
+            if (index != null) {
+                val turn = turns[index]
+                turns[index] = turn.copy(prompt = prompt.text, context = turn.context ?: prompt.context)
+                next = index + 1
+                matched = true
+                aligned = aligned && index == position
+                matchedTurns += index
+            }
+        }
+        if (asked.size == turns.size && aligned) {
+            asked.forEachIndexed { index, prompt ->
+                if (index !in matchedTurns && WorkPrompts.isEnvelope(turns[index].prompt)) {
+                    val turn = turns[index]
+                    turns[index] = turn.copy(prompt = prompt.text, context = turn.context ?: prompt.context)
+                }
+            }
+            return source.copy(turns = turns)
+        }
+        return if (matched) source.copy(turns = turns) else source
     }
 
     private class Turn(val id: String, val prompt: String?, val at: Long?) {
@@ -52,9 +85,12 @@ object RunLogs {
         val said = mutableListOf<WorkStep>()
         var ended: Long? = at
 
-        fun build() = WorkTurn(id, prompt, at, ended, did + listOfNotNull(contributions.takeIf { it.isNotEmpty() }?.let { steps ->
-            WorkStep.Subagent("$id:council", steps.first().at, "${steps.size} council contributions · proposals and cross-review", steps = steps, status = StepStatus.Done)
-        }) + said)
+        fun build(profile: Boolean): WorkTurn {
+            val parsed = WorkPrompts.of(prompt)
+            return WorkTurn(id, parsed.text, at, ended, did + listOfNotNull(contributions.takeIf { it.isNotEmpty() }?.let { steps ->
+                WorkStep.Subagent("$id:council", steps.first().at, "${steps.size} council contributions · proposals and cross-review", steps = steps, status = StepStatus.Done)
+            }) + said, context = parsed.context)
+        }
     }
 
     private fun MutableList<Turn>.ensure(at: Long?): Turn = lastOrNull() ?: Turn("run-start", null, at).also { add(it) }
@@ -86,11 +122,25 @@ object RunLogs {
                 else WorkStep.Subagent(id, record.recordedAt, item.title, steps = item.nativeAgents.mapNotNull { agent ->
                     agent.output?.let { WorkStep.Message("$id:${agent.id}", record.recordedAt, it, agent.name ?: agent.id) }
                 }, result = item.output, status = status)
-            ActivityKind.Plan -> WorkStep.Tool(id, record.recordedAt, ToolKind.Other, "Plan", item.title, item.input, item.output, status)
+            ActivityKind.Plan -> plan(id, record.recordedAt, item.input)
+                ?: WorkStep.Tool(id, record.recordedAt, ToolKind.Other, "Plan", item.title, item.input, item.output, status)
             ActivityKind.Context -> WorkStep.Note(id, record.recordedAt, NoteKind.Compaction, item.title)
             ActivityKind.Checkpoint -> WorkStep.Note(id, record.recordedAt, NoteKind.Checkpoint, item.title)
             ActivityKind.Recovery -> WorkStep.Note(id, record.recordedAt, NoteKind.Interrupted, item.title)
             ActivityKind.Control -> WorkStep.Note(id, record.recordedAt, if (status == StepStatus.Failed) NoteKind.Error else NoteKind.Info, item.title)
         }
     }
+    private fun plan(id: String, at: Long, input: String?): WorkStep.Plan? = runCatching {
+        val value = ConductorJson.parseToJsonElement(input ?: return null).jsonObject
+        val items = value["plan"]?.jsonArray?.map { entry ->
+            val item = entry.jsonObject
+            PlanItem(item.getValue("step").jsonPrimitive.content, when (item["status"]?.jsonPrimitive?.content) {
+                "completed" -> PlanState.Done
+                "in_progress" -> PlanState.Active
+                else -> PlanState.Pending
+            })
+        } ?: return null
+        WorkStep.Plan(id, at, items, value["explanation"]?.jsonPrimitive?.contentOrNull)
+    }.getOrNull()
+
 }

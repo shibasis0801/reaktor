@@ -34,20 +34,29 @@ internal fun agentTeamTools(workspace: AgentWorkspace): List<McpTool> {
         "required" to JsonArray(((schema["required"] as? JsonArray).orEmpty() + JsonPrimitive("by")).distinct()),
     ))
     return listOf(
-        McpTool("agent_team_read", "Read the agent team as a graph: members (saved profiles with their four-part tuple and memory role, elephant or goldfish), groups such as a council, " +
-            "and typed links: supervises, critic of and pairs with. Pass since, the revision you last read, to get news; shape=true adds its reaktor-graph shape.",
+        McpTool("agent_team_read", "Read the agent team. Topologies are graphs of nodes and edges with no roles in them: the built-in ${Topologies.builtIns.joinToString { it.id }} and the team's own. " +
+            "A variant is a topology with any saved agent or bare model level on each node, a prompt appended to every node's prompt so the nodes work as one, and optional prompts per node. " +
+            "Pass since, the revision you last read, to get news; briefs=true adds what each variant node's agent receives; shape=true adds its reaktor-graph shape.",
             api.read.request.descriptor.jsonSchema(), true, true) { args ->
-            args.only("since", "history", "shape", "by")
+            args.only("since", "history", "shape", "briefs", "by")
             val read = workspace.team.read(args.long("since"), args.actor())
             buildJsonObject {
                 put("team", AgentWorkspaceJson.encodeToJsonElement(AgentTeam.serializer(), if (args.flag("history")) read.team else read.team.copy(changes = emptyList())))
                 put("tuples", buildJsonObject { read.team.active.forEach { member -> profile(member.profile)?.let { put(member.profile, AgentLabel.of(it)) } } })
                 if (args.long("since") != null) put("news", changes(read.news))
                 if (args.flag("shape")) put("shape", AgentWorkspaceJson.encodeToJsonElement(GraphShape.serializer(), read.team.shape(::profile)))
+                if (args.flag("briefs")) put("briefs", buildJsonObject {
+                    read.team.variants.forEach { variant ->
+                        put(variant.key, buildJsonObject { read.team.briefs(variant, ::profile).forEach { (node, brief) -> put(node, brief.text) } })
+                    }
+                })
             }
         },
-        McpTool("agent_team_write", "Change the agent team: add-member, retire-member (a person only), relate, unrelate, group and ungroup. " +
-            "Pass base, the revision you read: an op on a member, link or group someone else changed after it is refused for that op only, and news lists their changes. " +
+        McpTool("agent_team_write", "Change the agent team. topology adds or replaces one of the team's own topologies (id, title, summary, nodes with key and name, edges with from, to and an optional label); " +
+            "untopology removes one no variant uses. variant adds a variant of a topology under a key, or renames it and replaces its prompt; unvariant removes it. " +
+            "attach puts any saved agent, or a bare model level (model: catalog key such as claude-opus-5-5:max) whose system prompt is then the variant prompt, on a node of a variant; with neither it clears the node. node-prompt sets one node's extra prompt. " +
+            "The member chart keeps add-member, retire-member (a person only), relate, unrelate, group and ungroup. " +
+            "Pass base, the revision you read: an op on a record someone else changed after it is refused for that op only, and news lists their changes. " +
             "The answer lists what applied, what was refused and why, and the new revision.",
             withActor(api.write.request.descriptor.jsonSchema()),
             readOnly = false, idempotent = false) { args ->

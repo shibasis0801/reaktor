@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -39,6 +41,24 @@ fun AlertDialog(
 ) {
     val disclosure = rememberDisclosure(expanded, onExpandedChange, enabled, behavior)
     Box(modifier, propagateMinConstraints = true) { DialogScope(disclosure, dismissOutside = false).content() }
+}
+
+@Composable
+fun InlineDialog(
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    scrim: Color = Color.Black.copy(alpha = 0.4f),
+    content: @Composable () -> Unit,
+) {
+    if (!expanded) return
+    val change by rememberUpdatedState(onExpandedChange)
+    Box(modifier.onEscape { change(false) }, propagateMinConstraints = true) {
+        Box(Modifier.fillMaxSize().background(scrim).pointerInput(Unit) { detectTapGestures { change(false) } })
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Box(Modifier.pointerInput(Unit) { detectTapGestures { } }) { content() }
+        }
+    }
 }
 
 @Stable

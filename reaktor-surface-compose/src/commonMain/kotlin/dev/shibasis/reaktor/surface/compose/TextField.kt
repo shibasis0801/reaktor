@@ -99,7 +99,10 @@ fun SecureTextField(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     appearance: FieldAppearance = LocalAppearances.current.field,
-) = Field("SecureTextField", state, modifier, enabled, false, null, appearance, null, null, null, null) { field, style, source, cursor, decorator, _ ->
+    label: String? = null,
+    imeAction: androidx.compose.ui.text.input.ImeAction = androidx.compose.ui.text.input.ImeAction.Default,
+    onKeyboardAction: KeyboardActionHandler? = null,
+) = Field("SecureTextField", state, modifier, enabled, false, label, appearance, null, null, null, Typing(KeyboardOptions(autoCorrectEnabled = false, keyboardType = androidx.compose.ui.text.input.KeyboardType.Password, imeAction = imeAction), TextFieldLineLimits.SingleLine)) { field, style, source, cursor, decorator, typing ->
     val observer = LocalSurfaceEventObserver.current
     val element = currentCompositeKeyHash.toUInt().toString(16)
     BasicSecureTextField(
@@ -108,6 +111,10 @@ fun SecureTextField(
             override fun TextFieldBuffer.transformInput() { observe.onEvent(element, "edit") { } }
         } },
         enabled = enabled,
+        keyboardOptions = typing.keyboard,
+        onKeyboardAction = if (observer == null) onKeyboardAction else KeyboardActionHandler { default ->
+            observer.onEvent(element, "submit") { onKeyboardAction?.onKeyboardAction(default) ?: default() }
+        },
         modifier = field,
         textStyle = style,
         interactionSource = source,

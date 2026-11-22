@@ -1,5 +1,8 @@
 package dev.shibasis.reaktor.blueprint
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
 import dev.shibasis.reaktor.blueprint.canvas.Area
 import dev.shibasis.reaktor.ui.machinesignal.colors
 
@@ -25,10 +28,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -44,10 +49,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFontFamilyResolver
 import androidx.compose.ui.platform.LocalGraphicsContext
@@ -63,6 +72,7 @@ import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
@@ -97,6 +107,9 @@ import dev.shibasis.reaktor.blueprint.editor.Gesture
 import dev.shibasis.reaktor.blueprint.editor.GraphEditor
 import dev.shibasis.reaktor.blueprint.editor.GraphEditorLayer
 import dev.shibasis.reaktor.blueprint.editor.Selection
+import dev.shibasis.reaktor.blueprint.editor.Request
+import dev.shibasis.reaktor.blueprint.editor.Spot
+import dev.shibasis.reaktor.surface.compose.observedCombinedClickable
 import dev.shibasis.reaktor.surface.ThemeSnapshot
 import dev.shibasis.reaktor.surface.TooltipState
 import dev.shibasis.reaktor.surface.compose.ComposeFeedback
@@ -107,6 +120,8 @@ import dev.shibasis.reaktor.surface.compose.TooltipAppearance
 import dev.shibasis.reaktor.surface.compose.TooltipSlots
 import dev.shibasis.reaktor.ui.machinesignal.LocalMachineSignalFonts
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignal
+
+val LocalBlueprintMapLabels = staticCompositionLocalOf { false }
 
 object Blueprint {
     val Container: Color @Composable get() = MachineSignal.colors.source
@@ -197,6 +212,7 @@ fun <K> BlueprintCanvas(
     mapLayers: Boolean = false,
     mapDetail: Boolean = false,
 ) {
+    val mapLabels = LocalBlueprintMapLabels.current
     val cards = remember(layout) { layout.cards.values.toList() }
     val boxes = remember(layout) { layout.frames + cards }
     val detailLevel by remember(canvas) { derivedStateOf { canvas.level(canvas.zoom) } }
@@ -215,9 +231,9 @@ fun <K> BlueprintCanvas(
     val glows = cards.map { glow(it.id) }
     val tints = editor?.placement?.notes?.associate { it.id to it.tint }
     val frameLooks = layout.frames.map { frame -> frameLook(frame).let { look -> tints?.get(frame.key)?.takeIf { it != 0L }?.let { look.copy(lit = Color(it.toInt())) } ?: look } }
-    val controlled = frameLooks.indices.filter { frameLooks[it].hasHeaderContent } +
-        cards.indices.filter { looks[it]?.drawsControls == true }.map { it + layout.frames.size }
-    val carried = cards.indices.filter { cardContent != null || looks[it]?.agent != null }.map { it + layout.frames.size }
+    val controlled = (if (detailLevel == 2) frameLooks.indices.filter { frameLooks[it].hasHeaderContent } else emptyList()) +
+        (if (detailLevel > 0) cards.indices.filter { looks[it]?.drawsControls == true }.map { it + layout.frames.size } else emptyList())
+    val carried = if (detailLevel > 0) cards.indices.filter { cardContent != null || looks[it]?.agent != null }.map { it + layout.frames.size } else emptyList()
     val stillIndices = remember(markerIndices, controlled) { controlled.toHashSet().let { live -> markerIndices.filter { it !in live } } }
     val liveIndices = remember(markerIndices, controlled, carried) { (controlled + carried).toHashSet().let { live -> markerIndices.filter { it in live } } }
     val stillBoxes = remember(boxes, stillIndices) { stillIndices.map(boxes::get) }
@@ -232,8 +248,8 @@ fun <K> BlueprintCanvas(
     val direction = LocalLayoutDirection.current
     val graphics = LocalGraphicsContext.current
     val colors = MachineSignal.colors
-    val painter = remember(graphics, resolver, direction, fonts, base, colors, denseOverview, mapLayers, mapDetail) {
-        BlueprintPainter(graphics, TextMeasurer(resolver, Density(1f), direction, cacheSize = if (mapLayers) MapTextCache else 512), BlueprintType(fonts.ui, fonts.mono, base, fonts.graphLabel), colors, denseOverview, mapLayers, mapDetail)
+    val painter = remember(graphics, resolver, direction, fonts, base, colors, denseOverview, mapLayers, mapDetail, mapLabels) {
+        BlueprintPainter(graphics, TextMeasurer(resolver, Density(1f), direction, cacheSize = MapTextCache), BlueprintType(fonts.ui, fonts.mono, base, fonts.graphLabel), colors, denseOverview, mapLayers, mapDetail, mapLabels)
     }
     fun syncPainter() {
         canvas.insetTop = topInset.value.toDouble()
@@ -329,16 +345,16 @@ fun <K> BlueprintCanvas(
                     pinClick?.let { click -> { card, pin -> focus(); click(card, pin) } }, slots, lean = mapLayers)
             }
             @Composable fun Region(frame: Frame, look: BlueprintFrameLook) {
-                val slots = if (look.hasHeaderContent && detailLevel == 2) painter.frameHeaderSlots(frame, look) else null
+                val slots = if (!mapLabels && look.hasHeaderContent && detailLevel == 2) painter.frameHeaderSlots(frame, look) else null
                 FrameMarker(frame, Area(frame.x, frame.y, frame.width, BlueprintEngine.FrameTop), look,
                     frameClick?.let { click -> { focus(); click(frame) } }, slots)
             }
-            GraphMarkers(canvas, stillBoxes, { markerId(stillIndices[it]) }, follow = false, batch = if (mapLayers) MapMarkerBatch else Int.MAX_VALUE) { marker, _ ->
+            GraphMarkers(canvas, stillBoxes, { markerId(stillIndices[it]) }, follow = mapLayers, batch = if (mapLayers) MapMarkerBatch else Int.MAX_VALUE) { marker, _ ->
                 val i = stillIndices[marker]
                 if (i < layout.frames.size) Region(layout.frames[i], frameLooks[i])
                 else looks[i - layout.frames.size]?.let { look -> Marker(cards[i - layout.frames.size], look) }
             }
-            if (liveBoxes.isNotEmpty()) GraphMarkers(canvas, liveBoxes, { markerId(liveIndices[it]) }) { marker, _ ->
+            if (liveBoxes.isNotEmpty()) GraphMarkers(canvas, liveBoxes, { markerId(liveIndices[it]) }, immediate = mapLayers) { marker, _ ->
                 val i = liveIndices[marker]
                 val moving = editor?.takeIf { it.settled.cards === layout.cards }?.layout
                 if (i < layout.frames.size) {
@@ -358,6 +374,29 @@ fun <K> BlueprintCanvas(
                         }
                     }
                 }
+            }
+            if (mapLabels && frameLooks.any { it.hasHeaderContent }) {
+                syncPainter()
+                painter.inset(canvas.insetStart.toFloat(), canvas.insetTop.toFloat(), canvas.insetEnd.toFloat(), canvas.insetBottom.toFloat())
+                painter.prepareFrameLabels(canvas.viewport(), Size((canvas.flow.canvasSize.width / density).toFloat(), (canvas.flow.canvasSize.height / density).toFloat())).forEachIndexed { i, bounds ->
+                if (bounds != null) frameLooks.getOrNull(i)?.takeIf { it.hasHeaderContent }?.let { look ->
+                    val frame = layout.frames[i].copy(width = bounds.width.toDouble())
+                    var windowAt by remember(frame.key) { mutableStateOf(Offset.Zero) }
+                    val editing = editable && editor?.editOnDoubleClick(frame.key) == true
+                    Box(Modifier.at(bounds.left.toDouble(), bounds.top.toDouble(), bounds.width.toDouble(), bounds.height.toDouble())
+                        .onGloballyPositioned { windowAt = it.positionInWindow() }) {
+                        Box(Modifier.fillMaxSize().then(if (!editing) Modifier else Modifier.observedCombinedClickable(
+                            onClick = { focus(); frameClick?.invoke(frame) },
+                            onDoubleClick = {
+                                focus()
+                                frameClick?.invoke(frame)
+                                editor?.request = Request.Rename(Spot(frame.x, frame.y), windowAt, frame.key, true)
+                            }))) {
+                            painter.frameLabelSlots(i, look)?.let { HeaderContent(it, look.titleContent, look.markContent) }
+                        }
+                    }
+                }
+            }
             }
         },
     ) { camera, viewport, scale ->
@@ -419,6 +458,8 @@ internal object BlueprintBadgeStyle {
     const val HorizontalPadding = 5f
     const val MinHeight = 16f
     const val Radius = 3f
+    const val DotRadius = 2f
+    const val DotRoom = 8f
     const val Tint = .18f
     val Shape = RoundedCornerShape(Radius.dp)
 }
@@ -434,7 +475,10 @@ fun BlueprintBadge(mark: BlueprintMark, highlighted: Boolean = false) {
             .padding(horizontal = BlueprintBadgeStyle.HorizontalPadding.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(mark.text, style = LocalTextStyle.current.copy(color = mark.color), maxLines = 1, softWrap = false)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s1)) {
+            Box(Modifier.size(MachineSignal.Space.s1).background(mark.color, CircleShape))
+            dev.shibasis.reaktor.surface.compose.Text(mark.text, ink = dev.shibasis.reaktor.surface.Ink.Strong)
+        }
     }
 }
 
@@ -450,7 +494,7 @@ private fun AgentMarker(card: Card, agent: BlueprintAgent, bounds: BlueprintBadg
         .wrapContentSize(Alignment.TopStart, unbounded = true)
         .requiredSize((bounds.width / bounds.scale).toFloat().dp, (bounds.height / bounds.scale).toFloat().dp)
         .graphicsLayer { scaleX = bounds.scale.toFloat(); scaleY = scaleX; transformOrigin = TransformOrigin(0f, 0f) }) {
-        BlueprintAgentBadge(agent, { onOpen(agent) }, Modifier.fillMaxSize(), compact = bounds.compact, visible = visible, tag = "blueprint-agent-${card.id}", fillHeight = true)
+        BlueprintAgentBadge(agent, { onOpen(agent) }, Modifier.fillMaxSize(), compact = bounds.compact, visible = visible, tag = "blueprint-agent-${card.id}", fillHeight = true, onParticipantOpen = onOpen)
     }
 }
 
@@ -569,6 +613,44 @@ fun measureBlueprintBody(node: BlueprintNode, look: BlueprintCardLook): Blueprin
     }
     return remember(painter, node, look) { painter.body(node, look) }
 }
+
+@Composable
+fun measureBlueprintBodies(entries: Map<String, Pair<BlueprintNode, BlueprintCardLook>>, background: Boolean = false,
+    onMeasure: (() -> Unit)? = null, onFontResolver: ((FontFamily.Resolver) -> Unit)? = null): Map<String, BlueprintBody> {
+    val fonts = LocalMachineSignalFonts.current
+    val base = LocalTextStyle.current
+    val resolver = LocalFontFamilyResolver.current
+    val direction = LocalLayoutDirection.current
+    val graphics = LocalGraphicsContext.current
+    val colors = MachineSignal.colors
+    if (background) {
+        val createResolver = blueprintBodyFontResolverFactory()
+        val measured by produceState<Pair<Map<String, Pair<BlueprintNode, BlueprintCardLook>>, Map<String, BlueprintBody>>?>(
+            null, entries, listOf(graphics, createResolver, direction, fonts, base, colors)) {
+            val bodies = withContext(Dispatchers.Default) {
+                onMeasure?.invoke()
+                val bodyResolver = createResolver()
+                onFontResolver?.invoke(bodyResolver)
+                val painter = BlueprintPainter(graphics, TextMeasurer(bodyResolver, Density(1f), direction, cacheSize = 2048),
+                    BlueprintType(fonts.ui, fonts.mono, base, fonts.graphLabel), colors)
+                entries.mapValues { (_, pair) -> painter.body(pair.first, pair.second) }
+            }
+            value = entries to bodies
+        }
+        return measured?.takeIf { it.first == entries }?.second.orEmpty()
+    }
+    val painter = remember(graphics, resolver, direction, fonts, base, colors) {
+        BlueprintPainter(graphics, TextMeasurer(resolver, Density(1f), direction, cacheSize = 2048), BlueprintType(fonts.ui, fonts.mono, base, fonts.graphLabel), colors)
+    }
+    return remember(painter, entries) {
+        onMeasure?.invoke()
+        onFontResolver?.invoke(resolver)
+        entries.mapValues { (_, pair) -> painter.body(pair.first, pair.second) }
+    }
+}
+
+@Composable
+internal expect fun blueprintBodyFontResolverFactory(): () -> FontFamily.Resolver
 
 @Composable
 fun BlueprintLegend(entries: List<LegendEntry>, modifier: Modifier = Modifier) {

@@ -1,6 +1,7 @@
 package dev.shibasis.reaktor.conductor.cli
 
 import dev.shibasis.reaktor.conductor.*
+import dev.shibasis.reaktor.conductor.telemetry.GeminiTelemetry
 import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -26,13 +27,7 @@ import java.io.File
 class AntigravityRuntime(
     executor: SupervisedProcessExecutor,
     private val binary: String = "agy",
-    /**
-     * Models to try, best first.
-     *
-     * Pro before Flash because this seat does real work; the Flash entries are the degradation path
-     * for a busy hour, not a cost saving. Every entry is on the same Google allowance, so moving
-     * down the list changes what answers, never who pays.
-     */
+    /** The first candidate is the default. Capacity retries stay within the selected family. */
     private val candidates: List<String> = defaultAntigravityModels,
 ) : CliAgentRuntime(executor) {
     override val kind = RuntimeKind.Gemini
@@ -84,8 +79,10 @@ internal fun requireAntigravityGoogleAccount() {
     }
 }
 
-internal fun antigravityModelOrder(requested: String?, candidates: List<String>): List<String> =
-    if (requested != null) listOf(requested) + candidates.filter { it != requested && it.antigravityFamily == requested.antigravityFamily } else candidates
+internal fun antigravityModelOrder(requested: String?, candidates: List<String>): List<String> {
+    val preferred = requested ?: candidates.firstOrNull() ?: return emptyList()
+    return listOf(preferred) + candidates.filter { it != preferred && it.antigravityFamily == preferred.antigravityFamily }
+}
 
 private val String.antigravityFamily: String get() = substringBeforeLast('-')
 
@@ -94,28 +91,41 @@ internal fun antigravityCapacitySwitch(agent: AgentId, index: Int, model: String
         "$model is at capacity; trying $next", ActivityStatus.Recorded, output = refused.failure?.take(2000)))
 
 /**
- * Antigravity's preference order for this seat, best first: Gemini 4 Argon only, since a run that
- * steps down to Gemini 3.8 Flash is a different agent from the one the owner chose. A named model
- * steps down only to other efforts of itself (see [antigravityModelOrder]).
- *
- * Verified present on `agy models` (agy 1.4.10) and answering on this account, 30 October 2026. Antigravity
- * also serves `claude-*` and `gpt-oss-*` on the same allowance; those are reachable by naming one
- * explicitly, and are deliberately not the default, because a seat called ChatGPT + Gemini that
- * quietly runs Claude is a seat nobody can reason about when they are choosing a fallback.
+ * Argon High is the automatic choice. Explicit Carbon requests can use their own capacity
+ * ladder. Both families step through their efforts in this order (see [antigravityModelOrder]).
  */
 val defaultAntigravityModels: List<String> = listOf(
     "gemini-4-argon-high",
     "gemini-4-argon-medium",
     "gemini-4-argon-low",
+    "gemini-4-carbon-high",
+    "gemini-4-carbon-medium",
+    "gemini-4-carbon-low",
+    "gemini-4-hydrogen-xhigh",
+    "gemini-4-hydrogen-high",
+    "gemini-4-hydrogen-medium",
+    "gemini-4-hydrogen-low",
+    "gemini-4-neon-xhigh",
+    "gemini-4-neon-high",
+    "gemini-4-neon-medium",
+    "gemini-4-neon-low",
 )
 
 val antigravityModelNames: Map<String, String> = linkedMapOf(
+    "gemini-4-neon-xhigh" to "Gemini 4 Neon (XHigh)",
+    "gemini-4-neon-high" to "Gemini 4 Neon (High)",
+    "gemini-4-carbon-high" to "Gemini 4 Carbon (High)",
     "gemini-4-argon-high" to "Gemini 4 Argon (High)",
+    "gemini-4-hydrogen-xhigh" to "Gemini 4 Hydrogen (XHigh)",
+    "gemini-4-hydrogen-high" to "Gemini 4 Hydrogen (High)",
+    "gemini-4-neon-medium" to "Gemini 4 Neon (Medium)",
+    "gemini-4-carbon-medium" to "Gemini 4 Carbon (Medium)",
     "gemini-4-argon-medium" to "Gemini 4 Argon (Medium)",
+    "gemini-4-hydrogen-medium" to "Gemini 4 Hydrogen (Medium)",
+    "gemini-4-neon-low" to "Gemini 4 Neon (Low)",
+    "gemini-4-carbon-low" to "Gemini 4 Carbon (Low)",
     "gemini-4-argon-low" to "Gemini 4 Argon (Low)",
-    "gemini-3.8-flash-high" to "Gemini 3.8 Flash (High)",
-    "gemini-3.8-flash-medium" to "Gemini 3.8 Flash (Medium)",
-    "gemini-3.8-flash-low" to "Gemini 3.8 Flash (Low)",
+    "gemini-4-hydrogen-low" to "Gemini 4 Hydrogen (Low)",
 )
 
 fun antigravityModels(executable: String = "agy", timeoutSeconds: Long = 30): Map<String, String> {
@@ -133,8 +143,12 @@ fun parseAntigravityModels(output: String): Map<String, String> = output.lineSeq
     .mapNotNull { line -> line.split('\t').takeIf { it.size >= 2 && it[0].isNotBlank() }?.let { it[0].trim() to it[1].trim() } }
     .toMap(linkedMapOf())
 
-internal fun AgentRequest.withModel(model: String) =
-    if (agent.model == model) this else copy(agent = agent.copy(model = model))
+internal fun AgentRequest.withModel(model: String): AgentRequest {
+    if (agent.model == model) return this
+    // A variant chosen during a capacity retry already encodes its own effort.
+    val effort = agent.effort?.takeUnless { it.value == agent.model?.substringAfterLast('-') }
+    return copy(agent = agent.copy(model = model, effort = effort))
+}
 
 /** Whether the service refused because a model is full, rather than because the turn was bad. */
 internal fun AgentOutcome.outOfCapacity(): Boolean {
@@ -180,7 +194,7 @@ private fun antigravityFlags(request: AgentRequest): List<String> = buildList {
     // workspace. Verified against agy 1.2.2 on 14 September 2026: with the mode applied a write
     // is refused and reported in denied_actions. Expansion only reads a prompt that begins with a
     // slash, and this prompt always begins with Reaktor's own workspace line.
-    add("--mode"); add(if (policy.allowWrites) "accept-edits" else "plan")
+    add("--mode"); add(policy.antigravityMode())
     add("--dangerously-skip-permissions")
     add("--add-dir"); add(root)
     policy.additionalDirectories.forEach { add("--add-dir"); add(it) }
@@ -339,20 +353,14 @@ class AntigravityEventParser(
         // A reconstruction is evidence of activity, never evidence of success.
         val ok = exitCode == 0 && result?.text("status") == "SUCCESS" && reconstructed == null &&
             text.isNotBlank() && denied.isEmpty()
-        val input = usage?.get("input_tokens")?.jsonPrimitive?.longOrNull
-        val cached = usage?.get("cache_read_tokens")?.jsonPrimitive?.longOrNull
         val failure = result?.text("error")?.takeIf { it.isNotBlank() }
             ?: if (denied.isNotEmpty()) deniedDetail(denied) else stderr.takeLast(2000).ifBlank { blankAnswer(result?.text("status")) }
         return AgentOutcome(agent, text, ok,
             failure = if (ok) null else if (failure.contains("authentication failed or timed out", ignoreCase = true))
                 "$failure. Run agy in a terminal, complete Google sign-in there, then send a new turn in Hangar." else failure,
-            session = session, usage = usage?.let { AgentUsage(inputTokens = input,
-                outputTokens = it["output_tokens"]?.jsonPrimitive?.longOrNull,
-                cachedInputTokens = cached?.takeIf { value -> input != null && value <= input },
-                reasoningOutputTokens = it["thinking_tokens"]?.jsonPrimitive?.longOrNull,
-                scope = UsageScope.ProviderSessionTotal) },
+            session = session,
+            usage = usage?.let { GeminiTelemetry.parseApiUsage(it, model = model, scope = UsageScope.ProviderSessionTotal).toAgentUsage() },
             effort = EffortRecord(requested = effort, resolved = effort), interrupted = result?.text("status") in listOf("CANCELED", "INTERRUPTED"),
-            attributes = buildMap { put("executorHarness", "Antigravity"); put("entitlement", "GoogleAgent"); model?.let { put("model", it) }
-                if (cached != null && input != null && cached > input) put("usageNotice", "Native cache count exceeds reported input; inclusive cache accounting is unknown") })
+            attributes = buildMap { put("executorHarness", "Antigravity"); put("entitlement", "GoogleAgent"); model?.let { put("model", it) } })
     }
 }

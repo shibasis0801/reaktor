@@ -2,6 +2,7 @@ package dev.shibasis.reaktor.conductor.appserver
 
 import dev.shibasis.reaktor.conductor.*
 import dev.shibasis.reaktor.conductor.cli.ClaudeCodeRuntime
+import dev.shibasis.reaktor.conductor.workspace.schema
 import dev.shibasis.reaktor.conductor.workspace.TaskReview
 import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
 import dev.shibasis.reaktor.tooling.SupervisedProcessExecutor

@@ -1,6 +1,12 @@
 package dev.shibasis.reaktor.ui.code
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +17,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
@@ -35,7 +42,7 @@ import dev.shibasis.reaktor.ui.machinesignal.colors
 
 enum class CodePresentation { Source, Preview }
 
-internal enum class MarkdownKind { Paragraph, Heading, List, Quote, Code }
+internal enum class MarkdownKind { Paragraph, Heading, List, Quote, Code, Table, Rule }
 
 internal data class MarkdownBlock(
     val kind: MarkdownKind,
@@ -43,6 +50,7 @@ internal data class MarkdownBlock(
     val firstLine: Int,
     val lastLine: Int,
     val language: CodeLanguage = CodeLanguage.Plain,
+    val level: Int = 0,
 )
 
 internal class MarkdownProjection {
@@ -80,7 +88,13 @@ internal fun markdownBlocks(document: CodeDocument, from: Int = 0): List<Markdow
                 if (line < document.lineCount) line++
                 add(MarkdownBlock(MarkdownKind.Code, body, first, line - 1, fence.language))
             }
-            heading != null -> add(MarkdownBlock(MarkdownKind.Heading, heading.groupValues[2], first, first))
+            heading != null -> add(MarkdownBlock(MarkdownKind.Heading, heading.groupValues[2], first, first, level = text.trimStart().takeWhile { it == '#' }.length))
+            text.trim().matches(Regex("(?:-{3,}|\\*{3,}|_{3,})")) -> add(MarkdownBlock(MarkdownKind.Rule, "", first, first))
+            text.contains('|') && line < document.lineCount && markdownTableSeparator(document.line(line)) -> {
+                line++
+                while (line < document.lineCount && document.line(line).isNotBlank() && document.line(line).contains('|')) line++
+                add(MarkdownBlock(MarkdownKind.Table, (first until line).filter { it != first + 1 }.joinToString("\n") { document.line(it) }, first, line - 1))
+            }
             else -> {
                 val kind = markdownKind(text)
                 while (line < document.lineCount) {
@@ -112,6 +126,13 @@ internal fun markdownBlocks(document: CodeDocument, from: Int = 0): List<Markdow
     }
 }
 
+internal fun markdownTableSeparator(line: String): Boolean = line.trim().trim('|').split('|').let { cells ->
+    cells.isNotEmpty() && cells.all { it.trim().matches(Regex(":?-{3,}:?")) }
+}
+
+internal fun markdownTableCells(line: String): List<String> = line.trim().removePrefix("|").removeSuffix("|").split(Regex("(?<!\\\\)\\|"))
+    .map { it.trim().replace("\\|", "|") }
+
 private fun markdownKind(line: String): MarkdownKind = when {
     line.trimStart().startsWith('>') -> MarkdownKind.Quote
     MarkdownSyntax.list.containsMatchIn(line) -> MarkdownKind.List
@@ -138,32 +159,57 @@ internal fun inlineMarkdown(text: String, fonts: MachineSignalFonts, colors: Mac
 }
 
 @Composable
-internal fun MarkdownPreview(state: CodeEditorState, modifier: Modifier, tag: String, scrollable: Boolean = false) {
+internal fun MarkdownPreview(state: CodeEditorState, modifier: Modifier, tag: String, scrollable: Boolean = false, scrollState: androidx.compose.foundation.ScrollState? = null) {
     val colors = MachineSignal.colors
     val fonts = (dev.shibasis.reaktor.surface.compose.LocalThemeSnapshot.current as? MachineSignalSnapshot)?.fonts
         ?: LocalMachineSignalFonts.current
     val blocks = state.markdown.blocks(state.document)
     val content: @Composable (MarkdownBlock) -> Unit = { block ->
-        if (block.kind == MarkdownKind.Code) {
+        if (block.kind == MarkdownKind.Rule) {
+            Box(Modifier.fillMaxWidth().height(MachineSignal.Stroke.hairline).background(colors.line))
+        } else if (block.kind == MarkdownKind.Table) {
+            val rows = remember(block.text) { block.text.lines().map(::markdownTableCells) }
+            val columns = rows.maxOfOrNull { it.size } ?: 1
+            Column(Modifier.fillMaxWidth().border(MachineSignal.Stroke.hairline, colors.line, RoundedCornerShape(MachineSignal.Radius.control))) {
+                rows.forEachIndexed { index, row ->
+                    if (index > 0) Box(Modifier.fillMaxWidth().height(MachineSignal.Stroke.hairline).background(colors.line))
+                    Row(Modifier.fillMaxWidth().then(if (index == 0) Modifier.background(colors.raised) else Modifier)) {
+                        repeat(columns) { column ->
+                            val text = row.getOrElse(column) { "" }
+                            BasicText(inlineMarkdown(text, fonts, colors), Modifier.weight(1f).padding(MachineSignal.Space.s3),
+                                style = TextStyle(color = colors.textStrong, fontFamily = fonts.ui, fontSize = MachineSignal.Type.body,
+                                    fontWeight = if (index == 0) FontWeight.SemiBold else FontWeight.Normal,
+                                    lineHeight = MachineSignal.Type.body * 1.55f))
+                        }
+                    }
+                }
+            }
+        } else if (block.kind == MarkdownKind.Code) {
             CodeViewer(block.text, Modifier.fillMaxWidth().heightIn(min = MachineSignal.Editor.toolbarHeight,
                 max = MachineSignal.Editor.toolbarHeight * 6)
                 .height(MachineSignal.Editor.statusHeight * (block.lastLine - block.firstLine + 1)),
                 language = block.language, showGutter = false, tag = "$tag-code-${block.firstLine}")
         } else {
             val title = block.kind == MarkdownKind.Heading
-            val size = if (title) MachineSignal.Type.title else MachineSignal.Type.body
+            val size = when {
+                !title -> MachineSignal.Type.body
+                block.level == 1 -> MachineSignal.Type.title * 1.25f
+                block.level == 2 -> MachineSignal.Type.title
+                else -> MachineSignal.Type.body * 1.1f
+            }
             val annotated = remember(block.text, fonts, colors) { inlineMarkdown(block.text, fonts, colors) }
             BasicText(annotated, style = TextStyle(color = colors.textStrong, fontFamily = fonts.ui,
                 fontSize = size, fontWeight = if (title) FontWeight.SemiBold else FontWeight.Normal,
-                lineHeight = size * MachineSignal.Editor.Code.lineHeight),
-                modifier = Modifier.fillMaxWidth().then(if (block.kind == MarkdownKind.Quote)
+                lineHeight = size * if (title) 1.3f else 1.6f),
+                modifier = Modifier.fillMaxWidth().then(if (title) Modifier.padding(top = MachineSignal.Space.s3, bottom = MachineSignal.Space.s1) else Modifier).then(if (block.kind == MarkdownKind.Quote)
                     Modifier.background(colors.surface).padding(MachineSignal.Space.s3) else Modifier))
         }
     }
     SelectionContainer(modifier.testTag("$tag-preview")) {
         if (scrollable) LazyColumn(verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s3)) {
             items(blocks, key = { it.firstLine }) { content(it) }
-        } else Column(verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s3)) {
+        } else Column(Modifier.fillMaxWidth().then(if (scrollState != null) Modifier.verticalScroll(scrollState) else Modifier),
+            verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s3)) {
             blocks.forEach { block -> key(block.firstLine) { content(block) } }
         }
     }

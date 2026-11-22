@@ -89,6 +89,17 @@ class ClusterSettingsTest {
         } finally { executor.shutdownNow() }
     }
 
+    @Test fun aMacWithoutTheBuildRouterSaysWhichFolderOrFileIsMissing() = temporary { state ->
+        val absent = state.resolve("absent")
+        assertEquals("The build router is not set up on this Mac: there is no folder $absent",
+            assertFailsWith<IllegalArgumentException> { ClusterSettings(absent).read() }.message)
+        assertEquals("The build router is not set up on this Mac: there is no file ${state.resolve("config.json")}",
+            assertFailsWith<IllegalArgumentException> { ClusterSettings(state).read() }.message)
+        val linked = Files.createSymbolicLink(state.resolve("linked"), Files.createDirectory(state.resolve("real")))
+        assertEquals("Build router settings are not read through a symbolic link: $linked",
+            assertFailsWith<IllegalArgumentException> { ClusterSettings(linked).read() }.message)
+    }
+
     @Test fun settingsReadAndUpdateUseTheTypedServiceBoundary() = temporary { state ->
         Files.writeString(state.resolve("config.json"), "{}")
         val reader = ClusterReader(state, HostProbe(ClusterCommands { _, _ -> CommandResult(0, "hw.ncpu: 14") }))

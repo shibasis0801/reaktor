@@ -46,13 +46,13 @@ class AgentRecoveryTest {
             }
         }
         try {
-            val owner = AgentWorkspace(root, data, mapOf(RuntimeKind.Echo to waiting), background = true)
+            val owner = fixtureWorkspace(root, data, mapOf(RuntimeKind.Echo to waiting), background = true)
             val run = owner.submit(AgentSubmission("interrupted", RuntimeKind.Echo, "original"))
             withTimeout(10000) { started.await() }
             owner.queue(run.id, AgentSubmission("followup", RuntimeKind.Echo, "queued", run.threadId))
             owner.suspendAndClose()
             var calls = 0
-            AgentWorkspace(root, data, mapOf(RuntimeKind.Echo to EchoRuntime { calls++; "done" }), background = true).use { reopened ->
+            fixtureWorkspace(root, data, mapOf(RuntimeKind.Echo to EchoRuntime { calls++; "done" }), background = true).use { reopened ->
                 reopened.recoverInBackground()
                 withTimeout(10000) { while (reopened.get(run.id).recovery == AgentRecovery.Pending) delay(20) }
                 assertEquals(AgentRecovery.NeedsReview, reopened.get(run.id).recovery)
@@ -76,14 +76,14 @@ class AgentRecoveryTest {
         val root = Files.createTempDirectory("completed-stage-root").toFile()
         val data = Files.createTempDirectory("completed-stage-data")
         try {
-            val completed = AgentWorkspace(root, data, mapOf(RuntimeKind.Echo to EchoRuntime { "saved answer" }), background = true).use { owner ->
+            val completed = fixtureWorkspace(root, data, mapOf(RuntimeKind.Echo to EchoRuntime { "saved answer" }), background = true).use { owner ->
                 val run = owner.submit(AgentSubmission("checkpoint", RuntimeKind.Echo, "work"))
                 withTimeout(10000) { while (owner.get(run.id).status == AgentRunStatus.Running) delay(20) }
                 owner.get(run.id)
             }
             atomicWrite(data.resolve("recent.json"), "[]")
             atomicWrite(data.resolve("runs/${completed.id}.json"), ConductorJson.encodeToString(AgentRunRecord.serializer(), completed.copy(status = AgentRunStatus.Running)))
-            AgentWorkspace(root, data, mapOf(RuntimeKind.Echo to EchoRuntime { error("Completed stage must be reused") }), background = true).use { owner ->
+            fixtureWorkspace(root, data, mapOf(RuntimeKind.Echo to EchoRuntime { error("Completed stage must be reused") }), background = true).use { owner ->
                 owner.recoverInBackground()
                 withTimeout(10000) { while (owner.get(completed.id).recovery != AgentRecovery.None) delay(20) }
                 assertEquals(AgentRunStatus.Completed, owner.get(completed.id).status)
@@ -103,13 +103,13 @@ class AgentRecoveryTest {
             override fun run(request: AgentRequest) = flow<AgentEvent> { started.complete(Unit); awaitCancellation() }
         }
         try {
-            val runId = AgentWorkspace(root, data, mapOf(runtime.kind to runtime), background = true).use { owner ->
+            val runId = fixtureWorkspace(root, data, mapOf(runtime.kind to runtime), background = true).use { owner ->
                 val run = owner.submit(AgentSubmission("cancel", runtime.kind, "work"))
                 withTimeout(10000) { started.await() }
                 owner.cancel(run.id)
                 run.id
             }
-            AgentWorkspace(root, data, mapOf(RuntimeKind.Echo to EchoRuntime { error("Must not restart") }), background = true).use { owner ->
+            fixtureWorkspace(root, data, mapOf(RuntimeKind.Echo to EchoRuntime { error("Must not restart") }), background = true).use { owner ->
                 owner.recoverInBackground()
                 assertEquals(AgentRunStatus.Interrupted, owner.get(runId).status)
                 assertEquals(AgentRecovery.None, owner.get(runId).recovery)
@@ -132,11 +132,11 @@ class AgentRecoveryTest {
                 }
             }
             try {
-                val owner = AgentWorkspace(root, data, mapOf(runtime.kind to runtime), background = background)
+                val owner = fixtureWorkspace(root, data, mapOf(runtime.kind to runtime), background = background)
                 val run = owner.submit(AgentSubmission("finishing", runtime.kind, "work"))
                 withTimeout(10000) { finished.await() }
                 if (background) owner.suspendAndClose() else owner.close()
-                AgentWorkspace(root, data, mapOf(RuntimeKind.Echo to EchoRuntime { error("A finished result must not run again") }), background = background).use { reopened ->
+                fixtureWorkspace(root, data, mapOf(RuntimeKind.Echo to EchoRuntime { error("A finished result must not run again") }), background = background).use { reopened ->
                     reopened.recoverInBackground()
                     assertEquals(AgentRunStatus.Completed, reopened.get(run.id).status)
                     assertEquals(AgentRecovery.None, reopened.get(run.id).recovery)

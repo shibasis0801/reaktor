@@ -135,5 +135,39 @@ class WorkScoreTest {
     private fun task(id: String, vararg dependencies: String, state: TaskState = TaskState.Succeeded) = BoardTask(id, id, createdBy = actor, createdAt = 0, updatedAt = 0, stageChangedAt = 0,
         graph = TaskPlan("G1", dependsOn = dependencies.map(::TaskDependency), state = state))
 
+    @Test fun planScoreRollsUpComponentsCriticalPathAndUnattributedEdits() {
+        val plan = dev.shibasis.reaktor.conductor.workspace.WorkPlan(
+            thread = "agy:p1",
+            title = "Telemetry",
+            revision = 3,
+            items = listOf(
+                dev.shibasis.reaktor.conductor.workspace.PlanItem(id = "c1", title = "Core", kind = dev.shibasis.reaktor.conductor.workspace.PlanKind.Component),
+                dev.shibasis.reaktor.conductor.workspace.PlanItem(id = "t1", title = "Hierarchy", parent = "c1", status = dev.shibasis.reaktor.conductor.workspace.PlanStatus.Done),
+                dev.shibasis.reaktor.conductor.workspace.PlanItem(id = "t2", title = "Scanner", parent = "c1", after = listOf("t1"), status = dev.shibasis.reaktor.conductor.workspace.PlanStatus.Done),
+                dev.shibasis.reaktor.conductor.workspace.PlanItem(id = "c2", title = "UI", kind = dev.shibasis.reaktor.conductor.workspace.PlanKind.Component, after = listOf("c1")),
+                dev.shibasis.reaktor.conductor.workspace.PlanItem(id = "t3", title = "Scorecard", parent = "c2", status = dev.shibasis.reaktor.conductor.workspace.PlanStatus.Done),
+            ),
+            createdBy = actor,
+            createdAt = 0,
+            updatedAt = 0,
+        )
+        val cards = mapOf(
+            "t1" to WorkLog(listOf(WorkTurn("1", "A", 0, 10, emptyList(), WorkUsage(input = 1000, cached = 800, fresh = 200, output = 50, peakContext = 1000, contextWindow = 10000, estimatedCostUsd = 0.01)))).score(),
+            "t2" to WorkLog(listOf(WorkTurn("2", "B", 10, 35, emptyList(), WorkUsage(input = 2000, cached = 1500, fresh = 500, output = 80, peakContext = 2500, contextWindow = 10000, estimatedCostUsd = 0.02)))).score(),
+            "t3" to WorkLog(listOf(WorkTurn("3", "C", 35, 50, emptyList(), WorkUsage(input = 500, cached = 400, fresh = 100, output = 20, peakContext = 1500, contextWindow = 10000, estimatedCostUsd = 0.005)))).score(),
+        )
+        val clean = plan.score(cards)
+        assertEquals(listOf("t1", "t2", "t3"), clean.criticalPath)
+        assertEquals(50L, clean.criticalPathMillis)
+        assertEquals(3_000L, clean.components.getValue("c1").inputTokens)
+        assertEquals(2_300L, clean.components.getValue("c1").cachedInputTokens)
+        assertEquals(25.0, clean.total.peakContextPercent)
+        assertFalse(clean.total.partial)
+
+        val dirty = plan.score(cards, unattributedFiles = listOf("Leak.kt"))
+        assertTrue(dirty.total.partial)
+        assertEquals(listOf("Leak.kt"), dirty.unattributedFiles)
+    }
+
     private fun graph(tasks: List<BoardTask>) = TaskGraphView(TaskGraph("G1", "Plan", createdBy = actor, createdAt = 0, updatedAt = 0), tasks)
 }

@@ -54,12 +54,12 @@ import dev.shibasis.reaktor.ui.machinesignal.machineSignal
 import dev.shibasis.reaktor.ui.machinesignal.matrixBackdrop
 import dev.shibasis.reaktor.ui.machinesignal.shapes
 
-internal data class MatrixSection(val inset: Dp = MachineSignal.Space.s3, val framed: Boolean = true) : SectionAppearance {
+internal data class MatrixSection(val inset: Dp = MachineSignal.Space.s3, val framed: Boolean = true, val heading: Boolean = true) : SectionAppearance {
     @Composable
     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: SectionSlots) {
         val signal = theme.machineSignal
         Column(Modifier.fillMaxWidth().then(if (framed) Modifier.background(signal.colors.surface, signal.shapes.panel).matrixBackdrop(signal).matrixFrame(signal, scanlines = true, shape = signal.shapes.panel) else Modifier)) {
-            Row(Modifier.fillMaxWidth().background(signal.colors.surfaceAlt).matrixFrame(signal, scanlines = true, shape = RectangleShape)
+            if (heading) Row(Modifier.fillMaxWidth().background(signal.colors.surfaceAlt).matrixFrame(signal, scanlines = true, shape = RectangleShape)
                 .heightIn(min = MachineSignal.Editor.sectionHeaderHeight).padding(horizontal = MachineSignal.Space.s3, vertical = MachineSignal.Space.s1),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2)) {
                 MatrixGlyph("//", signal, signal.colors.accent)

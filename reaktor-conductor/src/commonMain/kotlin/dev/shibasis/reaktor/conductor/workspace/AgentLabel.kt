@@ -6,12 +6,14 @@ enum class ModelFamily(val word: String, private val marks: List<String>) {
     Claude("claude", listOf("claude", "anthropic")),
     Codex("codex", listOf("gpt", "codex", "openai")),
     Gemini("gemini", listOf("gemini")),
-    DeepSeek("deepseek", listOf("deepseek"));
+    DeepSeek("deepseek", listOf("deepseek")),
+    Kimi("kimi", listOf("kimi", "moonshot")),
+    Sarvam("sarvam", listOf("sarvam"));
 
     fun marked(word: String) = marks.any { word.startsWith(it) }
 
     companion object {
-        private val byPriority = listOf(DeepSeek, Gemini, Claude, Codex)
+        private val byPriority = listOf(DeepSeek, Kimi, Sarvam, Gemini, Claude, Codex)
 
         internal fun words(model: String?) = model.orEmpty().lowercase().map { if (it.isLetterOrDigit()) it else ' ' }.joinToString("").split(' ').filter(String::isNotEmpty)
 

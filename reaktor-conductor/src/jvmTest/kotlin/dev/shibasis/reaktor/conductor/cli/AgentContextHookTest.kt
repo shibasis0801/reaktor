@@ -6,7 +6,7 @@ import kotlin.test.*
 
 class AgentContextHookTest {
     @Test fun sessionStartRecallsAndDeliversOnlyTheAuthenticatedInbox() = runBlocking {
-        for ((harness, principal) in listOf(AgentPluginBundle.Harness.Claude to "claude:proof", AgentPluginBundle.Harness.Codex to "codex:proof")) {
+        for ((harness, principal) in listOf(AgentPluginBundle.Harness.Claude to "claude:proof", AgentPluginBundle.Harness.Codex to "codex:proof", AgentPluginBundle.Harness.Antigravity to "agy:proof")) {
             val called = mutableListOf<String>()
             val output = AgentContextHook.read(harness, event("SessionStart"), principal,
                 inbox = { called += "inbox:$it"; "message:one" }, recall = { called += "recall:$it"; "memory:one provenance=source" })
@@ -34,7 +34,7 @@ class AgentContextHookTest {
             assertTrue(AgentContextHook.read(AgentPluginBundle.Harness.Codex, input, principal,
                 inbox = { calls++; null }, recall = { calls++; null }).isEmpty())
         }
-        assertTrue(AgentContextHook.read(AgentPluginBundle.Harness.Antigravity, event("SessionStart"), "agy:proof",
+        assertTrue(AgentContextHook.read(AgentPluginBundle.Harness.Antigravity, event("SessionStart"), "claude:proof",
             inbox = { calls++; null }, recall = { calls++; null }).isEmpty())
         assertEquals(0, calls)
     }

@@ -28,7 +28,14 @@ class AgentBenchmarks internal constructor(
     fun catalog(): AgentBenchCatalog {
         val entries = if (!scenarios.isDirectory) emptyList() else scenarios.listFiles().orEmpty()
             .filter { it.isDirectory && it.name.matches(Id) }.sortedBy { it.name }.also { require(it.size <= 100) }
-            .map { entry(it.name).let { entry -> entry.copy(scenario = entry.scenario.copy(defects = emptyList())) } }
+            .map {
+                entry(it.name).let { entry ->
+                    entry.copy(
+                        plantedDefectCount = entry.scenario.defects.size,
+                        scenario = entry.scenario.copy(defects = emptyList()),
+                    )
+                }
+            }
         return AgentBenchCatalog(entries, workspace.board.graphs().mapNotNull { graph ->
             graph.benchmark?.let { AgentBenchRun(graph.id, graph.status, it, result(graph.id)?.takeIf { result -> result.revision == graph.revision }) }
         })
@@ -41,6 +48,8 @@ class AgentBenchmarks internal constructor(
         val text = file.readText()
         val scenario = AgentWorkspaceJson.decodeFromString(AgentBenchScenario.serializer(), text)
         require(scenario.id == id && scenario.title.isNotBlank() && scenario.title.length <= 120)
+        require(scenario.version >= 1 && scenario.suite.matches(Id) && scenario.summary.length <= 2_000 && scenario.whyItMatters.length <= 2_000)
+        require(scenario.tags.size <= 16 && scenario.tags.all { it.matches(Id) })
         require(scenario.defects.size <= 100 && scenario.defects.map { it.id }.distinct().size == scenario.defects.size)
         scenario.defects.forEach { defect ->
             require(defect.id.matches(Id) && defect.kind.isNotBlank() && defect.kind != "unclassified" && defect.kind.length <= 80 &&
@@ -48,7 +57,14 @@ class AgentBenchmarks internal constructor(
                 !File(defect.path).isAbsolute && Path.of(defect.path).normalize().none { it.toString() == ".." })
         }
         TaskGraphTemplates.ordered(scenario.draft)
-        return AgentBenchScenarioEntry(scenario, digest(text))
+        val slots = TaskGraphTemplates.slots(scenario.draft)
+        require(scenario.presets.size <= 16 && scenario.presets.map { it.id }.distinct().size == scenario.presets.size)
+        scenario.presets.forEach { preset ->
+            require(preset.id.matches(Id) && preset.label.length <= 120 && preset.description.length <= 500)
+            require(preset.estimatedTokens == null || preset.estimatedTokens > 0)
+            require(preset.slots.keys == slots.keys) { "Every scenario preset must bind every scenario profile slot" }
+        }
+        return AgentBenchScenarioEntry(scenario, digest(text), scenario.defects.size)
     }
 
     fun propose(id: String, revision: String, configurations: List<AgentBenchConfiguration>, repeats: Int, by: BoardActor): List<TaskGraphView> =
@@ -63,7 +79,7 @@ class AgentBenchmarks internal constructor(
                 val slots = TaskGraphTemplates.slots(entry.scenario.draft)
                 require(config.slots.keys == slots.keys) { "Bind every scenario profile slot exactly once" }
                 fun native(seat: TaskSeat) = workspace.resolveSeat(seat).also { value ->
-                    require(!value.seat.lead && value.seat.agent in setOf(RuntimeKind.Codex, RuntimeKind.ClaudeCode) &&
+                    require(!value.seat.lead && value.seat.agent in ReaktorPlusBench.NativeProviders &&
                         !value.seat.model.isNullOrBlank()) { "Benchmark seats require a native provider and explicit model" }
                 }
                 val pinned = config.slots.mapValues { (_, seat) ->

@@ -18,6 +18,7 @@ import dev.shibasis.reaktor.service.ServiceCall
 import dev.shibasis.reaktor.service.contract.CallAttributes
 import dev.shibasis.reaktor.service.contract.Effect
 import dev.shibasis.reaktor.service.contract.activity
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.withContext
 
 class Activity<In, Out> internal constructor(
@@ -28,7 +29,8 @@ class Activity<In, Out> internal constructor(
 
     suspend operator fun invoke(request: In): Out = port.suspended {
         val execute = port.impl ?: error("Activity '${port.key.key}' is not wired")
-        withContext(CallAttributes(mapOf(ServiceCall.EdgeAttribute to wire()))) { execute(request) }
+        val attributes = currentCoroutineContext()[CallAttributes]?.values.orEmpty()
+        withContext(CallAttributes(attributes + (ServiceCall.EdgeAttribute to wire()))) { execute(request) }
     }
 }
 

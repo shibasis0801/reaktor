@@ -206,6 +206,9 @@ data class AiReading(
     val traffic: List<AiGatewayTraffic>,
     val gateways: List<AiGateway>,
     val failures: Map<String, String>,
+    val platforms: List<AiPlatformSnapshot> = emptyList(),
+    val endpoints: List<AiApiEndpoint> = emptyList(),
+    val platformModels: List<AiPlatformModel> = emptyList(),
 )
 
 class CloudflareLogin(source: String, private val credentials: CloudflareCredentials, private val recovery: CloudflareCredentials? = null) : CloudflareCredentials by credentials {
@@ -930,12 +933,30 @@ object CloudflareAiCalls {
     suspend fun execute(call: dev.shibasis.reaktor.cloud.cloudflare.CloudflareAiRequest): String {
         val root = File(call.workspace)
         val login = CloudflareLogin.forWorkspace(root)
-        val ai = CloudflareAi(call.account, login)
+        val ai = if (call.account.isNotBlank()) CloudflareAi(call.account, login) else null
         return when (call.action) {
-            "read" -> lenientJson.encodeToString(AiReading.serializer(), ai.read(login.source))
-            "logs" -> lenientJson.encodeToString(ListSerializer(AiGatewayLog.serializer()), ai.logs(requireNotNull(call.gateway) { "Name a gateway" }))
-            "create-gateway" -> lenientJson.encodeToString(AiGateway.serializer(), ai.createGateway(requireNotNull(call.gateway) { "Name a gateway" }))
-            "complete" -> lenientJson.encodeToString(AiTry.serializer(), attempt(ai, call))
+            "read" -> {
+                val base = if (ai != null) {
+                    ai.read(login.source)
+                } else {
+                    AiReading(
+                        account = "",
+                        credential = login.source,
+                        readAtMillis = System.currentTimeMillis(),
+                        days = 7,
+                        models = emptyList(),
+                        usage = emptyList(),
+                        traffic = emptyList(),
+                        gateways = emptyList(),
+                        failures = mapOf("cloudflare" to "No Cloudflare account configured in workspace"),
+                    )
+                }
+                val enriched = AiPlatforms.enrich(root, base, base.days)
+                lenientJson.encodeToString(AiReading.serializer(), enriched)
+            }
+            "logs" -> lenientJson.encodeToString(ListSerializer(AiGatewayLog.serializer()), requireNotNull(ai) { "No Cloudflare account configured" }.logs(requireNotNull(call.gateway) { "Name a gateway" }))
+            "create-gateway" -> lenientJson.encodeToString(AiGateway.serializer(), requireNotNull(ai) { "No Cloudflare account configured" }.createGateway(requireNotNull(call.gateway) { "Name a gateway" }))
+            "complete" -> lenientJson.encodeToString(AiTry.serializer(), AiPlatforms.attempt(root, ai, call))
             else -> throw CloudflareFailure("Unknown Cloudflare AI action ${call.action}")
         }
     }
@@ -945,25 +966,4 @@ object CloudflareAiCalls {
     fun logs(output: String): List<AiGatewayLog> = lenientJson.decodeFromString(ListSerializer(AiGatewayLog.serializer()), output)
 
     fun attempt(output: String): AiTry = lenientJson.decodeFromString(AiTry.serializer(), output)
-
-    private suspend fun attempt(ai: CloudflareAi, call: dev.shibasis.reaktor.cloud.cloudflare.CloudflareAiRequest): AiTry {
-        val model = requireNotNull(call.model) { "Name a model" }
-        val request = buildJsonObject {
-            put("model", model)
-            put("max_tokens", 2048)
-            put("messages", JsonArray(listOfNotNull(
-                call.system?.takeIf(String::isNotBlank)?.let { buildJsonObject { put("role", "system"); put("content", it) } },
-                buildJsonObject { put("role", "user"); put("content", call.prompt.orEmpty()) },
-            )))
-        }
-        return runCatching { ai.complete(request, call.gateway, mapOf("source" to "hangar-try")) }.fold(
-            onSuccess = { completion ->
-                val message = completion.body.objects("choices").firstOrNull().obj("message")
-                val usage = completion.body.obj("usage")
-                AiTry(model, call.gateway, message.text("content").orEmpty(), message.text("reasoning_content"),
-                    usage.long("prompt_tokens") ?: 0, usage.long("completion_tokens") ?: 0, usage.number("neurons"), completion.millis, completion.logId)
-            },
-            onFailure = { AiTry(model, call.gateway, "", null, 0, 0, null, 0, null, it.message ?: "The call failed") },
-        )
-    }
 }

@@ -33,6 +33,20 @@ class WorkPlanTest {
         PlanOp.Add("Kanban lanes", key = "kanban", parent = "views"),
     )), claude)
 
+    @Test fun fullNotesSurviveAPlanLargerThanTheOldHalfMegabyteLimit() {
+        val home = directory("plan-full-notes")
+        val store = WorkPlanStore(home)
+        val note = "Readable note.\n".repeat(4000)
+        val written = store.write("codex:notes", PlanPatch(title = "Notes", ops = (1..12).map {
+            PlanOp.Add("Note $it", key = "note-$it", detail = note)
+        }), person)
+        assertTrue(written.refused.isEmpty())
+        assertTrue(written.plan.items.sumOf { it.detail.length } > 512 * 1024)
+        val restored = WorkPlanStore(home).read("codex:notes").plan!!
+        assertEquals(12, restored.items.size)
+        assertTrue(restored.items.all { it.detail == note })
+    }
+
     @Test fun anAgentDrawsItsPlanAndKeepsItsChecklist() {
         val store = WorkPlanStore(directory("plan-draw"))
         val drawn = draw(store)
@@ -54,15 +68,19 @@ class WorkPlanTest {
             ops = listOf(PlanOp.Add("API", key = "api"))), claude).plan
         assertEquals(document, WorkPlanStore(path).plan(thread)?.documentPath)
         assertTrue(first.changes.last().summary.any { it.contains(document) })
-        assertFailsWith<IllegalArgumentException> {
-            store.write(thread, PlanPatch(base = first.revision, documentPath = "plans/../outside.md"), person)
+        val invalid = store.write(thread, PlanPatch(base = first.revision, documentPath = "plans/../outside.md"), person)
+        val unauthorized = store.write(thread, PlanPatch(base = first.revision, documentPath = ""), codex)
+        val stale = store.write(thread, PlanPatch(base = first.revision - 1, documentPath = ""), claude)
+        for (answer in listOf(invalid, unauthorized, stale)) {
+            assertEquals(-1, answer.refused.single().op)
+            assertEquals(first.revision, answer.plan.revision)
+            assertEquals(document, answer.plan.documentPath)
+            assertEquals(first.items, answer.plan.items)
         }
-        assertFailsWith<IllegalArgumentException> {
-            store.write(thread, PlanPatch(base = first.revision, documentPath = ""), codex)
-        }
-        assertFailsWith<IllegalArgumentException> {
-            store.write(thread, PlanPatch(base = first.revision - 1, documentPath = ""), claude)
-        }
+        assertEquals("Choose a Markdown document under plans/", invalid.refused.single().reason)
+        assertEquals("Only the plan's owner can change its document", unauthorized.refused.single().reason)
+        assertEquals("Read the current plan and pass its revision as base before changing its document", stale.refused.single().reason)
+        assertEquals(document, WorkPlanStore(path).plan(thread)?.documentPath)
         val cleared = store.write(thread, PlanPatch(base = first.revision, documentPath = ""), person).plan
         assertNull(cleared.documentPath)
         assertEquals(first.items, cleared.items)
@@ -396,4 +414,26 @@ class WorkPlanTest {
         assertTrue(Files.exists(board.resolve("archive/graphs/G1.json")))
         assertEquals(emptyList(), AgentBoardStore(board, clock::get).graphs())
     }
+    private fun learnerRef(ref: String) {
+        val empty = WorkPlan("hangar:refs", "Refs", createdBy = person, createdAt = 1, updatedAt = 1)
+        val added = PlanRules.apply(empty, PlanPatch(ops = listOf(PlanOp.Add("Linked item", key = "linked", refs = listOf(ref)))), person, 2)
+        assertTrue(added.refused.isEmpty(), added.refused.toString())
+        assertEquals(listOf(ref), added.plan.item("linked")!!.refs)
+        val updated = PlanRules.apply(added.plan, PlanPatch(ops = listOf(PlanOp.Update("linked", refs = listOf(ref, "file:proof.kt")))), person, 3)
+        assertTrue(updated.refused.isEmpty(), updated.refused.toString())
+        assertEquals(listOf(ref, "file:proof.kt"), updated.plan.item("linked")!!.refs)
+    }
+
+    @Test fun unitRefsPassOnAddAndUpdate() = learnerRef("unit:a#0")
+    @Test fun sourceRefsPassOnAddAndUpdate() = learnerRef("source:a")
+    @Test fun skillRefsPassOnAddAndUpdate() = learnerRef("skill:x")
+    @Test fun anEmptyUnitAndAnExistingBadLinkStayRefused() {
+        val empty = WorkPlan("hangar:refs", "Refs", createdBy = person, createdAt = 1, updatedAt = 1)
+        for (ref in listOf("unit:", "C:/bad")) {
+            val result = PlanRules.apply(empty, PlanPatch(ops = listOf(PlanOp.Add("Bad", key = "bad", refs = listOf(ref)))), person, 2)
+            assertEquals(1, result.refused.size)
+            assertTrue(result.plan.items.isEmpty())
+        }
+    }
+
 }

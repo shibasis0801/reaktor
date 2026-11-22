@@ -20,7 +20,7 @@ class BuildDeclarationsTest {
         }""") }
         report(root, node("artifacts"), node("checks", Effect.Verify))
         val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
-        val build = workspace.prepare(TaskInvocation(TaskId("fixture:artifacts")),
+        val build = workspace.prepareIsolated(TaskInvocation(TaskId("fixture:artifacts")),
             environment = mapOf("REAKTOR_ENVIRONMENT" to "fixture-local", "FIXTURE_SECRET" to "private-fixture"),
             sensitiveEnvironmentKeys = setOf("FIXTURE_SECRET"))
         assertEquals("fixture-local", root.resolve("build/planning-environment.txt").readText())
@@ -29,12 +29,14 @@ class BuildDeclarationsTest {
         assertContains(build.request.sensitiveEnvironmentKeys, "FIXTURE_SECRET")
         val exported = BuildModelReader.readAllowingStale(root)
         assertEquals("fixture-local", exported.producer.version)
-        val request = BuildModelReader.json.decodeFromString<GradleRequest>(File(build.request.argv[2].substringAfter("=")).readText())
+        val request = BuildModelReader.json.decodeFromString<GradleRequest>(File(build.request.argv.single { it.startsWith("-P${GradleProtocol.RequestOption}=") }.substringAfter("=")).readText())
         assertEquals(BuildModelReader.digest(BuildModelReader.encode(exported)), request.modelDigest)
-        val check = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root)).prepare(TaskInvocation(TaskId("fixture:checks"),
+        val check = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root)).prepareIsolated(TaskInvocation(TaskId("fixture:checks"),
             arguments = listOf("-Pfixture.label=delete-production-migration-secret")))
-        assertEquals(root.resolve(wrapperName).canonicalPath, build.request.argv.first())
-        assertEquals(GradleProtocol.RunTask, build.request.argv[1])
+        assertEquals("gradle-lease", File(build.request.argv.first()).name)
+        assertEquals(root.resolve(wrapperName).canonicalPath, build.request.argv[build.request.argv.indexOf("--") + 1])
+        assertTrue(build.request.plan.artifacts.any { it.kind == "gradle-admission" })
+        assertEquals(GradleProtocol.RunTask, build.request.argv[build.request.argv.indexOf("--") + 2])
         assertEquals(SafetyClass.LocalArtifactWrite, build.plan.safety.classification)
         assertEquals(SafetyClass.ReadOnly, check.plan.safety.classification)
         val definition = assertNotNull(build.request.definitionSeal)
@@ -114,7 +116,7 @@ class BuildDeclarationsTest {
         """.trimIndent() + "\n")
         val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
         val failure = assertFailsWith<IllegalStateException> {
-            workspace.prepare(TaskInvocation(TaskId("fixture:artifacts")))
+            workspace.prepareIsolated(TaskInvocation(TaskId("fixture:artifacts")))
         }.message.orEmpty()
         assertContains(failure, "Gradle planning failed")
         assertContains(failure, "Execution failed for task ':fixturePrerequisite'.")
@@ -126,9 +128,9 @@ class BuildDeclarationsTest {
         report(root, node("artifacts"))
         val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
         val invocation = TaskInvocation(TaskId("fixture:artifacts"))
-        val prepared = workspace.prepare(invocation)
+        val prepared = workspace.prepareIsolated(invocation)
         root.resolve("build.gradle.kts").appendText("\n")
-        assertFailsWith<IllegalStateException> { workspace.prepare(invocation) }
+        assertFailsWith<IllegalStateException> { workspace.prepareIsolated(invocation) }
         SupervisedProcessExecutor().use { executor ->
             assertFailsWith<IllegalArgumentException> { executor.start(prepared.request) }
         }
@@ -143,13 +145,13 @@ class BuildDeclarationsTest {
                 OptionValue("PATH", OptionType.String, System.getenv("PATH").orEmpty(), OptionSource.Environment)))))
         val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
         val invocation = TaskInvocation(TaskId("fixture:artifacts"))
-        val prepared = workspace.prepare(invocation)
-        workspace.prepare(invocation, environment = mapOf(
+        val prepared = workspace.prepareIsolated(invocation)
+        workspace.prepareIsolated(invocation, environment = mapOf(
             "PATH" to System.getenv("PATH").orEmpty(), "REAKTOR_ENVIRONMENT" to "local"))
         assertFalse(root.resolve("build/exports.txt").exists())
         assertEquals(listOf(GradleProtocol.PlanTask, GradleProtocol.PlanTask),
             root.resolve("build/planning-invocations.txt").readLines())
-        val request = File(prepared.request.argv[2].substringAfter('='))
+        val request = File(prepared.request.argv.single { it.startsWith("-P${GradleProtocol.RequestOption}=") }.substringAfter('='))
         val contract = BuildModelReader.readRequest(request)
         assertEquals("fixture-context", contract.expectedContextDigest)
         assertEquals(BuildModelReader.digest(BuildModelReader.encode(BuildModelReader.read(root))), contract.modelDigest)
@@ -161,7 +163,7 @@ class BuildDeclarationsTest {
         root.resolve(BuildDeclarations.Report).writeText(BuildModelReader.encode(model.copy(declarations = model.declarations +
             DeclarationInput("fixture", "option:PATH:old", "old-context", DeclarationInputKind.Option,
                 OptionValue("PATH", OptionType.String, "old-context", OptionSource.Environment)))))
-        assertNotNull(JvmProjectDiscovery().discoverWorkspace(root)).prepare(invocation,
+        assertNotNull(JvmProjectDiscovery().discoverWorkspace(root)).prepareIsolated(invocation,
             environment = mapOf("PATH" to System.getenv("PATH").orEmpty()))
         assertEquals(listOf("export"), root.resolve("build/exports.txt").readLines())
     }
@@ -176,8 +178,8 @@ class BuildDeclarationsTest {
         assertContains(task.attributes["buildModelNote"].orEmpty(), "1 of its build files changed")
         assertNull(task.description)
         assertNull(task.unavailableReason)
-        val prepared = workspace.prepare(TaskInvocation(task.id))
-        assertEquals(GradleProtocol.RunTask, prepared.request.argv[1])
+        val prepared = workspace.prepareIsolated(TaskInvocation(task.id))
+        assertEquals(GradleProtocol.RunTask, prepared.request.argv[prepared.request.argv.indexOf("--") + 2])
         assertEquals(listOf("export"), root.resolve("build/exports.txt").readLines())
         assertTrue(BuildModelReader.changedDeclarations(root, BuildModelReader.readAllowingStale(root)).isEmpty())
     }
@@ -187,14 +189,14 @@ class BuildDeclarationsTest {
         root.resolve("build.gradle.kts").appendText("\n")
         root.resolve("build/export-moves-nodes").writeText("")
         val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
-        val failure = assertFailsWith<IllegalArgumentException> { workspace.prepare(TaskInvocation(TaskId("fixture:artifacts"))) }
+        val failure = assertFailsWith<IllegalArgumentException> { workspace.prepareIsolated(TaskInvocation(TaskId("fixture:artifacts"))) }
         assertContains(failure.message.orEmpty(), "fixture/build.gradle.kts:2")
         assertContains(failure.message.orEmpty(), "refresh the catalog")
         root.resolve("build/export-moves-nodes").delete()
         root.resolve("build/export-drops-nodes").writeText("")
         root.resolve("build.gradle.kts").appendText("\n")
         val dropped = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
-        assertContains(assertFailsWith<IllegalArgumentException> { dropped.prepare(TaskInvocation(TaskId("fixture:artifacts"))) }
+        assertContains(assertFailsWith<IllegalArgumentException> { dropped.prepareIsolated(TaskInvocation(TaskId("fixture:artifacts"))) }
             .message.orEmpty(), "no longer declared")
     }
 
@@ -204,7 +206,7 @@ class BuildDeclarationsTest {
             bindings = listOf(ServiceRef("fixture-prod")), environments = listOf(Environment("dev"), Environment("prod")))
         report(root, target)
         root.resolve("build/export-context").writeText("")
-        fun prepare(environment: String) = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root)).prepare(
+        fun prepare(environment: String) = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root)).prepareIsolated(
             TaskInvocation(TaskId("fixture:deploy"), arguments = listOf("-P${GradleProtocol.EnvironmentOption}=$environment")))
         val prepared = prepare("dev")
         val exported = BuildModelReader.readAllowingStale(root).nodes.single()
@@ -241,7 +243,7 @@ class BuildDeclarationsTest {
         assertEquals(setOf(TaskKind.Build, TaskKind.Check, TaskKind.Develop, TaskKind.Deploy), targets.map { it.kind }.toSet())
         assertEquals(listOf(":library:checks"), BuildDeclarations.read(root).single { it.node.id.build == "library" }.tasks)
         assertNotNull(workspace.catalog.tasks.single { it.id.value == "fixture:external" }.unavailableReason)
-        val deploy = workspace.prepare(TaskInvocation(TaskId("fixture:deploy")))
+        val deploy = workspace.prepareIsolated(TaskInvocation(TaskId("fixture:deploy")))
         assertEquals(SafetyClass.ProductionReversibleWrite, deploy.plan.safety.classification)
         assertEquals(5, workspace.catalog.tasks.count { "buildNode" in it.attributes })
     }
@@ -251,7 +253,7 @@ class BuildDeclarationsTest {
         val file = report(root, node("native").copy(host = HostRequirement(platform)))
         val workspace = assertNotNull(JvmProjectDiscovery().discoverWorkspace(root))
         assertNotNull(workspace.catalog.tasks.single { it.id.value == "fixture:native" }.unavailableReason)
-        assertFailsWith<IllegalStateException> { workspace.prepare(TaskInvocation(TaskId("fixture:native"))) }
+        assertFailsWith<IllegalStateException> { workspace.prepareIsolated(TaskInvocation(TaskId("fixture:native"))) }
         val valid = file.readText()
         file.writeText(BuildModelReader.encode(BuildModelReader.decode(valid).copy(schema = 1)))
         assertFailsWith<IllegalArgumentException> { BuildDeclarations.read(root) }
@@ -272,6 +274,12 @@ class BuildDeclarationsTest {
             declarations = listOf(DeclarationInput("fixture", "build.gradle.kts", BuildModelReader.digest(root.resolve("build.gradle.kts")))),
             nodes = nodes.toList())))
     }
+
+    private fun DiscoveredJvmWorkspace.prepareIsolated(invocation: TaskInvocation,
+        environment: Map<String, String> = emptyMap(), sensitiveEnvironmentKeys: Set<String> = emptySet(),
+        reviewedPlan: GradlePlan? = null): PreparedProcessExecution =
+        prepare(invocation, environment + ("REMOTE_DEV_STATE" to File(catalog.workspace.root, "build/cluster-state").path),
+            sensitiveEnvironmentKeys, reviewedPlan)
 
     private fun fixture(block: (File) -> Unit) {
         val root = Files.createTempDirectory("reaktor-build-declarations").toFile()

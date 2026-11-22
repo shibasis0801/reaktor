@@ -192,7 +192,12 @@ internal class AppGraphBlocks(private val order: Digraph, private val aspect: Do
         val tied = order.edges.filter { (from, to) -> from != to && from in ids && to in ids }.flatMapTo(HashSet()) { listOf(it.first, it.second) }
         val (linked, loose) = nodes.partition { it.id in tied }
         val ranked = if (linked.isEmpty()) emptyList() else ordered(linked, order.columns(linked.map { listOf(it.id) })) { listOf(it.id) }
-        return (1..nodes.size).map { rows -> Grid(filled(ranked.flatMap { it.chunked(rows) }, loose, rows)) }
+        val maxRows = nodes.size
+        val candidates = if (maxRows <= 24) (1..maxRows) else {
+            val root = kotlin.math.sqrt(maxRows.toDouble()).toInt().coerceAtLeast(1)
+            ((1..16) + ((root - 8).coerceAtLeast(1)..(root + 12).coerceAtMost(maxRows)) + listOf(maxRows)).distinct().sorted()
+        }
+        return candidates.map { rows -> Grid(filled(ranked.flatMap { it.chunked(rows) }, loose, rows)) }
             .minWith(compareBy({ it.width * it.height * stretch(it.width / it.height) }, { skew(it.width, it.height, FrameAspect) })).columns
     }
 

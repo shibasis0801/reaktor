@@ -40,7 +40,7 @@ fun StateView(
 @Composable
 private fun PlainStateView(state: ViewState, modifier: Modifier, appearance: StateViewAppearance, action: (@Composable () -> Unit)?, reason: @Composable () -> Unit) {
     val announced = state in Announced
-    Box(modifier.semantics { if (state == ViewState.Loading) progressBarRangeInfo = ProgressBarRangeInfo.Indeterminate }, propagateMinConstraints = true) {
+    Box(modifier.semantics { stateDescription = state.name; if (state == ViewState.Loading) progressBarRangeInfo = ProgressBarRangeInfo.Indeterminate }, propagateMinConstraints = true) {
         appearance.Content(
             state,
             Unit,

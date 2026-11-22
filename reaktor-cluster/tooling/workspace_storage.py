@@ -27,7 +27,7 @@ TEMP_PREFIXES = ('tmp', '.tmp', 'included', 'konan_temp', 'gradle', 'kotlin', 'j
                  'claude-', 'codex-', 'webmcp', 'chromium-webmcp', 'pnpm-verify')
 PROTECTED_NAMES = {'config.json', 'config', '.env', 'dev-auth-fixtures.json',
                    'dev-auth-fixtures.dev.json', 'docker-migration', 'build-cache',
-                   'workspace.lock', 'local-gradle.lock', 'local-slot-1.lock', 'worker-gradle.lock', 'worker-slot-1.lock',
+                   'workspace.lock', *(name + '.lock' for name in remote_retention.LOCAL_LANE_LOCKS), 'worker-gradle.lock', 'worker-slot-1.lock',
                    'worker-slot-2.lock', 'publications.sqlite3', 'capture.lock',
                    'storage.lock', 'graph-activity.lock', 'storage-budget.json', 'retention.json',
                    'storage-cleanup-20261013.json', 'cleanup-20261003.json',
@@ -402,11 +402,14 @@ def claim_run(state, run_id):
     return receipt
 
 
-def remote_candidates(state=STATE, idle=0, abandoned=()):
+def remote_candidates(state=STATE, idle=0, abandoned=(), held_locks=()):
     """Evict rematerializable slots, old archives/reports, then unpinned source backups."""
+    active_slots = ({'local'} if 'local-gradle' in held_locks else set()) | (
+        {'worker'} if 'worker-gradle' in held_locks else set()) | {
+        f'local-{name.removeprefix("local-slot-")}' for name in held_locks if name.startswith('local-slot-')}
     for slots in remote_retention.configured_slot_roots(state):
         for path in slots.iterdir() if slots.exists() else []:
-            if path.is_dir() and not path.is_symlink() and (path / 'source-manifest.json').is_file():
+            if path.name not in active_slots and path.is_dir() and not path.is_symlink() and (path / 'source-manifest.json').is_file():
                 yield 0, path
     orphans = set(orphaned_artifacts(state))
     for name in ('artifacts', 'runs'):
@@ -498,7 +501,7 @@ def remote_idle(state, held_locks=(), wait=False):
     while True:
         with contextlib.ExitStack() as stack:
             blocked = False
-            for name in ('workspace', 'local-gradle', 'local-slot-1', 'worker-gradle', 'worker-slot-1', 'worker-slot-2', 'capture', 'graph-activity'):
+            for name in ('workspace', *remote_retention.LOCAL_LANE_LOCKS, 'worker-gradle', 'worker-slot-1', 'worker-slot-2', 'capture', 'graph-activity'):
                 if name in held_locks:
                     continue
                 lock = stack.enter_context((state / (name + '.lock')).open('a'))
@@ -609,7 +612,7 @@ def cleanup(root=ROOT, state=STATE, config=None, dry_run=False, wait=False, held
                 if not dry_run:
                     for path, receipt in runs:
                         abandon(path, receipt)
-                report['remote'] = enforce([state], remote_candidates(state, idle, {path.stem for path, _ in runs}),
+                report['remote'] = enforce([state], remote_candidates(state, idle, {path.stem for path, _ in runs}, held_locks),
                                            remote_limit, int(remote_limit * fraction), files, working, [state],
                                            0, dry_run, disk_room(root, floor))
                 report['remote']['orphans'] = orphans

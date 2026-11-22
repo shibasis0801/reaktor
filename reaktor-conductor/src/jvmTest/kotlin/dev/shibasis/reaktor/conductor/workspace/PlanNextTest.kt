@@ -20,10 +20,25 @@ class PlanNextTest {
     private fun fixture(test: (AgentWorkspace) -> Unit) {
         val root = Files.createTempDirectory("plan-next").toFile()
         try {
-            AgentWorkspace(root, root.toPath().resolve("state"), emptyMap()).use(test)
+            fixtureWorkspace(root, root.toPath().resolve("state"), emptyMap()).use(test)
         } finally {
             root.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")))
         }
+    }
+
+    @Test fun takingASixthAssignedLeafReturnsTheLimitReasonWithoutThrowing() = fixture { workspace ->
+        val bound = workspace.profiles.save(profile.copy(id = "limit-agent", name = "limit-agent"), person)
+        workspace.bindIdentity(codex, bound.id, workspace.identity(codex).bindingRevision)
+        workspace.plans.write("hangar:limit", PlanPatch(title = "Limit", ops = List(5) {
+            PlanOp.Add("Held", key = "p$it", status = PlanStatus.Doing, refs = listOf("agent:limit-agent"))
+        } + PlanOp.Add("Sixth", key = "sixth", refs = listOf("agent:limit-agent"))), person)
+        val next = workspace.nextPlan("hangar:limit", codex, take = true, item = "sixth")
+        assertNull(next.candidate)
+        assertTrue(next.reason.contains("limit-agent"))
+        assertTrue(next.reason.contains("finish or release one"))
+        assertTrue(next.reason.contains("plan.write"))
+        assertTrue(!next.reason.contains("earlier in the patch"))
+        assertEquals(PlanStatus.Todo, workspace.plans.plan("hangar:limit")!!.item("sixth")!!.status)
     }
 
     @Test fun nextReadsAcrossPlansWithoutClaiming() = fixture { workspace ->

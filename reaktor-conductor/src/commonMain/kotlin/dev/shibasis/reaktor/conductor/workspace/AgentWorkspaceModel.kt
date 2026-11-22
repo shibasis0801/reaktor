@@ -101,6 +101,7 @@ data class AgentSubmission(
     val message: AgentMessageTarget? = null,
     val planItem: String? = null,
     val continues: ProviderSession? = null,
+    val expectedTranscriptRevision: String? = null,
 )
 
 @Serializable

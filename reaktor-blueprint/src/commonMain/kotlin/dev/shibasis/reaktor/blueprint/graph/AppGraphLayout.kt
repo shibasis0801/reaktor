@@ -19,23 +19,32 @@ import dev.shibasis.reaktor.graph.core.NodeKind
 import dev.shibasis.reaktor.graph.core.NodeShape
 import dev.shibasis.reaktor.graph.core.PortShape
 import dev.shibasis.reaktor.graph.core.ScopeShape
+import kotlin.math.roundToInt
 
 enum class Detail(val label: String) { Islands("Islands"), Compact("Compact"), Standard("Ports in use"), Ports("Every port") }
 
 data class LayoutRequest(
     val detail: Detail,
     val hidden: Set<String> = emptySet(),
-    val aspect: Double = 16.0 / 9.0,
+    val aspect: Double = Aspect,
     val expandedFlows: Set<String> = emptySet(),
     val after: String? = null,
     val nested: Boolean = false,
     val bundles: Boolean = true,
-)
+    val ordered: Boolean = false,
+) {
+    companion object {
+        const val Aspect = 16.0 / 9.0
+        fun aspect(width: Float, height: Float): Double =
+            if (width <= 0f || height <= 0f) Aspect else (width / height.coerceAtLeast(240f) * 4).roundToInt().coerceIn(3, 24) / 4.0
+    }
+}
 
 typealias GraphLayout = BlueprintLayout<LayoutRequest>
 
 private const val RoutePort = "routeBinding"
 private const val WorkflowAttribute = "workflow"
+private const val OrderAttribute = "order"
 
 object AppGraphLayout {
     fun layout(graph: AppGraph, request: LayoutRequest, layouter: FrameLayouter = DefaultFrameLayouter,
@@ -64,7 +73,7 @@ object AppGraphLayout {
         }
         val children = wrapper?.nodes?.mapNotNull { it.group }
         val laid = BlueprintEngine.layout(request, children ?: groups, edges, request.aspect, layouter,
-            LayoutOptions(bundles = request.bundles))
+            LayoutOptions(bundles = request.bundles, ordered = request.ordered))
         if (wrapper == null) return laid
         val dx = BlueprintEngine.FrameSide
         val dy = BlueprintEngine.FrameTop
@@ -86,7 +95,7 @@ object AppGraphLayout {
             val available = expanded.frames.mapTo(HashSet()) { it.key }
             val regions = graph.children[graph.root.id].orEmpty().filter { it.id !in request.hidden && "feature:${it.id}" in available }
                 .associate { "feature:${it.id}" to it.id }
-            val projected = BlueprintRegions.of(expanded, request, regions, layouter = layouter, options = LayoutOptions(bundles = request.bundles))
+            val projected = BlueprintRegions.of(expanded, request, regions, layouter = layouter, options = LayoutOptions(bundles = request.bundles, ordered = request.ordered))
             return folded(graph, projected.copy(links = projected.links.filterNot { it.from == it.to && it.from in regions.values }))
         }
         val cardOf = graph.nodes.values.associate { member ->
@@ -122,7 +131,8 @@ object AppGraphLayout {
             return body(node)?.let { node.copy(body = it, rows = if (BlueprintFace.of(member) == BlueprintFace.Prose) null else node.rows) } ?: node
         }
         val flat = features.mapNotNull { feature ->
-            val members = feature.members.filter { shown(it.id) == it.id }.sortedWith(compareBy({ it.label }, { it.type }, { it.id }))
+            val members = feature.members.filter { shown(it.id) == it.id }
+                .sortedWith(compareBy({ it.attributes[OrderAttribute]?.toIntOrNull()?.takeIf { request.ordered } }, { it.label }, { it.type }, { it.id }))
             if (members.isEmpty() && (!feature.scoped || feature.key !in framed)) return@mapNotNull null
             BlueprintGroup(
                 key = "feature:${feature.key}",
@@ -163,7 +173,7 @@ object AppGraphLayout {
             }
         val edges = wires + attached + hops
         val layout = when {
-            opened != null -> BlueprintRegions.layout(request, groups, edges, cardOf.keys.mapNotNull { id -> shown(id)?.let { id to it } }.toMap(), opened, layouter, request.aspect, LayoutOptions(bundles = request.bundles))
+            opened != null -> BlueprintRegions.layout(request, groups, edges, cardOf.keys.mapNotNull { id -> shown(id)?.let { id to it } }.toMap(), opened, layouter, request.aspect, LayoutOptions(bundles = request.bundles, ordered = request.ordered))
             order != null && !request.nested -> AppGraphBlocks(order.digraph, request.aspect)
                 .layout(request, bands(graph, vacant, graph.nodes.values.filter { shown(it.id) == it.id }, ::blueprint), edges, request.bundles)
             else -> organizationalLayout(request, groups, edges, layouter)

@@ -14,6 +14,7 @@ class AuthAdapterSessionTest {
         object : AuthService() {
             override val login = super.login.handle { request -> onLogin(request) }
             override val sessionLogout = super.sessionLogout.handle { request -> onLogout(request) }
+            override val sessionRefresh = super.sessionRefresh.handle { RefreshResponse(TokenSet("refreshed", "refresh", expiresInSeconds = 3600)) }
         } over HttpLink("https://unused.example.test")
     private fun DesktopAuthAdapter.provider(block: suspend () -> Result<GoogleUser>) {
         register(UserProvider.GOOGLE, object : GoogleAuthProvider<DesktopAuthAdapter>(this) {
@@ -25,7 +26,8 @@ class AuthAdapterSessionTest {
 
     @Test fun providerProofIsAvailableOnceAfterSuccessfulInteractiveLogin() = runBlocking {
         val context = AuthContext(principal = PrincipalRef("fixture-user", PrincipalKind.USER), appId = "app", audience = "app", method = AuthMethod.ACCESS_TOKEN)
-        val response = LoginResponse.Success(context.toSnapshot(), JsonObject(emptyMap()), TokenSet("access", "refresh", expiresInSeconds = 60))
+        val profile = kotlinx.serialization.json.buildJsonObject { put("imageUrl", kotlinx.serialization.json.JsonPrimitive("https://lh3.googleusercontent.com/ada")) }
+        val response = LoginResponse.Success(context.toSnapshot(), profile, TokenSet("access", "refresh", expiresInSeconds = 60))
         var stored: StoredAuthSession? = null
         val store = object : AuthSessionStore {
             override suspend fun read(environment: Environment) = stored
@@ -35,9 +37,15 @@ class AuthAdapterSessionTest {
         val adapter = DesktopAuthAdapter(client({ response }), store)
         adapter.provider { Result.success(user) }
         assertIs<LoginResponse.Success>(adapter.login("app", userProvider = UserProvider.GOOGLE))
+        assertEquals(profile, stored?.profile)
+        assertEquals(profile, adapter.accountProfile())
+        val resumed = DesktopAuthAdapter(client({ response }), store)
+        assertTrue(resumed.resumeSession())
+        assertEquals(profile, resumed.accountProfile())
         assertEquals("fixture-id-token", adapter.takeProviderIdentityToken())
         assertNull(adapter.takeProviderIdentityToken())
         adapter.logout()
+        assertNull(adapter.accountProfile())
         assertNull(adapter.takeProviderIdentityToken())
     }
 

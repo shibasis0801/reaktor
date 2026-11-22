@@ -1,0 +1,363 @@
+package dev.shibasis.reaktor.conductor.workspace
+
+import dev.shibasis.reaktor.conductor.RuntimeKind
+import dev.shibasis.reaktor.tooling.io.deleteTreeSafely
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.*
+import java.io.File
+import java.nio.file.Files
+import kotlin.test.Test
+import kotlin.test.assertFailsWith
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+class PlanAgentReadApiTest {
+    private val person = BoardActor(BoardActorKind.Person, "Fixture owner")
+    private val agent = BoardActor(BoardActorKind.Agent, "Fixture agent", "codex:bounded")
+    private fun fixture(action: (AgentWorkspace) -> Unit) {
+        val root = Files.createTempDirectory("plan-agent-read").toFile()
+        try { fixtureWorkspace(root, root.toPath().resolve("state"), emptyMap()).use(action) }
+        finally { root.deleteTreeSafely(within = root.parentFile) }
+    }
+    private fun args(extra: JsonObject = JsonObject(emptyMap())) = JsonObject(buildJsonObject {
+        put("thread", "hangar:bounded")
+        put("by", AgentWorkspaceJson.encodeToJsonElement(BoardActor.serializer(), agent))
+    } + extra)
+
+    @Test fun aPagedHistoryReadPreservesItsChangesWithinTheAnswerBudget() = fixture { workspace ->
+        repeat(6) { index ->
+            workspace.plans.write("hangar:bounded", PlanPatch(title = "History", ops = listOf(PlanOp.Add("Step $index", key = "step-$index")),
+                message = "Recorded change $index"), person)
+        }
+        val read = agentPlanTools(workspace).single { it.name == "agent_plan_read" }
+        val reply = read.invoke(args(buildJsonObject { put("history", true); put("budgetBytes", 8192) })).jsonObject
+        assertTrue(reply.toString().encodeToByteArray().size <= 8192)
+        assertEquals(6, reply.getValue("plan").jsonObject.getValue("changes").jsonArray.size)
+    }
+
+    @Test fun aLargeHistoryCanBeReconstructedFromBoundedMetadataPages() {
+        val changes = List(30) { PlanChange(it + 1L, it + 1L, person, listOf("Recorded evidence $it " + "évidence ".repeat(100))) }
+        val plan = WorkPlan("hangar:large-history", "History", items = listOf(PlanItem("one", "One")), changes = changes,
+            createdBy = person, createdAt = 1, updatedAt = 30, revision = 30)
+        val extra = buildJsonObject { put("plan", AgentWorkspaceJson.encodeToJsonElement(WorkPlan.serializer(), plan)) }
+        val fragments = StringBuilder()
+        var continuation: String? = null
+        var pages = 0
+        do {
+            val answer = PlanReadPage.answer(plan, agent, extra, continuation = continuation, budgetBytes = 8192)
+            assertTrue(answer.toString().encodeToByteArray().size <= 8192)
+            answer["metadataFragment"]?.jsonObject?.let { part ->
+                assertEquals(fragments.length, part.getValue("offset").jsonPrimitive.int)
+                fragments.append(part.getValue("text").jsonPrimitive.content)
+            }
+            continuation = answer["continuation"]?.jsonPrimitive?.contentOrNull
+            assertTrue(++pages < 100)
+        } while (continuation != null)
+        val history = AgentWorkspaceJson.parseToJsonElement(fragments.toString()).jsonObject.getValue("history")
+        assertEquals(AgentWorkspaceJson.encodeToJsonElement(ListSerializer(PlanChange.serializer()), changes), history)
+    }
+
+    @Test fun aPageKeepsTheRetiredSeatHistoryOfItsItems() {
+        val seat = PlanSeat("s1", "worker", listOf("area"), person, 500,
+            retired = PlanSeatRetirement(person, 600, "Duplicate unused attachment"))
+        val plan = WorkPlan("hangar:bounded", "Seat history", items = listOf(PlanItem("area", "Area")),
+            seats = listOf(seat), createdBy = person, createdAt = 100, updatedAt = 600)
+        val page = PlanReadPage.answer(plan, agent).getValue("plan")
+        val decoded = AgentWorkspaceJson.decodeFromJsonElement(WorkPlan.serializer(), page)
+        assertEquals(listOf(seat), decoded.seats)
+        assertEquals(null, decoded.items.single().seat)
+    }
+
+    @Test fun anAgentsDefaultReadIsBoundedInEncodedUtf8AndPagesEveryItemOnce() = fixture { workspace ->
+        List(160) { PlanOp.Add("Task $it", key = "p$it", detail = "évidence ".repeat(600)) }.chunked(100).forEach { ops ->
+            workspace.plans.write("hangar:bounded", PlanPatch(title = "Bounded", ops = ops), person)
+        }
+        val read = agentPlanTools(workspace).single { it.name == "agent_plan_read" }
+        var reply = read.invoke(args()).jsonObject
+        val seen = linkedSetOf<String>()
+        var pages = 0
+        while (true) {
+            assertTrue(reply.toString().encodeToByteArray().size <= 65_536, "The complete UTF-8 answer must fit its budget")
+            reply.getValue("plan").jsonObject.getValue("items").jsonArray.forEach { assertTrue(seen.add(it.jsonObject.getValue("id").jsonPrimitive.content)) }
+            pages++
+            val cursor = reply["continuation"]?.jsonPrimitive?.contentOrNull ?: break
+            reply = read.invoke(args(buildJsonObject { put("continuation", cursor) })).jsonObject
+            assertTrue(pages < 200)
+        }
+        assertEquals(160, seen.size)
+        assertTrue(pages > 1)
+    }
+
+    @Test fun aFileBackedPlanKeepsItsPathAndServesItsDocumentText() = fixture { workspace ->
+        val root = File(workspace.info().workspaceRoot)
+        val document = root.resolve("plans/shared.md").apply { parentFile.mkdirs(); writeText("# Build {#build}\nShared document from the file.") }
+        workspace.plans.write("hangar:bounded", PlanPatch(title = "Document", base = 0,
+            ops = listOf(PlanOp.Add("Build", key = "build")), documentPath = "plans/shared.md"), person)
+        val answer = agentPlanTools(workspace).single { it.name == "agent_plan_read" }.invoke(buildJsonObject {
+            put("thread", "hangar:bounded"); put("by", AgentWorkspaceJson.encodeToJsonElement(BoardActor.serializer(), person))
+        }).jsonObject.getValue("plan").jsonObject
+        assertEquals("plans/shared.md", answer.getValue("documentPath").jsonPrimitive.content)
+        assertEquals(document.readText(), answer.getValue("documentText").jsonPrimitive.content)
+    }
+
+    @Test fun aNamedFrameReadRefusesItsCursorAfterAWrite() = fixture { workspace ->
+        workspace.plans.write("hangar:bounded", PlanPatch(title = "Bounded", ops = listOf(
+            PlanOp.Add("Area", key = "area", kind = PlanKind.Component),
+            PlanOp.Add("Outside", key = "outside")) + List(20) { PlanOp.Add("Task $it", key = "p$it", parent = "area", detail = "detail ".repeat(700)) }), person)
+        val read = agentPlanTools(workspace).single { it.name == "agent_plan_read" }
+        val first = read.invoke(args(buildJsonObject { put("frame", "area"); put("budgetBytes", 8192) })).jsonObject
+        assertTrue(first.getValue("plan").jsonObject.getValue("items").jsonArray.none { it.jsonObject["id"]?.jsonPrimitive?.content == "outside" })
+        val cursor = first.getValue("continuation").jsonPrimitive.content
+        workspace.plans.write("hangar:bounded", PlanPatch(ops = listOf(PlanOp.Update("outside", title = "Changed"))), person)
+        val stale = read.invoke(args(buildJsonObject { put("frame", "area"); put("budgetBytes", 8192); put("continuation", cursor) })).jsonObject
+        assertEquals(true, stale.getValue("restart").jsonPrimitive.boolean)
+        assertTrue(stale.getValue("reason").jsonPrimitive.content.contains("changed"))
+    }
+    @Test fun anOversizedItemIsReconstructedFromBoundedJsonFragments() = fixture { workspace ->
+        val detail = "🧪é".repeat(16000)
+        workspace.plans.write("hangar:bounded", PlanPatch(title = "Large item", ops = listOf(PlanOp.Add("Large", key = "large", detail = detail))), person)
+        val read = agentPlanTools(workspace).single { it.name == "agent_plan_read" }
+        var reply = read.invoke(args(buildJsonObject { put("budgetBytes", 8192) })).jsonObject
+        val text = StringBuilder()
+        var count = 0
+        while (true) {
+            assertTrue(reply.toString().encodeToByteArray().size <= 8192)
+            val fragment = reply.getValue("fragment").jsonObject
+            assertEquals(text.length, fragment.getValue("offset").jsonPrimitive.int)
+            text.append(fragment.getValue("text").jsonPrimitive.content)
+            count++
+            val cursor = reply["continuation"]?.jsonPrimitive?.contentOrNull ?: break
+            reply = read.invoke(args(buildJsonObject { put("budgetBytes", 8192); put("continuation", cursor) })).jsonObject
+            assertTrue(count < 200)
+        }
+        val item = AgentWorkspaceJson.decodeFromString(PlanItem.serializer(), text.toString())
+        assertEquals("large", item.id)
+        assertEquals(detail, item.detail)
+    }
+
+    @Test fun oversizedNewsIsReconstructedWithoutDiscardingItsSummary() {
+        val summary = "évidence ".repeat(4000)
+        val plan = WorkPlan("hangar:large-news", "News", items = listOf(
+            PlanItem("held", "Held", refs = listOf(PlanPeople.ref(agent)))), createdBy = person, createdAt = 1, updatedAt = 1)
+        val extra = buildJsonObject { put("news", buildJsonArray { add(buildJsonObject {
+            put("revision", 1); put("summary", buildJsonArray { add(summary) })
+        }) }) }
+        val fragments = StringBuilder()
+        val received = mutableListOf<JsonElement>()
+        var continuation: String? = null
+        var pages = 0
+        do {
+            val answer = PlanReadPage.answer(plan, agent, extra, continuation = continuation, budgetBytes = 8192, scoped = true)
+            assertTrue(answer.toString().encodeToByteArray().size <= 8192)
+            assertTrue(answer["newsPartial"]?.jsonPrimitive?.booleanOrNull != true, "A news summary must remain readable through its continuation")
+            answer["news"]?.jsonArray?.let(received::addAll)
+            answer["metadataFragment"]?.jsonObject?.let { part ->
+                assertEquals(fragments.length, part.getValue("offset").jsonPrimitive.int)
+                fragments.append(part.getValue("text").jsonPrimitive.content)
+            }
+            continuation = answer["continuation"]?.jsonPrimitive?.contentOrNull
+            assertTrue(++pages < 100)
+        } while (continuation != null)
+        if (fragments.isNotEmpty()) received.addAll(AgentWorkspaceJson.parseToJsonElement(fragments.toString()).jsonObject.getValue("news").jsonArray)
+        assertEquals(summary, received.single().jsonObject.getValue("summary").jsonArray.single().jsonPrimitive.content)
+    }
+
+    @Test fun inheritedHeldWorkAndItsBoundariesLeadTheFirstPage() {
+        val items = List(30) { PlanItem("other-$it", "Other $it", detail = "Unrelated detail ".repeat(300)) } + listOf(
+            PlanItem("area", "Assigned area", kind = PlanKind.Component, refs = listOf(PlanPeople.ref(agent))),
+            PlanItem("before", "Prerequisite", status = PlanStatus.Done),
+            PlanItem("held", "Held work", parent = "area", after = listOf("before"), status = PlanStatus.Doing),
+            PlanItem("later", "Dependent", after = listOf("held")))
+        val plan = WorkPlan("hangar:bounded", "Scoped", items = items, createdBy = person, createdAt = 1, updatedAt = 1)
+        val first = PlanReadPage.answer(plan, agent, budgetBytes = 8192)
+        val ids = first.getValue("plan").jsonObject.getValue("items").jsonArray.map { it.jsonObject.getValue("id").jsonPrimitive.content }.toSet()
+        assertTrue(ids.containsAll(listOf("area", "held", "before", "later")))
+        assertEquals(false, first.getValue("complete").jsonPrimitive.boolean)
+        assertTrue("continuation" in first)
+    }
+
+    @Test fun nextWithoutAnExplicitThreadKeepsItsPageAndConfiguredByteBudget() = fixture { workspace ->
+        workspace.plans.write("hangar:bounded", PlanPatch(title = "Bounded", ops = List(40) {
+            PlanOp.Add("Task $it", key = "p$it", detail = "évidence ".repeat(600)) }), person)
+        val tools = agentPlanTools(workspace)
+        tools.single { it.name == "agent_plan_write" }.invoke(buildJsonObject {
+            put("thread", "hangar:bounded"); put("by", AgentWorkspaceJson.encodeToJsonElement(BoardActor.serializer(), person))
+            put("base", workspace.plans.plan("hangar:bounded")!!.revision)
+            put("limits", buildJsonObject { put("doingPerHolder", 5); put("readBytes", 8192); put("maxReadBytes", 262144) })
+        })
+        val next = tools.single { it.name == "agent_plan_next" }
+        val who = buildJsonObject { put("by", AgentWorkspaceJson.encodeToJsonElement(BoardActor.serializer(), agent)) }
+        val first = next.invoke(who).jsonObject
+        assertTrue(first.toString().encodeToByteArray().size <= 8192)
+        assertEquals("agent-page", first.getValue("projection").jsonPrimitive.content)
+        assertEquals(true, first.getValue("candidate").jsonObject.getValue("itemPartial").jsonPrimitive.boolean)
+        val cursor = first.getValue("continuation").jsonPrimitive.content
+        val second = next.invoke(JsonObject(who + ("continuation" to JsonPrimitive(cursor)))).jsonObject
+        assertTrue(second.toString().encodeToByteArray().size <= 8192)
+        assertTrue(second.getValue("offset").jsonPrimitive.int > first.getValue("offset").jsonPrimitive.int)
+        val maximum = tools.single { it.name == "agent_plan_read" }.invoke(args(buildJsonObject { put("budgetBytes", 1000000) })).jsonObject
+        assertTrue(maximum.toString().encodeToByteArray().size <= 262144)
+    }
+
+    @Test fun anAgentsReadDoesNotOfferReadyWorkWhoseFilesAreHeldByAnotherWriter() = fixture { workspace ->
+        workspace.plans.write("hangar:bounded", PlanPatch(title = "Scope", ops = listOf(
+            PlanOp.Add("Busy", key = "busy", status = PlanStatus.Doing, refs = listOf("file:Shared.kt")),
+            PlanOp.Add("Waiting for files", key = "free", refs = listOf("file:Shared.kt")))), person)
+        val reply = agentPlanTools(workspace).single { it.name == "agent_plan_read" }.invoke(args()).jsonObject
+        assertTrue(reply.getValue("ready").jsonArray.isEmpty())
+    }
+
+    @Test fun anAgentWithoutABoundSessionStillReadsAnExplicitThreadWithoutAnOffer() = fixture { workspace ->
+        workspace.plans.write("hangar:bounded", PlanPatch(title = "Read only", ops = listOf(PlanOp.Add("Visible", key = "visible"))), person)
+        val reply = agentPlanTools(workspace).single { it.name == "agent_plan_read" }.invoke(args(buildJsonObject {
+            put("by", AgentWorkspaceJson.encodeToJsonElement(BoardActor.serializer(), agent.copy(session = null)))
+        })).jsonObject
+        assertEquals("visible", reply.getValue("plan").jsonObject.getValue("items").jsonArray.single().jsonObject.getValue("id").jsonPrimitive.content)
+        assertTrue(reply.getValue("ready").jsonArray.isEmpty())
+        assertTrue(reply.toString().encodeToByteArray().size <= 65_536)
+    }
+
+    @Test fun aBoundProfilesAssignedWorkLeadsReadAndNextPages() = fixture { workspace ->
+        val profile = workspace.profiles.save(AgentProfile("bounded-worker", "Bounded worker", RuntimeKind.Codex), person)
+        workspace.bindIdentity(agent, profile.id, workspace.identity(agent).bindingRevision)
+        val canonical = workspace.planIdentity(agent)
+        assertTrue(canonical.name != agent.name)
+        workspace.plans.write("hangar:bounded", PlanPatch(title = "Assigned", ops =
+            List(30) { PlanOp.Add("Other $it", key = "other-$it", detail = "Unrelated detail ".repeat(300)) } + listOf(
+                PlanOp.Add("Assigned frame", key = "area", kind = PlanKind.Component, refs = listOf(PlanPeople.ref(canonical))),
+                PlanOp.Add("Held", key = "held", parent = "area", status = PlanStatus.Doing),
+                PlanOp.Add("Ready", key = "ready", parent = "area", refs = listOf("file:Ready.kt"))
+            )), person)
+        for (name in listOf("agent_plan_read", "agent_plan_next")) {
+            val answer = agentPlanTools(workspace).single { it.name == name }.invoke(args(buildJsonObject { put("budgetBytes", 8192) })).jsonObject
+            val ids = answer.getValue("plan").jsonObject.getValue("items").jsonArray.map { it.jsonObject.getValue("id").jsonPrimitive.content }.toSet()
+            assertTrue(ids.containsAll(listOf("area", "held", "ready")), "$name must lead with the bound agent's assigned work")
+        }
+    }
+
+    @Test fun aNewsCheckReturnsOnlyTheAgentsScopeAndCountsAllMetadata() = fixture { workspace ->
+        val profile = workspace.profiles.save(AgentProfile("news-worker", "Fixture agent", RuntimeKind.Codex), person)
+        workspace.bindIdentity(agent, profile.id, workspace.identity(agent).bindingRevision)
+        workspace.plans.write("hangar:bounded", PlanPatch(title = "News", ops = listOf(
+            PlanOp.Add("Held", key = "held", refs = listOf("agent:${PlanPeople.statedName(workspace.planIdentity(agent))}")),
+            PlanOp.Add("Other frame", key = "other", kind = PlanKind.Component, refs = listOf("agent:someone-else"))) +
+            List(80) { PlanOp.Add("Unrelated $it", key = "p$it", parent = "other", detail = "Other detail ".repeat(30)) }), person)
+        val revision = workspace.plans.plan("hangar:bounded")!!.revision
+        workspace.plans.write("hangar:bounded", PlanPatch(ops = listOf(PlanOp.Update("held", title = "News about held"))), person)
+        val read = agentPlanTools(workspace).single { it.name == "agent_plan_read" }
+        val answer = read.invoke(args(buildJsonObject { put("since", revision); put("budgetBytes", 8192) })).jsonObject
+        assertTrue(answer.toString().encodeToByteArray().size <= 8192)
+        assertTrue(answer.getValue("news").jsonArray.isNotEmpty())
+        val ids = answer.getValue("plan").jsonObject.getValue("items").jsonArray.map { it.jsonObject.getValue("id").jsonPrimitive.content }
+        assertEquals(listOf("held"), ids, "News must not page unrelated backlog")
+        assertTrue("continuation" !in answer)
+    }
+
+    @Test fun scheduleAndShapeUseTheSameBoundedAgentScope() = fixture { workspace ->
+        val profile = workspace.profiles.save(AgentProfile("scope-worker", "Fixture agent", RuntimeKind.Codex), person)
+        workspace.bindIdentity(agent, profile.id, workspace.identity(agent).bindingRevision)
+        workspace.plans.write("hangar:bounded", PlanPatch(title = "Scoped projections", ops = listOf(
+            PlanOp.Add("Held", key = "held", refs = listOf(PlanPeople.ref(workspace.planIdentity(agent)))),
+            PlanOp.Add("Other", key = "outside", refs = listOf("agent:another-worker")))), person)
+        val tools = agentPlanTools(workspace)
+        val schedule = tools.single { it.name == "agent_plan_schedule" }.invoke(args()).jsonObject
+        assertEquals(listOf("held"), schedule.getValue("plan").jsonObject.getValue("items").jsonArray.map {
+            it.jsonObject.getValue("id").jsonPrimitive.content
+        })
+        assertTrue(schedule.toString().encodeToByteArray().size <= 65_536)
+        val shape = tools.single { it.name == "agent_plan_shape" }.invoke(args(buildJsonObject {
+            put("threads", JsonArray(listOf(JsonPrimitive("hangar:bounded"))))
+        }).let { JsonObject(it - "thread") }).jsonObject
+        assertEquals(listOf("held"), shape.getValue("plan").jsonObject.getValue("items").jsonArray.map {
+            it.jsonObject.getValue("id").jsonPrimitive.content
+        })
+        assertTrue(shape.toString().encodeToByteArray().size <= 65_536)
+    }
+
+    @Test fun aContinuationDoesNotPreventTheAttachedAgentFromClaimingItsItem() = fixture { workspace ->
+        val profile = workspace.profiles.save(AgentProfile("paged-worker", "Fixture agent", RuntimeKind.Codex), person)
+        workspace.bindIdentity(agent, profile.id, workspace.identity(agent).bindingRevision)
+        workspace.plans.write("hangar:bounded", PlanPatch(title = "Paged claim", ops = listOf(
+            PlanOp.Add("Held", key = "held", refs = listOf(PlanPeople.ref(workspace.planIdentity(agent))), detail = "Context ".repeat(2000)))), person)
+        val read = agentPlanTools(workspace).single { it.name == "agent_plan_read" }
+        val first = read.invoke(args(buildJsonObject { put("budgetBytes", 8192) })).jsonObject
+        val cursor = first.getValue("continuation").jsonPrimitive.content
+        val second = read.invoke(args(buildJsonObject { put("budgetBytes", 8192); put("continuation", cursor) })).jsonObject
+        assertTrue(second.toString().encodeToByteArray().size <= 8192)
+        val claimed = workspace.nextPlan("hangar:bounded", agent, take = true, item = "held")
+        assertEquals("held", claimed.candidate?.item?.id)
+        assertTrue(workspace.plans.plan("hangar:bounded")!!.item("held")!!.lease!!.by.same(workspace.planIdentity(agent)))
+    }
+
+
+    @Test fun aReadContinuationSelectsItsThreadWithoutRepeatingIt() = fixture { workspace ->
+        workspace.plans.write("hangar:bounded", PlanPatch(title = "Bounded", ops = List(12) {
+            PlanOp.Add("Task $it", key = "p$it", detail = "Context ".repeat(800)) }), person)
+        val read = agentPlanTools(workspace).single { it.name == "agent_plan_read" }
+        val first = read.invoke(args(buildJsonObject { put("budgetBytes", 8192) })).jsonObject
+        val cursor = first.getValue("continuation").jsonPrimitive.content
+        val second = read.invoke(buildJsonObject {
+            put("by", AgentWorkspaceJson.encodeToJsonElement(BoardActor.serializer(), agent))
+            put("budgetBytes", 8192); put("continuation", cursor)
+        }).jsonObject
+        assertEquals("hangar:bounded", second.getValue("plan").jsonObject.getValue("thread").jsonPrimitive.content)
+        assertTrue(second["restart"]?.jsonPrimitive?.booleanOrNull != true)
+        assertTrue(second.getValue("offset").jsonPrimitive.int > 0 || second["fragment"]?.jsonObject?.get("offset")?.jsonPrimitive?.int?.let { it > 0 } == true)
+    }
+
+    @Test fun aPartialLimitsWriteKeepsTheConfiguredReadBudgets() = fixture { workspace ->
+        val plan = workspace.plans.write("hangar:bounded", PlanPatch(title = "Bounded", limits = PlanLimits(5, 8192, 32768)), person).plan
+        val answer = agentPlanTools(workspace).single { it.name == "agent_plan_write" }.invoke(buildJsonObject {
+            put("thread", plan.thread); put("base", plan.revision)
+            put("by", AgentWorkspaceJson.encodeToJsonElement(BoardActor.serializer(), person))
+            put("limits", buildJsonObject { put("doingPerHolder", 8) })
+        }).jsonObject
+        assertTrue(answer.getValue("refused").jsonArray.isEmpty())
+        assertEquals(PlanLimits(8, 8192, 32768), workspace.plans.plan(plan.thread)!!.limits)
+    }
+
+    @Test fun aLimitsRefusalNamesThePeopleTheRuleAllows() {
+        val plan = WorkPlan("hangar:bounded", "Bounded", createdBy = person, createdAt = 1, updatedAt = 1)
+        val refusal = assertFailsWith<IllegalArgumentException> {
+            PlanRules.apply(plan, PlanPatch(limits = PlanLimits(8)), agent, 2)
+        }
+        assertEquals("Only a person, the plan's creator or its thread's agent can change its limits", refusal.message)
+    }
+    @Test fun aContinuationAlonePreservesItsSinceFrameAndHistorySelection() = fixture { workspace ->
+        workspace.plans.write("hangar:bounded", PlanPatch(title = "Continuity", ops =
+            listOf(PlanOp.Add("Area", key = "area", kind = PlanKind.Component)) +
+                List(15) { PlanOp.Add("Task $it", key = "p$it", parent = "area", detail = "detail ".repeat(500), refs = listOf(PlanPeople.ref(agent))) }), person)
+        repeat(12) { workspace.plans.write("hangar:bounded", PlanPatch(emptyList(), message = "Evidence $it " + "évidence ".repeat(200)), person) }
+        val read = agentPlanTools(workspace).single { it.name == "agent_plan_read" }
+        var page = read.invoke(args(buildJsonObject {
+            put("since", 1); put("frame", "area"); put("history", true); put("budgetBytes", 8192)
+        })).jsonObject
+        val history = StringBuilder()
+        var turns = 0
+        var completed = false
+        do {
+            assertTrue(page["restart"]?.jsonPrimitive?.booleanOrNull != true)
+            page["metadataFragment"]?.jsonObject?.let { history.append(it.getValue("text").jsonPrimitive.content) }
+            val cursor = page["continuation"]?.jsonPrimitive?.contentOrNull
+            if (cursor == null) { completed = true; break }
+            page = read.invoke(buildJsonObject {
+                put("by", AgentWorkspaceJson.encodeToJsonElement(BoardActor.serializer(), agent))
+                put("budgetBytes", 8192); put("continuation", cursor)
+            }).jsonObject
+            assertTrue(++turns < 100)
+        } while (true)
+        assertTrue(completed)
+        assertEquals(13, AgentWorkspaceJson.parseToJsonElement(history.toString()).jsonObject.getValue("history").jsonArray.size)
+    }
+
+    @Test fun anUnreadableLinkedDocumentNamesItsPathAndTheProblem() = fixture { workspace ->
+        workspace.plans.write("hangar:bounded", PlanPatch(title = "Missing document", ops = emptyList(), documentPath = "plans/vanished.md"), person)
+        val page = agentPlanTools(workspace).single { it.name == "agent_plan_read" }.invoke(buildJsonObject {
+            put("thread", "hangar:bounded"); put("by", AgentWorkspaceJson.encodeToJsonElement(BoardActor.serializer(), person))
+        }).jsonObject
+        val error = page["documentError"]?.jsonPrimitive?.content.orEmpty()
+        assertTrue(error.contains("plans/vanished.md"))
+        assertTrue(error.contains("read", ignoreCase = true))
+    }
+
+}

@@ -12,22 +12,17 @@ import dev.shibasis.reaktor.mcp.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.*
-import java.util.concurrent.Semaphore
 
 internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<McpTool> = emptyList()): List<McpTool> {
-    val waits = Semaphore(2)
-    val taskWaits = Semaphore(2)
     fun JsonObject.string(name: String) = (get(name) as? JsonPrimitive)?.contentOrNull ?: error("$name is required")
     fun JsonObject.long(name: String, default: Long) = (get(name) as? JsonPrimitive)?.longOrNull ?: default
     fun result(record: AgentRunRecord) = AgentWorkspaceJson.encodeToJsonElement(AgentRunRecord.serializer(), record)
+    fun summary(record: AgentRunRecord) = JsonObject(result(workspace.taskSummaries(AgentTasksPage(0, listOf(record))).runs.single().copy(
+        output = record.output.takeLast(12_000), outputTruncated = record.outputTruncated || record.output.length > 12_000)).jsonObject +
+        ("pendingIds" to JsonArray((record.pending + record.participants.values.flatMap { it.pending }).map { it.id }
+            .distinct().map(::JsonPrimitive))))
     fun outcome(value: CommandOutcome) = AgentWorkspaceJson.encodeToJsonElement(CommandOutcome.serializer(), value)
-    fun tasks(page: AgentTasksPage): JsonElement = AgentWorkspaceJson.encodeToJsonElement(AgentTasksPage.serializer(), page.copy(runs = page.runs.map { run ->
-        run.copy(output = "", context = null, reasoning = "", pending = emptyList(),
-            pendingCount = (run.pending.map { it.id } + run.participants.values.flatMap { it.pending }.map { it.id }).distinct().size,
-            outputTruncated = run.outputTruncated || run.output.isNotEmpty(),
-            participants = run.participants.mapValues { (_, participant) -> participant.copy(output = "", reasoning = "", pending = emptyList(),
-                outputTruncated = participant.outputTruncated || participant.output.isNotEmpty()) })
-    }))
+    fun tasks(page: AgentTasksPage): JsonElement = AgentWorkspaceJson.encodeToJsonElement(AgentTasksPage.serializer(), workspace.taskSummaries(page))
     val runSchema = objectSchema(mapOf("runId" to stringSchema("Exact run id")), listOf("runId"))
     val tools = listOf(
         McpTool("agent_workspace_info", "Read this workspace's configured providers and session capabilities.", emptyObjectSchema(), true, true) {
@@ -52,13 +47,10 @@ internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<Mcp
             val offset = it.long("offset", 0).toInt()
             val limit = it.long("limit", 50).toInt()
             val timeout = it.long("timeoutMillis", 30000)
-            if (timeout == 0L) tasks(workspace.tasksPage(query, offset, limit)) else {
-                check(taskWaits.tryAcquire()) { "Task wait capacity is busy; retry later" }
-                try { runBlocking { tasks(workspace.awaitTasks(it.long("revision", 0), query, offset, limit, timeout)) } }
-                finally { taskWaits.release() }
-            }
+            if (timeout == 0L) tasks(workspace.tasksPage(query, offset, limit))
+            else runBlocking { tasks(workspace.awaitTasks(it.long("revision", 0), query, offset, limit, timeout)) }
         },
-        McpTool("agent_submit", "Start or continue a Reaktor conversation: Single uses one provider, Compare uses two independent proposals, Council uses two proposals, two critiques and a synthesis by the primary provider; councilHybrid adds the third ChatGPT + Gemini seat. Single ChatGptGemini uses only human ChatGPT handoffs and Gemini execution. Collaborative turns use fresh provider sessions; editing requires owned Worktree isolation. Reuse requestId only for identical retries. This incurs model usage and harnesses may execute tools; provider permissions apply.",
+        McpTool("agent_submit", "Start or continue a Reaktor conversation: Single uses one provider, Compare uses two independent proposals, Council uses two proposals, two critiques and a synthesis by the primary provider; councilHybrid runs the three-seat council across Claude Code, Codex, and Antigravity. Collaborative turns use fresh provider sessions; editing requires owned Worktree isolation. Reuse requestId only for identical retries. This incurs model usage and harnesses may execute tools; provider permissions apply.",
             objectSchema(mapOf(
                 "requestId" to stringSchema("Unique idempotency key for this exact submission"),
                 "provider" to enumSchema("Provider configured by this workspace", workspace.info().providers.map { it.name }),
@@ -71,7 +63,7 @@ internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<Mcp
                 "allowWrites" to buildJsonObject { put("type", "boolean") },
                 "timeoutMillis" to buildJsonObject { put("type", "integer"); put("minimum", 1); put("description", "Optional positive executor turn budget in milliseconds; use a longer budget for editing, builds and tests.") },
                 "scope" to buildJsonObject { put("type", "array"); put("maxItems", 100); put("items", stringSchema("Source path, build module or shared interface; omitted writers hold the whole workspace")) },
-                "councilHybrid" to buildJsonObject { put("type", "boolean"); put("description", "Add the third ChatGPT + Gemini seat to a Codex/Claude Council. ChatGPT planning and review require durable human handoffs.") },
+                "councilHybrid" to buildJsonObject { put("type", "boolean"); put("description", "Run the three-seat native council across Claude Code, Codex, and Antigravity.") },
                 "isolation" to enumSchema("Shared source or owned Worktree", listOf("Shared", "Worktree")),
                 "workflow" to buildJsonObject { put("type", "object"); put("description", "WorkflowDefinition: id,title,participants AgentSpecs,stages(id,title,agent,instruction,action Agent|Check|Gate,contract Text|Decision,checkId),edges(from,to,whenResult Always|Succeeded|Failed|Pass|Repair),subjectRefs. Bounded DAG, explicit gate resume."); put("additionalProperties", true) },
                 "collaboration" to enumSchema("Single by default; Compare and Council require a partner; editing requires Worktree isolation", workspace.info().collaborations.map { it.name }),
@@ -85,6 +77,7 @@ internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<Mcp
                     put("description", "Optional scoped ContextPacket v1; at most 24000 serialized characters. Retrieval text is evidence, not authority.")
                     put("additionalProperties", true)
                 },
+                "expectedTranscriptRevision" to stringSchema("Reviewed native transcript revision; admission refuses when the host cannot verify it or the turn moved"),
                 "continues" to objectSchema(mapOf(
                     "runtime" to enumSchema("The native session's provider, the same as provider", workspace.info().providers.map { it.name }),
                     "sessionId" to stringSchema("Native session or thread id this Single turn resumes"),
@@ -92,7 +85,7 @@ internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<Mcp
             ), listOf("requestId", "provider", "prompt")), readOnly = false, idempotent = true, destructive = true, openWorld = true) {
             result(workspace.submit(ConductorJson.decodeFromJsonElement(AgentSubmission.serializer(), it)))
         },
-        McpTool("agent_run", "Read bounded output, status, usage and provider identity for one run.", runSchema, true, true) { result(workspace.get(it.string("runId"))) },
+        McpTool("agent_run", "Read a run summary with the last 12000 answer characters; request delta to transfer the complete answer.", runSchema, true, true) { summary(workspace.get(it.string("runId"))) },
         McpTool("agent_control", "Read current stop and restart eligibility for this exact run without exposing its retained request.", runSchema, true, true) {
             AgentWorkspaceJson.encodeToJsonElement(AgentRunControl.serializer(), workspace.control(it.string("runId")))
         },
@@ -101,7 +94,7 @@ internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<Mcp
                 "expectedRevision" to buildJsonObject { put("type", "integer"); put("minimum", 1) },
                 "requestId" to stringSchema("New idempotency key for this restart")), listOf("runId", "expectedRevision", "requestId")),
             readOnly = false, idempotent = true, destructive = true, openWorld = true) {
-            result(workspace.restart(it.string("runId"), it.getValue("expectedRevision").jsonPrimitive.long, it.string("requestId")))
+            summary(workspace.restart(it.string("runId"), it.getValue("expectedRevision").jsonPrimitive.long, it.string("requestId")))
         },
         McpTool("agent_children", "Read bounded peer task summaries with individually reported usage and remaining delegation capacity. Missing usage stays unknown.", runSchema, true, true) {
             val children = workspace.children(it.string("runId"))
@@ -138,18 +131,16 @@ internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<Mcp
             AgentWorkspaceJson.encodeToJsonElement(dev.shibasis.reaktor.conductor.AgentActivityPage.serializer(), workspace.activity.page(it.string("runId"), it.long("after", 0), it.long("limit", 50).toInt(), it["tail"]?.jsonPrimitive?.booleanOrNull ?: false))
         },
         McpTool("agent_resume", "Continue remaining stages of an interrupted run after inspecting uncertain effects. Reuses completed stage results; may invoke native tools and incur model usage.",
-            objectSchema(mapOf("runId" to stringSchema("Exact run id"), "expectedRevision" to buildJsonObject { put("type", "integer"); put("description", "Reviewed run revision; required for a workflow gate. A retry after the run changes is stale.") }), listOf("runId")), false, false, destructive = true, openWorld = true) { result(workspace.resume(it.string("runId"), (it["expectedRevision"] as? JsonPrimitive)?.longOrNull)) },
+            objectSchema(mapOf("runId" to stringSchema("Exact run id"), "expectedRevision" to buildJsonObject { put("type", "integer"); put("description", "Reviewed run revision; required for a workflow gate. A retry after the run changes is stale.") }), listOf("runId")), false, false, destructive = true, openWorld = true) { summary(workspace.resume(it.string("runId"), (it["expectedRevision"] as? JsonPrimitive)?.longOrNull)) },
         McpTool("agent_wait", "Wait for a run revision to change or become terminal. Returns bounded current state; use the returned revision next time.",
             objectSchema(mapOf("runId" to stringSchema("Exact run id"),
                 "afterRevision" to buildJsonObject { put("type", "integer"); put("minimum", 0) },
                 "timeoutMillis" to buildJsonObject { put("type", "integer"); put("minimum", 0); put("maximum", 30000) }), listOf("runId")), true, true) {
-            check(waits.tryAcquire()) { "Wait capacity is busy; retry later" }
-            try { runBlocking { result(workspace.awaitChange(it.string("runId"), it.long("afterRevision", 0), it.long("timeoutMillis", 30000))) } }
-            finally { waits.release() }
+            runBlocking { summary(workspace.awaitChange(it.string("runId"), it.long("afterRevision", 0), it.long("timeoutMillis", 30000))) }
         },
         McpTool("agent_cancel", "Interrupt this exact run and wait for its owned harness to stop. An optional reviewed revision refuses a stale stop.",
             objectSchema(mapOf("runId" to stringSchema("Exact run id"), "expectedRevision" to buildJsonObject { put("type", "integer"); put("minimum", 1) }), listOf("runId")), false, true) {
-            runBlocking { result(workspace.cancel(it.string("runId"), it["expectedRevision"]?.jsonPrimitive?.long)) }
+            runBlocking { summary(workspace.cancel(it.string("runId"), it["expectedRevision"]?.jsonPrimitive?.long)) }
         },
         McpTool("agent_attach", "Re-attach to a run after a disconnect: its current state, whether it is still executing, which participants can be answered, and what it is blocked on. Observation only — this never takes the execution lease or dispatches work.",
             runSchema, readOnly = true, idempotent = true) {
@@ -159,7 +150,7 @@ internal fun agentWorkspaceTools(workspace: AgentWorkspace, extraTools: List<Mcp
             objectSchema(mapOf(
                 "runId" to stringSchema("Exact run id"),
                 "agent" to stringSchema("Participant id that is waiting"),
-                "requestId" to stringSchema("Exact pending request id from the run record"),
+                "requestId" to stringSchema("Exact pending request id from agent_attach or pendingIds in the run summary"),
                 "decision" to enumSchema("approve, deny or answer", listOf("approve", "deny", "answer", "answers", "form")),
                 "text" to stringSchema("Reason for deny, or the answer text"),
                 "answers" to buildJsonObject { put("type", "object"); put("additionalProperties", buildJsonObject { put("type", "array"); put("items", stringSchema("Answer")) }) },

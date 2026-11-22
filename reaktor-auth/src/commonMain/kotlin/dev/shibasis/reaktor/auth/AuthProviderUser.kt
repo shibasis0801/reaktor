@@ -33,6 +33,7 @@ data class AppleUser(
     override val givenName: String?,
     override val familyName: String?,
     override val emailId: String,
+    @kotlinx.serialization.Transient val authorizationCode: String? = null,
 ): AuthProviderUser {
     override fun json() = JsonObject(json.encodeToJsonElement(this).jsonObject.filterKeys { it != "idToken" })
     override fun toString() = "AppleUser(emailId=$emailId, idToken=<redacted>)"

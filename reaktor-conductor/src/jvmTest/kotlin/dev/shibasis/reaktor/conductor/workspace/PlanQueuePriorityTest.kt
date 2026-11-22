@@ -26,7 +26,7 @@ class PlanQueuePriorityTest {
             }
         }
         try {
-            AgentWorkspace(root, root.toPath().resolve("state"), mapOf(runtime.kind to runtime)).use { workspace ->
+            fixtureWorkspace(root, root.toPath().resolve("state"), mapOf(runtime.kind to runtime)).use { workspace ->
                 workspace.plans.write(thread, PlanPatch(title = "Queue", ops = listOf(
                     PlanOp.Add("First", key = "first"), PlanOp.Add("Second", key = "second", priority = PlanPriority.High),
                 )), owner)

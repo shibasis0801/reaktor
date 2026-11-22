@@ -19,12 +19,21 @@ internal class GradleBuildPlanner {
                 seal: ProcessDefinitionSeal, redactions: Set<String>, environment: Map<String, String>,
                 sensitiveEnvironmentKeys: Set<String>, reviewedPlan: GradlePlan? = null): PreparedGradleBuild {
         val properties = arguments.filter { it.startsWith("-P") }
+        val admissionCommand = GradleAdmissionAssets.resolve(root, environment)
+        val adapter = admissionCommand.adapter
+        val routingFiles = listOf("gradle-lease", "remote-dev", "remote_build.py", "cluster_locations.py",
+            "remote_retention.py", "workspace_storage.py", "build_control.py", "hosts_contract.py")
+            .map { adapter.parentFile.resolve(it) }.filter(File::isFile)
+        val admission = ArtifactExpectation("gradle-admission")
+        fun launch(tasks: List<String>): List<String> = listOf(adapter.absolutePath, "--auto", "--project", root.name) +
+            admissionCommand.options + tasks.flatMap { listOf("--task", it) } + listOf("--", wrapper)
         val previous = if (reviewedPlan == null) BuildModelReader.readAllowingStale(root) else BuildModelReader.read(root)
         fun gradle(tasks: List<String>, definitions: ProcessDefinitionSeal, failure: String) = runBlocking {
             SupervisedProcessExecutor().use { executor ->
-                val prepared = AdHocProcessPlan.create(listOf(wrapper) + tasks + properties + "--console=plain", root, TaskId(node.id.toString()),
-                    SafetyPolicy(SafetyClass.LocalArtifactWrite), redactions = redactions, definitionSeal = definitions,
-                    environment = environment, sensitiveEnvironmentKeys = sensitiveEnvironmentKeys)
+                val prepared = AdHocProcessPlan.create(launch(tasks.filterNot { it.startsWith("-") }) + tasks + properties + "--console=plain", root, TaskId(node.id.toString()),
+                    SafetyPolicy(SafetyClass.LocalArtifactWrite), redactions = redactions,
+                    definitionSeal = ProcessDefinitionSeal.capture(definitions.files + routingFiles, definitions.directories),
+                    artifacts = listOf(admission), environment = environment, sensitiveEnvironmentKeys = sensitiveEnvironmentKeys)
                 val handle = executor.start(prepared)
                 val tail = StringBuilder()
                 val collector = launch { handle.events.collect { event ->
@@ -55,7 +64,7 @@ internal class GradleBuildPlanner {
         // PlanTask already depends on model export and validates its digest before selecting tasks.
         // A stale catalog or explicit context still needs the separate refresh handshake.
         val localEnvironment = environment.all { (name, value) ->
-            name == "PATH" || name == "REAKTOR_ENVIRONMENT" && value == "local"
+            name in setOf("PATH", "REMOTE_DEV_STATE") || name == "REAKTOR_ENVIRONMENT" && value == "local"
         }
         val changedEnvironment = previous.declarations.any { declaration ->
             val option = declaration.option ?: return@any false
@@ -101,9 +110,9 @@ internal class GradleBuildPlanner {
         require(plan.node == node.id && plan.modelDigest == request.modelDigest && plan.requestDigest == BuildModelReader.digest(contract))
         val executable = write(request.copy(expectedContextDigest = plan.contextDigest, deployments = plan.deployments,
             serverDeployments = plan.serverDeployments, secrets = plan.secrets, migrations = plan.migrations))
-        val argv = listOf(wrapper, GradleProtocol.RunTask, "-P${GradleProtocol.RequestOption}=${executable.absolutePath}", "--console=plain") + properties
-        return PreparedGradleBuild(argv, ProcessDefinitionSeal.capture(seal.files + executable + planFile, seal.directories),
-            plan, listOf(ArtifactExpectation("gradle-result", "${GradleProtocol.ResultDirectory}/${executable.name}", true)),
+        val argv = launch(listOf(node.id.toString())) + listOf(GradleProtocol.RunTask, "-P${GradleProtocol.RequestOption}=${executable.absolutePath}", "--console=plain") + properties
+        return PreparedGradleBuild(argv, ProcessDefinitionSeal.capture(seal.files + executable + planFile + routingFiles, seal.directories),
+            plan, listOf(admission, ArtifactExpectation("gradle-result", "${GradleProtocol.ResultDirectory}/${executable.name}", true)),
             listOf("gradle-plan", BuildModelReader.digest(planFile), "configuration-ms=${plan.configuredMillis}"))
     }
 }

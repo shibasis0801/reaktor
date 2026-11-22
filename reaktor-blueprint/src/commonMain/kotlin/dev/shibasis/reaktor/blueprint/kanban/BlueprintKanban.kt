@@ -22,7 +22,6 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.dp
 import dev.shibasis.reaktor.blueprint.BlueprintAgent
 import dev.shibasis.reaktor.blueprint.BlueprintCardLook
 import dev.shibasis.reaktor.blueprint.editor.EditReceipt
@@ -51,8 +50,8 @@ class BlueprintKanbanState {
         private set
     internal var drag by mutableStateOf<Drag?>(null)
         private set
-    internal data class Drag(val source: String, val id: String, val at: Offset)
-    internal fun begin(source: String, id: String, at: Offset) { if (!moving) drag = Drag(source, id, at) }
+    internal data class Drag(val source: String, val id: String, val at: Offset, val grab: Offset)
+    internal fun begin(source: String, id: String, at: Offset, grab: Offset = Offset.Zero) { if (!moving) drag = Drag(source, id, at, grab) }
     internal fun dragBy(delta: Offset) { drag = drag?.let { it.copy(at = it.at + delta) } }
     internal fun cancel() { drag = null }
 
@@ -92,6 +91,10 @@ fun BlueprintKanban(
     proposal: ((NodeShape, KanbanLane) -> GraphPart)? = null,
     onAgentOpen: (BlueprintAgent) -> Unit = {},
     onMove: (suspend (NodeShape, KanbanLane) -> EditReceipt)? = null,
+    onOpen: (String) -> Unit = {},
+    onClear: () -> Unit = { editor.select(Selection()) },
+    onNotice: ((String) -> Unit)? = null,
+    fillLanes: Boolean = false,
 ) {
     val colors = MachineSignal.colors
     val scope = rememberCoroutineScope()
@@ -103,14 +106,17 @@ fun BlueprintKanban(
     val latestProposal by rememberUpdatedState(proposal)
     val latestMove by rememberUpdatedState(onMove)
     val latestEditor by rememberUpdatedState(editor)
+    LaunchedEffect(state.notice) { state.notice?.let { onNotice?.invoke(it) } }
     fun move(id: String, lane: KanbanLane, from: String = source) {
         scope.launch { state.move(from, latestEditor, latestProjection, id, lane, latestProposal, latestSource, latestMove) }
     }
     fun key(event: KeyEvent): Boolean {
         if (event.type != KeyEventType.KeyDown || event.isCtrlPressed || event.isMetaPressed || event.isAltPressed) return false
         if (event.key == Key.Escape && state.drag != null) { state.cancel(); return true }
+        if (event.key == Key.Escape) { editor.select(Selection()); onClear(); return true }
         val columns = projection.columns
         val selected = editor.selection.nodes.singleOrNull()
+        if (event.key == Key.Enter) { selected?.let(onOpen); return selected != null }
         val column = columns.indexOfFirst { lane -> lane.items.any { it.id == selected } }
         val index = columns.getOrNull(column)?.items?.indexOfFirst { it.id == selected } ?: -1
         val horizontal = when (event.key) { Key.DirectionLeft -> -1; Key.DirectionRight -> 1; else -> 0 }
@@ -131,16 +137,19 @@ fun BlueprintKanban(
         return true
     }
     DisposableEffect(source, state) { onDispose { if (state.drag?.source == source) state.cancel() } }
-    Box(modifier.background(colors.canvas).testTag("blueprint-kanban")
+    BoxWithConstraints(modifier.background(colors.canvas).testTag("blueprint-kanban")
         .onGloballyPositioned { origin = it.boundsInRoot().topLeft }
         .focusRequester(focus).onPreviewKeyEvent(::key).focusable()) {
+        val laneWidth = if (fillLanes && projection.columns.isNotEmpty())
+            ((maxWidth - MachineSignal.Space.s3 * (projection.columns.size + 1)) / projection.columns.size).coerceAtLeast(MachineSignal.Editor.navigatorWidth)
+        else MachineSignal.Editor.navigatorWidth
         Column(Modifier.fillMaxSize()) {
             LazyRow(Modifier.weight(1f).fillMaxWidth(), state = state.board(source),
                 contentPadding = PaddingValues(MachineSignal.Space.s3), horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s3)) {
                 items(projection.columns, key = { it.lane.id }) { column ->
                     val lane = column.lane
                     val hot = state.drag?.takeIf { it.source == source }?.at?.let { bounds[lane.id]?.contains(it) } == true
-                    Column(Modifier.fillMaxHeight().width(MachineSignal.Editor.navigatorWidth).testTag("kanban-lane-${lane.id}")
+                    Column(Modifier.fillMaxHeight().width(laneWidth).testTag("kanban-lane-${lane.id}")
                         .onGloballyPositioned { bounds[lane.id] = it.boundsInRoot() }
                         .border(MachineSignal.Stroke.hairline, if (hot) colors.controlAccent else colors.line, RoundedCornerShape(MachineSignal.Radius.panel))) {
                         Row(Modifier.fillMaxWidth().height(MachineSignal.Editor.toolbarHeight).padding(horizontal = MachineSignal.Space.s3)
@@ -159,14 +168,25 @@ fun BlueprintKanban(
                                     onSelect = { focus.requestFocus(); editor.select(Selection(setOf(node.id))) }, onAgentOpen = onAgentOpen,
                                     modifier = Modifier.onGloballyPositioned { topLeft = it.boundsInRoot().topLeft }
                                         .pointerInput(source, node.id, proposal != null || onMove != null) {
+                                            var dragMove: ((String, KanbanLane, String) -> Unit)? = null
                                             if (proposal != null || onMove != null) detectDragGestures(
-                                                onDragStart = { state.begin(source, node.id, topLeft + it) },
+                                                onDragStart = {
+                                                    val drawnEditor = latestEditor
+                                                    val drawnProjection = latestProjection
+                                                    val drawnProposal = latestProposal
+                                                    val drawnMove = latestMove
+                                                    dragMove = { id, lane, from ->
+                                                        scope.launch { state.move(from, drawnEditor, drawnProjection, id, lane, drawnProposal, latestSource, drawnMove) }
+                                                    }
+                                                    state.begin(source, node.id, topLeft + it, it)
+                                                },
                                                 onDragCancel = state::cancel,
                                                 onDragEnd = {
                                                     val drag = state.drag
                                                     state.cancel()
-                                                    if (drag != null) projection.columns.firstOrNull { bounds[it.lane.id]?.contains(drag.at) == true }
-                                                        ?.let { move(drag.id, it.lane, drag.source) }
+                                                    if (drag != null) latestProjection.columns.firstOrNull { bounds[it.lane.id]?.contains(drag.at) == true }
+                                                        ?.let { dragMove?.invoke(drag.id, it.lane, drag.source) }
+                                                    dragMove = null
                                                 }, onDrag = { change, amount -> change.consume(); state.dragBy(amount) })
                                         })
                             }
@@ -174,16 +194,18 @@ fun BlueprintKanban(
                     }
                 }
             }
-            Text(state.notice ?: "Arrows select · Shift+Left/Right moves · Drag to a lane", Modifier.fillMaxWidth()
+            Text(state.notice?.takeIf { onNotice == null } ?: "Arrows select · Shift+Left/Right moves · Enter opens · Esc clears · Drag to a lane", Modifier.fillMaxWidth()
                 .height(MachineSignal.Editor.toolbarHeight).padding(MachineSignal.Space.s2).testTag("kanban-notice"),
                 role = Type.Meta, ink = if (state.notice == null) Ink.Muted else Ink.Warn, lines = 2)
         }
         state.drag?.takeIf { it.source == source }?.let { drag ->
-            val title = projection.columns.asSequence().flatMap { it.items.asSequence() }.find { it.id == drag.id }?.label.orEmpty()
-            Text(title, Modifier.offset { val at = drag.at - origin; IntOffset(at.x.roundToInt(), at.y.roundToInt()) }
-                .width(MachineSignal.Editor.navigatorWidth).background(colors.surface, RoundedCornerShape(MachineSignal.Radius.node))
-                .border(MachineSignal.Stroke.hairline, colors.controlAccent, RoundedCornerShape(MachineSignal.Radius.node))
-                .padding(MachineSignal.Space.s3).testTag("kanban-drag"), role = Type.Body, lines = Int.MAX_VALUE)
+            projection.columns.asSequence().flatMap { it.items.asSequence() }.find { it.id == drag.id }?.let { node ->
+                Box(Modifier.offset { val at = drag.at - origin - drag.grab; IntOffset(at.x.roundToInt(), at.y.roundToInt()) }
+                    .width(laneWidth).testTag("kanban-drag")) {
+                    KanbanCard(node, cardLook(node), true, projection.closingReasons[node.id], {}, onAgentOpen,
+                        Modifier.fillMaxWidth(), tag = "kanban-drag-card-${node.id}")
+                }
+            }
         }
     }
 }

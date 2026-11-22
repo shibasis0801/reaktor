@@ -68,13 +68,13 @@ class AgentWorkflowTest {
         val runtime = EchoRuntime { request -> calls++; if (request.agent.id == reviewer.id) "{\"verdict\":\"pass\",\"summary\":\"ok\"}" else "built" }
         suspend fun stopped(workspace: AgentWorkspace, id: String) { withTimeout(10000) { while (workspace.get(id).status == AgentRunStatus.Running) delay(20) } }
         try {
-            val id = AgentWorkspace(root, data, mapOf(RuntimeKind.Echo to runtime), background = true).use { workspace ->
+            val id = fixtureWorkspace(root, data, mapOf(RuntimeKind.Echo to runtime), background = true).use { workspace ->
                 val run = workspace.submit(AgentSubmission("workflow", RuntimeKind.Echo, "work", workflow = definition()))
                 stopped(workspace, run.id)
                 assertEquals(AgentRecovery.NeedsReview, workspace.get(run.id).recovery)
                 run.id
             }
-            AgentWorkspace(root, data, mapOf(RuntimeKind.Echo to runtime), background = true).use { workspace ->
+            fixtureWorkspace(root, data, mapOf(RuntimeKind.Echo to runtime), background = true).use { workspace ->
                 workspace.recoverInBackground(); delay(30)
                 assertEquals(2, calls, "A durable gate never auto-approves")
                 val checkpoint = workspace.checkpoints.list(id).first { it.workflow.stages["approve"]?.status == WorkflowStageStatus.Waiting }
@@ -138,7 +138,7 @@ class AgentWorkflowTest {
         val data = Files.createTempDirectory("approval-data")
         try {
             git(root, "init", "-q")
-            AgentWorkspace(root, data, mapOf(RuntimeKind.Echo to EchoRuntime { "done" })).use { workspace ->
+            fixtureWorkspace(root, data, mapOf(RuntimeKind.Echo to EchoRuntime { "done" })).use { workspace ->
                 val tools = (agentWorkflowTools(workspace) + agentEvidenceTools(workspace)).filter { it.name in setOf("agent_worktree_apply", "agent_candidate_accept") }
                 assertEquals(2, tools.size)
                 tools.forEach { assertFalse("approvedBy" in it.inputSchema.getValue("properties").toString(), it.name) }

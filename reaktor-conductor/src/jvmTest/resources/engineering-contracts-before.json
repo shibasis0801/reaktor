@@ -2044,7 +2044,7 @@
   },
   {
     "id": "plan.read",
-    "summary": "One thread's plan, your own when thread is left out: each item with its status, order, parent, links, seat and who changed it, and the revision to send as base. since <revision> adds what others changed after it.",
+    "summary": "One thread's plan, your own when thread is left out: each item with its status, order, parent, links, seat and who changed it, and the revision to send as base. since <revision> adds what others changed after it. When newsGap is true, some changes are no longer retained; read the changedItems frames to recover their current state. When newsTruncated is true, read again with since=newsSince before advancing to the plan revision. Follow continuation and reassemble metadataFragment first.",
     "effect": "ReadOnly",
     "provider": "engineering",
     "input": {
@@ -2057,7 +2057,7 @@
         "since": {
           "type": "integer",
           "minimum": 0,
-          "description": "The revision you last read"
+          "description": "The revision you last read. When newsGap is true, some changes are no longer retained; read the changedItems frames to recover their current state. When newsTruncated is true, read again with since=newsSince before advancing to the plan revision. Follow continuation and reassemble metadataFragment first."
         },
         "history": {
           "type": "boolean",

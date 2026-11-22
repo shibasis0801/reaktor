@@ -11,9 +11,11 @@ import kotlinx.serialization.json.JsonObject
 open class PlansApi : Service("reaktor.plan") {
     open val list by call<PlanListRequest, JsonElement>(effect = Effect.ReadOnly, summary = "Every thread's plan with its title, revision, progress and when it last changed.")
 
-    open val read by call<PlanReadRequest, JsonElement>(effect = Effect.ReadOnly, summary = "One thread's plan, your own when thread is left out: each item with its status, order, parent, links, seat and who changed it, and the revision to send as base. since <revision> adds what others changed after it.")
+    open val read by call<PlanReadRequest, JsonElement>(effect = Effect.ReadOnly, summary = "One thread's plan, your own when thread is left out: each item with its status, order, parent, links, seat and who changed it, and the revision to send as base. since <revision> adds what others changed after it. " + PlanBrief.News)
 
     open val schedule by call<PlanScheduleRequest, JsonElement>(effect = Effect.ReadOnly, summary = "Remaining item steps, critical path and slack, dependency width of schedulable work, ready items and unresolved blockers. No duration estimates; steps and slack stay unknown while dependencies are unresolved.")
+
+    open val score by call<PlanScoreRequest, JsonElement>(effect = Effect.ReadOnly, summary = "Granular telemetry scorecard for a plan DAG: per-item and per-component tokens (fresh, cached, cache-write, output, reasoning), peak context window utilization, compactions, native vs rate-card cost, check outcomes, critical path and unattributed session edits.")
 
     open val next by call<PlanNextRequest, JsonElement>(effect = Effect.ReadOnly, summary = "The highest ready item for the authenticated agent across plans, or one thread: inherited priority, work unblocked and age. Respects seats, profile kinds and refs, paused quota pools and reported provider limits. With take=true, atomically claims it Doing under a lease; otherwise reads only. Activity renews the lease, and quiet leases return to Todo with history.")
 
@@ -22,6 +24,8 @@ open class PlansApi : Service("reaktor.plan") {
     open val attach by call<PlanAttachRequest, JsonElement>(effect = Effect.LocalArtifactWrite, summary = "A person attaches a gallery agent (an agent profile) to items of a plan; Hangar starts that agent with a brief naming its seat.")
 
     open val shapeGraph by call<PlanShapeRequest, JsonElement>(name = "shape", effect = Effect.ReadOnly, summary = "The reaktor-graph shape of the plans named in threads, or of every plan: a graph per plan with a child graph per component, a node per item wired by order and relations, and an In Reaktor graph with a node per file, symbol, module or graph an item links, each naming the atlas call that explores it.")
+
+    open val archive by call<PlanArchiveRequest, JsonElement>(effect = Effect.LocalArtifactWrite, summary = "Archive completed (Done) and closed (Dropped) leaf items from a thread's plan into plans/archive/ so large multi-wave plans stay compact.")
 }
 
 @Serializable
@@ -37,13 +41,24 @@ data class PlanReader(
 @Serializable
 data class PlanReadRequest(
     @Describe("hangar:<conversation id>, claude:<session id>, codex:<session id> or agy:<conversation id>; your own session when left out") @Schema(nullable = false) val thread: String? = null,
-    @Describe("The revision you last read") @Schema(minimum = 0, nullable = false) val since: Long? = null,
+    @Describe("The revision you last read. " + PlanBrief.News) @Schema(minimum = 0, nullable = false) val since: Long? = null,
     @Describe("Include the last 200 changes") val history: Boolean = false,
     @Schema(nullable = false) val by: PlanReader? = null,
+    @Describe("Encoded UTF-8 answer budget; defaults to the plan's 64 KB budget, at most 256 KB") @Schema(nullable = false) val budgetBytes: Int? = null,
+    @Describe("Read this component and its descendants") @Schema(nullable = false) val frame: String? = null,
+    @Describe("Continue an answer at the same plan revision; a changed plan requires restarting") @Schema(nullable = false) val continuation: String? = null,
 )
 
 @Serializable
 data class PlanScheduleRequest(
+    @Describe("One plan; your authenticated session when left out") @Schema(nullable = false) val thread: String? = null,
+    @Schema(nullable = false) val budgetBytes: Int? = null,
+    @Schema(nullable = false) val frame: String? = null,
+    @Schema(nullable = false) val continuation: String? = null,
+)
+
+@Serializable
+data class PlanScoreRequest(
     @Describe("One plan; your authenticated session when left out") @Schema(nullable = false) val thread: String? = null,
 )
 
@@ -54,6 +69,9 @@ data class PlanNextRequest(
     @Describe("An attached seat held by this agent") @Schema(nullable = false) val seat: String? = null,
     @Describe("Atomically take the candidate as a lease, renewed by authenticated activity") val take: Boolean = false,
     @Describe("Only consider this item key in the named thread; the same readiness, seat and lease rules apply") @Schema(nullable = false) val item: String? = null,
+    @Describe("Encoded UTF-8 answer budget; defaults to the plan's 64 KB budget, at most 256 KB") @Schema(nullable = false) val budgetBytes: Int? = null,
+    @Describe("Read this component and its descendants") @Schema(nullable = false) val frame: String? = null,
+    @Describe("Continue an answer at the same plan revision; a changed plan requires restarting") @Schema(nullable = false) val continuation: String? = null,
 )
 
 @Serializable
@@ -68,6 +86,15 @@ data class PlanWriteRequest(
     @Describe("Your seat when a person attached you to part of this plan") @Schema(nullable = false) val seat: String? = null,
     @Describe("A note to the others on this plan: kept in its log and delivered to them at their next step") @Schema(nullable = false) val message: String? = null,
     @Describe("Workspace-relative Markdown document under plans/, such as plans/launch.md. Headings with {#item-key} link to matching DAG items. Omit to keep the link; empty string unlinks it. Changing an existing plan's link requires its current base revision.") @Schema(nullable = false) val documentPath: String? = null,
+    @Describe("Optional idempotency key; repeating the same requestId from the same writer returns the already-applied revision without re-applying") @Schema(nullable = false) val requestId: String? = null,
+    @Describe("Per-plan Doing and read budgets; requires the current base and the plan owner") @Schema(nullable = false) val limits: PlanLimits? = null,
+    @Describe("Shared Markdown document with {#item} anchors; current base required") @Schema(nullable = false) val documentText: String? = null,
+    @Describe("One approval state for every view; a person changes it with the current base") @Schema(nullable = false) val approval: PlanApproval? = null,
+)
+
+@Serializable
+data class PlanArchiveRequest(
+    @Describe("hangar:<conversation id>, claude:<session id>, codex:<session id> or agy:<conversation id>; your own session when left out") @Schema(nullable = false) val thread: String? = null,
 )
 
 @Serializable
@@ -81,4 +108,8 @@ data class PlanAttachRequest(
 @Serializable
 data class PlanShapeRequest(
     @Schema(nullable = false, itemsDescription = "A thread whose plan to include") val threads: List<String>? = null,
+    @Schema(nullable = false) val by: PlanReader? = null,
+    @Schema(nullable = false) val budgetBytes: Int? = null,
+    @Schema(nullable = false) val frame: String? = null,
+    @Schema(nullable = false) val continuation: String? = null,
 )

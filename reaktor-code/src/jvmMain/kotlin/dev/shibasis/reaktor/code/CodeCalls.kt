@@ -157,7 +157,7 @@ internal object KotlinCalls {
                     (function.parent as? KtClassBody)?.parent?.let { it as? KtClassOrObject }?.name,
                     function.valueParameters.filter { it.name != null }.map { CodeParameter(it.name.orEmpty(), it.typeReference?.text.orEmpty(), it.defaultValue?.text) },
                     parsed.span(function), function.visibilityModifierType()?.value ?: "public",
-                    body?.let(::keptIn).orEmpty(), body?.let(::calledIn).orEmpty())
+                    body?.let(::keptIn).orEmpty(), body?.let { calledIn(it, function, parsed.file) }.orEmpty())
             }
     }
 
@@ -167,8 +167,21 @@ internal object KotlinCalls {
         .filter { it.isLocal && (it.delegateExpression ?: it.initializer)?.text?.let(Kept::containsMatchIn) == true }
         .mapNotNull { it.name }.distinct()
 
-    private fun calledIn(body: KtExpression): List<String> = PsiTreeUtil.findChildrenOfType(body, KtCallExpression::class.java)
-        .map(::nameOf).filter { it.firstOrNull()?.isUpperCase() == true }.distinct()
+    private val PackageSegment = Regex("[a-z_][A-Za-z0-9_]*")
+
+    private fun calledIn(body: KtExpression, function: KtNamedFunction, file: KtFile): List<String> {
+        val packageRoots = (listOf(file.packageFqName.asString()) + file.importDirectives.mapNotNull { it.importedFqName?.asString() })
+            .mapTo(HashSet()) { it.substringBefore('.') }
+        val bound = function.valueParameters.mapNotNullTo(HashSet()) { it.name } +
+            PsiTreeUtil.findChildrenOfType(body, KtProperty::class.java).mapNotNull { it.name }
+        return (listOfNotNull(body as? KtCallExpression) + PsiTreeUtil.findChildrenOfType(body, KtCallExpression::class.java))
+            .filter { nameOf(it).firstOrNull()?.isUpperCase() == true }.map { call ->
+                val receiver = (call.parent as? KtDotQualifiedExpression)?.takeIf { it.selectorExpression == call }?.receiverExpression?.text
+                val root = receiver?.substringBefore('.')
+                if (receiver != null && receiver.contains('.') && root in packageRoots && root !in bound && receiver.split('.').all { it.matches(PackageSegment) })
+                    "$receiver.${nameOf(call)}" else nameOf(call)
+            }.distinct()
+    }
 
     fun statement(document: CodeDocument, span: CodeSpan): CodeStatement? = KotlinSyntax.parsed(document.path, document.text) { parsed ->
         val text = parsed.text

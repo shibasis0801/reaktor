@@ -61,7 +61,8 @@ class BlueprintAgentSlotTest {
                 assertEquals(bounds, p.tag("blueprint-agent-bpo-agent-slot").boundsInRoot)
                 assertEquals(icon, p.tag("blueprint-agent-bpo-agent-slot-icon").boundsInRoot)
                 assertEquals(tuple, p.tag("blueprint-agent-bpo-agent-slot-tuple").boundsInRoot)
-                val label = listOfNotNull(agent.label, activity.label.takeIf { activity != BlueprintAgent.Activity.Unavailable }).joinToString(" · ") +
+                val label = (if (activity == BlueprintAgent.Activity.LastChangedBy) "${activity.label} ${agent.label}"
+                    else listOfNotNull(agent.label, activity.label.takeIf { activity != BlueprintAgent.Activity.Unavailable }).joinToString(" · ")) +
                     if (count > 0) " · +$count" else ""
                 val state = p.tag("blueprint-agent-bpo-agent-slot-state")
                 assertTrue(state.config[SemanticsProperties.Text].any { it.text == label })

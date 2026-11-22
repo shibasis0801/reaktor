@@ -87,6 +87,9 @@ class AuthRepositoryNode(
     override suspend fun getPrincipal(request: Request, principalId: UUID): Result<AuthPrincipal?> =
         authRepository.getPrincipal(request, principalId)
 
+    override suspend fun providerAccounts(request: Request, principalId: UUID) =
+        authRepository.providerAccounts(request, principalId)
+
     override suspend fun softDeleteAccount(request: Request, principalId: UUID): Result<Boolean> =
         authRepository.softDeleteAccount(request, principalId)
 }

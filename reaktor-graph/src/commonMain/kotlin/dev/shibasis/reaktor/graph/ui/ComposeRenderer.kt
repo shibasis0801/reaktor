@@ -53,6 +53,7 @@ fun GraphApplication(
 }
 
 val LocalBackStackEntry = staticCompositionLocalOf<BackStackEntry<*, *>?> { null }
+val LocalGraphPreview = staticCompositionLocalOf { false }
 
 @Composable
 fun GraphContent(
@@ -64,7 +65,8 @@ fun GraphContent(
     val saved = rememberSaveableStateHolder()
     val provided = remember(graph) { mutableSetOf<Uuid>() }
 
-    SideEffect {
+    val preview = LocalGraphPreview.current
+    if (!preview) SideEffect {
         val live = entries.mapTo(HashSet()) { it.id }
         provided.filterNot { it in live }.forEach { saved.removeState(it.toString()) }
         provided.retainAll(live)
@@ -105,8 +107,8 @@ private fun EntryContent(
         Logger.w("GraphContent: No attached node for route '${entry.edge.end.id}'. Screen will be blank.")
         return
     }
-    provided += entry.id
-    saved.SaveableStateProvider(entry.id.toString()) {
+    if (!LocalGraphPreview.current) provided += entry.id
+    saved.Kept(entry.id) {
         CompositionLocalProvider(LocalBackStackEntry provides entry) {
             val observer = LocalGraphContentObserver.current
             val content: @Composable () -> Unit = {
@@ -133,21 +135,27 @@ private const val UnderlayShift = .3f
 private const val UnderlayDim = .12f
 
 @Composable
-private fun ContainerContent(node: ComposeContainer, isFocused: Boolean) {
+fun ContainerContent(node: ComposeContainer, isFocused: Boolean) {
     val sections = rememberSaveableStateHolder()
     val rendered = remember(node) { mutableSetOf<Uuid>() }
 
+    val preview = LocalGraphPreview.current
     node.Content { childGraph, childFocused ->
-        rendered += childGraph.id
-        sections.SaveableStateProvider(childGraph.id.toString()) {
+        if (!preview) rendered += childGraph.id
+        sections.Kept(childGraph.id) {
             GraphContent(childGraph, childFocused && isFocused)
         }
     }
 
     val children = (node as? ContainerNode)?.graphs ?: return
-    SideEffect {
+    if (!preview) SideEffect {
         val alive = children.mapTo(HashSet()) { it.id }
         rendered.filterNot { it in alive }.forEach { sections.removeState(it.toString()) }
         rendered.retainAll(alive)
     }
+}
+
+@Composable
+private fun SaveableStateHolder.Kept(key: Uuid, content: @Composable () -> Unit) {
+    if (LocalGraphPreview.current) content() else SaveableStateProvider(key.toString(), content)
 }

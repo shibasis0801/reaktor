@@ -42,6 +42,9 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalFontFamilyResolver
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.Density
@@ -81,6 +84,20 @@ fun GraphEditorLayer(editor: GraphEditor, modifier: Modifier = Modifier) {
     SideEffect { editor.measurer = measurer }
     Box(modifier.fillMaxSize().onGloballyPositioned { origin = it.positionInWindow() }) {
         Minimap(editor)
+        Row(Modifier.align(Alignment.BottomStart).padding(start = 12.dp, bottom = 12.dp)
+            .clip(RoundedCornerShape(8.dp)).background(editor.ink.surface).padding(horizontal = 4.dp, vertical = 2.dp)
+            .testTag("graph-editor-view-controls"), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            dev.shibasis.reaktor.surface.compose.Button({ editor.prefer(editor.prefs.copy(minimap = !editor.prefs.minimap)) },
+                Modifier.testTag("graph-editor-toggle-minimap").semantics {
+                    selected = editor.prefs.minimap
+                    contentDescription = if (editor.prefs.minimap) "Hide minimap" else "Show minimap"
+                }) { Text(if (editor.prefs.minimap) "Hide minimap" else "Minimap", role = Type.Label) }
+            dev.shibasis.reaktor.surface.compose.Button({ editor.prefer(editor.prefs.copy(legend = !editor.prefs.legend)) },
+                Modifier.testTag("graph-editor-toggle-legend").semantics {
+                    selected = editor.prefs.legend
+                    contentDescription = if (editor.prefs.legend) "Hide legend" else "Show legend"
+                }) { Text(if (editor.prefs.legend) "Hide legend" else "Legend", role = Type.Label) }
+        }
         editor.carrying?.let { carried -> Tip("Add ${carried.template.label}", Ink.Text, editor, carried.window - origin + Offset(14f, 14f)) }
         if (editor.others.isNotEmpty()) Row(Modifier.align(Alignment.TopCenter).padding(top = if (editor.focus != null) 56.dp else 12.dp).clip(RoundedCornerShape(8.dp)).background(editor.ink.surface)
             .padding(horizontal = 10.dp, vertical = 6.dp).testTag("graph-editor-presence"), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -178,6 +195,7 @@ private fun EditorMenu(editor: GraphEditor, request: Request.Menu) {
                     Entry(editor, "paste", "Paste") { run { editor.paste(request.at) } }
                     if (editor.onDescribe != null) Entry(editor, "describe", "Describe a change…") { run { editor.request = Request.Describe(request.at, request.window) } }
                     Entry(editor, "minimap", if (editor.prefs.minimap) "Hide the minimap" else "Show the minimap") { run { editor.prefer(editor.prefs.copy(minimap = !editor.prefs.minimap)) } }
+                    Entry(editor, "legend", if (editor.prefs.legend) "Hide the legend" else "Show the legend") { run { editor.prefer(editor.prefs.copy(legend = !editor.prefs.legend)) } }
                     Entry(editor, "keys", "Keyboard shortcuts…") { run { editor.request = Request.Keys(request.at, request.window) } }
                 }
             }

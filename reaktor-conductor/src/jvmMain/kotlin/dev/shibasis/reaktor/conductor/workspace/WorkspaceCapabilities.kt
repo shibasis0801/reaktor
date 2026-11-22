@@ -1,6 +1,8 @@
 package dev.shibasis.reaktor.conductor.workspace
 
 import dev.shibasis.reaktor.conductor.*
+import dev.shibasis.reaktor.conductor.appserver.AntigravityAppRuntime
+import dev.shibasis.reaktor.conductor.appserver.ClaudeAppRuntime
 
 internal fun workspaceCapabilities(runtimes: Map<RuntimeKind, AgentRuntime>, discover: (RuntimeKind) -> ProviderCapability): List<ProviderCapability> =
     runtimes.map { (kind, runtime) ->
@@ -12,6 +14,8 @@ internal fun workspaceCapabilities(runtimes: Map<RuntimeKind, AgentRuntime>, dis
         val sameVersion = testedVersion != null && discovered.version?.contains(testedVersion) == true
         val controls = if (runtime !is InteractiveAgentRuntime || !session.implemented) emptyMap() else {
             val implemented = if (kind == RuntimeKind.Codex) listOf("start", "steer", "interrupt", "commandApproval", "fileApproval", "questions", "permissions", "elicitation")
+                else if (runtime is AntigravityAppRuntime) listOf("start", "steer", "interrupt")
+                else if (runtime is ClaudeAppRuntime) listOf("start")
                 else if (kind in listOf(RuntimeKind.Gemini, RuntimeKind.ChatGptGemini)) listOf("start", "interrupt")
                 else listOf("start", "steer", "interrupt", "questions", "permissions")
             implemented.associateWith { name ->

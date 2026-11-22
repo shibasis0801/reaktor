@@ -5,7 +5,9 @@ import dev.shibasis.reaktor.core.util.kotlinString
 import dev.shibasis.reaktor.core.utils.fail
 import dev.shibasis.reaktor.core.utils.succeed
 import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import platform.AuthenticationServices.ASAuthorization
@@ -26,14 +28,7 @@ class DarwinAppleLogin(
     adapter: DarwinAuthAdapter
 ): AppleAuthProvider<DarwinAuthAdapter>(adapter) {
     private val appleIdProvider = ASAuthorizationAppleIDProvider()
-    private val loginRequest = appleIdProvider.createRequest().apply {
-        requestedScopes = listOf(
-            ASAuthorizationScopeFullName,
-            ASAuthorizationScopeEmail
-        )
-    }
-
-    private val authController = ASAuthorizationController(listOf(loginRequest))
+    private var authController: ASAuthorizationController? = null
     private var continuation: CancellableContinuation<Result<AppleUser>>? = null
     private var currentUser: AppleUser? = null
     private val loginMutex = Mutex()
@@ -50,22 +45,23 @@ class DarwinAppleLogin(
                 val credential = didCompleteWithAuthorization.credential
                 runCatching {
                     credential as ASAuthorizationAppleIDCredential
-                }.map {
+                }.mapCatching {
                     val appleUser = AppleUser(
                         idToken = checkNotNull(it.identityToken) { "Identity Token is null" }.kotlinString(),
                         givenName = it.fullName?.givenName,
                         familyName = it.fullName?.familyName,
-                        emailId = it.email ?: ""
+                        emailId = it.email ?: "",
+                        authorizationCode = it.authorizationCode?.kotlinString(),
                     )
                     Logger.i { "Apple Sign In Successful" }
                     appleUser
                 }.fold(
                     {
-                        currentUser = it
+                        currentUser = it.copy(authorizationCode = null)
                         finish(succeed(it))
                     },
                     { error ->
-                        Logger.e { "Apple Sign In failed: ${error.message}" }
+                        Logger.e { "Apple Sign In failed: count=1" }
                         finish(fail(error))
                     }
                 )
@@ -75,7 +71,7 @@ class DarwinAppleLogin(
                 controller: ASAuthorizationController,
                 didCompleteWithError: NSError
             ) {
-                Logger.e { "Apple Sign In failed: ${didCompleteWithError.localizedDescription}" }
+                Logger.e { "Apple Sign In failed: count=1" }
                 finish(fail(didCompleteWithError.localizedDescription))
             }
         }
@@ -88,14 +84,27 @@ class DarwinAppleLogin(
             }
         }
 
-        authController.delegate = delegate
-        authController.presentationContextProvider = presenter
     }
 
     override suspend fun login() = loginMutex.withLock {
-        suspendCancellableCoroutine { next ->
-            continuation = next
-            authController.performRequests()
+        withContext(Dispatchers.Main) {
+            try {
+                suspendCancellableCoroutine<Result<AppleUser>> { next ->
+                    continuation = next
+                    val request = appleIdProvider.createRequest().apply {
+                        requestedScopes = listOf(ASAuthorizationScopeFullName, ASAuthorizationScopeEmail)
+                    }
+                    val controller = ASAuthorizationController(listOf(request)).apply {
+                        delegate = this@DarwinAppleLogin.delegate
+                        presentationContextProvider = presenter
+                    }
+                    authController = controller
+                    controller.performRequests()
+                }
+            } finally {
+                continuation = null
+                authController = null
+            }
         }
     }
 
@@ -109,5 +118,6 @@ class DarwinAppleLogin(
             if (it.isActive) it.resume(result)
         }
         continuation = null
+        authController = null
     }
 }

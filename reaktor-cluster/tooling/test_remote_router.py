@@ -105,15 +105,160 @@ class LocalBuildReceiptTest(unittest.TestCase):
                  patch.object(helper, 'local_capacity', return_value=(True, 'fixture capacity')), \
                  patch.object(remote_build, 'disk_admission'), patch.object(remote_build, 'freeze', return_value='snapshot'), \
                  patch.object(remote_build, 'materialize', return_value=slot) as materialize, \
-                 patch.object(remote_build, 'collect_local'), patch.object(helper, 'local_gradle', side_effect=check) as build:
+                 patch.object(remote_build, 'collect_local') as collect, patch.object(helper, 'local_gradle', side_effect=check) as build:
                 fcntl.flock(lock, fcntl.LOCK_EX)
-                self.assertIsNone(helper.route_gradle('manna', Path('.'), [':app:assembleWeb']))
                 self.assertIsNone(helper.route_gradle('manna', Path('.'), [*args, '--project-dir=/tmp']))
                 self.assertEqual(0, helper.route_gradle('manna', Path('.'), args))
                 self.assertEqual(primary, helper.ROOT)
                 self.assertIsNone(helper.route_gradle('manna', Path('.'), args))
                 materialize.assert_called_once_with(helper, 'snapshot', 'local-1')
                 build.assert_called_once()
+                collect.assert_called_once_with(helper, slot, helper.STATE / 'artifacts/fixture', True,
+                                                'verification', projects=['manna'])
+
+    def lane_fixture(self, temporary):
+        helper = router()
+        helper.ROOT = Path(temporary).resolve()
+        helper.STATE = helper.ROOT / '.remote-dev'
+        helper.STATE.mkdir()
+        helper.LOCAL_SLOTS = helper.STATE / 'slots'
+        helper.PROJECTS = ['fixture']
+        (helper.STATE / 'config.json').write_text('{"local_slots": 4}')
+        return helper
+
+    def test_portable_build_takes_first_free_isolated_lane(self):
+        import remote_build
+        for index in range(1, 4):
+            with self.subTest(lane=index + 1), TemporaryDirectory() as temporary, contextlib.ExitStack() as stack:
+                helper = self.lane_fixture(temporary)
+                for lock in ['local-gradle', *(f'local-slot-{n}' for n in range(1, index))]:
+                    stack.enter_context(remote_build.lease(helper.STATE / f'{lock}.lock'))
+                slot = helper.LOCAL_SLOTS / f'local-{index}'
+                contract = {'taskFamilies': {':app:jar': 'jvm'}}
+                stack.enter_context(patch.object(helper, 'read_hosts_contract', return_value=contract))
+                stack.enter_context(patch.object(helper, 'local_capacity', return_value=(True, 'fixture capacity')))
+                stack.enter_context(patch.object(remote_build, 'disk_admission'))
+                stack.enter_context(patch.object(remote_build, 'freeze', return_value='snapshot'))
+                materialize = stack.enter_context(patch.object(remote_build, 'materialize', return_value=slot))
+                def gradle(*args, local_slot):
+                    self.assertEqual(index, local_slot)
+                    self.assertEqual(slot, helper.ROOT)
+                    with (helper.STATE / f'local-slot-{index}.lock').open('a') as lock:
+                        self.assertFalse(remote_build.try_lock(lock))
+                    return 0
+                build = stack.enter_context(patch.object(helper, 'local_gradle', side_effect=gradle))
+                publish = stack.enter_context(patch.object(helper, 'publish_local_build', return_value=0))
+                self.assertEqual(0, helper.route_gradle('fixture', Path('.'), [':app:jar']))
+                materialize.assert_called_once_with(helper, 'snapshot', f'local-{index}')
+                build.assert_called_once_with('fixture', Path('.'), [':app:jar'], local_slot=index)
+                self.assertEqual(('fixture', slot, 'jvm', 0), publish.call_args.args[:4])
+                self.assertEqual(Path(temporary).resolve(), helper.ROOT)
+
+    def test_portable_output_roots_are_copied_to_checkout_under_primary_lease(self):
+        import remote_build
+        with TemporaryDirectory() as temporary:
+            helper = self.lane_fixture(temporary)
+            slot = helper.LOCAL_SLOTS / 'local-1'
+            project = slot / 'fixture'
+            checkout = helper.ROOT / 'fixture'
+            contract = {'schema': 2, 'taskFamilies': {':app:jar': 'jvm'},
+                        'outputRoots': {'jvm': ['custom'], 'all': ['other']}}
+            for root in (checkout, project):
+                target = root / 'build/dependeasy/remote/hosts.json'
+                target.parent.mkdir(parents=True)
+                target.write_text(json.dumps(contract))
+            (helper.STATE / 'logs').mkdir()
+            with remote_build.lease(helper.STATE / 'local-gradle.lock') as primary:
+                def gradle(name, relative, args, local_slot):
+                    for path in ('build/custom/result.jar', 'build/other/excluded.jar'):
+                        output = project / path
+                        output.parent.mkdir(parents=True, exist_ok=True)
+                        output.write_text('lane result')
+                    log = helper.STATE / 'logs/lane.log'
+                    log.write_text('> Task :app:jar\n')
+                    helper.LAST_RUN_ID = 'lane'
+                    (log.with_suffix('.json')).write_text(json.dumps({
+                        'project': name, 'project_directory': str(project), 'log': str(log),
+                        'exit_code': 0, 'run_id': 'lane', 'local_slot': local_slot}))
+                    fcntl.flock(primary, fcntl.LOCK_UN)
+                    return 0
+                with patch.object(helper, 'local_capacity', return_value=(True, 'fixture capacity')), \
+                     patch.object(remote_build, 'disk_admission'), patch.object(remote_build, 'freeze', return_value='snapshot'), \
+                     patch.object(remote_build, 'materialize', return_value=slot), \
+                     patch.object(helper, 'local_gradle', side_effect=gradle), \
+                     patch.object(helper, 'remote_python', side_effect=AssertionError('Unexpected worker call')):
+                    self.assertEqual(0, helper.route_gradle('fixture', Path('.'), [':app:jar']))
+            self.assertEqual('lane result', (checkout / 'build/custom/result.jar').read_text())
+            self.assertFalse((checkout / 'build/other/excluded.jar').exists())
+            receipt = json.loads((helper.STATE / 'logs/lane.json').read_text())
+            self.assertEqual('Finished', receipt['phase'])
+            self.assertEqual('jvm', receipt['artifact_family'])
+            self.assertEqual(str(helper.ROOT), receipt['workspace_root'])
+            self.assertEqual(1, receipt['copied_files'])
+
+    def test_isolated_lane_refusals_fall_through(self):
+        import remote_build
+        cases = (
+            ('cache write', [':app:jar'], 'write', None, True, 20),
+            ('request node', [':app:jar'], 'off', (Path('.'), None, {'node': {'build': 'fixture', 'project': ':app', 'name': 'jar'}}), True, 20),
+            ('device', [':deviceTests:smoke'], 'off', None, True, 20),
+            ('mobile', [':app:assembleRelease'], 'off', None, True, 20),
+            ('worker only', [':app:workerTask'], 'off', None, True, 20),
+            ('low disk', [':app:jar'], 'off', None, True, 19),
+            ('low memory on lane admission', [':app:jar'], 'off', None, False, 20),
+        )
+        for reason, args, cache, selected, admitted, free_gib in cases:
+            with self.subTest(reason=reason), TemporaryDirectory() as temporary:
+                helper = self.lane_fixture(temporary)
+                contract = {'taskFamilies': {':app:assembleRelease': 'android'},
+                            'taskHosts': {':app:workerTask': {'execution': 'Worker'}}}
+                with remote_build.lease(helper.STATE / 'local-gradle.lock'), \
+                     patch.dict(os.environ, REMOTE_DEV_CACHE=cache), \
+                     patch.object(helper, 'read_hosts_contract', return_value=contract), \
+                     patch.object(helper, 'read_gradle_request', return_value=selected), \
+                     patch.object(helper, 'local_capacity', side_effect=[(True, 'primary capacity'), (admitted, reason)]), \
+                     patch.object(remote_build.shutil, 'disk_usage', return_value=SimpleNamespace(free=free_gib * 1024 ** 3)), \
+                     patch.object(remote_build, 'freeze') as freeze, patch.object(helper, 'local_gradle') as local:
+                    self.assertIsNone(helper.route_gradle('fixture', Path('.'), args))
+                    freeze.assert_not_called()
+                    local.assert_not_called()
+
+    def test_local_lane_configuration_validation(self):
+        with TemporaryDirectory() as temporary:
+            helper = self.lane_fixture(temporary)
+            config = helper.STATE / 'config.json'
+            for count in (1, 2, 3, 4):
+                config.write_text(json.dumps({'local_slots': count}))
+                self.assertEqual(count, helper.local_slot_count())
+            for count in (0, 5, True, 1.5, '4', None):
+                config.write_text(json.dumps({'local_slots': count}))
+                with self.assertRaisesRegex(ValueError, 'local_slots must be'):
+                    helper.local_slot_count()
+            self.assertEqual(6, helper.local_slot_max_workers())
+            for workers in (0, 65, True, 6.5, '6', None):
+                helper.CONFIG['local_slot_max_workers'] = workers
+                with self.assertRaisesRegex(ValueError, 'local_slot_max_workers must be'):
+                    helper.local_slot_max_workers()
+            helper.CONFIG['local_slot_max_workers'] = 7
+            self.assertEqual(7, helper.local_slot_max_workers())
+
+    def test_isolated_disk_floor_is_configurable_and_requires_a_positive_integer(self):
+        import remote_build
+        with TemporaryDirectory() as temporary:
+            helper = self.lane_fixture(temporary)
+            contract = {'taskFamilies': {':app:jar': 'jvm'}}
+            with remote_build.lease(helper.STATE / 'local-gradle.lock'), \
+                 patch.object(helper, 'read_hosts_contract', return_value=contract), \
+                 patch.object(helper, 'local_capacity', return_value=(True, 'fixture capacity')), \
+                 patch.object(remote_build.shutil, 'disk_usage', return_value=SimpleNamespace(free=21 * 1024 ** 3)), \
+                 patch.object(remote_build, 'freeze') as freeze:
+                for floor in (0, -1, True, 20.5, '20', None):
+                    helper.CONFIG['local_slot_min_free_disk_gib'] = floor
+                    with self.assertRaisesRegex(ValueError, 'local_slot_min_free_disk_gib must be'):
+                        helper.route_gradle('fixture', Path('.'), [':app:jar'])
+                helper.CONFIG['local_slot_min_free_disk_gib'] = 22
+                self.assertIsNone(helper.route_gradle('fixture', Path('.'), [':app:jar']))
+                freeze.assert_not_called()
 
     def test_local_job_is_observable_while_active_and_updates_its_receipt_on_exit(self):
         import workspace_storage
@@ -486,7 +631,8 @@ class DryRunTransportTest(unittest.TestCase):
             contract = helper.ROOT / 'reaktor/build/dependeasy/remote/hosts.json'
             contract.parent.mkdir(parents=True)
             contract.write_text(json.dumps({'schema': 2, 'taskHosts': {':arbitraryKernel': {'execution': 'Local', 'platform': 'Macos'}}}))
-            with patch.object(helper, 'local_capacity', return_value=(False, 'fixture busy')) as capacity, \
+            with patch.object(helper, 'additional_local_gradle') as isolated, \
+                 patch.object(helper, 'local_capacity', return_value=(False, 'fixture busy')) as capacity, \
                  patch.object(helper, 'local_gradle', return_value=0) as local:
                 self.assertEqual(0, helper.route_gradle('reaktor', '.', ['arbitraryKernel']))
                 self.assertEqual(1, local.call_count)
@@ -496,6 +642,7 @@ class DryRunTransportTest(unittest.TestCase):
                      patch.object(helper, 'claim_worker_slot', side_effect=AssertionError('Declared local build reached worker admission')):
                     self.assertEqual(0, helper.scheduled_gradle('reaktor', '.', ['arbitraryKernel']))
                 self.assertEqual(2, local.call_count)
+                isolated.assert_not_called()
                 self.assertEqual([], list((helper.STATE / 'local-gradle.line').iterdir()))
 
     def test_app_run_frees_the_local_lease_once_its_app_runs_from_retained_jars(self):
@@ -1700,8 +1847,8 @@ class WorkerSlotTest(unittest.TestCase):
     def test_worker_programs_compile_before_dispatch(self):
         tree = ast.parse(Path(__file__).with_name('remote-dev').read_text())
         source = Path(__file__).with_name('hosts_contract.py').read_text()
-        programs = [(source + '\n' if node.func.id == 'remote_contract_python' else '') + node.args[0].value for node in ast.walk(tree)
-                    if isinstance(node, ast.Call) and getattr(node.func, 'id', None) in {'remote_python', 'remote_contract_python'}
+        programs = [(source + '\n' if node.func.id in {'remote_contract_python', 'invoke'} else '') + node.args[0].value for node in ast.walk(tree)
+                    if isinstance(node, ast.Call) and getattr(node.func, 'id', None) in {'remote_python', 'remote_contract_python', 'invoke'}
                     and node.args and isinstance(node.args[0], ast.Constant)]
         self.assertGreaterEqual(len(programs), 10)
         for program in programs:

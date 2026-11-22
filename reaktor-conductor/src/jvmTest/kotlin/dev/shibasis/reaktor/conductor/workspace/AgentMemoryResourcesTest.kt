@@ -15,7 +15,7 @@ class AgentMemoryResourcesTest {
     private fun fixture(body: suspend (File, MemoryApi) -> Unit) = runBlocking {
         val root = Files.createTempDirectory("memory-door-root").toFile()
         val directory = Files.createTempDirectory("memory-door-state")
-        try { AgentWorkspace(root, directory, emptyMap()).use { body(root, it.memory.api) } }
+        try { fixtureWorkspace(root, directory, emptyMap()).use { body(root, it.memory.api) } }
         finally {
             root.deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")))
             directory.toFile().deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")))

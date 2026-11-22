@@ -47,7 +47,11 @@ val SignalSplitter: SplitterAppearance = object : SplitterAppearance {
         ) {
             val hairline = MachineSignal.Space.s1 / 4
             val line = if (properties == SplitAxis.Horizontal) Modifier.width(hairline).fillMaxHeight() else Modifier.height(hairline).fillMaxWidth()
-            Box(line.background(if (state.hovered || state.dragging) signal.colors.accent else signal.colors.lineSubtle))
+            val ink = if (state.hovered || state.dragging) signal.colors.accent else signal.colors.lineSubtle
+            Box(line.background(ink))
+            val grip = if (properties == SplitAxis.Horizontal) Modifier.width(MachineSignal.Space.s1).height(MachineSignal.Space.s5)
+                else Modifier.height(MachineSignal.Space.s1).width(MachineSignal.Space.s5)
+            Box(grip.background(if (state.hovered || state.dragging) signal.colors.accent else signal.colors.line, signal.shapes.panel))
         }
     }
 }.withMatrix(MatrixSplitter)

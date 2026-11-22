@@ -2493,7 +2493,9 @@ class GraphEditor(
             val inputs = ends.filter { !it.key.second }; val outputs = ends.filter { it.key.second }
             val pins = inputs.mapIndexed { i, (end, type) -> Pin(end.first, type, false, BlueprintEngine.pinY(i), PortWiring.Connected) } +
                 outputs.mapIndexed { i, (end, type) -> Pin(end.first, type, true, BlueprintEngine.pinY(i), PortWiring.Connected) }
-            cards[fold.id] = Card(fold.id, fold.x, fold.y, cardWidth, BlueprintEngine.cardHeight(max(inputs.size, outputs.size)), pins, into.count { it.value == fold.id })
+            val body = foldNode(fold.id)?.let(bodies::get)
+            cards[fold.id] = Card(fold.id, fold.x, fold.y, max(cardWidth, body?.width ?: 0.0),
+                max(BlueprintEngine.cardHeight(max(inputs.size, outputs.size)), body?.height ?: 0.0), pins, into.count { it.value == fold.id })
         }
         val links = ArrayList<Link>(shape.wires.size + shape.routes.size)
         val bundled = HashMap<String, Int>()

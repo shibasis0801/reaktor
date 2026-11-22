@@ -79,6 +79,10 @@ def requested(helper, name, relative, args):
     if selected is not None:
         node = selected[2]['node']
         tasks = [node['project'].rstrip(':') + ':' + node['name']]
+    return device_tasks(tasks)
+
+
+def device_tasks(tasks):
     return any('deviceTests' in task.split(':') or task.split(':')[-1] in {
         'maestroRunnerSetup', 'prepareIosDevice', 'prepareMobileFixtures',
     } or re.fullmatch(r'(install(Debug|Release)(AndroidTest)?|connected\w*AndroidTest)', task.split(':')[-1])

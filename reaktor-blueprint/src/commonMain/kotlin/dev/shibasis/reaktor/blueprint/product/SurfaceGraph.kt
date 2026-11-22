@@ -8,7 +8,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.text.font.FontFamily
@@ -27,7 +26,6 @@ import dev.shibasis.reaktor.blueprint.canvas.GraphCanvasState
 import dev.shibasis.reaktor.blueprint.editor.Selection
 import dev.shibasis.reaktor.graph.core.PortWiring
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignalDensity
-import dev.shibasis.reaktor.ui.machinesignal.MachineSignalMode
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignalSurface
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignalVariant
 
@@ -92,8 +90,7 @@ fun SurfaceGraphCanvas(
         model.editor.onSelect = { id -> id?.let(select) }
         if (model.editor.selection.nodes.singleOrNull() != selectedId) model.editor.select(Selection(nodes = selectedId?.let(::setOf).orEmpty()))
     }
-    MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact,
-        mode = if (appearance.canvas.luminance() > .5f) MachineSignalMode.Light else MachineSignalMode.Dark) {
+    MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact) {
         BlueprintGraph(model.editor, canvas,
             cardLook = { node -> model.look(node.id, appearance) },
             groupLook = { BlueprintFrameLook(SurfaceGraphSymbol, "") },

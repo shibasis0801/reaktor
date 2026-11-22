@@ -117,6 +117,8 @@ fun Split(
     }
 }
 
+val LocalSplitterPointerIcon = androidx.compose.runtime.staticCompositionLocalOf<(SplitAxis) -> PointerIcon> { { PointerIcon.Hand } }
+
 @Composable
 internal fun SplitterHandle(
     properties: SplitterProperties,
@@ -141,7 +143,7 @@ internal fun SplitterHandle(
         modifier
             .then(if (automation == null) Modifier else Modifier.testId(automationId(automation, part)))
             .then(if (horizontal) Modifier.width(HandleSize).fillMaxHeight() else Modifier.height(HandleSize).fillMaxWidth())
-            .pointerHoverIcon(PointerIcon.Hand)
+            .pointerHoverIcon(LocalSplitterPointerIcon.current(axis))
             .onFocusChanged { focusVisible = it.isFocused && inputModes.inputMode == InputMode.Keyboard }
             .onKeyEvent { event ->
                 val stroke = event.stroke()

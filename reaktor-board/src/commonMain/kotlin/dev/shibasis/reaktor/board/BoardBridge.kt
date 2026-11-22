@@ -20,6 +20,7 @@ data class BoardSnapshot(
     val theme: BoardTheme? = null,
     val places: Boolean = false,
     val hidden: Int = 0,
+    val revisions: Map<String, Long> = emptyMap(),
 ) : Response()
 
 object BoardBudget {
@@ -52,7 +53,7 @@ object BoardBudget {
 @Serializable
 sealed class BoardEdit {
     @Serializable @SerialName("move")
-    data class Move(val key: String, val lane: String) : BoardEdit()
+    data class Move(val key: String, val lane: String, val reason: String? = null) : BoardEdit()
 
     @Serializable @SerialName("connect")
     data class Connect(val from: String, val to: String) : BoardEdit()
@@ -99,7 +100,7 @@ sealed class BoardEdit {
 data class BoardRead(val token: Long? = null, val part: Int = 0) : Request()
 
 @Serializable
-data class BoardChange(val edit: BoardEdit, val revision: Long? = null) : Request()
+data class BoardChange(val edit: BoardEdit, val revision: Long? = null, val revisions: Map<String, Long> = emptyMap()) : Request()
 
 @Serializable
 data class BoardSelect(val key: String? = null, val open: Boolean = false) : Request()

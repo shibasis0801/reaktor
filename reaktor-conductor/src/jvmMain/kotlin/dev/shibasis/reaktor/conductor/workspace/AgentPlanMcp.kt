@@ -1,9 +1,38 @@
 package dev.shibasis.reaktor.conductor.workspace
 
+import kotlinx.coroutines.runBlocking
 import dev.shibasis.reaktor.mcp.*
 import dev.shibasis.reaktor.tooling.operation.jsonSchema
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.*
+import java.nio.ByteBuffer
+import java.nio.file.Files
+import java.nio.file.LinkOption
+import java.nio.file.Path
+import java.nio.file.StandardOpenOption
+import java.io.IOException
+
+private fun AgentWorkspace.documentPlan(plan: WorkPlan): WorkPlan {
+    val path = plan.documentPath ?: return plan
+    if (!PlanRules.validDocumentPath(path)) return plan.copy(documentText = null)
+    val text = try {
+        val root = Path.of(info().workspaceRoot).toRealPath()
+        val plans = root.resolve("plans").toRealPath()
+        val file = root.resolve(path).toRealPath()
+        if (plans != root.resolve("plans") || !file.startsWith(plans) || !Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS) ||
+            Files.size(file) > 524_288) null
+        else Files.newByteChannel(file, setOf(StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS)).use { channel ->
+            val buffer = ByteBuffer.allocate(524_289)
+            while (buffer.hasRemaining() && channel.read(buffer) >= 0) Unit
+            if (buffer.position() > 524_288) null else Charsets.UTF_8.newDecoder().decode(buffer.flip()).toString()
+        }
+    } catch (_: IOException) {
+        null
+    } catch (_: IllegalArgumentException) {
+        null
+    }
+    return plan.copy(documentText = text)
+}
 
 internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
     fun JsonObject.text(key: String) = (get(key) as? JsonPrimitive)?.contentOrNull
@@ -12,8 +41,13 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
         (args.keys - keys.toSet()).takeIf { it.isNotEmpty() }?.let { error("Unknown arguments: ${it.joinToString()}") }
     }
     fun JsonObject.actor(): BoardActor? = get("by")?.let { AgentWorkspaceJson.decodeFromJsonElement(BoardActor.serializer(), it) }
-    fun JsonObject.thread(by: BoardActor?): String = text("thread") ?: by?.session ?: error("Name the thread: hangar:, claude:, codex: or agy: with its id")
-    fun plan(value: WorkPlan, history: Boolean) = AgentWorkspaceJson.encodeToJsonElement(WorkPlan.serializer(), if (history) value else value.copy(changes = emptyList()))
+    fun JsonObject.thread(by: BoardActor?): String = text("thread") ?: text("continuation")?.let(PlanReadPage::thread) ?: by?.session ?: error("Name the thread: hangar:, claude:, codex: or agy: with its id")
+    fun plan(value: WorkPlan, history: Boolean): JsonElement {
+        val document = workspace.documentPlan(value)
+        val encoded = AgentWorkspaceJson.encodeToJsonElement(WorkPlan.serializer(), if (history) document else document.copy(changes = emptyList()))
+        return if (document.documentPath != null && document.documentText == null) JsonObject(encoded.jsonObject +
+            ("documentError" to JsonPrimitive("Could not read ${document.documentPath}; check that it is a readable UTF-8 Markdown file under plans/ and at most 512 KB"))) else encoded
+    }
     fun changes(values: List<PlanChange>) = AgentWorkspaceJson.encodeToJsonElement(ListSerializer(PlanChange.serializer()), values)
     val api = PlansApi()
     val by = "by" to PlanReader.serializer().descriptor.jsonSchema()
@@ -29,34 +63,68 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
         },
         McpTool("agent_plan_read", "Read a thread's plan: the high-level design and running checklist its agent keeps, which people edit in Hangar. " +
             "Items carry a status, the items they wait on (after), the item they belong to (parent), links into Reaktor (refs) and the seat of an attached agent. " +
-            "Pass since, the revision you last read, to get news: what people and other agents changed after it.",
+            "Pass since, the revision you last read, to get news and your scope. " + PlanBrief.News + " Follow continuation until absent. " +
+            "A metadataFragment carries JSON text at its offset; concatenate it before decoding claims, ready, news and history. With history=true, changes are in plan.changes on the first page, or in metadata.history when too large. An item fragment uses the same protocol for one item.",
             api.read.request.descriptor.jsonSchema(), true, true) { args ->
-            args.only("thread", "since", "history", "by")
+            args.only("thread", "since", "history", "by", "budgetBytes", "frame", "continuation")
             val reader = args.actor()
-            val read = workspace.plans.read(args.thread(reader), args.long("since"), reader)
-            val history = args["history"]?.jsonPrimitive?.booleanOrNull == true
+            val identity = reader?.let(workspace::planIdentity)
+            val cursor = args.text("continuation")?.let(PlanReadPage::selection)
+            val since = args.long("since") ?: cursor?.since
+            val read = workspace.plans.read(args.thread(reader), since, reader)
+            val history = args["history"]?.jsonPrimitive?.booleanOrNull ?: cursor?.history ?: false
             val presence = workspace.presence.read(listOf(read.plan))
             val claims = PlanClaims.resolve(read.plan, presence, presence.observedAt)
-            buildJsonObject {
-                put("plan", plan(read.plan, history))
-                put("claims", AgentWorkspaceJson.encodeToJsonElement(PlanClaims.serializer(), if (history) claims else claims.active()))
-                put("ready", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(PlanCandidate.serializer()), PlanSchedule.ready(read.plan).take(8)))
-                if (args.long("since") != null) put("news", changes(read.news))
+            val ready = when {
+                reader?.kind != BoardActorKind.Agent -> PlanAnalysis.ready(read.plan).take(8)
+                identity?.agent == null -> emptyList()
+                else -> listOfNotNull(workspace.nextPlan(read.plan.thread, reader).candidate)
             }
+            val answer = buildJsonObject {
+                val document = plan(read.plan, history)
+                put("plan", document)
+                document.jsonObject["documentError"]?.let { put("documentError", it) }
+                put("claims", AgentWorkspaceJson.encodeToJsonElement(PlanClaims.serializer(), if (history) claims else claims.active()))
+                put("ready", AgentWorkspaceJson.encodeToJsonElement(ListSerializer(PlanCandidate.serializer()), ready))
+                if (since != null) { put("news", changes(read.news)); put("since", since) }
+            }
+            if (reader?.kind == BoardActorKind.Agent || args["budgetBytes"] != null || args["frame"] != null || args["continuation"] != null)
+                PlanReadPage.answer(read.plan, identity ?: BoardActor(BoardActorKind.Person, "Reader"), answer,
+                    args.text("frame"), args.text("continuation"), args.long("budgetBytes")?.toInt(), scoped = since != null, since = since, historyRequested = history)
+            else answer
         },
         McpTool("agent_plan_schedule", "Remaining item steps, critical path and slack, schedulable dependency width and unresolved blockers. No duration estimates.",
             withActor(api.schedule.request.descriptor.jsonSchema()), true, true) { args ->
-            args.only("thread", "by")
+            args.only("thread", "by", "budgetBytes", "frame", "continuation")
             val reader = args.actor() ?: error("by is required")
             val read = workspace.plans.read(args.thread(reader), reader = reader)
-            AgentWorkspaceJson.encodeToJsonElement(PlanScheduleReport.serializer(), PlanAnalysis.report(read.plan))
+            val report = PlanAnalysis.report(read.plan)
+            if (reader.kind == BoardActorKind.Agent || args["budgetBytes"] != null || args["frame"] != null || args["continuation"] != null)
+                PlanReadPage.answer(read.plan, workspace.planIdentity(reader), frame = args.text("frame"), continuation = args.text("continuation"),
+                    budgetBytes = args.long("budgetBytes")?.toInt(), scoped = true) { page ->
+                    val ids = page.items.mapTo(HashSet()) { it.id }
+                    val selected = report.copy(remaining = report.timings.count { it.item in ids },
+                        ready = report.ready.filter { it.item.id in ids }, criticalPath = report.criticalPath.filter { it in ids },
+                        timings = report.timings.filter { it.item in ids }, review = report.review.filter { it.item in ids })
+                    val encoded = AgentWorkspaceJson.encodeToJsonElement(PlanScheduleReport.serializer(), selected).jsonObject
+                    buildJsonObject { put("schedule", JsonObject(encoded + ("ready" to JsonArray(encoded.getValue("ready").jsonArray.map(PlanReadPage::compactCandidate))))) }
+                }
+            else AgentWorkspaceJson.encodeToJsonElement(PlanScheduleReport.serializer(), report)
         },
         McpTool("agent_plan_next", "The next ready item ordered by inherited priority, work unblocked and age. Name thread and item to consider a specific handoff. take=true atomically claims an activity-renewed lease.",
             withActor(api.next.request.descriptor.jsonSchema()), false, false) { args ->
-            args.only("thread", "agent", "seat", "by", "take", "item")
+            args.only("thread", "agent", "seat", "by", "take", "item", "budgetBytes", "frame", "continuation")
             val actor = args.actor() ?: error("by is required")
-            AgentWorkspaceJson.encodeToJsonElement(PlanNext.serializer(), workspace.nextPlan(args.text("thread"), actor, args.text("seat"), args.text("agent"),
-                take = args["take"]?.jsonPrimitive?.booleanOrNull == true, item = args.text("item")))
+            val requestedThread = args.text("thread") ?: args.text("continuation")?.let(PlanReadPage::thread)
+            val next = workspace.nextPlan(requestedThread, actor, args.text("seat"), args.text("agent"),
+                take = args["take"]?.jsonPrimitive?.booleanOrNull == true && args.text("continuation") == null, item = args.text("item"))
+            val answer = AgentWorkspaceJson.encodeToJsonElement(PlanNext.serializer(), next).jsonObject
+            val thread = requestedThread ?: next.candidate?.thread
+            val current = thread?.let(workspace.plans::plan)
+            if (current != null && (actor.kind == BoardActorKind.Agent || args["budgetBytes"] != null || args["frame"] != null || args["continuation"] != null))
+                PlanReadPage.answer(current, workspace.planIdentity(actor), JsonObject(answer.mapValues { (key, value) -> if (key == "candidate") PlanReadPage.compactCandidate(value) else value }),
+                    args.text("frame"), args.text("continuation"), args.long("budgetBytes")?.toInt())
+            else answer
         },
         McpTool("agent_plan_write", "Draw or change a thread's plan; the first write starts it and names it with title. " +
             "Pass base, the revision you read: an op on an item someone else changed after it is refused for that item only, and news lists their changes. " +
@@ -65,12 +133,16 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
             "The answer lists what applied, what was refused and why, and the new revision.",
             withActor(api.write.request.descriptor.jsonSchema()),
             readOnly = false, idempotent = false) { args ->
-            args.only("thread", "title", "goal", "ops", "base", "seat", "message", "documentPath", "by")
+            args.only("thread", "title", "goal", "ops", "base", "seat", "message", "documentPath", "documentText", "approval", "requestId", "limits", "by")
             val writer = args.actor() ?: error("by is required: who makes this change")
             val patch = PlanPatch(
                 ops = AgentWorkspaceJson.decodeFromJsonElement(ListSerializer(PlanOp.serializer()), PlanJson.statuses(args["ops"] ?: JsonArray(emptyList()))),
                 title = args.text("title"), goal = args.text("goal"), base = args.long("base"), seat = args.text("seat"), message = args.text("message"),
-                documentPath = args.text("documentPath"),
+                documentPath = args.text("documentPath"), requestId = args.text("requestId"),
+                documentText = args.text("documentText"), approval = args.text("approval")?.let(PlanApproval::valueOf),
+                limits = args["limits"]?.let { AgentWorkspaceJson.decodeFromJsonElement(PlanLimits.serializer(), it) },
+                limitFields = args["limits"]?.jsonObject?.keys,
+
             )
             val applied = workspace.plans.write(args.thread(writer), patch, writer)
             buildJsonObject {
@@ -90,15 +162,38 @@ internal fun agentPlanTools(workspace: AgentWorkspace): List<McpTool> {
             val person = args.actor() ?: error("by is required")
             val items = (args["items"] as? JsonArray)?.map { it.jsonPrimitive.content }.orEmpty()
             AgentWorkspaceJson.encodeToJsonElement(PlanAttached.serializer(),
-                workspace.attachPlan(args.thread(person), items, args.text("profile") ?: error("Choose a profile"), args.text("note").orEmpty(), person))
+                runBlocking { workspace.attachPlan(args.thread(person), items, args.text("profile") ?: error("Choose a profile"), args.text("note").orEmpty(), person) })
         },
         McpTool("agent_plan_shape", "Read plans as one reaktor-graph: a graph per plan with a child graph per component, a node per item wired to what it waits on and what it relates to, " +
             "and a node per Reaktor link (file, symbol, module, graph, operation, flow) it touches, naming the atlas call that explores it. Without threads it reads every plan.",
             api.shapeGraph.request.descriptor.jsonSchema(), true, true) { args ->
-            args.only("threads")
+            args.only("threads", "by", "budgetBytes", "frame", "continuation")
+            val reader = args.actor()
             val wanted = (args["threads"] as? JsonArray)?.map { it.jsonPrimitive.content }
+            if (reader?.kind == BoardActorKind.Agent || args["budgetBytes"] != null || args["frame"] != null || args["continuation"] != null) {
+                require(wanted == null || wanted.size == 1) { "Read one named plan at a time with bounded shape answers" }
+                val thread = args.text("continuation")?.let(PlanReadPage::thread) ?: wanted?.singleOrNull() ?: reader?.session ?: error("Name one plan thread")
+                val current = workspace.plans.read(thread, reader = reader).plan
+                PlanReadPage.answer(current, reader?.let(workspace::planIdentity) ?: BoardActor(BoardActorKind.Person, "Reader"),
+                    frame = args.text("frame"), continuation = args.text("continuation"), budgetBytes = args.long("budgetBytes")?.toInt(), scoped = true) { page ->
+                    buildJsonObject { put("shape", AgentWorkspaceJson.encodeToJsonElement(dev.shibasis.reaktor.graph.core.GraphShape.serializer(), PlanGraph.shape(listOf(page)))) }
+                }
+            } else {
             val plans = wanted?.mapNotNull(workspace.plans::plan) ?: workspace.plans.list().mapNotNull { workspace.plans.plan(it.thread) }
             AgentWorkspaceJson.encodeToJsonElement(dev.shibasis.reaktor.graph.core.GraphShape.serializer(), PlanGraph.shape(plans))
+            }
+        },
+        McpTool("agent_plan_archive", "Archive completed (Done) and closed (Dropped) leaf items from a thread's plan into plans/archive/ so large multi-wave plans stay compact.",
+            withActor(api.archive.request.descriptor.jsonSchema()), readOnly = false, idempotent = true) { args ->
+            args.only("thread", "by")
+            val writer = args.actor() ?: error("by is required")
+            val thread = args.thread(writer)
+            val archived = workspace.plans.archive(thread, writer)
+            buildJsonObject {
+                put("thread", thread)
+                put("archived", JsonArray(archived.map(::JsonPrimitive)))
+                put("revision", workspace.plans.read(thread, reader = writer).plan.revision)
+            }
         },
         McpTool("agent_taskgraph_archive", "Move every task graph that is not running, with its tasks, to the board's archive folder (board/archive). " +
             "Plans replace task graphs in Hangar; moving the files back restores a graph. Only a person archives.",
@@ -115,6 +210,7 @@ internal object PlanJson {
         "doing" to PlanStatus.Doing, "in progress" to PlanStatus.Doing, "in-progress" to PlanStatus.Doing, "in_progress" to PlanStatus.Doing, "started" to PlanStatus.Doing,
         "done" to PlanStatus.Done, "complete" to PlanStatus.Done, "completed" to PlanStatus.Done,
         "dropped" to PlanStatus.Dropped, "won't do" to PlanStatus.Dropped, "wont do" to PlanStatus.Dropped, "will not do" to PlanStatus.Dropped, "skipped" to PlanStatus.Dropped,
+        "parked" to PlanStatus.Dropped, "deferred" to PlanStatus.Dropped,
     )
 
     fun statuses(ops: JsonElement): JsonElement = (ops as? JsonArray)?.let { array ->

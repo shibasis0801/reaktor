@@ -246,7 +246,7 @@ fun signalBars(tone: (MachineSignalColors) -> Color): BarsAppearance = object : 
         val color = tone(signal.colors)
         Canvas(Modifier.fillMaxSize()) {
             val gap = 2.dp.toPx()
-            val width = (size.width - gap * (properties.size - 1)) / properties.size
+            val width = (size.width - gap * (properties.size - 1)) / properties.size.coerceAtLeast(1)
             properties.forEachIndexed { index, value ->
                 val height = if (value == 0f) 1.dp.toPx() else size.height * value
                 drawRect(
@@ -262,6 +262,23 @@ fun signalBars(tone: (MachineSignalColors) -> Color): BarsAppearance = object : 
                     drawLine(signal.colors.canvas, Offset(0f, y), Offset(size.width, y), MachineSignal.Stroke.hairline.toPx())
                     y += pitch
                 }
+            }
+        }
+    }
+}
+
+val HistogramBars: BarsAppearance = object : BarsAppearance {
+    @Composable
+    override fun Content(properties: List<Float>, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: Unit) {
+        val signal = theme.machineSignal
+        Canvas(Modifier.fillMaxSize()) {
+            repeat(4) { line ->
+                val y = size.height * line / 3
+                drawLine(signal.colors.textMuted.copy(alpha = .16f), Offset(0f, y), Offset(size.width, y))
+            }
+            val width = size.width / properties.size.coerceAtLeast(1)
+            properties.forEachIndexed { index, value ->
+                if (value > 0f) drawRect(signal.colors.source, Offset(index * width + width * .12f, size.height * (1 - value)), Size(width * .76f, size.height * value))
             }
         }
     }

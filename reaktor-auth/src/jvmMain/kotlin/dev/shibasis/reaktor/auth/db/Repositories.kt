@@ -253,6 +253,13 @@ class AuthRepository(adapter: ExposedAdapter): CrudRepository(adapter) {
         findPrincipal(principalId)
     }
 
+    suspend fun providerAccounts(request: Request, principalId: UUID) = request.sql {
+        val identityId = findPrincipal(principalId)?.identityId?.uuid()
+        if (identityId == null) emptyList() else ProviderAccounts.selectAll()
+            .where { ProviderAccounts.identityId eq identityId }
+            .map(ProviderAccounts::toDto)
+    }
+
     // Soft-delete: mark the principal + its identity SOFT_DELETED (grace-period
     // deactivation). Session revocation + user_profiles.deleted_at are handled by
     // the caller. Returns false if the principal does not exist.

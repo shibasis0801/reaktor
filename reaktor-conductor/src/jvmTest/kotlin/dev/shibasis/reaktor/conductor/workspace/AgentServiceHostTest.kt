@@ -20,6 +20,40 @@ class AgentServiceHostTest {
 
     @AfterTest fun clean() { directory.toFile().deleteTreeSafely(within = File("/tmp")) }
 
+    @Test fun aWorkspaceFailureDoesNotPreventTheFollowingWorkspaceFromReopening() {
+        val vanished = directory.resolve("graph-tab-owner-vanished").toString()
+        val unmounted = "/Volumes/hangar-unmounted-fixture"
+        val valid = directory.resolve("still-present").toFile().apply { mkdirs() }.path
+        val opened = mutableListOf<String>()
+        val reports = mutableListOf<String>()
+        val failure = assertFailsWith<IllegalStateException> {
+            AgentServiceHost.reopen(listOf(HostedWorkspace(vanished), HostedWorkspace(unmounted), HostedWorkspace(valid)), reports::add) { workspace ->
+                opened += workspace.root
+                if (workspace.root == unmounted) "Volume is unavailable" else null
+            }
+        }
+        assertEquals(listOf(unmounted, valid), opened)
+        assertTrue(failure.message.orEmpty().contains(unmounted))
+        assertContains(failure.message.orEmpty(), "Reopened 1 workspace")
+        assertContains(failure.message.orEmpty(), valid)
+        assertEquals(1, reports.size)
+    }
+
+    @Test fun anUpgradeSkipsAVanishedTemporaryWorkspaceAndReopensTheRest() {
+        val vanished = directory.resolve("graph-tab-owner-vanished").toString()
+        val valid = directory.resolve("still-present").toFile().apply { mkdirs() }.path
+        val opened = mutableListOf<String>()
+        val reports = mutableListOf<String>()
+        val reopened = AgentServiceHost.reopen(listOf(HostedWorkspace(vanished), HostedWorkspace(valid)), reports::add) { workspace ->
+            opened += workspace.root
+            if (workspace.root == vanished) "Failed requirement" else null
+        }
+        assertEquals(listOf(valid), opened)
+        assertEquals(listOf(valid), reopened)
+        assertEquals(1, reports.size)
+        assertEquals(1, reports.single().lineSequence().count())
+    }
+
     @Test fun eachWorkspaceOpensOnItsOwnThreadInOneProcess() {
         AgentServiceHost.admit(HostedWorkspace("/work/bestbuds"), directory)
         host().use {

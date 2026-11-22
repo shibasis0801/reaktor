@@ -173,6 +173,41 @@ support request, not a setting.
 Derive `versionCode` from `versionName` rather than maintaining both. Play rejects a versionCode
 it has seen before, and a hand-maintained second number is exactly how that happens.
 
+## Export compliance and the Play commit flag
+
+`ITSAppUsesNonExemptEncryption` asks whether Apple needs export documentation from you. An app
+that uses only standard algorithms (TLS, BoringSSL, MLS and the like) and is not sold in France
+needs none, so the key is `false` even when the binary links real cryptography. Setting it `true`
+makes altool fail with 90592 (an empty export compliance code), and the App Store Connect API
+refuses to create a declaration for that case with a 409, so there is no code to obtain. Set it
+`true` only for proprietary cryptography or French distribution, after Apple has your documents.
+
+On Play, `edits.commit` refuses `changesNotSentForReview` while managed publishing is off
+("Changes are sent for review automatically"). A commit then sends every pending Console change
+for review, including changes someone made by hand, so read Publishing overview before
+committing. While required App content steps are incomplete, the Console cannot send anything for
+review, which is the window to commit a draft release. Turn managed publishing on before the first
+production submission if you want to choose when an approved release goes live. The Console
+refuses to turn it on until the dashboard setup steps are complete, so plan for one more visit.
+
+## Play review access and the App content order
+
+Play's Sign in details form states that reviewers cannot create accounts, cannot use their own
+existing accounts, and cannot contact you. "Sign in with your own Google account" is therefore not
+review access. An app whose only sign-in is Google needs a dedicated Google account with 2-step
+verification off and no country restriction, entered in the form's username and password fields.
+The account should land somewhere populated, because an empty first screen is not "access to all
+parts of the app". The form's limits are a 60-character name, 100 each for username and password,
+and 500 for other information. Apple's long review notes do not fit there, so write the Play
+version separately.
+
+The App content cards depend on each other. Target audience opens only after Sign in details is
+saved. Data safety saves at any time but cannot be submitted before Target audience. Child safety
+standards, required for social and dating apps, keeps Save disabled until both certifications are
+ticked, so it cannot be saved half-filled. The optional "delete some data without deleting the
+account" answer needs a public page that shows the steps and says what is deleted or kept, so a
+generic support page does not qualify.
+
 ## Handing a build to a tester
 
 **Android:** a release build signed with the debug key installs on anyone's phone today, no

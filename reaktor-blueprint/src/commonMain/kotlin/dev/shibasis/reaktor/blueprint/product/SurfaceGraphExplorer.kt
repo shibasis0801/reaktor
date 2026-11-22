@@ -9,7 +9,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
@@ -21,7 +20,6 @@ import dev.shibasis.reaktor.blueprint.editor.GraphEditor
 import dev.shibasis.reaktor.blueprint.editor.Selection
 import dev.shibasis.reaktor.blueprint.editor.id
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignalDensity
-import dev.shibasis.reaktor.ui.machinesignal.MachineSignalMode
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignalSurface
 import dev.shibasis.reaktor.ui.machinesignal.MachineSignalVariant
 import kotlin.math.*
@@ -205,8 +203,7 @@ fun SurfaceGraphExplorer(nodes: List<SurfaceGraphNode>, links: List<SurfaceGraph
             mapLayers = true, mapDetail = true,
             fitKey = fitKey, fitScene = fitScene, initialFit = fitKey?.let { { state.fit() } }, startInset = startInset, topInset = topInset)
     }
-    MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact,
-        mode = if (appearance.canvas.luminance() > .5f) MachineSignalMode.Light else MachineSignalMode.Dark) {
+    MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact) {
         view(modifier)
     }
 }
@@ -299,8 +296,7 @@ private fun <K> SurfaceGraphDeclaredExplorer(
         state.frames = layout.frames
         state.place(cards, nodes, key)
     }
-    MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact,
-        mode = if (appearance.canvas.luminance() > .5f) MachineSignalMode.Light else MachineSignalMode.Dark) {
+    MachineSignalSurface(MachineSignalVariant.Editor, MachineSignalDensity.Compact) {
         BlueprintGraph(layout, state, shown, presentation.owner(selectedId),
             cardLook = { card -> presentation.look(card, appearance, selectedId, highlighted, if (onOpen == null) null else { id -> opening?.invoke(id) }) },
             frameLook = { frame ->

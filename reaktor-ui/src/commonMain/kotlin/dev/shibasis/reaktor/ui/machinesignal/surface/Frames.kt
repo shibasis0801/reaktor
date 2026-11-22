@@ -156,7 +156,7 @@ val CardItem: ItemAppearance = object : ItemAppearance {
             else -> colors.line
         }
         Box(
-            Modifier.clip(MachineSignal.shapes.panel).background(when { properties.selected -> colors.raised; state.hovered -> colors.surfaceAlt; else -> colors.surface })
+            Modifier.fillMaxWidth().clip(MachineSignal.shapes.panel).background(when { properties.selected -> colors.raised; state.hovered -> colors.surfaceAlt; else -> colors.surface })
                 .border(if (properties.selected || state.focusVisible) signal.metrics.focusRing else MachineSignal.Stroke.hairline, edge, MachineSignal.shapes.panel)
                 .padding(MachineSignal.Space.s3),
         ) {
@@ -164,6 +164,18 @@ val CardItem: ItemAppearance = object : ItemAppearance {
         }
     }
 }.withMatrix(MatrixTab)
+
+fun cardButton(selected: Boolean = false): ButtonAppearance = if (selected) SelectedCardButton else IdleCardButton
+
+private val IdleCardButton: ButtonAppearance = CardButton(false)
+private val SelectedCardButton: ButtonAppearance = CardButton(true)
+
+private data class CardButton(val selected: Boolean) : ButtonAppearance {
+    @Composable
+    override fun Content(properties: PressProperties, state: PressState, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: ButtonSlots) {
+        CardItem.Content(ItemProperties(selected, properties.enabled), state, theme, feedback, ItemSlots(null, slots.content))
+    }
+}
 
 fun filterChip(ink: InkRole): ItemAppearance = AccentChip(ink)
 
@@ -330,19 +342,37 @@ val StackSection: SectionAppearance = object : SectionAppearance {
     }
 }.withMatrix(MatrixSection(MachineSignal.Space.none, framed = false))
 
-val CardSection: SectionAppearance = object : SectionAppearance {
+val CardSection: SectionAppearance = CardSectionLook(false).withMatrix(MatrixSection())
+
+fun cardSection(selected: Boolean = false, heading: Boolean = true): SectionAppearance = when {
+    heading -> if (selected) SelectedCardSection else CardSection
+    selected -> SelectedCardBody
+    else -> CardBody
+}
+
+private val SelectedCardSection: SectionAppearance = CardSectionLook(true).withMatrix(MatrixSection())
+
+private val CardBody: SectionAppearance = CardSectionLook(false, heading = false).withMatrix(MatrixSection(heading = false))
+private val SelectedCardBody: SectionAppearance = CardSectionLook(true, heading = false).withMatrix(MatrixSection(heading = false))
+
+private data class CardSectionLook(val selected: Boolean, val heading: Boolean = true) : SectionAppearance {
     @Composable
     override fun Content(properties: Unit, state: Unit, theme: ThemeSnapshot, feedback: ComposeFeedback, slots: SectionSlots) {
         val signal = theme.machineSignal
-        Column(
-            Modifier.fillMaxWidth().background(signal.colors.surface, MachineSignal.shapes.panel).padding(MachineSignal.Space.s3),
-            verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2),
-        ) {
-            ProvideLabel(signal.label(signal.colors.textFaint, MachineSignal.Editor.meta), slots.heading)
-            slots.content(this)
-        }
+        CardItem.Content(ItemProperties(selected, true), PressState(false, false, false), theme, feedback, ItemSlots(null) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2)) {
+                if (heading) ProvideLabel(signal.label(signal.colors.textFaint, MachineSignal.Editor.meta)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(MachineSignal.Space.s2)) {
+                        Box(Modifier.weight(1f)) { slots.heading() }
+                        slots.trailing?.invoke()
+                    }
+                }
+                slots.content(this)
+            }
+        })
     }
-}.withMatrix(MatrixSection())
+}
 
 val PanelSection: SectionAppearance = SignalPanelSection(MachineSignal.Space.s3).withMatrix(MatrixSection())
 

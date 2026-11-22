@@ -58,9 +58,9 @@ class WorkspaceMessages(private val workspace: AgentWorkspace, directory: Path,
         val from = if (by.kind == BoardActorKind.Agent && by.session == null) "system:${by.name}" else key(by)
         agents(plan).filter { it != from }.forEach { agent ->
             changes.forEach { change ->
-                val body = "Plan ${plan.title} (${plan.thread}), revision ${change.revision}:\n" + change.summary.joinToString("\n")
-                api.send(SendMessage("plan:${digest("${plan.thread}:${change.revision}:$agent")}", from, MessageRecipient.Agent(agent), MessageKind.Note,
-                    body.take(2000), item = "plan:${plan.thread}"))
+                val body = ("Plan ${plan.title} (${plan.thread}), revision ${change.revision}:\n" + change.summary.joinToString("\n")).take(2000)
+                api.send(SendMessage("plan:${digest("${plan.thread}:${change.revision}:${change.at}:$agent:$body")}", from, MessageRecipient.Agent(agent), MessageKind.Note,
+                    body, item = "plan:${plan.thread}"))
             }
         }
     }

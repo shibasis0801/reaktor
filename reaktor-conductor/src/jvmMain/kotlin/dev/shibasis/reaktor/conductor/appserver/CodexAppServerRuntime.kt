@@ -1,7 +1,10 @@
 package dev.shibasis.reaktor.conductor.appserver
 
 import dev.shibasis.reaktor.conductor.*
+import dev.shibasis.reaktor.conductor.worklog.WorkLogs
+import dev.shibasis.reaktor.conductor.worklog.CodexLog
 import dev.shibasis.reaktor.conductor.cli.codexApprovals
+import dev.shibasis.reaktor.conductor.telemetry.CodexTelemetry
 import dev.shibasis.reaktor.conductor.cli.codexMcpArgs
 import dev.shibasis.reaktor.conductor.cli.codexSandbox
 import kotlinx.coroutines.*
@@ -39,6 +42,10 @@ class CodexAppServerRuntime(
     private val binary: String = "codex",
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) : InteractiveAgentRuntime {
+    internal var desktopAvailable: (String) -> Boolean = ::codexDesktopAppAvailable
+    internal var desktopRunning: () -> Boolean = ::codexDesktopAppRunning
+    internal var desktopDefaults: () -> CodexDesktopDefaults = { codexDesktopDefaults() }
+
     override val kind: RuntimeKind = RuntimeKind.Codex
 
     override val interactive = Qualification(
@@ -70,7 +77,12 @@ class CodexAppServerRuntime(
         require(!request.agent.tools.strictMcpConfig && request.agent.tools.allow.isEmpty() && request.agent.tools.deny.isEmpty()) {
             "These tool restrictions have no App Server mapping; use native configuration or a supported transport"
         }
-        if (codexDesktopAppAvailable(binary) && request.outputSchema == null && codexDesktopHonours(request.agent.tools, codexDesktopDefaults())) {
+        if (request.resume?.runtime == RuntimeKind.Codex) {
+            codexContinuationProblem(request.agent.tools, desktopAvailable(binary), desktopRunning(), desktopDefaults())?.let { error(it) }
+            require(request.outputSchema == null) { "The Codex desktop app cannot enforce this response schema." }
+            return CodexDesktopSession(request, binary, scope)
+        }
+        if (desktopAvailable(binary) && request.outputSchema == null && codexDesktopHonours(request.agent.tools, desktopDefaults())) {
             return CodexDesktopSession(request, binary, scope)
         }
 
@@ -121,7 +133,13 @@ internal class CodexDesktopSession(
         try {
             val thread = threadId?.let { it to EffortRecord.none } ?: startThread().also { threadId = it.first }
             effort = thread.second
-            val beforeQueue = findRollout(thread.first)?.length() ?: 0L
+            val saved = findRollout(thread.first)
+            if (request.resume?.runtime == RuntimeKind.Codex) {
+                check(saved != null && saved.isFile) { "The Codex rollout moved or is missing. Refresh this session before continuing." }
+                codexRecordedSettingsProblem(request.agent.tools, saved)?.let { error(it) }
+            }
+            if (launch == null) check(codexBinaryPresent(binary, request.environment)) { "The Codex binary '$binary' is missing or is not executable. Restore it before continuing this app thread." }
+            val beforeQueue = saved?.length() ?: 0L
             check(command(listOf(binary, "queue", "--thread", thread.first, "--message", request.prompt))) {
                 "Codex could not queue the prompt"
             }
@@ -177,84 +195,72 @@ internal class CodexDesktopSession(
     }
 
     private suspend fun FlowCollector<AgentEvent>.follow(file: File, offset: Long): AgentOutcome {
-        val answer = StringBuilder()
-        var completed: AgentOutcome? = null
+        val reader = CodexLog(directory.path)
+        val tail = TranscriptTail(file, offset)
         var shortfall: String? = null
-        file.toPath().let { path ->
-            Files.newByteChannel(path, StandardOpenOption.READ).use { channel ->
-                channel.position(offset)
-                val buffer = ByteArray(8192)
-                val line = ByteArrayOutputStream()
-                var heard = System.currentTimeMillis()
-                var stalled = false
-                while (completed == null && currentCoroutineContext().isActive) {
-                    val count = channel.read(ByteBuffer.wrap(buffer))
-                    if (count <= 0) {
-                        if (!stalled && System.currentTimeMillis() - heard > DesktopStallMillis) {
-                            stalled = true
-                            emit(AgentEvent.Activity(agent, AgentActivityItem("desktop-stall", ActivityKind.Control, "No progress in ChatGPT.app", ActivityStatus.Waiting,
-                                output = desktopStallNotice(threadId, started = turn != null))))
-                        }
-                        delay(100)
-                        continue
-                    }
+        val deadline = System.currentTimeMillis() + request.agent.budget.timeoutMillis
+        var heard = System.currentTimeMillis()
+        var stalled = false
+        try {
+            while (currentCoroutineContext().isActive) {
+                val lines = tail.lines()
+                if (lines.isNotEmpty()) {
                     heard = System.currentTimeMillis()
                     if (stalled) {
                         stalled = false
                         emit(AgentEvent.Activity(agent, AgentActivityItem("desktop-stall", ActivityKind.Control, "Progress resumed in ChatGPT.app", ActivityStatus.Completed)))
                     }
-                    for (index in 0 until count) {
-                        val byte = buffer[index]
-                        if (byte == '\n'.code.toByte()) {
-                            val record = runCatching { Json.parseToJsonElement(line.toString(StandardCharsets.UTF_8)).jsonObject }.getOrNull()
-                            line.reset()
-                            val payload = record?.takeIf { it["type"]?.jsonPrimitive?.contentOrNull == "event_msg" }
-                                ?.get("payload") as? JsonObject ?: continue
-                            when (payload["type"]?.jsonPrimitive?.contentOrNull) {
-                                "task_started" -> {
-                                    turn = payload["turn_id"]?.jsonPrimitive?.contentOrNull
-                                    turn?.let { emit(AgentEvent.TurnStarted(agent, it)) }
-                                }
-                                "hook_started", "hook_completed" -> codexHookActivity(agent, payload.objectOrEmpty("run"),
-                                    payload["type"]?.jsonPrimitive?.contentOrNull == "hook_completed")?.let { emit(it) }
-                                "item_completed" -> {
-                                    val item = payload["item"] as? JsonObject
-                                    if (item?.get("type")?.jsonPrimitive?.contentOrNull == "agentMessage")
-                                        item["text"]?.jsonPrimitive?.contentOrNull?.let { answer.replace(0, answer.length, it) }
-                                }
-                                "thread_settings_applied" -> if (shortfall == null) codexDesktopShortfall(request.agent.tools, payload.objectOrEmpty("thread_settings"))?.let { found ->
-                                    val failure = "ChatGPT.app runs Codex thread $threadId with $found. " +
-                                        "Runs go to ChatGPT.app only while its Codex config sets approval_policy = \"never\" and the sandbox_mode they ask for."
-                                    shortfall = failure
-                                    emit(AgentEvent.Activity(agent, AgentActivityItem("desktop-permissions", ActivityKind.Control, "ChatGPT.app permissions fall short", ActivityStatus.Failed, output = failure)))
-                                    threadId?.let { thread ->
-                                        if (command(listOf(binary, "queue", "--thread", thread, "--message", DesktopStop))) command(listOf("open", "codex://threads/wake/$thread"))
-                                    }
-                                }
-                                "token_count" -> payload.objectOrEmpty("info").objectOrEmpty("total_token_usage").toAppUsage()?.let {
-                                    usage = it
-                                    emit(AgentEvent.Usage(agent, it))
-                                }
-                                "task_complete" -> {
-                                    val text = payload["last_agent_message"]?.jsonPrimitive?.contentOrNull ?: answer.toString()
-                                    completed = AgentOutcome(agent, text, shortfall == null, failure = shortfall,
-                                        session = threadId?.let { ProviderSession(RuntimeKind.Codex, it) }, usage = usage, effort = effort)
-                                    turn = null
-                                }
-                                "turn_aborted" -> {
-                                    completed = AgentOutcome(agent, answer.toString(), false, interrupted = true,
-                                        failure = shortfall ?: "Turn interrupted in ChatGPT.app",
-                                        session = threadId?.let { ProviderSession(RuntimeKind.Codex, it) }, usage = usage, effort = effort)
-                                    turn = null
-                                }
-                                else -> Unit
-                            }
-                        } else line.write(byte.toInt())
+                }
+                for (line in lines) {
+                    val record = runCatching { Json.parseToJsonElement(line).jsonObject }.getOrNull() ?: continue
+                    val payload = record["payload"] as? JsonObject
+                    val type = payload?.get("type")?.jsonPrimitive?.contentOrNull
+                    if (record["type"]?.jsonPrimitive?.contentOrNull == "event_msg") when (type) {
+                        "task_started" -> {
+                            turn = payload["turn_id"]?.jsonPrimitive?.contentOrNull
+                            turn?.let { emit(AgentEvent.TurnStarted(agent, it)) }
+                        }
+                        "hook_started", "hook_completed" -> codexHookActivity(agent, payload.objectOrEmpty("run"), type == "hook_completed")?.let { emit(it) }
+                        "thread_settings_applied" -> if (shortfall == null) codexDesktopShortfall(request.agent.tools, payload.objectOrEmpty("thread_settings"))?.let { found ->
+                            val failure = "ChatGPT.app runs Codex thread $threadId with $found. " +
+                                "Runs go to ChatGPT.app only while its Codex config sets approval_policy = \"never\" and the sandbox_mode they ask for."
+                            shortfall = failure
+                            emit(AgentEvent.Activity(agent, AgentActivityItem("desktop-permissions", ActivityKind.Control, "ChatGPT.app permissions fall short", ActivityStatus.Failed, output = failure)))
+                            emit(AgentEvent.Activity(agent, AgentActivityItem("desktop-permissions-attention", ActivityKind.Control, "Needs attention in ChatGPT.app", ActivityStatus.Waiting,
+                                output = "$failure Open this thread in the Codex app to resolve its permissions or approvals; Hangar cannot interrupt this app turn.")))
+                        }
+                        "token_count" -> payload.objectOrEmpty("info").objectOrEmpty("total_token_usage").toAppUsage()?.let {
+                            usage = it
+                            emit(AgentEvent.Usage(agent, it))
+                        }
+                    }
+                    val named = payload?.get("turn_id")?.jsonPrimitive?.contentOrNull
+                    if (type in setOf("task_complete", "turn_aborted") && (turn == null || named != null && named != turn)) continue
+                    reader.events(record, agent).forEach { emit(it) }
+                    if (type in setOf("task_complete", "turn_aborted")) {
+                        turn = null
+                        val aborted = type == "turn_aborted"
+                        return AgentOutcome(agent, reader.answer, !aborted && shortfall == null,
+                            failure = shortfall ?: if (aborted) "Turn interrupted in ChatGPT.app" else null,
+                            session = threadId?.let { ProviderSession(RuntimeKind.Codex, it) }, usage = usage, effort = effort, interrupted = aborted)
                     }
                 }
+                if (!stalled && System.currentTimeMillis() - heard > DesktopStallMillis) {
+                    stalled = true
+                    emit(AgentEvent.Activity(agent, AgentActivityItem("desktop-stall", ActivityKind.Control, "No progress in ChatGPT.app", ActivityStatus.Waiting,
+                        output = desktopStallNotice(threadId, started = turn != null))))
+                }
+                val remaining = deadline - System.currentTimeMillis()
+                if (remaining <= 0) {
+                    turn = null
+                    return AgentOutcome(agent, reader.answer, false,
+                        failure = "The turn passed its ${request.agent.budget.timeoutMillis} ms budget; it may keep running in the Codex app. Open the thread there to stop it.",
+                        session = threadId?.let { ProviderSession(RuntimeKind.Codex, it) }, usage = usage, effort = effort)
+                }
+                tail.await(minOf(DesktopStallMillis, remaining))
             }
-        }
-        return completed ?: AgentOutcome(agent, answer.toString(), false, failure = "Codex app rollout ended before completion",
+        } finally { tail.close() }
+        return AgentOutcome(agent, reader.answer, false, failure = "Codex app rollout ended before completion",
             session = threadId?.let { ProviderSession(RuntimeKind.Codex, it) }, usage = usage, effort = effort)
     }
 
@@ -299,14 +305,67 @@ internal class CodexDesktopSession(
     override fun close() = Unit
 }
 
+private fun codexBinaryPresent(binary: String, environment: Map<String, String>): Boolean =
+    if (File(binary).isAbsolute || binary.contains(File.separatorChar)) File(binary).let { it.isFile && it.canExecute() }
+    else (environment["PATH"] ?: System.getenv("PATH")).orEmpty().split(File.pathSeparatorChar)
+        .any { folder -> File(folder, binary).let { it.isFile && it.canExecute() } }
+
+internal fun codexRecordedSettingsProblem(tools: ToolPolicy, rollout: File): String? {
+    val previous = WorkLogs.reverseRecord(rollout, rollout.length(), "thread_settings_applied") { record ->
+        record["type"]?.jsonPrimitive?.contentOrNull == "event_msg" &&
+            record.objectOrEmpty("payload")["type"]?.jsonPrimitive?.contentOrNull == "thread_settings_applied"
+    }
+    if (previous.capped) return "Hangar cannot verify this thread's permissions within the bounded transcript window. Nothing was queued. Open the thread in the Codex app to continue."
+    val settings = previous.record?.objectOrEmpty("payload")?.objectOrEmpty("thread_settings")
+    if (settings == null) {
+        val turn = WorkLogs.reverseRecord(rollout, rollout.length(), "") { record ->
+            val payload = record.objectOrEmpty("payload")
+            payload["role"]?.jsonPrimitive?.contentOrNull == "user" ||
+                payload["type"]?.jsonPrimitive?.contentOrNull in setOf("user_message", "userMessage", "UserMessage") ||
+                payload.objectOrEmpty("item")["type"]?.jsonPrimitive?.contentOrNull in setOf("userMessage", "UserMessage")
+        }
+        return if (turn.record != null || turn.capped) "Hangar cannot verify this thread's recorded permissions. Nothing was queued. Open the thread in the Codex app to continue." else null
+    }
+    return codexDesktopShortfall(tools, settings)?.let {
+        val advice = if (it.startsWith("danger-full-access permissions") && tools.codexSandbox() == "read-only")
+            "Allow writes here if these full-access permissions are intended, or change this thread's permissions in the Codex app."
+        else "Change this thread's permissions in the Codex app."
+        "This Codex thread records $it; this pane asks for ${tools.codexSandbox()} permissions and approval_policy = never. Nothing was queued. $advice"
+    }
+}
+
+fun codexContinuationUnavailable(allowWrites: Boolean, rollout: File): String? {
+    if (!rollout.isFile) return "The Codex rollout moved or is missing. Refresh this session before continuing."
+    val tools = ToolPolicy(allowWrites = allowWrites)
+    return codexRecordedSettingsProblem(tools, rollout) ?: codexContinuationUnavailable(tools, "codex")
+}
+
+fun codexContinuationUnavailable(allowWrites: Boolean): String? = codexContinuationUnavailable(ToolPolicy(allowWrites = allowWrites), "codex")
+
+private fun codexContinuationUnavailable(tools: ToolPolicy, binary: String): String? =
+    codexContinuationProblem(tools, codexDesktopAppAvailable(binary), codexDesktopAppRunning(), codexDesktopDefaults())
+
+internal fun codexContinuationProblem(tools: ToolPolicy, installed: Boolean, running: Boolean, defaults: CodexDesktopDefaults): String? = when {
+    !installed || !running -> "Open the Codex desktop app before continuing this thread."
+    !codexDesktopHonours(tools, defaults) -> "The Codex desktop app must use matching ${tools.codexSandbox()} permissions and never ask for approvals before this thread can continue."
+    else -> null
+}
+
 private fun codexDesktopAppAvailable(binary: String): Boolean = binary == "codex" &&
     System.getProperty("os.name").startsWith("Mac", ignoreCase = true) &&
     listOf(File("/Applications/ChatGPT.app"), File(System.getProperty("user.home"), "Applications/ChatGPT.app"))
         .any(File::isDirectory)
 
-private const val DesktopStallMillis = 20 * 60_000L
+private fun codexDesktopAppRunning(): Boolean {
+    val roots = listOf(File("/Applications/ChatGPT.app"), File(System.getProperty("user.home"), "Applications/ChatGPT.app"))
+        .map { it.absolutePath + "/Contents/" }
+    return ProcessHandle.allProcesses().use { processes -> processes.anyMatch { process ->
+        val command = process.info().command().orElse("")
+        roots.any(command::startsWith)
+    } }
+}
 
-private const val DesktopStop = "Stop now and end your turn without running anything else. ChatGPT.app runs this thread with fewer permissions than this run needs, so its commands would wait for approvals nobody answers."
+private const val DesktopStallMillis = 20 * 60_000L
 
 internal fun desktopStallNotice(thread: String?, started: Boolean): String = if (started)
     "Codex thread $thread has written nothing for ${DesktopStallMillis / 60_000} minutes. It may be waiting for an approval in ChatGPT.app, which this run cannot answer or interrupt."
@@ -327,28 +386,57 @@ internal fun codexDesktopHonours(tools: ToolPolicy, defaults: CodexDesktopDefaul
     defaults.approvals == "never" && defaults.sandbox == tools.codexSandbox()
 
 internal fun codexDesktopShortfall(tools: ToolPolicy, settings: JsonObject): String? {
-    val approvals = settings["approval_policy"]?.jsonPrimitive?.contentOrNull ?: return null
-    val profile = settings.objectOrEmpty("active_permission_profile")["id"]?.jsonPrimitive?.contentOrNull
-    val sandbox = when (profile) {
-        ":danger-full-access" -> "danger-full-access"
-        ":workspace" -> "workspace-write"
-        ":read-only" -> "read-only"
+    fun JsonElement?.plain() = (this as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull
+    val unknown = "permissions or approvals that Hangar cannot verify"
+    val approvals = settings["approval_policy"].plain() ?: return unknown
+    val active = settings["active_permission_profile"]
+    val profile = (active as? JsonObject)?.get("id").plain()
+    if (active != null && (active !is JsonObject || active["id"] != null && profile == null)) return unknown
+    val named = when (profile) {
+        ":danger-full-access", "danger-full-access" -> "danger-full-access"
+        ":workspace", "workspace-write" -> "workspace-write"
+        ":read-only", "read-only" -> "read-only"
         else -> null
     }
+    val permissions = settings["permission_profile"]
+    val sandbox = when ((permissions as? JsonObject)?.get("type").plain()) {
+        "disabled" -> "danger-full-access"
+        "managed" -> {
+            val files = (permissions as JsonObject).objectOrEmpty("file_system")
+            when (files["type"].plain()) {
+                "restricted" -> {
+                    val entries = files["entries"] as? JsonArray ?: return unknown
+                    val access = entries.map { (it as? JsonObject)?.get("access").plain() }
+                    if (access.any { it !in setOf("read", "write", "deny") }) return unknown
+                    val network = permissions["network"] ?: settings["network"]
+                    if (network.plain() != "restricted") return unknown
+                    val roots = ((settings["runtime_workspace_roots"] as? JsonArray).orEmpty().mapNotNull { it.plain() } + listOfNotNull(settings["cwd"].plain()))
+                        .map { File(it).toPath().toAbsolutePath().normalize() }.toSet()
+                    val writes = entries.filter { (it as? JsonObject)?.get("access").plain() == "write" }
+                    if (writes.any { entry ->
+                        val path = (entry as? JsonObject)?.get("path") as? JsonObject ?: return@any true
+                        when (path["type"].plain()) {
+                            "path" -> path["path"].plain()?.let { File(it).toPath().toAbsolutePath().normalize() !in roots } ?: true
+                            "special" -> path.objectOrEmpty("value")["kind"].plain() !in setOf("tmp", "tmpdir", "temp", "temp_dir")
+                            else -> true
+                        }
+                    }) return unknown
+                    if (writes.isNotEmpty()) "workspace-write" else "read-only"
+                }
+                else -> named ?: return unknown
+            }
+        }
+        null -> if (permissions == null) named ?: return unknown else return unknown
+        else -> return unknown
+    }
     return buildList {
-        if (sandbox != null && sandbox != tools.codexSandbox()) add("$profile permissions where it asked for ${tools.codexSandbox()}")
+        if (sandbox != tools.codexSandbox()) add("$sandbox permissions")
         if (approvals != "never") add("$approvals approvals")
     }.takeIf { it.isNotEmpty() }?.joinToString(" and ")
 }
 
-private fun JsonObject.toAppUsage(): AgentUsage? = AgentUsage(
-    scope = UsageScope.ProviderSessionTotal,
-    inputTokens = this["input_tokens"]?.jsonPrimitive?.longOrNull,
-    cachedInputTokens = this["cached_input_tokens"]?.jsonPrimitive?.longOrNull,
-    cacheWriteInputTokens = this["cache_write_input_tokens"]?.jsonPrimitive?.longOrNull,
-    outputTokens = this["output_tokens"]?.jsonPrimitive?.longOrNull,
-    reasoningOutputTokens = this["reasoning_output_tokens"]?.jsonPrimitive?.longOrNull,
-)
+private fun JsonObject.toAppUsage(): AgentUsage? =
+    takeIf { isNotEmpty() }?.let { CodexTelemetry.parseApiUsage(it, scope = UsageScope.ProviderSessionTotal).toAgentUsage() }
 
 private class CodexAppServerSession(
     private val request: AgentRequest,
@@ -660,15 +748,5 @@ private class CodexAppServerSession(
  * the most recent turn. The session total is taken, because that is the convention the `exec`
  * adapter already reports and mixing the two would make a continuation look free.
  */
-private fun JsonObject.toUsage(): AgentUsage? {
-    val breakdown = (this["total"] as? JsonObject) ?: (this["last"] as? JsonObject) ?: return null
-    fun field(name: String) = breakdown[name]?.jsonPrimitive?.longOrNull
-    return AgentUsage(
-        scope = UsageScope.ProviderSessionTotal,
-        inputTokens = field("inputTokens"),
-        cachedInputTokens = field("cachedInputTokens"),
-        cacheWriteInputTokens = field("cacheWriteInputTokens"),
-        outputTokens = field("outputTokens"),
-        reasoningOutputTokens = field("reasoningOutputTokens"),
-    )
-}
+private fun JsonObject.toUsage(): AgentUsage? =
+    CodexTelemetry.parseAppServerTokenUsage(this)?.toAgentUsage()

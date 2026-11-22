@@ -116,7 +116,7 @@ class AgentCollaborationTest {
         val codex = Harness(RuntimeKind.Codex)
         val claude = Harness(RuntimeKind.ClaudeCode)
         try {
-            AgentWorkspace(root, data, mapOf(codex.kind to codex, claude.kind to claude)).use { workspace ->
+            fixtureWorkspace(root, data, mapOf(codex.kind to codex, claude.kind to claude)).use { workspace ->
                 val request = AgentSubmission("invalid", codex.kind, "Review", collaboration = AgentCollaboration.Council)
                 assertFailsWith<IllegalArgumentException> { workspace.submit(request) }
                 assertFailsWith<IllegalArgumentException> { workspace.submit(request.copy(partner = AgentPartner(codex.kind))) }

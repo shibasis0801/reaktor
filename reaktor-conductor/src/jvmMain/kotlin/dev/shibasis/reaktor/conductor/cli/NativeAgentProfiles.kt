@@ -13,7 +13,7 @@ internal object NativeAgentProfiles {
 
     fun files(root: File, home: File): Map<String, Export> = AgentProfileStore(
         File(home, ".reaktor/agents/${digest(root.canonicalPath)}/profiles").toPath()).list().mapNotNull { profile ->
-        val vendor = when (profile.runtime) { RuntimeKind.Codex -> "codex"; RuntimeKind.ClaudeCode -> "claude"; else -> return@mapNotNull null }
+        val vendor = when (profile.runtime) { RuntimeKind.Codex -> "codex"; RuntimeKind.ClaudeCode -> "claude"; RuntimeKind.Gemini -> "gemini"; else -> return@mapNotNull null }
         val name = "reaktor-${digest(root.canonicalPath).take(12)}-${profile.id}"
         val key = "$vendor/$name.${if (vendor == "codex") "toml" else "md"}"
         key to Export(file(root, home, key), content(root, name, profile))
@@ -23,9 +23,9 @@ internal object NativeAgentProfiles {
         val vendor = key.substringBefore('/')
         val name = key.substringAfter('/')
         val prefix = "reaktor-${digest(root.canonicalPath).take(12)}-"
-        require(vendor in listOf("codex", "claude") && name.startsWith(prefix) &&
+        require(vendor in listOf("codex", "claude", "gemini") && name.startsWith(prefix) &&
             name.removePrefix(prefix).matches(Regex("[a-z][a-z0-9-]{0,63}\\.${if (vendor == "codex") "toml" else "md"}")))
-        return File(home, ".${if (vendor == "codex") "codex" else "claude"}/agents/$name")
+        return File(home, ".$vendor/agents/$name")
     }
 
     private fun content(root: File, name: String, profile: AgentProfile): String {

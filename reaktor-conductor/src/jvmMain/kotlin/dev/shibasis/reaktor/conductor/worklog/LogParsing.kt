@@ -1,5 +1,6 @@
 package dev.shibasis.reaktor.conductor.worklog
 
+import dev.shibasis.reaktor.conductor.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -14,11 +15,14 @@ internal interface LogParser {
     fun log(earlier: Boolean): WorkLog
 }
 
-internal class TurnBuilder(val id: String, val prompt: String?, val startedAt: Long?) {
+internal class TurnBuilder(val id: String, val prompt: String?, val startedAt: Long?, sent: String? = prompt) {
+    private val parsed = WorkPrompts.of(sent)
     val steps = mutableListOf<WorkStep>()
+    val usageSamples = mutableListOf<WorkUsageSample>()
     var endedAt: Long? = startedAt
     var usage: WorkUsage? = null
     var open = true
+    var vendorTurnId: String? = null
 
     fun add(step: WorkStep): Int {
         steps += step
@@ -38,7 +42,15 @@ internal class TurnBuilder(val id: String, val prompt: String?, val startedAt: L
         usage = usage?.plus(next) ?: next
     }
 
-    fun build() = WorkTurn(id, prompt, startedAt, endedAt, steps.toList(), usage, open)
+    fun sample(sample: WorkUsageSample) {
+        usageSamples += sample
+        touch(sample.at)
+        use(sample.toWorkUsage())
+    }
+
+    fun build(): WorkTurn {
+        return WorkTurn(id, if (parsed.context == null) prompt else parsed.text, startedAt, endedAt, steps.toList(), usage, open, usageSamples.toList(), parsed.context, vendorTurnId)
+    }
 }
 
 internal class Turns(private val prefix: String) {
@@ -46,9 +58,9 @@ internal class Turns(private val prefix: String) {
 
     val current: TurnBuilder? get() = turns.lastOrNull()
 
-    fun start(prompt: String?, at: Long?): TurnBuilder {
+    fun start(prompt: String?, at: Long?, sent: String? = prompt): TurnBuilder {
         turns.lastOrNull()?.open = false
-        return TurnBuilder("$prefix${turns.size}", prompt, at).also { turns += it }
+        return TurnBuilder("$prefix${turns.size}", prompt, at, sent).also { turns += it }
     }
 
     fun ensure(at: Long?): TurnBuilder = current ?: start(null, at)
@@ -144,3 +156,21 @@ internal fun JsonElement?.plain(): String? = when (this) {
 }
 
 internal fun instant(value: String?): Long? = value?.let { runCatching { Instant.parse(it).toEpochMilli() }.getOrNull() }
+
+    internal fun WorkStep.activity(): AgentActivityItem {
+        val status = when (status) {
+            StepStatus.Running -> ActivityStatus.Started
+            StepStatus.Done -> ActivityStatus.Completed
+            StepStatus.Failed -> ActivityStatus.Failed
+            StepStatus.Interrupted -> ActivityStatus.Interrupted
+        }
+        return when (this) {
+            is WorkStep.Command -> AgentActivityItem(id, ActivityKind.Tool, command, status, input = command, output = output)
+            is WorkStep.Edit -> AgentActivityItem(id, ActivityKind.Tool, "Edit $file", status, subjectRefs = listOf(file))
+            is WorkStep.Tool -> AgentActivityItem(id, ActivityKind.Tool, name, status, input, output, subjectRefs = listOfNotNull(summary))
+            is WorkStep.Plan -> AgentActivityItem(id, ActivityKind.Plan, "Plan", status)
+            is WorkStep.Question -> AgentActivityItem(id, ActivityKind.Control, text, ActivityStatus.Waiting)
+            is WorkStep.Note -> AgentActivityItem(id, ActivityKind.Control, text, status)
+            else -> AgentActivityItem(id, ActivityKind.Agent, "Subagent", status)
+        }
+    }

@@ -70,18 +70,14 @@ object AgentPluginBundle {
         }
     }
 
-    private fun hooks(harness: Harness, launcher: List<String>): JsonObject? {
-        val mode = when (harness) {
-            Harness.Claude -> "claude-context"
-            Harness.Codex -> "codex-context"
-            Harness.Antigravity -> return null
-        }
+    private fun hooks(harness: Harness, launcher: List<String>): JsonObject {
+        val mode = "${harness.directory}-context"
         fun handler(command: String) = buildJsonObject {
             put("type", "command")
             put("command", (launcher + listOf("hook", command)).joinToString(" ") { "'" + it.replace("'", "'\\''") + "'" })
             put("timeout", 10)
         }
-        val lifecycle = if (harness == Harness.Codex) mapOf("Stop" to "codex-stop") else mapOf("Stop" to "claude-stop", "SessionEnd" to "claude-end")
+        val lifecycle = if (harness == Harness.Codex) mapOf("Stop" to "codex-stop") else mapOf("Stop" to "${harness.directory}-stop", "SessionEnd" to "${harness.directory}-end")
         return buildJsonObject {
             putJsonObject("hooks") {
                 (listOf("SessionStart", "UserPromptSubmit", "PostToolUse").associateWith { mode } + lifecycle).forEach { (event, command) ->
@@ -91,18 +87,18 @@ object AgentPluginBundle {
         }
     }
 
-    private fun hookGuide(harness: Harness): String = if (harness == Harness.Antigravity) """
-        The Antigravity package has no receiving lifecycle hook adapter. Inbox delivery and session-start recall are unverified in a native Antigravity session. Use the authenticated door and prompt-derived skills for explicit recall and inbox reads. Managed Hangar runs use the plane's context delivery.
-
-        Package files do not attest installation, native loading or hook trust. Do not add another harness's hook configuration to this package.
-    """.trimIndent() + "\n" else """
+    private fun hookGuide(harness: Harness): String = """
         SessionStart calls the running workspace owner's agent.identity and memory.recall operations, using the seat's registered plan when available. Recalled assertions include scope, revision and provenance; source freshness remains unknown until checked against source. The hook does not start an owner or call a model.
 
         SessionStart, UserPromptSubmit and PostToolUse deliver only the process-authenticated thread's inbox through ThreadInbox. Delivery records consumption; explicit message.ack remains the reader's action. A payload session id cannot select another caller.
 
         Presence follows the turn through the owner's presence.state: UserPromptSubmit marks the session Working, ${if (harness == Harness.Codex) "a Stop that lets the turn end marks it Waiting" else "Stop marks it Waiting, and SessionEnd marks it Gone, which returns its in-progress plan items to To do"}. Any later owner operation marks it Working again.
 
-        ${if (harness == Harness.Codex) "Stop calls seat.stop through the running owner. Register the current native thread through seat.keep-working with the real plan and paused=false; use paused=true to pause. Hangar registers its interactive Codex runs. Open /hooks in Codex and review the exact hook definitions before trusting them. Changed definitions need a new review. Preserve existing hook sources until a real continuation proves this replacement." else "Review this package and its commands in Claude Code's /hooks view. Native hook configuration and execution remain subject to the person's harness settings."}
+        ${when (harness) {
+            Harness.Codex -> "Stop calls seat.stop through the running owner. Register the current native thread through seat.keep-working with the real plan and paused=false; use paused=true to pause. Hangar registers its interactive Codex runs. Open /hooks in Codex and review the exact hook definitions before trusting them. Changed definitions need a new review. Preserve existing hook sources until a real continuation proves this replacement."
+            Harness.Claude -> "Review this package and its commands in Claude Code's /hooks view. Native hook configuration and execution remain subject to the person's harness settings."
+            Harness.Antigravity -> "Review this package and its commands in Antigravity's settings and customization view. Native hook configuration and execution remain subject to the person's harness settings."
+        }}
 
         Exporting or enabling this package does not attest native loading, hook trust or delivery. Missing identity or unavailable services produce an empty response. Cancellation stops the hook. Qualify native recall, inbox delivery and Codex continuation separately after installation.
     """.trimIndent() + "\n"

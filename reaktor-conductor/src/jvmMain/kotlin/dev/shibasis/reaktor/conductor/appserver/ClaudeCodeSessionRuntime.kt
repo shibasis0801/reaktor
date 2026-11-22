@@ -1,7 +1,7 @@
 package dev.shibasis.reaktor.conductor.appserver
 
 import dev.shibasis.reaktor.conductor.*
-import dev.shibasis.reaktor.conductor.cli.ClaudeCodeEventParser
+import dev.shibasis.reaktor.conductor.worklog.ClaudeLog
 import dev.shibasis.reaktor.conductor.cli.claudeArgv
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
@@ -89,6 +89,7 @@ private class ClaudeCodeSession(
     private val pending = ConcurrentHashMap<String, ClaudeRequest>()
     private val generation = java.util.UUID.randomUUID().toString()
     @Volatile private var interrupted = false
+    private var queued = 0
 
     @Volatile private var turn: String? = null
     override val activeTurn: String? get() = turn
@@ -104,10 +105,8 @@ private class ClaudeCodeSession(
     }
 
     override val events: Flow<AgentEvent> = channelFlow {
-        val parser = ClaudeCodeEventParser(
-            agent,
-            request.agent.effort?.let { EffortRecord(requested = it, resolved = it) } ?: EffortRecord.none,
-        )
+        val parser = ClaudeLog(request.workingDirectory, cli = true) { null }
+        val effort = request.agent.effort?.let { EffortRecord(requested = it, resolved = it) } ?: EffortRecord.none
         val lines = Channel<String>(256)
         // Deliberately NOT a child of this channelFlow. A blocking stream read cannot be
         // cancelled, so a child would keep the flow from ever completing once the turn ends.
@@ -131,7 +130,11 @@ private class ClaudeCodeSession(
             writeUser(request.prompt)
         }
 
-        for (line in lines) {
+        var afterResult = false
+        try {
+        while (true) {
+            val next = if (afterResult) withTimeoutOrNull(500) { lines.receiveCatching() } else lines.receiveCatching()
+            val line = next?.getOrNull() ?: break
             val message = runCatching { Json.parseToJsonElement(line).jsonObject }.getOrNull()
             when (message?.get("type")?.jsonPrimitive?.contentOrNull) {
                 // Answers to our own control requests never reach the transcript parser.
@@ -143,6 +146,7 @@ private class ClaudeCodeSession(
                 }
                 // The CLI asking us for a tool decision.
                 "control_request" -> {
+                    afterResult = false
                     val ask = claudeRequest(message, generation, turn)
                     if (ask != null) {
                         pending[ask.pending.id] = ask
@@ -165,26 +169,38 @@ private class ClaudeCodeSession(
                 }
                 continue
             }
-            parser.onLine(line).forEach { send(it) }
-            if (message?.get("type")?.jsonPrimitive?.contentOrNull == "result") break
+            afterResult = false
+            if (message != null) parser.events(message, agent).forEach { send(it) }
+            if (message?.get("type")?.jsonPrimitive?.contentOrNull == "result") {
+                val finished = synchronized(writeLock) {
+                    queued--
+                    (queued <= 0).also { if (it) turn = null }
+                }
+                if (finished) break
+                afterResult = true
+            }
         }
 
-        turn = null
+        } finally {
+        synchronized(writeLock) { turn = null; queued = 0 }
         startup.cancel()
         reader.cancel()
         lines.close()
         pending.clear()
-        send(AgentEvent.Finished(agent, parser.finish(
+        }
+        send(AgentEvent.Finished(agent, parser.finish(agent, effort,
             exitCode = if (process.isAlive) 0 else process.exitValue(),
             stderr = synchronized(stderr) { stderr.toString() },
         ).let { if (interrupted) it.copy(ok = false, interrupted = true, failure = "Interrupted") else it }))
     }
 
     override suspend fun steer(text: String, expectedTurn: String?): CommandOutcome {
-        val active = turn ?: return CommandOutcome.Stale(expectedTurn, null)
-        if (expectedTurn != null && expectedTurn != active) return CommandOutcome.Stale(expectedTurn, active)
-        return runCatching { writeUser(text); CommandOutcome.Accepted }
+        return synchronized(writeLock) {
+        val active = turn ?: return@synchronized CommandOutcome.Stale(expectedTurn, null)
+        if (expectedTurn != null && expectedTurn != active) return@synchronized CommandOutcome.Stale(expectedTurn, active)
+        runCatching { writeUser(text); CommandOutcome.Accepted }
             .getOrElse { CommandOutcome.Failed(it.message ?: "Input could not be sent") }
+        }
     }
 
     override suspend fun resolve(requestId: String, decision: AgentDecision): CommandOutcome = synchronized(pending) {
@@ -210,7 +226,10 @@ private class ClaudeCodeSession(
             })
             withTimeoutOrNull(5000) {
                 val response = waiting.await()
-                if (response["subtype"]?.jsonPrimitive?.contentOrNull == "success") { interrupted = true; CommandOutcome.Accepted }
+                if (response["subtype"]?.jsonPrimitive?.contentOrNull == "success") {
+                    synchronized(writeLock) { interrupted = true; queued = 0 }
+                    CommandOutcome.Accepted
+                }
                 else CommandOutcome.Failed(response.toString().take(200))
             } ?: CommandOutcome.Failed("No control_response within 5s")
         } catch (failure: Exception) {
@@ -224,13 +243,16 @@ private class ClaudeCodeSession(
         stdin.write(message.toString()); stdin.write("\n"); stdin.flush()
     }
 
-    private fun writeUser(text: String) = write(buildJsonObject {
+    private fun writeUser(text: String) = synchronized(writeLock) {
+        queued++
+        write(buildJsonObject {
         put("type", "user")
         putJsonObject("message") {
             put("role", "user")
             putJsonArray("content") { addJsonObject { put("type", "text"); put("text", text) } }
         }
     })
+    }
 
     override fun close() {
         controls.values.forEach { it.cancel() }

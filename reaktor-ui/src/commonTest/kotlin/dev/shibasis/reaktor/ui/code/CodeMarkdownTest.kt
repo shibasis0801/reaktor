@@ -5,6 +5,16 @@ import dev.shibasis.reaktor.code.CodeSpan
 import kotlin.test.*
 
 class CodeMarkdownTest {
+    @Test fun tablesAndHeadingLevelsRetainReadableStructure() {
+        val blocks = markdownBlocks(CodeDocument.of("# Title\n\n## Section\n\n| Market | Work |\n| --- | --- |\n| EU | **Privacy** |\n| UK | Safety |\n\n---"))
+        assertEquals(listOf(MarkdownKind.Heading, MarkdownKind.Heading, MarkdownKind.Table, MarkdownKind.Rule), blocks.map { it.kind })
+        assertEquals(listOf(1, 2), blocks.take(2).map { it.level })
+        assertEquals(listOf("Market", "Work"), markdownTableCells(blocks[2].text.lines().first()))
+        assertEquals(3, blocks[2].text.lines().size)
+        assertTrue(markdownTableSeparator("| :--- | ---: |"))
+        assertFalse(markdownTableSeparator("| Market | Work |"))
+    }
+
     @Test fun fencedLanguagesCarryTheirOwnMultilineState() {
         val state = CodeEditorState("# Example\n\n```kotlin\n/* open\nstill a comment\n*/ val done = true\n```\nplain", CodeLanguage.Markdown)
         assertEquals(CodeToken.Comment, state.spans(4).single().token)

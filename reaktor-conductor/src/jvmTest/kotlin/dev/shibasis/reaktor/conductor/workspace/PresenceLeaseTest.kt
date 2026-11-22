@@ -7,6 +7,39 @@ import java.nio.file.Files
 import kotlin.test.*
 
 class PresenceLeaseTest {
+    @Test fun aTurnWorkingForTwoHoursKeepsItsLeaseWithoutAKernelCall() {
+        val directory = Files.createTempDirectory("working-turn-lease")
+        var now = 1_000L
+        var working = true
+        var reads = 0
+        lateinit var plans: WorkPlanStore
+        val agent = BoardActor(BoardActorKind.Agent, "Codex lane", "codex:building", "agent:codex-lane")
+        try {
+            plans = WorkPlanStore(directory, clock = { now }, activeTurns = { sessions ->
+                assertFalse(Thread.holdsLock(plans), "Turn state is read outside the store monitor")
+                reads++
+                if (working) sessions.intersect(setOf(requireNotNull(agent.session))) else emptySet()
+            })
+            val made = plans.write("codex:building", PlanPatch(ops = listOf(PlanOp.Add("Long build", key = "build"),
+                PlanOp.Status("build", PlanStatus.Doing))), agent)
+            assertTrue(made.refused.isEmpty())
+            now += 2 * 60 * 60 * 1_000
+            val active = assertNotNull(plans.plan("codex:building"))
+            assertEquals(PlanStatus.Doing, active.item("build")?.status)
+            assertNotNull(active.item("build")?.lease)
+            assertTrue(reads > 0)
+            working = false
+            now += PlanLease.DurationMillis + 1
+            val stopped = assertNotNull(plans.plan("codex:building"))
+            assertEquals(PlanStatus.Todo, stopped.item("build")?.status)
+            assertNull(stopped.item("build")?.lease)
+            assertTrue(stopped.item("build")?.reason.orEmpty().startsWith("Lease expired after quiet activity"))
+        } finally {
+            runCatching { plans.close() }
+            directory.toFile().deleteTreeSafely(within = File(System.getProperty("java.io.tmpdir")))
+        }
+    }
+
     @Test fun aQuietOpenDoorKeepsItsClaimAndAClosedDoorLetsItsClaimExpire() {
         val directory = Files.createTempDirectory("presence-lease")
         try {
