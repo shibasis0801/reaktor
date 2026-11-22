@@ -53,6 +53,8 @@ object Reaktor {
     val Google = ModuleHandle(build, "reaktor-google")
     val Secrets = ModuleHandle(build, "reaktor-secrets")
     val Security = ModuleHandle(build, "reaktor-security")
+    val Unlock = ModuleHandle(build, "reaktor-unlock")
+    val Widget = ModuleHandle(build, "reaktor-widget")
     val Tooling = ModuleHandle(build, "reaktor-tooling")
     val Cluster = ModuleHandle(build, "reaktor-cluster")
     val Devtools = ModuleHandle(build, "reaktor-devtools")
@@ -63,7 +65,7 @@ object Reaktor {
     val modules = listOf(Compiler, Core, Code, Flexbuffer, Ffi, Io, Db, Ui, Tactile, Surface, SurfaceCompose,
         Auth, AuthCore, AuthContract, Media, Notification, NotificationFcm, NotificationSealed, NotificationService, GraphPort, GraphRuntime, Graph,
         Service, Crypto, Telemetry, Performance, Location, Sensors, Health, Work, ComposeFlow, Blueprint, Board,
-        Cloudflare, Mcp, Web, Google, Secrets, Security, Tooling, Cluster, Devtools, Idb, Conductor, Cloud, AppleExport)
+        Cloudflare, Mcp, Web, Google, Secrets, Security, Unlock, Widget, Tooling, Cluster, Devtools, Idb, Conductor, Cloud, AppleExport)
 
     internal fun check(project: Project) {
         if (project.rootProject === project && project.name == build.name) {
