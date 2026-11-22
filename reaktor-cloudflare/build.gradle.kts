@@ -10,7 +10,7 @@ library(namespace = "dev.shibasis.reaktor.cloudflare", targets = Targets.Android
     val generateBindings by bindings()
     val buildTypeScript by typescript(directory = "ts", configuration = "tsconfig.json", output = "dist", kotlin = listOf(kotlinJsLibrary(Reaktor.Cloudflare)))
     dependencies {
-        common { api(Reaktor.AuthCore, Reaktor.Core, Reaktor.Service, Reaktor.GraphRuntime, Reaktor.Io, Reaktor.Secrets) }
+        common { api(Reaktor.AuthCore, Reaktor.AuthContract, Reaktor.Core, Reaktor.Service, Reaktor.GraphRuntime, Reaktor.Io, Reaktor.Secrets) }
         web {
             api(npm("hono", Versions.Web.Hono))
             api(npm("partyserver", Versions.Web.PartyServer))

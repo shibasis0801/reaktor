@@ -629,9 +629,19 @@ chapters first (`hearth@4fd4387`, `hearth@8a81460`).
   sentence case, and Settings uses the platform's own controls (reaktor-ui `PlatformSwitch` /
   `PlatformChoice`, `b8f718a6`). Settings opens on Downloads, and the em dashes are gone from the
   copy (`hearth@d090b97`).
-- **Open:** `hearth-worker` doesn't build here. `WorkerAuthService` (`main@44c66281`) wasn't
-  carried over, and on this branch reaktor-cloudflare must stay free of reaktor-auth. The
-  sign-in contract (`AuthService` and its requests) needs a headless home first, such as
-  reaktor-auth-core.
+- **Worker:** builds again. The sign-in contract (`AuthService`, its requests, and the types they
+  carry) moved unchanged from reaktor-auth into a new headless `reaktor-auth-contract`, which
+  reaktor-auth and reaktor-cloudflare both depend on. Not into reaktor-auth-core: the contract is
+  built on reaktor-service, which brings Spring on the JVM, and auth-core's boundary forbids that.
+  `WorkerAuthService` is rebuilt on this branch's `Service`/`Served` and gates `Hono.sync` with a
+  `RouteGate`.
+- **Sign-out now ends the server session.** This branch's `AuthAdapter` revokes by sending the
+  refresh token it holds and sends nothing without one; the Worker issued none, so a sign-out
+  left the session working (true on `main` too, where `logout()` never called the server). The
+  session token is now also the refresh token, and a refresh returns the same session.
+- **Checked:** `WorkerAuthServiceTest` (7, real workerd D1) and the rest of reaktor-cloudflare's
+  JS suite; reaktor-auth on JVM, JS and Android unit tests, and compiled for iOS (simulator tests
+  are off on this branch); reaktor-security; `hearth-worker/sync-test.sh` (20 checks against
+  `wrangler dev`); Hearth's app tests and builds.
 
 Related: [app-portfolio.md](app-portfolio.md) · [lector.md](lector.md) · [cairn.md](cairn.md)
