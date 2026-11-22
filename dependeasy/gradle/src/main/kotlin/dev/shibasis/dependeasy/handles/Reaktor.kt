@@ -26,6 +26,7 @@ object Reaktor {
     val SurfaceCompose = ModuleHandle(build, "reaktor-surface-compose")
     val Auth = ModuleHandle(build, "reaktor-auth")
     val AuthCore = ModuleHandle(build, "reaktor-auth-core")
+    val AuthContract = ModuleHandle(build, "reaktor-auth-contract")
     val Media = ModuleHandle(build, "reaktor-media")
     val Notification = ModuleHandle(build, "reaktor-notification")
     val NotificationFcm = ModuleHandle(build, "reaktor-notification-fcm")
@@ -60,7 +61,7 @@ object Reaktor {
     val Cloud = ModuleHandle(build, "reaktor-cloud")
     val AppleExport = ModuleHandle(build, "reaktor-apple-export")
     val modules = listOf(Compiler, Core, Code, Flexbuffer, Ffi, Io, Db, Ui, Tactile, Surface, SurfaceCompose,
-        Auth, AuthCore, Media, Notification, NotificationFcm, NotificationSealed, NotificationService, GraphPort, GraphRuntime, Graph,
+        Auth, AuthCore, AuthContract, Media, Notification, NotificationFcm, NotificationSealed, NotificationService, GraphPort, GraphRuntime, Graph,
         Service, Crypto, Telemetry, Performance, Location, Sensors, Health, Work, ComposeFlow, Blueprint, Board,
         Cloudflare, Mcp, Web, Google, Secrets, Security, Tooling, Cluster, Devtools, Idb, Conductor, Cloud, AppleExport)
 

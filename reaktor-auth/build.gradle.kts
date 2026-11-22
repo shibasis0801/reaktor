@@ -11,7 +11,7 @@ library(namespace = "dev.shibasis.reaktor.auth", targets = Targets.All, ui = Com
     val buildTypeScript by typescript(directory = "ts", configuration = "tsconfig.json", output = "dist", kotlin = listOf(kotlinJsLibrary(Reaktor.Auth)))
     dependencies {
         common {
-            api(Reaktor.AuthCore, Reaktor.Ui, Reaktor.Graph, Reaktor.Service, Reaktor.Db, Reaktor.Io)
+            api(Reaktor.AuthCore, Reaktor.AuthContract, Reaktor.Ui, Reaktor.Graph, Reaktor.Service, Reaktor.Db, Reaktor.Io)
             api(Versions.Data.Jwt)
         }
         android {

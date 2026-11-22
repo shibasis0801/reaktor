@@ -17,6 +17,8 @@ packages:
   - "build/js/packages/reaktor-compose-flow"
   - "build/js/packages/reaktor-compose-flow-test"
   - "build/js/packages/reaktor-reaktor-auth"
+  - "build/js/packages/reaktor-reaktor-auth-contract"
+  - "build/js/packages/reaktor-reaktor-auth-contract-test"
   - "build/js/packages/reaktor-reaktor-auth-core"
   - "build/js/packages/reaktor-reaktor-auth-core-test"
   - "build/js/packages/reaktor-reaktor-auth-test"
