@@ -10,6 +10,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
@@ -40,19 +41,20 @@ fun Text(
     align: TextAlign = TextAlign.Unspecified,
     appearance: TextAppearance = LocalAppearances.current[Appearance.Text],
     overflow: TextOverflow = TextOverflow.Ellipsis,
+    onTextLayout: ((TextLayoutResult) -> Unit)? = null,
 ) {
     val studio = LocalSurfaceStudio.current
-    if (studio == null) PlainText(text, modifier, role, ink, lines, align, appearance, overflow)
+    if (studio == null) PlainText(text, modifier, role, ink, lines, align, appearance, overflow, onTextLayout)
     else studio.Element(textCall(text, modifier, role, ink, lines, appearance)) { edits ->
-        PlainText(edits.text("text", text), edits.modifier, edits.role("role", role), edits.ink("ink", ink), edits.count("lines", lines), align, edits.appearance(appearance), overflow)
+        PlainText(edits.text("text", text), edits.modifier, edits.role("role", role), edits.ink("ink", ink), edits.count("lines", lines), align, edits.appearance(appearance), overflow, onTextLayout)
     }
 }
 
 @Composable
-private fun PlainText(text: String, modifier: Modifier, role: TextRole?, ink: InkRole?, lines: Int, align: TextAlign, appearance: TextAppearance, overflow: TextOverflow) {
+private fun PlainText(text: String, modifier: Modifier, role: TextRole?, ink: InkRole?, lines: Int, align: TextAlign, appearance: TextAppearance, overflow: TextOverflow, onTextLayout: ((TextLayoutResult) -> Unit)?) {
     val style = appearance.resolved(role, ink, align)
-    if (overflow == TextOverflow.MiddleEllipsis && lines == 1) MiddleEllipsisText(AnnotatedString(text), modifier, style)
-    else BasicText(text, modifier, style, overflow = overflow, maxLines = lines)
+    if (overflow == TextOverflow.MiddleEllipsis && lines == 1) MiddleEllipsisText(AnnotatedString(text), modifier, style, onTextLayout)
+    else BasicText(text, modifier, style, onTextLayout, overflow = overflow, maxLines = lines)
 }
 
 @Composable
@@ -65,26 +67,27 @@ fun Text(
     align: TextAlign = TextAlign.Unspecified,
     appearance: TextAppearance = LocalAppearances.current[Appearance.Text],
     overflow: TextOverflow = TextOverflow.Ellipsis,
+    onTextLayout: ((TextLayoutResult) -> Unit)? = null,
 ) {
     val studio = LocalSurfaceStudio.current
-    if (studio == null) RichText(text, modifier, role, ink, lines, align, appearance, overflow)
+    if (studio == null) RichText(text, modifier, role, ink, lines, align, appearance, overflow, onTextLayout)
     else studio.Element(textCall(text.text, modifier, role, ink, lines, appearance)) { edits ->
-        RichText(edits.value("text")?.let(::AnnotatedString) ?: text, edits.modifier, edits.role("role", role), edits.ink("ink", ink), edits.count("lines", lines), align, edits.appearance(appearance), overflow)
+        RichText(edits.value("text")?.let(::AnnotatedString) ?: text, edits.modifier, edits.role("role", role), edits.ink("ink", ink), edits.count("lines", lines), align, edits.appearance(appearance), overflow, onTextLayout)
     }
 }
 
 @Composable
-private fun RichText(text: AnnotatedString, modifier: Modifier, role: TextRole?, ink: InkRole?, lines: Int, align: TextAlign, appearance: TextAppearance, overflow: TextOverflow) {
+private fun RichText(text: AnnotatedString, modifier: Modifier, role: TextRole?, ink: InkRole?, lines: Int, align: TextAlign, appearance: TextAppearance, overflow: TextOverflow, onTextLayout: ((TextLayoutResult) -> Unit)?) {
     val style = appearance.resolved(role, ink, align)
-    if (overflow == TextOverflow.MiddleEllipsis && lines == 1) MiddleEllipsisText(text, modifier, style)
-    else BasicText(text, modifier, style, overflow = overflow, maxLines = lines)
+    if (overflow == TextOverflow.MiddleEllipsis && lines == 1) MiddleEllipsisText(text, modifier, style, onTextLayout)
+    else BasicText(text, modifier, style, onTextLayout, overflow = overflow, maxLines = lines)
 }
 
 private fun textCall(text: String, modifier: Modifier, role: TextRole?, ink: InkRole?, lines: Int, appearance: TextAppearance) =
     SurfaceCall("Text", modifier, listOf(SurfaceField.text("text", text), SurfaceField.role("role", role), SurfaceField.ink("ink", ink), SurfaceField.count("lines", lines)), appearance, Appearance.Text)
 
 @Composable
-private fun MiddleEllipsisText(original: AnnotatedString, modifier: Modifier, style: TextStyle) {
+private fun MiddleEllipsisText(original: AnnotatedString, modifier: Modifier, style: TextStyle, onTextLayout: ((TextLayoutResult) -> Unit)?) {
     val measurer = rememberTextMeasurer()
     BoxWithConstraints(modifier.semantics(mergeDescendants = true) {}, propagateMinConstraints = true) {
         fun fits(candidate: AnnotatedString) = !measurer.measure(candidate, style, maxLines = 1,
@@ -106,7 +109,7 @@ private fun MiddleEllipsisText(original: AnnotatedString, modifier: Modifier, st
             }
             candidate(low).takeIf(::fits) ?: AnnotatedString("")
         }
-        BasicText(rendered, Modifier.semantics { text = original }, style, softWrap = false,
+        BasicText(rendered, Modifier.semantics { text = original }, style, onTextLayout, softWrap = false,
             overflow = TextOverflow.Clip, maxLines = 1)
     }
 }

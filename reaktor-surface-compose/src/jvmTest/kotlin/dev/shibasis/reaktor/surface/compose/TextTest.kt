@@ -117,4 +117,21 @@ class TextTest {
         assertEquals(chosen, themed)
         assertEquals(outside, bare)
     }
+
+    @Test
+    fun theLayoutIsReportedSoACallerCanTellTheTextWasCut() = runComposeUiTest {
+        val long = "A show's description that runs on well past the three lines a row leaves for it, " .repeat(6)
+        val cut = mutableListOf<Boolean>()
+        val whole = mutableListOf<Boolean>()
+        setContent {
+            SurfaceTheme(BareTheme, Appearances(Appearance.Text provides recording)) {
+                Text(long, Modifier.width(120.dp), lines = 3, onTextLayout = { cut += it.hasVisualOverflow })
+                Text(long, Modifier.width(120.dp), lines = Int.MAX_VALUE, overflow = TextOverflow.Clip, onTextLayout = { whole += it.hasVisualOverflow })
+                Text(AnnotatedString(long), Modifier.width(120.dp), lines = 3, onTextLayout = { cut += it.hasVisualOverflow })
+            }
+        }
+        waitForIdle()
+        assertTrue(cut.all { it } && cut.isNotEmpty())
+        assertTrue(whole.isNotEmpty() && whole.none { it })
+    }
 }
