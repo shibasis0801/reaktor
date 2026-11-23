@@ -63,11 +63,17 @@ private val RouteNode<*, *>.acceptsPlainPayload: Boolean
 
 val Graph.root: Graph get() = parentGraph?.root ?: this
 
+/**
+ * Opens [link]'s route and returns whether there was one. The root graph is searched first, as an
+ * app whose screens hang off its root expects. When the root routes nothing (an app whose screens
+ * are a child of a graph of services, as Coffer's UI is a child of its session), the nearest graph
+ * from this one upwards that routes the path opens it instead.
+ */
 fun Graph.open(link: DeepLink): Boolean {
-    val root = root
-    val match = root.routeFor(link.path) ?: return false
+    val (host, match) = (sequenceOf(root) + generateSequence(this) { it.parentGraph })
+        .firstNotNullOfOrNull { graph -> graph.routeFor(link.path)?.let { graph to it } } ?: return false
     @Suppress("UNCHECKED_CAST")
     val route = match.route as RouteNode<Payload, *>
-    root.dispatch(Push(root.sentinel.edge(route), Payload(HashMap(match.params + link.query))))
+    host.dispatch(Push(host.sentinel.edge(route), Payload(HashMap(match.params + link.query))))
     return true
 }
