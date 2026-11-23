@@ -751,6 +751,39 @@ lists every module's package), and the JS build then fails with `ERR_PNPM_PACKAG
 until the lockfile is regenerated. Give a module a web target only when something on the web uses
 it, and when it must have one, regenerate and commit the lockfile in the same change.
 
+## Moving an app's UI onto Surface without changing a pixel
+
+Lector and Coffer both moved off Material onto reaktor Surface so Hangar's Studio can show and edit
+them. Coffer's way kept every screen identical; its files are the ones to copy.
+
+- **Baseline first, then one step at a time.** Capture every state on the emulator and simulator
+  before changing anything, and diff each step's captures against them (more than 8 per channel
+  counts). A state that drifts run to run (a fling, a cursor) needs a second baseline run to tell
+  noise from a change. A state the baseline lacks can be compared against a build of the starting
+  commit in a temporary `git worktree` beside the app, so `../reaktor` still resolves.
+- **Appearances at the root carry the look.** `SurfaceTheme(snapshot, Appearances(...))` inside the
+  app's theme, with its type scale as a `TextAppearance` and its palette as an `InkRole` enum
+  (Coffer's `design/Surfaces.kt`). Surface `Text` shows **one line with an ellipsis** by default
+  where Material showed every line: pass `lines = Int.MAX_VALUE, overflow = Clip` when swapping.
+  Surface `Icon` has no `contentDescription` and no default size: give it `Modifier.semantics`.
+- **Copy Material's numbers, don't guess them.** Its tokens and private constants read out of the
+  Material jar by reflection (`DumpStatics`, `DumpTokens` on `material3-desktop`), its layouts from
+  `javap -c` or the JetBrains fork's sources on GitHub. Defaults the app never set still show:
+  Coffer's date picker sits on Material's `surfaceContainerHigh`, so that colour is carried over.
+- **What Surface already has for a phone app:** `NavigationBar` (with `NavigationItem`), `DatePicker`
+  with `CalendarText` (the platform's own date words, as Material reads them), Button, Text, Icon,
+  Dialog. Coffer's `design/Navigation.kt` and `design/DatePicker.kt` are Material 3's bar and
+  picker as Surface appearances, measure for measure.
+- **Own components become Studio-visible with `Component(contract, modifier, values) { edits -> }`.**
+  It does nothing outside Studio. Its body is a lambda: a bare `return` in the old function body
+  becomes `return@Component` (but not inside a local `fun`).
+- **Keep the platform dialog window** for alert and picker dialogs (compose-ui `Dialog`) where the
+  app had Material's: Surface's `Dialog` is an overlay in the app's window and dismisses
+  differently. Surface's `Tooltip` needs the overlay host from `SurfaceEnvironmentProvider`, which
+  a platform dialog's window doesn't have.
+- **Ripples become pressed layers** (a tenth of the content colour while pressed). That is the one
+  difference to report; resting states are identical.
+
 ## Extending reaktor rather than working around it
 
 When an app needs something reaktor does not have, the default is to add it to reaktor rather
