@@ -78,6 +78,7 @@ object Appearance {
     val NavigationBar = AppearanceKey<NavigationBarAppearance>("navigationBar", BareNavigationBar)
     val NavigationItem = AppearanceKey<ItemAppearance>("navigationItem", BareNavigationItem)
     val DatePicker = AppearanceKey<DatePickerAppearance>("datePicker", BareDatePicker)
+    val Slider = AppearanceKey<SliderAppearance>("slider", BareSlider)
 }
 
 fun Appearances(vararg entries: AppearanceEntry<*>): Appearances =
