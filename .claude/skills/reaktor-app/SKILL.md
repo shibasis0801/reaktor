@@ -789,6 +789,25 @@ them. Coffer's way kept every screen identical; its files are the ones to copy.
   `design/Ripples.kt`). For a control whose colour follows its state, pass a `ColorProducer` and
   `remember` one ripple: a new ripple drops the next press. Hold each control down on the old and
   new builds and compare mid-press.
+- **Hearth's move added `Slider` and `PullToRefresh`.** Both lay out and behave as Material 3's
+  (the slider's thumb slot, tap and drag mapping and keys; the pull's half-travel, tension,
+  threshold and release); the look is the appearance. Hearth's `design/Scrubber.kt` and
+  `design/Refresh.kt` are Material's slider and pull indicator (arrow, arc and the 1.4 spinner's
+  keyframes) as appearances, and an app that had either gets its look by copying them. Material's
+  composables decompile to readable Java with Android Studio's bundled
+  `plugins/java-decompiler/lib/java-decompiler.jar` (`ConsoleDecompiler`), quicker than `javap -c`
+  for animation specs and draw lambdas.
+- **`Text` takes `onTextLayout`** for a "More" that appears only when the text was cut.
+- **Canvas glyphs become `Icon`s without moving an edge** through a `Painter` that reads its colour
+  from the tint Icon applies (`BlendModeColorFilter.color` in `applyColorFilter`, returning true)
+  and draws in it directly; tinting a layer instead shifts antialiasing. Hearth's
+  `design/Glyphs.kt`.
+- **A `graphicsLayer` can add an accessibility node.** An always-applied layer (even a no-op
+  `scaleX`) on a child gave TalkBack an extra empty node; apply it only when it does something.
+- **Capture by script, both builds back to back.** On Android, `uiautomator dump` finds a control by
+  its text or label and `input motionevent DOWN/MOVE/UP` holds a pull or drag at an exact
+  distance; restore the app's data from a `run-as` tar before each run, and wait out anything the
+  app does on launch (a feed refresh) so both builds are caught after it.
 
 ## Extending reaktor rather than working around it
 
