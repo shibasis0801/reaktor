@@ -36,5 +36,7 @@ val SurfaceContracts: Map<String, ComponentContract> = listOf(
     ComponentContract("surface.navigation-bar", "NavigationBar", events = listOf("onSelectedChange"), slots = listOf(SlotSchema("content", setOf("NavigationItem")))),
     ComponentContract("surface.navigation-item", "NavigationItem", slots = listOf(SlotSchema("icon", SlotKinds.Glyph, max = 1), SlotSchema("label", SlotKinds.Label, max = 1))),
     ComponentContract("surface.slider", "Slider", fields = listOf(FieldSchema("value", FieldType.Fraction), FieldSchema("enabled", FieldType.Flag, "true")), events = listOf("onValueChange", "onValueChangeFinished")),
+    ComponentContract("surface.pull-to-refresh", "PullToRefresh", fields = listOf(FieldSchema("refreshing", FieldType.Flag, "false"), FieldSchema("enabled", FieldType.Flag, "true")),
+        events = listOf("onRefresh"), slots = listOf(SlotSchema("content"))),
     ComponentContract("surface.date-picker", "DatePicker", fields = listOf(FieldSchema("selected", FieldType.Text), FieldSchema("entry", FieldType.Choice, "Calendar", listOf("Calendar", "Typed")))),
 ).associateBy { it.kind }
