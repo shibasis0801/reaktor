@@ -781,8 +781,14 @@ them. Coffer's way kept every screen identical; its files are the ones to copy.
   app had Material's: Surface's `Dialog` is an overlay in the app's window and dismisses
   differently. Surface's `Tooltip` needs the overlay host from `SurfaceEnvironmentProvider`, which
   a platform dialog's window doesn't have.
-- **Ripples become pressed layers** (a tenth of the content colour while pressed). That is the one
-  difference to report; resting states are identical.
+- **Ripples too.** reaktor-ui's `materialRipple(color)` is Material's own ripple primitive (the
+  platform's ripple on Android) without a Material import in the app; a Surface appearance gets
+  its control's presses from `LocalPressInteractions`. Use Material's colour for each control (it
+  reads `LocalContentColor` where the ripple sits: often not the label's colour), clip to the same
+  shape, and map press positions when the ripple is on part of the control (Coffer's
+  `design/Ripples.kt`). For a control whose colour follows its state, pass a `ColorProducer` and
+  `remember` one ripple: a new ripple drops the next press. Hold each control down on the old and
+  new builds and compare mid-press.
 
 ## Extending reaktor rather than working around it
 
