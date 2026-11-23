@@ -11,6 +11,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Alignment
@@ -104,7 +105,9 @@ class OneOfScope internal constructor(
             propagateMinConstraints = true,
         ) {
             val state = press.state
-            appearance.Content(properties, state, LocalThemeSnapshot.current, rememberFeedback(state.pressed, state.focusVisible), ItemSlots(icon, content))
+            CompositionLocalProvider(LocalPressInteractions provides source) {
+                appearance.Content(properties, state, LocalThemeSnapshot.current, rememberFeedback(state.pressed, state.focusVisible), ItemSlots(icon, content))
+            }
         }
     }
 }

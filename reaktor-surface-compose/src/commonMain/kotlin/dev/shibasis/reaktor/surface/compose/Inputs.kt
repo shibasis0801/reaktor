@@ -1,5 +1,7 @@
 package dev.shibasis.reaktor.surface.compose
 
+import androidx.compose.foundation.interaction.InteractionSource
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.foundation.interaction.FocusInteraction
 import androidx.compose.foundation.interaction.HoverInteraction
 import androidx.compose.foundation.interaction.Interaction
@@ -58,3 +60,11 @@ private class PressInteractions(
         }
     }
 }
+
+/**
+ * The presses, focus and hover of the Surface control an appearance is drawing (a [Button], an item
+ * of [Tabs], a [RadioGroup] or a [NavigationBar]), for an appearance that answers them with an
+ * indication of its own, such as a ripple, rather than through [ComposeFeedback]. A press's position
+ * is relative to the control's whole bounds. Null outside such a control.
+ */
+val LocalPressInteractions = staticCompositionLocalOf<InteractionSource?> { null }
